@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+type FormatterKind string
+
+const (
+	FormatterKindJSONRPC FormatterKind = "jsonrpc"
+)
+
 var DefaultFormatter Formatter = NewJSONRPCFormatter()
 
 type RPCRequest struct {
@@ -32,6 +38,8 @@ func (r *RPCResponseError) Error() string {
 }
 
 type Formatter interface {
+	Kind() FormatterKind
+
 	// FormatRequest formats a request
 	FormatRequest(req *RPCRequest) ([]byte, error)
 
@@ -46,6 +54,9 @@ type Formatter interface {
 }
 
 // ============================================================
+
+// JSONRPCVersion is the json rpc version
+var JSONRPCVersion = "2.0"
 
 // JSONRPCFormatter is a json rpc formatter
 type JSONRPCFormatter struct{}
@@ -74,9 +85,13 @@ func NewJSONRPCFormatter() *JSONRPCFormatter {
 	return &JSONRPCFormatter{}
 }
 
+func (j *JSONRPCFormatter) Kind() FormatterKind {
+	return FormatterKindJSONRPC
+}
+
 func (j *JSONRPCFormatter) FormatRequest(req *RPCRequest) ([]byte, error) {
 	return json.Marshal(&JSONRPCFormatterRequest{
-		Jsonrpc: "2.0",
+		Jsonrpc: JSONRPCVersion,
 		Method:  req.Path,
 		Params:  req.Params,
 		ID:      req.ID,
@@ -86,7 +101,7 @@ func (j *JSONRPCFormatter) FormatRequest(req *RPCRequest) ([]byte, error) {
 func (j *JSONRPCFormatter) FormatResponse(resp *RPCResponse, err *RPCResponseError) ([]byte, error) {
 	if err != nil {
 		return json.Marshal(&JSONRPCFormatterResponse{
-			Jsonrpc: "2.0",
+			Jsonrpc: JSONRPCVersion,
 			ID:      err.ID,
 			Error: &JSONRPCFormatterResponseError{
 				Code:    err.Code,
@@ -96,7 +111,7 @@ func (j *JSONRPCFormatter) FormatResponse(resp *RPCResponse, err *RPCResponseErr
 		})
 	}
 	return json.Marshal(&JSONRPCFormatterResponse{
-		Jsonrpc: "2.0",
+		Jsonrpc: JSONRPCVersion,
 		ID:      resp.ID,
 		Result:  resp.Result,
 	})

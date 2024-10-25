@@ -58,26 +58,26 @@ func New(opts ...Option) jet.Middleware {
 	tracer := o.tp.Tracer(instrumentation)
 	return func(next jet.Handler) jet.Handler {
 		return func(ctx context.Context, service, method string, request any) (response any, err error) {
-			ctx, span := tracer.Start(ctx, service+"/"+method)
+			ctx, span := tracer.Start(ctx, service+"/"+method,
+				trace.WithSpanKind(trace.SpanKindClient),
+			)
 			defer span.End()
 
-			// 10 is the number of attributes in the following code
-			attrs := make([]attribute.KeyValue, 0, len(o.attrs)+10)
-
-			attrs = []attribute.KeyValue{
-				semconv.RPCSystemKey.String("jsonrpc"),
+			attrs := []attribute.KeyValue{
 				semconv.RPCService(service),
 				semconv.RPCMethod(method),
-				semconv.RPCJsonrpcErrorCode(0),     // todo
-				semconv.RPCJsonrpcErrorMessage(""), // todo
-				semconv.RPCJsonrpcVersion(""),      // todo
-				semconv.RPCJsonrpcRequestID(""),    // todo
-				semconv.ServerAddress(""),          // todo
-				semconv.ServerPort(0),              // todo
-				semconv.NetworkPeerAddress(""),     // todo
-				semconv.NetworkPeerPort(0),         // todo
+				// semconv.RPCJsonrpcErrorCode(0),     // todo
+				// semconv.RPCJsonrpcErrorMessage(""), // todo
+				// semconv.RPCJsonrpcRequestID(""),    // todo
+				// semconv.ServerAddress(""),          // todo
+				// semconv.ServerPort(0),              // todo
+				// semconv.NetworkPeerAddress(""),     // todo
+				// semconv.NetworkPeerPort(0),         // todo
 			}
+			attrs = append(attrs, formatterAttributes(ctx)...)
+			attrs = append(attrs, transportAttributes(ctx)...)
 			attrs = append(attrs, o.attrs...)
+
 			span.SetAttributes(attrs...)
 
 			response, err = next(ctx, service, method, request)
@@ -88,5 +88,38 @@ func New(opts ...Option) jet.Middleware {
 
 			return
 		}
+	}
+}
+
+func formatterAttributes(ctx context.Context) []attribute.KeyValue {
+	client, ok := jet.ClientFromContext(ctx)
+	if !ok {
+		return []attribute.KeyValue{}
+	}
+
+	switch formatter := client.GetFormatter(); formatter.Kind() {
+	case jet.FormatterKindJSONRPC:
+		return []attribute.KeyValue{
+			semconv.RPCSystemKey.String("jsonrpc"),
+			semconv.RPCJsonrpcVersion(jet.JSONRPCVersion),
+		}
+	default:
+		return []attribute.KeyValue{}
+	}
+}
+
+func transportAttributes(ctx context.Context) []attribute.KeyValue {
+	client, ok := jet.ClientFromContext(ctx)
+	if !ok {
+		return []attribute.KeyValue{}
+	}
+
+	switch transporter := client.GetTransporter().(type) {
+	case *jet.HTTPTransporter:
+		return []attribute.KeyValue{
+			semconv.ServerAddress(transporter.Addr),
+		}
+	default:
+		return []attribute.KeyValue{}
 	}
 }

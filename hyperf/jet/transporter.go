@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrHTTPTransporterAddrIsRequired     = errors.New("jet/transporter: addr is required")
+	ErrHTTPTransporterAddrIsRequired     = errors.New("jet/transporter: Addr is required")
 	ErrorHTTPTransporterClientIsRequired = errors.New("jet/transporter: client is required")
 )
 
@@ -24,7 +24,7 @@ type Transporter interface {
 
 // HTTPTransporter is a http transporter
 type HTTPTransporter struct {
-	addr string
+	Addr string
 	*http.Client
 }
 
@@ -32,7 +32,7 @@ type HTTPTransporterOption func(*HTTPTransporter)
 
 func WithHTTPTransporterAddr(addr string) HTTPTransporterOption {
 	return func(t *HTTPTransporter) {
-		t.addr = addr
+		t.Addr = addr
 	}
 }
 
@@ -51,7 +51,7 @@ func NewHTTPTransporter(opts ...HTTPTransporterOption) (*HTTPTransporter, error)
 	}
 
 	// validate
-	if transport.addr == "" {
+	if transport.Addr == "" {
 		return nil, ErrHTTPTransporterAddrIsRequired
 	}
 	if transport.Client == nil {
@@ -62,7 +62,7 @@ func NewHTTPTransporter(opts ...HTTPTransporterOption) (*HTTPTransporter, error)
 }
 
 func (t *HTTPTransporter) Send(ctx context.Context, data []byte) ([]byte, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, t.addr, bytes.NewReader(data))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, t.Addr, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}

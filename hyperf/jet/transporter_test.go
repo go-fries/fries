@@ -51,5 +51,6 @@ func TestTransporter_HTTPTransporter_HTTPTransporterServerError(t *testing.T) {
 		Err:        errors.New("custom error"),
 	}
 	assert.True(t, IsHTTPTransporterServerError(err))
+	assert.IsType(t, "", err.Error())
 	assert.Equal(t, "custom error", err.Unwrap().Error())
 }
