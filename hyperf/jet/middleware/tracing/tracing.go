@@ -117,7 +117,7 @@ func transportAttributes(ctx context.Context) []attribute.KeyValue {
 	switch transporter := client.GetTransporter().(type) {
 	case *jet.HTTPTransporter:
 		return []attribute.KeyValue{
-			semconv.ServerAddress(transporter.Addr),
+			semconv.ServerAddress(transporter.Addr), // todo: split host and port
 		}
 	default:
 		return []attribute.KeyValue{}
