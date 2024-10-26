@@ -60,7 +60,7 @@ func New(opts ...Option) jet.Middleware {
 	tracer := o.tp.Tracer(instrumentation)
 	return func(next jet.Handler) jet.Handler {
 		return func(ctx context.Context, service, method string, request any) (response any, err error) {
-			ctx, span := tracer.Start(ctx, service+"/"+method,
+			ctx, span := tracer.Start(ctx, "jet."+service+"/"+method,
 				trace.WithSpanKind(trace.SpanKindClient),
 			)
 			defer span.End()
