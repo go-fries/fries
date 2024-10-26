@@ -2,6 +2,8 @@ package tracing
 
 import (
 	"context"
+	"net"
+	"strconv"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -58,7 +60,7 @@ func New(opts ...Option) jet.Middleware {
 	tracer := o.tp.Tracer(instrumentation)
 	return func(next jet.Handler) jet.Handler {
 		return func(ctx context.Context, service, method string, request any) (response any, err error) {
-			ctx, span := tracer.Start(ctx, service+"/"+method,
+			ctx, span := tracer.Start(ctx, "jet."+service+"/"+method,
 				trace.WithSpanKind(trace.SpanKindClient),
 			)
 			defer span.End()
@@ -116,9 +118,14 @@ func transportAttributes(ctx context.Context) []attribute.KeyValue {
 
 	switch transporter := client.GetTransporter().(type) {
 	case *jet.HTTPTransporter:
-		return []attribute.KeyValue{
-			semconv.ServerAddress(transporter.Addr), // todo: split host and port
+		var attrs []attribute.KeyValue
+		if host, port, err := net.SplitHostPort(transporter.Addr); err == nil {
+			attrs = append(attrs, semconv.ServerAddress(host))
+			if p, err := strconv.Atoi(port); err == nil {
+				attrs = append(attrs, semconv.ServerPort(p))
+			}
 		}
+		return attrs
 	default:
 		return []attribute.KeyValue{}
 	}
