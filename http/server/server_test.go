@@ -35,6 +35,7 @@ func TestServer(t *testing.T) {
 		default:
 			resp, err := http.Get("http://localhost:8081?name=server")
 			if err == nil && resp.StatusCode == http.StatusOK {
+				_ = resp.Body.Close()
 				t.Log("server started")
 				return
 			}

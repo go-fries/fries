@@ -11,7 +11,7 @@ import (
 func Example() {
 	srv := server.New(&http.Server{
 		Addr: ":8080",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("hello world"))
 		}),
