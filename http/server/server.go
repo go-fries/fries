@@ -9,15 +9,23 @@ import (
 )
 
 type Server struct {
+	name string
 	*http.Server
 }
 
+type Option func(*Server)
+
 var _ transport.Server = (*Server)(nil)
 
-func New(srv *http.Server) *Server {
-	return &Server{
+func New(srv *http.Server, opts ...Option) *Server {
+	s := &Server{
+		name:   "HTTP",
 		Server: srv,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 type HTTPServerOption func(*http.Server)
@@ -41,11 +49,11 @@ func NewWithHandler(handler http.Handler, opts ...HTTPServerOption) *Server {
 }
 
 func (s *Server) Start(_ context.Context) error {
-	log.Infof("[HTTP] server listening on: %s", s.Addr)
+	log.Infof("[%s] server listening on: %s", s.name, s.Addr)
 	return s.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	log.Info("[HTTP] server stopping")
+	log.Infof("[%s] server stopping", s.name)
 	return s.Shutdown(ctx)
 }
