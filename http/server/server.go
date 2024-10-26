@@ -15,6 +15,14 @@ type Server struct {
 
 type Option func(*Server)
 
+func WithName(name string) Option {
+	return func(s *Server) {
+		if name != "" {
+			s.name = name
+		}
+	}
+}
+
 var _ transport.Server = (*Server)(nil)
 
 func New(srv *http.Server, opts ...Option) *Server {
