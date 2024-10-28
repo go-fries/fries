@@ -7,7 +7,6 @@ import (
 	"time"
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
-	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
@@ -38,11 +37,11 @@ type Client struct {
 	deploymentEnvironment string
 	attributes            []attribute.KeyValue
 
-	// metric options
-	enableRuntimeMetrics bool
-
 	// trance options
 	traceSampler sdktrace.Sampler // default is always on
+
+	// hooks
+	hooks []Hook
 }
 
 type Option func(*Client)
@@ -101,10 +100,9 @@ func WithAttributes(attributes ...attribute.KeyValue) Option {
 	}
 }
 
+// Deprecated: use Hooks instead
 func WithEnableRuntimeMetrics(enable bool) Option {
-	return func(c *Client) {
-		c.enableRuntimeMetrics = enable
-	}
+	return func(c *Client) {}
 }
 
 func WithTraceSampler(sampler sdktrace.Sampler) Option {
@@ -113,9 +111,17 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	}
 }
 
+func WithHook(hooks ...Hook) Option {
+	return func(c *Client) {
+		if len(hooks) > 0 {
+			c.hooks = hooks
+		}
+	}
+}
+
 func NewClient(opts ...Option) *Client {
 	c := &Client{
-		enableRuntimeMetrics: true, // default enable runtime metrics
+		hooks: DefaultHooks,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -147,7 +153,12 @@ func (c *Client) Configure(ctx context.Context) error {
 		return err
 	}
 
-	kratoslog.Infof("OTLP client configured")
+	// run configured hooks
+	if err := c.runConfigureHooks(ctx); err != nil {
+		return err
+	}
+
+	kratoslog.Info("OTLP client configured")
 
 	return nil
 }
@@ -215,6 +226,7 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 			sdktrace.WithExportTimeout(10*time.Second), // nolint:mnd
 		)),
 		sdktrace.WithResource(c.resource),
+		sdktrace.WithSampler(c.traceSampler),
 	)
 
 	otel.SetTracerProvider(tp)
@@ -241,13 +253,6 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 	)
 
 	otel.SetMeterProvider(mp)
-
-	// enable runtime metrics
-	if c.enableRuntimeMetrics {
-		if err := runtimemetrics.Start(); err != nil {
-			kratoslog.Errorf("runtimemetrics.Start failed: %v", err)
-		}
-	}
 
 	return nil
 }
@@ -304,6 +309,15 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 
 func (c *Client) RegisterResource(resource *sdkresource.Resource) {
 	c.resource = resource
+}
+
+func (c *Client) runConfigureHooks(ctx context.Context) error {
+	for _, hook := range c.hooks {
+		if err := hook.Configured(ctx, c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func queueSize() int {
