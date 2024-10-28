@@ -100,11 +100,6 @@ func WithAttributes(attributes ...attribute.KeyValue) Option {
 	}
 }
 
-// Deprecated: use Hooks instead
-func WithEnableRuntimeMetrics(enable bool) Option {
-	return func(c *Client) {}
-}
-
 func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	return func(c *Client) {
 		c.traceSampler = sampler
