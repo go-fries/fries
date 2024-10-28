@@ -154,7 +154,7 @@ func (c *Client) Configure(ctx context.Context) error {
 	}
 
 	// run configured hooks
-	if err := c.runConfigureHooks(ctx); err != nil {
+	if err := c.runConfiguredHooks(ctx); err != nil {
 		return err
 	}
 
@@ -311,7 +311,7 @@ func (c *Client) RegisterResource(resource *sdkresource.Resource) {
 	c.resource = resource
 }
 
-func (c *Client) runConfigureHooks(ctx context.Context) error {
+func (c *Client) runConfiguredHooks(ctx context.Context) error {
 	for _, hook := range c.hooks {
 		if err := hook.Configured(ctx, c); err != nil {
 			return err
