@@ -34,23 +34,25 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 	o := newOptions(mu, opts...)
 	return func(original cron.Job) cron.Job {
 		return cron.JobFunc(func(ctx context.Context) error {
-			job, ok := interface{}(original).(JobWithMutex)
+			job, ok := any(original).(JobWithMutex)
 			if !ok {
 				return original.Run(ctx)
 			}
 
-			if success, err := o.mu.Lock(ctx, job); err != nil {
+			acquired, err := o.mu.Lock(ctx, job)
+			if err != nil {
 				o.logger.Error(err, "failed to lock mutex", "key", job.GetMutexKey())
 				return err
-			} else if success {
-				defer func() {
-					_ = o.mu.Unlock(ctx, job)
-				}()
-				return original.Run(ctx)
-			} else {
+			}
+			if !acquired {
 				o.logger.Info("skip job [%s], because distributed no overlapping", "key", job.GetMutexKey())
 				return nil
 			}
+
+			defer func() {
+				_ = o.mu.Unlock(ctx, job)
+			}()
+			return original.Run(ctx)
 		})
 	}
 }

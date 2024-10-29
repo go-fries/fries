@@ -17,7 +17,7 @@ func TestCrontab(t *testing.T) {
 		))
 	)
 
-	_, _ = srv.AddFunc("* * * * * *", func(ctx context.Context) error {
+	_, _ = srv.AddFunc("* * * * * *", func(context.Context) error {
 		data <- "Hello World!"
 		return nil
 	})

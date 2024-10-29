@@ -28,10 +28,13 @@ func WithPrefix(prefix string) Option {
 
 var _ distributednooverlapping.Mutex = (*Mutex)(nil)
 
-func New(redis redis.UniversalClient, opt ...Option) *Mutex {
+func New(redis redis.UniversalClient, opts ...Option) *Mutex {
 	mutex := &Mutex{
 		redis:  redis,
 		prefix: "cron:mutex",
+	}
+	for _, opt := range opts {
+		opt(mutex)
 	}
 	return mutex
 }
