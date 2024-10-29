@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"time"
 
 	"github.com/flc1125/go-cron/v4"
 	"go.opentelemetry.io/otel"
@@ -13,10 +14,11 @@ import (
 var scopeName = "github.com/go-kratos-ecosystem/components/v2/crontab/middleware/otel"
 
 var (
-	attrJobName     = attribute.Key("job.name")
-	attrJobID       = attribute.Key("job.id")
-	attrJobPrevTime = attribute.Key("job.prev.time")
-	attrJobNextTime = attribute.Key("job.next.time")
+	attrJobName     = attribute.Key("cron.job.name")
+	attrJobID       = attribute.Key("cron.job.id")
+	attrJobPrevTime = attribute.Key("cron.job.prev.time")
+	attrJobNextTime = attribute.Key("cron.job.next.time")
+	attrJobDuration = attribute.Key("cron.job.duration")
 )
 
 type JobWithName interface {
@@ -57,22 +59,26 @@ func NewTracing(opts ...Option) cron.Middleware {
 				trace.WithSpanKind(trace.SpanKindInternal),
 			)
 			defer span.End()
-			defer func() {
+			defer func(starting time.Time) {
+				span.SetAttributes(
+					attrJobDuration.String(time.Since(starting).String()),
+				)
+
 				if err != nil {
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Error())
 				} else {
 					span.SetStatus(codes.Ok, "")
 				}
-			}()
+			}(time.Now())
 
 			// Set attributes.
-			attrs := []attribute.KeyValue{
-				attrJobName.String(job.Name()),
-			}
-			attrs = append(attrs, entryAttributes(ctx)...)
-
-			span.SetAttributes(attrs...)
+			span.SetAttributes(append(
+				[]attribute.KeyValue{
+					attrJobName.String(job.Name()),
+				},
+				entryAttributes(ctx)...,
+			)...)
 
 			// The job is run here.
 			err = job.Run(ctx)
@@ -84,7 +90,7 @@ func NewTracing(opts ...Option) cron.Middleware {
 func entryAttributes(ctx context.Context) []attribute.KeyValue {
 	entry, ok := cron.EntryFromContext(ctx)
 	if !ok {
-		return nil
+		return []attribute.KeyValue{}
 	}
 
 	return []attribute.KeyValue{
