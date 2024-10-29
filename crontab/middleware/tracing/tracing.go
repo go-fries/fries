@@ -1,4 +1,4 @@
-package otel
+package tracing
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func newOptions(opts ...Option) *options {
 	return opt
 }
 
-func NewTracing(opts ...Option) cron.Middleware {
+func New(opts ...Option) cron.Middleware {
 	o := newOptions(opts...)
 
 	tracer := o.tp.Tracer(scopeName)
