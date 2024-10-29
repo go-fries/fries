@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robfig/cron/v3"
+	"github.com/flc1125/go-cron/v4"
 )
 
 func TestCrontab(t *testing.T) {
@@ -17,8 +17,9 @@ func TestCrontab(t *testing.T) {
 		))
 	)
 
-	_, _ = srv.AddFunc("* * * * * *", func() {
+	_, _ = srv.AddFunc("* * * * * *", func(ctx context.Context) error {
 		data <- "Hello World!"
+		return nil
 	})
 
 	go srv.Start(ctx)   //nolint:errcheck

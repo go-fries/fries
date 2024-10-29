@@ -1,9 +1,4 @@
-# Crontab
-
-## Example
-
-```go
-package main
+package crontab_test
 
 import (
 	"context"
@@ -32,7 +27,7 @@ func (m *testJob) GetMutexKey() string {
 	return "test"
 }
 
-func main() {
+func Example() {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
@@ -60,5 +55,3 @@ func main() {
 		panic(err)
 	}
 }
-
-```

@@ -3,8 +3,8 @@ package crontab
 import (
 	"context"
 
+	"github.com/flc1125/go-cron/v4"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 )
 
 type Server struct {
