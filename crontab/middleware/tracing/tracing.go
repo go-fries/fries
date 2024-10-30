@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var scopeName = "github.com/go-kratos-ecosystem/components/v2/crontab/middleware/otel"
+const scopeName = "github.com/go-kratos-ecosystem/components/v2/crontab/middleware/otel"
 
 var (
 	attrJobName     = attribute.Key("cron.job.name")
@@ -31,6 +31,12 @@ type options struct {
 }
 
 type Option func(*options)
+
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(o *options) {
+		o.tp = tp
+	}
+}
 
 func newOptions(opts ...Option) *options {
 	opt := &options{
