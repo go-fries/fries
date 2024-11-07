@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 
-	pb "github.com/go-kratos-ecosystem/components/v2/genproto/tests/middleware/protovalidate/v1"
+	pb "github.com/go-kratos-ecosystem/components/v2/internal/genproto/tests/middleware/protovalidate/v1"
 )
 
 var next = func(context.Context, any) (reply any, err error) {

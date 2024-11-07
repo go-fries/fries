@@ -1,6 +1,6 @@
 version: v2
 modules:
-  - path: proto
+  - path: internal/proto
 deps:
   - buf.build/bufbuild/protovalidate
 lint:
