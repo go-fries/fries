@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 	"google.golang.org/grpc/peer"
 
-	"github.com/go-kratos-ecosystem/components/v2/internal/genproto/tests/middleware/tracing/v1"
+	tracingpb "github.com/go-kratos-ecosystem/components/v2/internal/genproto/tests/middleware/tracing/v1"
 )
 
 func Test_parseFullMethod(t *testing.T) {
