@@ -20,8 +20,8 @@ func Run(fns ...func()) {
 	}
 }
 
-func Parallel(max int, fns ...func()) {
-	ch := make(chan struct{}, max)
+func Parallel(number int, fns ...func()) {
+	ch := make(chan struct{}, number)
 	for _, fn := range fns {
 		ch <- struct{}{}
 		go func(task func()) {
@@ -33,9 +33,9 @@ func Parallel(max int, fns ...func()) {
 	}
 }
 
-func ParallelWait(max int, fns ...func()) {
+func ParallelWait(number int, fns ...func()) {
 	var wg sync.WaitGroup
-	ch := make(chan struct{}, max)
+	ch := make(chan struct{}, number)
 	defer close(ch)
 	wg.Add(len(fns))
 	for _, fn := range fns {

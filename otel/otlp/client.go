@@ -316,15 +316,15 @@ func (c *Client) runConfiguredHooks(ctx context.Context) error {
 }
 
 func queueSize() int {
-	const min = 1000  // nolint:mnd
-	const max = 16000 // nolint:mnd
+	const _min = 1000  // nolint:mnd
+	const _max = 16000 // nolint:mnd
 
 	n := (runtime.GOMAXPROCS(0) / 2) * 1000 // nolint:mnd
-	if n < min {
-		return min
+	if n < _min {
+		return _min
 	}
-	if n > max {
-		return max
+	if n > _max {
+		return _max
 	}
 	return n
 }

@@ -20,12 +20,12 @@ type Worker struct {
 //	  // do something
 //	}...)
 //	w.Wait()
-func NewWorker(max int) *Worker {
+func NewWorker(number int) *Worker {
 	s := &Worker{
-		fns: make(chan func(), max*2), //nolint:mnd
+		fns: make(chan func(), number*2), //nolint:mnd
 	}
 
-	go s.work(max)
+	go s.work(number)
 
 	return s
 }
