@@ -1,6 +1,7 @@
 module github.com/go-kratos-ecosystem/components/v2
 
 go 1.22
+toolchain go1.22.9
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.1-20240920164238-5a7b106cbb87.1
@@ -31,7 +32,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	golang.org/x/term v0.26.0
 	golang.org/x/text v0.20.0
-	google.golang.org/grpc v1.67.1
+	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.1
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
