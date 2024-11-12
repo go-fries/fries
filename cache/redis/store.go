@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,7 +11,7 @@ import (
 	"github.com/go-kratos-ecosystem/components/v2/codec"
 	"github.com/go-kratos-ecosystem/components/v2/codec/json"
 	"github.com/go-kratos-ecosystem/components/v2/locker"
-	redisLocker "github.com/go-kratos-ecosystem/components/v2/locker/redis"
+	redislocker "github.com/go-kratos-ecosystem/components/v2/locker/redis"
 )
 
 type Store struct {
@@ -72,6 +73,9 @@ func (s *Store) Has(ctx context.Context, key string) (bool, error) {
 func (s *Store) Get(ctx context.Context, key string, dest any) error {
 	r := s.redis.Get(ctx, s.opts.prefix+key)
 	if r.Err() != nil {
+		if errors.Is(r.Err(), redis.Nil) {
+			return cache.ErrNotFound
+		}
 		return r.Err()
 	}
 
@@ -161,8 +165,8 @@ func (s *Store) Add(ctx context.Context, key string, value any, ttl time.Duratio
 }
 
 func (s *Store) Lock(key string, ttl time.Duration) locker.Locker {
-	return redisLocker.NewLocker(s.redis,
-		redisLocker.WithName(s.opts.prefix+key),
-		redisLocker.WithTTL(ttl),
+	return redislocker.NewLocker(s.redis,
+		redislocker.WithName(s.opts.prefix+key),
+		redislocker.WithTTL(ttl),
 	)
 }

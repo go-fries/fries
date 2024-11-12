@@ -3,8 +3,6 @@ package cache
 import (
 	"context"
 	"time"
-
-	"github.com/go-kratos-ecosystem/components/v2/helpers"
 )
 
 type Repository interface {
@@ -14,7 +12,6 @@ type Repository interface {
 	Missing(ctx context.Context, key string) (bool, error)
 	Delete(ctx context.Context, key string) (bool, error)
 	Set(ctx context.Context, key string, value any, ttl time.Duration) (bool, error)
-	Remember(ctx context.Context, key string, dest any, value func() any, ttl time.Duration) error
 }
 
 type repository struct {
@@ -62,25 +59,4 @@ func (r *repository) Delete(ctx context.Context, key string) (bool, error) {
 
 func (r *repository) Set(ctx context.Context, key string, value any, ttl time.Duration) (bool, error) {
 	return r.Put(ctx, key, value, ttl)
-}
-
-func (r *repository) Remember(
-	ctx context.Context,
-	key string, dest any,
-	value func() any,
-	ttl time.Duration,
-) error {
-	if missing, err := r.Missing(ctx, key); err != nil {
-		return err
-	} else if missing {
-		v := value()
-
-		if _, err := r.Set(ctx, key, v, ttl); err != nil {
-			return err
-		}
-
-		return helpers.Scan(v, dest)
-	}
-
-	return r.Get(ctx, key, dest)
 }

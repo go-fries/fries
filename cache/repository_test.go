@@ -79,9 +79,4 @@ func TestRepository(t *testing.T) {
 	set, err := repo.Set(ctx, "test", "test", 0)
 	assert.Nil(t, err)
 	assert.True(t, set)
-
-	// Remember
-	assert.Nil(t, repo.Remember(ctx, "test", nil, func() any {
-		return "test"
-	}, 0))
 }
