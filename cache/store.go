@@ -8,10 +8,7 @@ import (
 	"github.com/go-kratos-ecosystem/components/v2/locker"
 )
 
-var (
-	ErrNotFound   = errors.New("cache: the key is not found")
-	ErrNotInteger = errors.New("cache: the key is not an integer")
-)
+var ErrNotFound = errors.New("cache: the key is not found")
 
 type Store interface {
 	Locker
