@@ -21,7 +21,7 @@ jobs:
         with:
           go-version: stable
 
-      - uses: bufbuild/buf-setup-action@v1.47.0
+      - uses: bufbuild/buf-setup-action@v1.47.2
       - run: buf generate
 
       - name: golangci-lint
