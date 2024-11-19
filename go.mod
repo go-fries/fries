@@ -5,7 +5,7 @@ go 1.22
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.2-20240920164238-5a7b106cbb87.1
 	entgo.io/ent v0.14.0
-	github.com/bufbuild/protovalidate-go v0.7.2
+	github.com/bufbuild/protovalidate-go v0.7.3
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.18.0
@@ -38,6 +38,7 @@ require (
 )
 
 require (
+	cel.dev/expr v0.18.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -60,7 +61,7 @@ require (
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/google/cel-go v0.21.0 // indirect
+	github.com/google/cel-go v0.22.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.23.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
