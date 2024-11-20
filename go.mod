@@ -9,7 +9,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.18.0
-	github.com/flc1125/go-cron/v4 v4.0.0
+	github.com/flc1125/go-cron/v4 v4.1.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-kratos/kratos/v2 v2.8.2
