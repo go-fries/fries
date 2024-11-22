@@ -51,7 +51,7 @@ jobs:
       - run: go version
 
       - name: Run Buf
-        uses: bufbuild/buf-setup-action@v1.46.0
+        uses: bufbuild/buf-setup-action@v1.47.2
       - run: |
           buf --version
           buf generate
@@ -60,6 +60,6 @@ jobs:
         run: go test ./... -v -covermode=atomic -race -coverprofile=coverage.txt
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
