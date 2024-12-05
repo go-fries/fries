@@ -31,7 +31,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	golang.org/x/term v0.26.0
 	golang.org/x/text v0.20.0
-	google.golang.org/grpc v1.67.1
+	google.golang.org/grpc v1.68.1
 	google.golang.org/protobuf v1.35.2
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
