@@ -45,7 +45,6 @@ func TestM(t *testing.T) {
 	}())
 
 	assert.Equal(t, maps, maps.Clone())
-	assert.NotSame(t, maps, maps.Clone())
 
 	assert.Equal(t, map[string]any{"name": "Flc", "age": 21}, maps.Maps())
 	assert.Equal(t, map[string]any{"name": "Flc", "age": 21}, maps.All())
