@@ -6,6 +6,9 @@
   "labels": ["dependencies"],
   "separateMajorMinor": true,
   "postUpdateOptions": ["gomodTidy"],
+  "constraints": {
+    "go": "1.22.0"
+  },
   "packageRules": [
     {
       "matchManagers": ["gomod"],
