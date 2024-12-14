@@ -1,0 +1,14 @@
+{
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "indirect"
+      ],
+      "enabled": true
+    }
+  ]
+}
