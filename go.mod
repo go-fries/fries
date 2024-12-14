@@ -1,10 +1,12 @@
 module github.com/go-kratos-ecosystem/components/v2
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.23.4
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.2-20241127180247-a33202765966.1
-	entgo.io/ent v0.14.0
+	entgo.io/ent v0.14.1
 	github.com/bufbuild/protovalidate-go v0.8.0
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/davecgh/go-spew v1.1.1
