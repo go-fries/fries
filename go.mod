@@ -11,7 +11,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/flc1125/go-cron/v4 v4.2.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-kratos/kratos/v2 v2.8.2
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.7.0
