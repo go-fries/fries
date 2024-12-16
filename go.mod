@@ -1,6 +1,6 @@
 module github.com/go-kratos-ecosystem/components/v2
 
-go 1.22.0
+go 1.22
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.2-20241127180247-a33202765966.1
