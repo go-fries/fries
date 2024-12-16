@@ -17,5 +17,5 @@ func TestGoModVersion(t *testing.T) {
 	assert.NotContains(t, content, "toolchain")
 
 	contents := strings.Split(content, "\n")
-	assert.Subset(t, contents, []string{"go 1.22.0"})
+	assert.Subset(t, contents, []string{"go 1.22"})
 }
