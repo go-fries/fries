@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -30,7 +31,11 @@ type Option func(*options)
 func Prefix(prefix string) Option {
 	return func(o *options) {
 		if prefix != "" {
-			o.prefix = prefix + ":"
+			if !strings.HasSuffix(prefix, ":") {
+				o.prefix = prefix + ":"
+			} else {
+				o.prefix = prefix
+			}
 		}
 	}
 }

@@ -28,6 +28,15 @@ func createRedis(t *testing.T) redis.UniversalClient {
 	return client
 }
 
+func TestRedis_Prefix(t *testing.T) {
+	opt := &options{}
+	Prefix("cache:test")(opt)
+	assert.Equal(t, "cache:test:", opt.prefix)
+
+	Prefix("cache:test:")(opt)
+	assert.Equal(t, "cache:test:", opt.prefix)
+}
+
 func TestRedis_Base(t *testing.T) {
 	store := New(createRedis(t), Prefix("cache:redis"), Codec(json.Codec))
 
