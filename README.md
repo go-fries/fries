@@ -1,6 +1,6 @@
 # Go Kratos Components
 
-![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.21-blue)
+![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.22.10-blue)
 [![Package Version](https://badgen.net/github/release/go-kratos-ecosystem/components/stable)](https://github.com/go-kratos-ecosystem/components/releases)
 [![GoDoc](https://pkg.go.dev/badge/github.com/go-kratos-ecosystem/v2)](https://pkg.go.dev/github.com/go-kratos-ecosystem/components/v2)
 [![codecov](https://codecov.io/gh/go-kratos-ecosystem/components/graph/badge.svg?token=QPTHZ5L9GT)](https://codecov.io/gh/go-kratos-ecosystem/components)
