@@ -3,7 +3,7 @@ module github.com/go-kratos-ecosystem/components/v2
 go 1.22.10
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.0-20241127180247-a33202765966.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.1-20241127180247-a33202765966.1
 	entgo.io/ent v0.14.0
 	github.com/bufbuild/protovalidate-go v0.8.0
 	github.com/cheggaaa/pb/v3 v3.1.5
