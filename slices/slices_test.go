@@ -283,15 +283,18 @@ func TestOnly(t *testing.T) {
 	assert.Equal(t, []T{{"2"}, {"4"}}, Only(s3, T{"2"}, T{"4"}))
 }
 
-func TestWithout(t *testing.T) {
+func TestWithoutAndRemove(t *testing.T) {
 	s1 := []int{1, 2, 3, 4}
 	assert.Equal(t, []int{1, 3}, Without(s1, 2, 4))
+	assert.Equal(t, []int{1, 3}, Remove(s1, 2, 4))
 
 	s2 := []string{"1", "2", "3", "4"}
 	assert.Equal(t, []string{"1", "3"}, Without(s2, "2", "4"))
+	assert.Equal(t, []string{"1", "3"}, Remove(s2, "2", "4"))
 
 	s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}}
 	assert.Equal(t, []T{{"1"}, {"3"}, {"4"}}, Without(s3, T{"2"}))
+	assert.Equal(t, []T{{"1"}, {"3"}, {"4"}}, Remove(s3, T{"2"}))
 }
 
 func TestPartition(t *testing.T) {

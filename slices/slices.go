@@ -258,6 +258,15 @@ func Without[S ~[]E, E comparable](s S, items ...E) S {
 	return result
 }
 
+// Remove returns a new slice without the given items.
+// Alias for Without.
+//
+//	Remove([]int{1, 2, 3}, 2, 3) // []int{1}
+//	Remove([]string{"a", "b", "c"}, "b", "c") // []string{"a"}
+func Remove[S ~[]E, E comparable](s S, items ...E) S {
+	return Without(s, items...)
+}
+
 // Partition returns two new slices, the first containing
 // the items of a given slice that satisfy the given predicate function,
 // and the second containing the items that do not satisfy the predicate function.
