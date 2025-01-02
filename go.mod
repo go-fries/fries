@@ -98,6 +98,6 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241230172942-26aa7a208def // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241230172942-26aa7a208def // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250102185135-69823020774d // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
