@@ -1,0 +1,14 @@
+module-sets:
+  stable-v4:
+    version: v4.3.0
+    modules:
+      - github.com/flc1125/go-cron/v4
+      - github.com/flc1125/go-cron/crontest/v4
+      - github.com/flc1125/go-cron/middleware/delayoverlapping/v4
+      - github.com/flc1125/go-cron/middleware/distributednooverlapping/v4
+      - github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4
+      - github.com/flc1125/go-cron/middleware/nooverlapping/v4
+      - github.com/flc1125/go-cron/middleware/otel/v4
+      - github.com/flc1125/go-cron/middleware/recovery/v4
+excluded-modules:
+  - github.com/flc1125/go-cron/v4/internal/tools
