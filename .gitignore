@@ -17,3 +17,4 @@ vendor/
 _backup
 _example
 .todo
+.tools

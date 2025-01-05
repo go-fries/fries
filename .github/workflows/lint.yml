@@ -3,13 +3,9 @@ name: Go Lint
 on:
   push:
     branches:
-      - 1.x
-      - 2.x
       - 3.x
   pull_request:
     branches:
-      - 1.x
-      - 2.x
       - 3.x
 
 jobs:
@@ -22,9 +18,22 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          check-latest: true
+          cache-dependency-path: "**/go.sum"
 
-      - uses: bufbuild/buf-setup-action@v1.48.0
-      - run: buf generate
+      - name: Tools cache
+        uses: actions/cache@v4
+        env:
+          cache-name: go-tools-cache
+        with:
+          path: .tools
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('./internal/tools/**') }}
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+      - name: Run lint
+        run: make lint
+
+      - name: Build
+        run: make build
+
+      - name: Check clean repository
+        run: make check-clean-work-tree
