@@ -39,20 +39,12 @@ tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD)
 
 .PHONY: build
 
-build: $(ROOT_GO_MOD_DIRS:%=build/%) $(ROOT_GO_MOD_DIRS:%=build-tests/%)
+build: $(ROOT_GO_MOD_DIRS:%=build/%)
 build/%: DIR=$*
 build/%:
 	@echo "$(GO) build $(DIR)/..." \
 		&& cd $(DIR) \
 		&& $(GO) build ./...
-
-build-tests/%: DIR=$*
-build-tests/%:
-	@echo "$(GO) build tests $(DIR)/..." \
-		&& cd $(DIR) \
-		&& $(GO) list ./... \
-		| grep -v third_party \
-		| xargs $(GO) test -vet=off -run xxxxxMatchNothingxxxxx >/dev/null
 
 # Tests
 
