@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-kratos-ecosystem/components/v2/event"
+	"github.com/go-fires/fires/v3/event"
 )
 
 var c = make(chan From, 4)

@@ -3,7 +3,7 @@ package collection
 import (
 	"sort"
 
-	"github.com/go-kratos-ecosystem/components/v2/debug"
+	"github.com/go-fires/fires/v3/debug"
 )
 
 type Collection[T comparable] struct { //nolint:gofumpt

@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
+	"github.com/go-fires/fires/v3/hyperf/jet"
 )
 
 type options struct {

@@ -1,9 +1,9 @@
 name: Go Test
 on:
   push:
-    branches: [ 1.x, 2.x, feature/* ]
+    branches: [ 1.x, 2.x, 3.x, feature/* ]
   pull_request:
-    branches: [ 1.x, 2.x ]
+    branches: [ 1.x, 2.x, 3.x ]
 env:
   GOPROXY: "https://proxy.golang.org"
 

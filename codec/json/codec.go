@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/go-kratos-ecosystem/components/v2/codec"
+	"github.com/go-fires/fires/v3/codec"
 )
 
 var Codec codec.Codec = &jsonCodec{}

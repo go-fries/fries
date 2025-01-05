@@ -1,4 +1,4 @@
-module github.com/go-kratos-ecosystem/components/v2
+module github.com/go-fires/fires/v3
 
 go 1.22.10
 

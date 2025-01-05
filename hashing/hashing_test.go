@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-kratos-ecosystem/components/v2/hashing"
-	_ "github.com/go-kratos-ecosystem/components/v2/hashing/md5"
+	"github.com/go-fires/fires/v3/hashing"
+	_ "github.com/go-fires/fires/v3/hashing/md5"
 )
 
 func TestHasher_New(t *testing.T) {

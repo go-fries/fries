@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
+	"github.com/go-fires/fires/v3/hyperf/jet"
 )
 
 var DefaultHandler = func(_ context.Context, service, method string, request any, err any) error {

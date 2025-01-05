@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-kratos/kratos/v2/middleware"
 
-	"github.com/go-kratos-ecosystem/components/v2/event"
+	"github.com/go-fires/fires/v3/event"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-kratos-ecosystem/components/v2/crontab"
+	"github.com/go-fires/fires/v3/crontab"
 	"github.com/go-kratos/kratos/v2"
 )
 

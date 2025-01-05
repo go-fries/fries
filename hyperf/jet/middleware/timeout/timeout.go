@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
+	"github.com/go-fires/fires/v3/hyperf/jet"
 )
 
 var (
