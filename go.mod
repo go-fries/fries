@@ -1,4 +1,4 @@
-module github.com/go-fires/fires/v3
+module github.com/go-fries/fries/v3
 
 go 1.22.10
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-fires/fires/v3/locker"
+	"github.com/go-fries/fries/v3/locker"
 )
 
 type NullStore struct{}

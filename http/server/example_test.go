@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-kratos/kratos/v2"
 
-	"github.com/go-fires/fires/v3/http/server"
+	"github.com/go-fries/fries/v3/http/server"
 )
 
 func Example() {

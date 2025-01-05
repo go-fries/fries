@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-fires/fires/v3/errors"
+	"github.com/go-fries/fries/v3/errors"
 )
 
 type foo struct {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 
-	"github.com/go-fires/fires/v3/features"
+	"github.com/go-fries/fries/v3/features"
 )
 
 var DefaultRecovery = func(err any, sig os.Signal, _ Handler) {

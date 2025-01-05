@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-fires/fires/v3/helpers"
+	"github.com/go-fries/fries/v3/helpers"
 )
 
 func TestWorker(t *testing.T) {

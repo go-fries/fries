@@ -3,7 +3,7 @@ package slices
 import (
 	"math/rand"
 
-	"github.com/go-fires/fires/v3/constraints"
+	"github.com/go-fries/fries/v3/constraints"
 )
 
 // Map returns a new slice containing the results of applying the given function to each item of a given slice.

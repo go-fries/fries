@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/go-fires/fires/v3/codec/json"
+	"github.com/go-fries/fries/v3/codec/json"
 )
 
 var j = json.Codec

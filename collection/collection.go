@@ -3,7 +3,7 @@ package collection
 import (
 	"sort"
 
-	"github.com/go-fires/fires/v3/debug"
+	"github.com/go-fries/fries/v3/debug"
 )
 
 type Collection[T comparable] struct { //nolint:gofumpt

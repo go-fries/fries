@@ -3,7 +3,7 @@ package msgpack
 import (
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/go-fires/fires/v3/codec"
+	"github.com/go-fries/fries/v3/codec"
 )
 
 var Codec codec.Codec = &msgPackCodec{}
