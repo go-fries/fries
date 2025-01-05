@@ -12,7 +12,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
+	"github.com/go-fries/fries/v3/hyperf/jet"
 )
 
 const instrumentation = "github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/tracing"

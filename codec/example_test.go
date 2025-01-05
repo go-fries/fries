@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/go-kratos-ecosystem/components/v2/codec/json"
+	"github.com/go-fries/fries/v3/codec/json"
 )
 
 var j = json.Codec

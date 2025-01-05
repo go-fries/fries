@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/go-kratos-ecosystem/components/v2/locker"
+	"github.com/go-fries/fries/v3/locker"
 )
 
 // releaseScript is a Lua script to release a lock in an atomic way.

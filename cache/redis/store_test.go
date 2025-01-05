@@ -11,9 +11,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-kratos-ecosystem/components/v2/cache"
-	"github.com/go-kratos-ecosystem/components/v2/codec/json"
-	"github.com/go-kratos-ecosystem/components/v2/locker"
+	"github.com/go-fries/fries/v3/cache"
+	"github.com/go-fries/fries/v3/codec/json"
+	"github.com/go-fries/fries/v3/locker"
 )
 
 var ctx = context.Background()

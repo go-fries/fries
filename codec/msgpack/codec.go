@@ -3,7 +3,7 @@ package msgpack
 import (
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/go-kratos-ecosystem/components/v2/codec"
+	"github.com/go-fries/fries/v3/codec"
 )
 
 var Codec codec.Codec = &msgPackCodec{}

@@ -3,7 +3,7 @@ package math
 import (
 	"errors"
 
-	"github.com/go-kratos-ecosystem/components/v2/constraints"
+	"github.com/go-fries/fries/v3/constraints"
 )
 
 var ErrorEmpty = errors.New("math: the input list is empty")

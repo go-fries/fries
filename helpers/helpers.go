@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kratos-ecosystem/components/v2/errors"
+	"github.com/go-fries/fries/v3/errors"
 )
 
 // Retry retries the given function until it returns nil or the attempts are exhausted.

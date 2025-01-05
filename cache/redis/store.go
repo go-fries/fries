@@ -8,11 +8,11 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/go-kratos-ecosystem/components/v2/cache"
-	"github.com/go-kratos-ecosystem/components/v2/codec"
-	"github.com/go-kratos-ecosystem/components/v2/codec/json"
-	"github.com/go-kratos-ecosystem/components/v2/locker"
-	redislocker "github.com/go-kratos-ecosystem/components/v2/locker/redis"
+	"github.com/go-fries/fries/v3/cache"
+	"github.com/go-fries/fries/v3/codec"
+	"github.com/go-fries/fries/v3/codec/json"
+	"github.com/go-fries/fries/v3/locker"
+	redislocker "github.com/go-fries/fries/v3/locker/redis"
 )
 
 type Store struct {

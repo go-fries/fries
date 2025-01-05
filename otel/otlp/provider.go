@@ -3,7 +3,7 @@ package otlp
 import (
 	"context"
 
-	"github.com/go-kratos-ecosystem/components/v2/foundation"
+	"github.com/go-fries/fries/v3/foundation"
 )
 
 type Provider struct {
