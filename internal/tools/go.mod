@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/v3/internal/tools
+module github.com/go-fries/fries/internal/tools/v3
 
 go 1.22.10
 
