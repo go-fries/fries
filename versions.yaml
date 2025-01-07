@@ -5,6 +5,7 @@ module-sets:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
       - github.com/go-fries/fries/spt/v3
+      - github.com/go-fries/fries/coroutines/v3
 
       # Hyperf
       - github.com/go-fries/fries/hyperf/jet/v3
