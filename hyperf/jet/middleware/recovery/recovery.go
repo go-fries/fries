@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/v3/hyperf/jet"
+	"github.com/go-fries/fries/hyperf/jet/v3"
 )
 
 var DefaultHandler = func(_ context.Context, service, method string, request any, err any) error {

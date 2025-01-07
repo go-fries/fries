@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-fries/fries/v3/hyperf/jet"
+	"github.com/go-fries/fries/hyperf/jet/v3"
 )
 
 func New(opts ...Option) jet.Middleware {

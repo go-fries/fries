@@ -5,14 +5,13 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/go-fries/fries/hyperf/jet/v3"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/go-fries/fries/v3/hyperf/jet"
 )
 
 const instrumentation = "github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/tracing"

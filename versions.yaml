@@ -3,5 +3,11 @@ module-sets:
     version: v3.0.0
     modules:
       - github.com/go-fries/fries/v3
+      - github.com/go-fries/fries/hyperf/jet/v3
+      - github.com/go-fries/fries/hyperf/jet/middleware/logging/v3
+      - github.com/go-fries/fries/hyperf/jet/middleware/recovery/v3
+      - github.com/go-fries/fries/hyperf/jet/middleware/retry/v3
+      - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3
+      - github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
