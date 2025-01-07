@@ -1,4 +1,4 @@
-package helpers
+package spt
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-fries/fries/v3/errors"
+	"github.com/go-fries/fries/errors/v3"
 )
 
 // Retry retries the given function until it returns nil or the attempts are exhausted.

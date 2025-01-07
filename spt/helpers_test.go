@@ -1,13 +1,12 @@
-package helpers
+package spt
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/go-fries/fries/errors/v3"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-fries/fries/v3/errors"
 )
 
 type foo struct {

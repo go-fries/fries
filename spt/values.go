@@ -1,4 +1,4 @@
-package helpers
+package spt
 
 // If returns trueVal if condition is true, otherwise falseVal.
 //
