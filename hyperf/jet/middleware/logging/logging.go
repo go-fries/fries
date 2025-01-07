@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-fries/fries/hyperf/jet/v3"
 	"github.com/go-kratos/kratos/v2/log"
-
-	"github.com/go-fries/fries/v3/hyperf/jet"
 )
 
 type options struct {
