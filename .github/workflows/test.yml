@@ -55,7 +55,7 @@ jobs:
       - run: go version
 
       - name: Run Buf
-        uses: bufbuild/buf-setup-action@v1.48.0
+        uses: bufbuild/buf-setup-action@v1.49.0
       - run: |
           buf --version
           buf generate
