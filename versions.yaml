@@ -52,5 +52,10 @@ module-sets:
 
       # UDP
       - github.com/go-fries/fries/udp/v3
+
+      # X (Extra)
+      - github.com/go-fries/fries/x/pagination/v3
+      - github.com/go-fries/fries/x/prints/v3
+      - github.com/go-fries/fries/x/snap/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
