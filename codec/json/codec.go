@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/go-fries/fries/v3/codec"
+	"github.com/go-fries/fries/codec/v3"
 )
 
 var Codec codec.Codec = &jsonCodec{}

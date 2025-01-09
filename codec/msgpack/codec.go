@@ -1,9 +1,8 @@
 package msgpack
 
 import (
+	"github.com/go-fries/fries/codec/v3"
 	"github.com/vmihailenco/msgpack/v5"
-
-	"github.com/go-fries/fries/v3/codec"
 )
 
 var Codec codec.Codec = &msgPackCodec{}
