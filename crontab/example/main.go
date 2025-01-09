@@ -1,14 +1,14 @@
-package crontab_test
+package main
 
 import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-fries/fries/v3/crontab"
+	"github.com/go-fries/fries/crontab/v3"
 	"github.com/go-kratos/kratos/v2"
 )
 
-func Example() {
+func main() {
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithMiddleware( /*...*/ ),

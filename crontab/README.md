@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-kratos-ecosystem/components/v2/crontab"
+	"github.com/go-fries/fries/crontab/v3"
 	"github.com/go-kratos/kratos/v2"
 )
 
@@ -36,5 +36,4 @@ func main() {
 		panic(err)
 	}
 }
-
 ```
