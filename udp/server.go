@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"sync"
+
+	"github.com/go-kratos/kratos/v2/transport"
 )
 
 type Message struct {
@@ -30,6 +32,8 @@ type Server struct {
 	stoped     chan struct{}
 	stopedOnce sync.Once
 }
+
+var _ transport.Server = (*Server)(nil)
 
 type Option func(*Server)
 
