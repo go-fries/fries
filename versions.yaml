@@ -10,6 +10,10 @@ module-sets:
       - github.com/go-fries/fries/cache/v3
       - github.com/go-fries/fries/cache/redis/v3
 
+      ## Crontab
+      - github.com/go-fries/fries/crontab/v3
+      - github.com/go-fries/fries/crontab/example/v3
+
       # Codec
       - github.com/go-fries/fries/codec/v3
       - github.com/go-fries/fries/codec/json/v3
