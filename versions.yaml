@@ -25,6 +25,9 @@ module-sets:
       # Config
       - github.com/go-fries/fries/config/v3
 
+      # Chi
+      - github.com/go-fries/fries/chi/v3
+
       # Env
       - github.com/go-fries/fries/env/v3
 
