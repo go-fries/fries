@@ -4,7 +4,6 @@ go 1.22.10
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.2-20241127180247-a33202765966.1
-	entgo.io/ent v0.14.0
 	github.com/bufbuild/protovalidate-go v0.8.2
 	github.com/go-kratos/kratos/v2 v2.8.3
 	github.com/redis/go-redis/v9 v9.7.0

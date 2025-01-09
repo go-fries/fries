@@ -33,6 +33,10 @@ module-sets:
       # Encrypter
       - github.com/go-fries/fries/encrypter/v3
 
+      # Ent
+      - github.com/go-fries/fries/ent/v3
+      - github.com/go-fries/fries/ent/multidriver/v3
+
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
