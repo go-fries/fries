@@ -1,4 +1,4 @@
-package spt
+package support
 
 type Proxy[T any] struct {
 	value T
