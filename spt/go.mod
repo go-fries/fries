@@ -6,6 +6,7 @@ replace github.com/go-fries/fries/errors/v3 => ../errors
 
 require (
 	github.com/go-fries/fries/errors/v3 v3.0.0
+	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
 )
 

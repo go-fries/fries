@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-fries/fries/locker/v3"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-fries/fries/v3/locker"
 )
 
 var ctx = context.Background()
