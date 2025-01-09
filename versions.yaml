@@ -44,8 +44,8 @@ module-sets:
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
 
-      # SPT(Support)
-      - github.com/go-fries/fries/spt/v3
+      # Support
+      - github.com/go-fries/fries/support/v3
 
       # Timezone
       - github.com/go-fries/fries/timezone/v3

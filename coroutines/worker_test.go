@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/spt/v3"
+	"github.com/go-fries/fries/support/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,11 +14,11 @@ func TestWorker(t *testing.T) {
 		ch  = make(chan struct{}, 200)
 		now = time.Now()
 	)
-	_ = spt.Repeat(func() error {
+	_ = support.Repeat(func() error {
 		ch <- struct{}{}
 		return nil
 	}, 200)
-	_ = spt.Repeat(func() error {
+	_ = support.Repeat(func() error {
 		fns = append(fns, func() {
 			time.Sleep(100 * time.Millisecond)
 			<-ch

@@ -4,11 +4,11 @@ go 1.22.10
 
 replace (
 	github.com/go-fries/fries/errors/v3 => ../errors
-	github.com/go-fries/fries/spt/v3 => ../spt
+	github.com/go-fries/fries/support/v3 => ./../support
 )
 
 require (
-	github.com/go-fries/fries/spt/v3 v3.0.0
+	github.com/go-fries/fries/support/v3 v3.0.0
 	github.com/stretchr/testify v1.10.0
 )
 

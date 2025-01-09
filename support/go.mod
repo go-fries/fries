@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/spt/v3
+module github.com/go-fries/fries/support/v3
 
 go 1.22.10
 
