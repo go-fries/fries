@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-fries/fries/v3/x/event"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-fries/fries/v3/event"
 )
 
 var c = make(chan From, 4)

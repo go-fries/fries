@@ -66,6 +66,7 @@ module-sets:
       - github.com/go-fries/fries/udp/v3
 
       # X (Extra)
+      - github.com/go-fries/fries/x/event/v3
       - github.com/go-fries/fries/x/pagination/v3
       - github.com/go-fries/fries/x/prints/v3
       - github.com/go-fries/fries/x/snap/v3

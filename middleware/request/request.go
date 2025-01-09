@@ -3,9 +3,8 @@ package request
 import (
 	"context"
 
+	"github.com/go-fries/fries/v3/x/event"
 	"github.com/go-kratos/kratos/v2/middleware"
-
-	"github.com/go-fries/fries/v3/event"
 )
 
 const (
