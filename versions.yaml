@@ -30,6 +30,9 @@ module-sets:
       # Env
       - github.com/go-fries/fries/env/v3
 
+      # Encrypter
+      - github.com/go-fries/fries/encrypter/v3
+
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
