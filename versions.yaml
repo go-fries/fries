@@ -19,6 +19,10 @@ module-sets:
       - github.com/go-fries/fries/codec/json/v3
       - github.com/go-fries/fries/codec/msgpack/v3
 
+      # Gin
+      - github.com/go-fries/fries/gin/v3
+      - github.com/go-fries/fries/gin/middleware/tracing/v3
+
       # Locker
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
