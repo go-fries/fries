@@ -46,5 +46,8 @@ module-sets:
 
       # SPT(Support)
       - github.com/go-fries/fries/spt/v3
+
+      # Timezone
+      - github.com/go-fries/fries/timezone/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
