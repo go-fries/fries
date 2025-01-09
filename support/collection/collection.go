@@ -3,7 +3,7 @@ package collection
 import (
 	"sort"
 
-	"github.com/go-fries/fries/v3/debug"
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Collection[T comparable] struct { //nolint:gofumpt
@@ -164,7 +164,7 @@ func (c *Collection[T]) SortBy(fn func(T, T) bool) *Collection[T] {
 }
 
 func (c *Collection[T]) Dump() {
-	debug.Dump(c.items)
+	spew.Dump(c.items)
 }
 
 func (c *Collection[T]) When(condition bool, fns ...func(*Collection[T])) *Collection[T] {
