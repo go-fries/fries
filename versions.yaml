@@ -19,13 +19,12 @@ module-sets:
       - github.com/go-fries/fries/codec/json/v3
       - github.com/go-fries/fries/codec/msgpack/v3
 
+      # Foundation
+      - github.com/go-fries/fries/foundation/v3
+
       # Gin
       - github.com/go-fries/fries/gin/v3
       - github.com/go-fries/fries/gin/middleware/tracing/v3
-
-      # Locker
-      - github.com/go-fries/fries/locker/v3
-      - github.com/go-fries/fries/locker/redis/v3
 
       # Hyperf
       - github.com/go-fries/fries/hyperf/jet/v3
@@ -34,6 +33,10 @@ module-sets:
       - github.com/go-fries/fries/hyperf/jet/middleware/retry/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3
+
+      # Locker
+      - github.com/go-fries/fries/locker/v3
+      - github.com/go-fries/fries/locker/redis/v3
 
       # SPT(Support)
       - github.com/go-fries/fries/spt/v3
