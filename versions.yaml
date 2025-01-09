@@ -19,6 +19,12 @@ module-sets:
       - github.com/go-fries/fries/codec/json/v3
       - github.com/go-fries/fries/codec/msgpack/v3
 
+      # Config
+      - github.com/go-fries/fries/config/v3
+
+      # Env
+      - github.com/go-fries/fries/env/v3
+
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
@@ -40,5 +46,16 @@ module-sets:
 
       # SPT(Support)
       - github.com/go-fries/fries/spt/v3
+
+      # Timezone
+      - github.com/go-fries/fries/timezone/v3
+
+      # UDP
+      - github.com/go-fries/fries/udp/v3
+
+      # X (Extra)
+      - github.com/go-fries/fries/x/pagination/v3
+      - github.com/go-fries/fries/x/prints/v3
+      - github.com/go-fries/fries/x/snap/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
