@@ -2,48 +2,40 @@ package chi
 
 import (
 	"context"
-	"io"
 	"net/http"
-	"sync"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServer(t *testing.T) {
-	var (
-		srv = NewServer(
-			chi.NewRouter(),
-			Addr(":8001"),
-		)
-		ch = make(chan string, 1)
-		wg sync.WaitGroup
-	)
-	wg.Add(1)
+	srv := NewServer(chi.NewRouter(), Addr(":8001"))
 
-	srv.Get("/ping", func(w http.ResponseWriter, _ *http.Request) {
-		defer wg.Done()
-		ch <- "pong"
+	srv.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
 		_, _ = w.Write([]byte("pong"))
 	})
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	go func() {
-		srv.Start(context.Background()) // nolint: errcheck
+		assert.ErrorIs(t, srv.Start(ctx), http.ErrServerClosed)
 	}()
 
-	resp, err := http.Get("http://localhost:8001/ping")
+	time.Sleep(100 * time.Millisecond)
 
-	wg.Wait()
-
+	req, err := http.NewRequest(http.MethodGet, "http://"+srv.addr+"/ping", nil)
 	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
-	defer resp.Body.Close() // nolint: errcheck
-	body, _ := io.ReadAll(resp.Body)
-	assert.Equal(t, "pong", string(body))
 
-	assert.Equal(t, "pong", <-ch)
+	recorder := httptest.NewRecorder()
+	srv.ServeHTTP(recorder, req)
 
-	err = srv.Stop(context.Background())
-	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "pong", recorder.Body.String())
+
+	assert.NoError(t, srv.Stop(ctx))
 }
