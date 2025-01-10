@@ -5,13 +5,12 @@ module-sets:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
       - github.com/go-fries/fries/coroutines/v3
+      - github.com/go-fries/fries/constraints/v3
+      - github.com/go-fries/fries/contract/v3
 
       # Cache
       - github.com/go-fries/fries/cache/v3
       - github.com/go-fries/fries/cache/redis/v3
-
-      # Constraints
-      - github.com/go-fries/fries/constraints/v3
 
       ## Crontab
       - github.com/go-fries/fries/crontab/v3
@@ -25,8 +24,21 @@ module-sets:
       # Config
       - github.com/go-fries/fries/config/v3
 
+      # Chi
+      - github.com/go-fries/fries/chi/v3
+
       # Env
       - github.com/go-fries/fries/env/v3
+
+      # Encrypter
+      - github.com/go-fries/fries/encrypter/v3
+
+      # Ent
+      - github.com/go-fries/fries/ent/v3
+      - github.com/go-fries/fries/ent/multidriver/v3
+
+      # Eventbus
+      - github.com/go-fries/fries/eventbus/v3
 
       # Foundation
       - github.com/go-fries/fries/foundation/v3
@@ -57,6 +69,7 @@ module-sets:
       - github.com/go-fries/fries/udp/v3
 
       # X (Extra)
+      - github.com/go-fries/fries/x/event/v3
       - github.com/go-fries/fries/x/pagination/v3
       - github.com/go-fries/fries/x/prints/v3
       - github.com/go-fries/fries/x/snap/v3
