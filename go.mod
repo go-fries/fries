@@ -3,7 +3,7 @@ module github.com/go-fries/fries/v3
 go 1.22.10
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.2-20241127180247-a33202765966.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.3-20241127180247-a33202765966.1
 	github.com/bufbuild/protovalidate-go v0.8.2
 	github.com/go-kratos/kratos/v2 v2.8.3
 	github.com/redis/go-redis/v9 v9.7.0
@@ -12,7 +12,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.33.0
 	go.opentelemetry.io/otel/trace v1.33.0
 	google.golang.org/grpc v1.69.4
-	google.golang.org/protobuf v1.36.2
+	google.golang.org/protobuf v1.36.3
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 )
