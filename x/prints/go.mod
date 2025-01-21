@@ -3,7 +3,7 @@ module github.com/go-fries/fries/x/prints/v3
 go 1.22.10
 
 require (
-	github.com/cheggaaa/pb/v3 v3.1.5
+	github.com/cheggaaa/pb/v3 v3.1.6
 	github.com/fatih/color v1.18.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/term v0.28.0
