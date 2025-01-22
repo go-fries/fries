@@ -5,7 +5,7 @@ go 1.22.10
 replace github.com/go-fries/fries/crontab/v3 => ../
 
 require (
-	github.com/flc1125/go-cron/v4 v4.3.1
+	github.com/flc1125/go-cron/v4 v4.3.2
 	github.com/go-fries/fries/crontab/v3 v3.0.0
 	github.com/go-kratos/kratos/v2 v2.8.3
 )
