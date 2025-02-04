@@ -15,9 +15,9 @@ var next = func(context.Context, any) (reply any, err error) {
 	return "reply", nil
 }
 
-func defaultValidator(t *testing.T) *protovalidate.Validator {
+func defaultValidator(t *testing.T) protovalidate.Validator {
 	validator, err := protovalidate.New(
-		protovalidate.WithFailFast(true),
+		protovalidate.WithFailFast(),
 	)
 	assert.NoError(t, err)
 	return validator
@@ -31,7 +31,7 @@ func defaultWant(t *testing.T, reply any, err error) {
 func TestValidator(t *testing.T) {
 	tests := []struct {
 		name      string
-		validator func(t *testing.T) *protovalidate.Validator
+		validator func(t *testing.T) protovalidate.Validator
 		req       proto.Message
 		want      func(t *testing.T, reply any, err error)
 	}{

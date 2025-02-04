@@ -15,13 +15,13 @@ var defaultHandler = func(_ context.Context, _ any, err error) (any, error) {
 }
 
 type options struct {
-	validator *protovalidate.Validator
+	validator protovalidate.Validator
 	handler   func(ctx context.Context, req any, err error) (any, error)
 }
 
 type Option func(*options)
 
-func Validator(validator *protovalidate.Validator) Option {
+func Validator(validator protovalidate.Validator) Option {
 	return func(opts *options) {
 		opts.validator = validator
 	}
