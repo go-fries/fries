@@ -6,7 +6,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.1.6
 	github.com/fatih/color v1.18.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/term v0.28.0
+	golang.org/x/term v0.29.0
 )
 
 require (
