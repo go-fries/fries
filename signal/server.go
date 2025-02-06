@@ -5,9 +5,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/go-fries/fries/features/v3"
 	"github.com/go-kratos/kratos/v2/log"
-
-	"github.com/go-fries/fries/v3/features"
 )
 
 var DefaultRecovery = func(err any, sig os.Signal, _ Handler) {
