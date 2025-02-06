@@ -40,6 +40,9 @@ module-sets:
       # Eventbus
       - github.com/go-fries/fries/eventbus/v3
 
+      # Features
+      - github.com/go-fries/fries/features/v3
+
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
@@ -58,6 +61,9 @@ module-sets:
       # Locker
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
+
+      # Signal
+      - github.com/go-fries/fries/signal/v3
 
       # Support
       - github.com/go-fries/fries/support/v3
