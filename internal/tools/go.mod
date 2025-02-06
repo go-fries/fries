@@ -5,7 +5,7 @@ go 1.22.10
 require (
 	github.com/golangci/golangci-lint v1.63.4
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/multimod v0.17.0
+	go.opentelemetry.io/build-tools/multimod v0.18.0
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
 )
 
