@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/signal/v3
 
-go 1.23.3
+go 1.22.10
 
 replace github.com/go-fries/fries/features/v3 => ../features
 
