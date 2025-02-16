@@ -3,9 +3,8 @@ package server_test
 import (
 	"net/http"
 
+	"github.com/go-fries/fries/http/server/v3"
 	"github.com/go-kratos/kratos/v2"
-
-	"github.com/go-fries/fries/v3/http/server"
 )
 
 func Example() {

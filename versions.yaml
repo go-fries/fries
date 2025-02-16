@@ -50,6 +50,10 @@ module-sets:
       - github.com/go-fries/fries/gin/v3
       - github.com/go-fries/fries/gin/middleware/tracing/v3
 
+      # Gorm
+      - github.com/go-fries/fries/gorm/v3
+      - github.com/go-fries/fries/gorm/scope/v3
+
       # Hyperf
       - github.com/go-fries/fries/hyperf/jet/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/logging/v3
@@ -57,6 +61,13 @@ module-sets:
       - github.com/go-fries/fries/hyperf/jet/middleware/retry/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3
+
+      # Hashing
+      - github.com/go-fries/fries/hashing/v3
+      - github.com/go-fries/fries/hashing/md5/v3
+
+      # Http
+      - github.com/go-fries/fries/http/server/v3
 
       # Kratos
       - github.com/go-fries/fries/kratos/log/stack/v3
@@ -70,6 +81,15 @@ module-sets:
       # Locker
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
+
+      # Otel
+      - github.com/go-fries/fries/otel/otlp/v3
+
+      # Recovery
+      - github.com/go-fries/fries/recovery/v3
+
+      # Redis
+      - github.com/go-fries/fries/redis/v3
 
       # Signal
       - github.com/go-fries/fries/signal/v3

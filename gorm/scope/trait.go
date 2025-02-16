@@ -1,4 +1,4 @@
-package scopes
+package scope
 
 import "gorm.io/gorm"
 
