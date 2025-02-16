@@ -71,6 +71,12 @@ module-sets:
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
 
+      # Recovery
+      - github.com/go-fries/fries/recovery/v3
+
+      # Redis
+      - github.com/go-fries/fries/redis/v3
+
       # Signal
       - github.com/go-fries/fries/signal/v3
 
