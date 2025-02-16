@@ -3,20 +3,30 @@
   "extends": [
     "config:recommended"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "separateMajorMinor": true,
-  "postUpdateOptions": ["gomodTidy"],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "constraints": {
     "go": "1.22.10"
   },
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["indirect"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "indirect"
+      ],
       "enabled": true
     },
     {
-      "matchPaths": ["./internal/tools/**"],
+      "matchFileNames": [
+        "./internal/tools/**"
+      ],
       "constraints": {
         "go": "^1.24.0"
       }
