@@ -66,6 +66,9 @@ module-sets:
       - github.com/go-fries/fries/hashing/v3
       - github.com/go-fries/fries/hashing/md5/v3
 
+      # Http
+      - github.com/go-fries/fries/http/server/v3
+
       # Kratos
       - github.com/go-fries/fries/kratos/log/stack/v3
       - github.com/go-fries/fries/kratos/log/syslog/v3
@@ -78,6 +81,9 @@ module-sets:
       # Locker
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
+
+      # Otel
+      - github.com/go-fries/fries/otel/otlp/v3
 
       # Recovery
       - github.com/go-fries/fries/recovery/v3
