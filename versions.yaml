@@ -58,6 +58,10 @@ module-sets:
       - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3
 
+      # Hashing
+      - github.com/go-fries/fries/hashing/v3
+      - github.com/go-fries/fries/hashing/md5/v3
+
       # Kratos
       - github.com/go-fries/fries/kratos/log/stack/v3
       - github.com/go-fries/fries/kratos/log/syslog/v3

@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 
-	"github.com/go-fries/fries/v3/hashing"
+	"github.com/go-fries/fries/hashing/v3"
 )
 
 type hasher struct{}
