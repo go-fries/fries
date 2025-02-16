@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/go-fries/fries/features/v3"
+	"github.com/go-fries/fries/contract/v3"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -81,7 +81,7 @@ func (s *Server) Start(ctx context.Context) error {
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
 					// if Support asyncFeature
-					if async, ok := h.(features.Asyncable); ok && async.Async() {
+					if async, ok := h.(v3.Asyncable); ok && async.Async() {
 						go s.handle(sig, h)
 					} else {
 						s.handle(sig, h)
