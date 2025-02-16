@@ -5,7 +5,7 @@ go 1.22.10
 replace github.com/go-fries/fries/codec/v3 => ../
 
 require (
-	github.com/go-fries/fries/codec/v3 v3.0.0
+	github.com/go-fries/fries/codec/v3 v3.0.0-alpha.1
 	github.com/stretchr/testify v1.10.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 )
