@@ -7,14 +7,14 @@ import (
 	"reflect"
 	"testing"
 
+	tracingpb "github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/proto/tracing/v1"
+
 	"github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace/noop"
 	"google.golang.org/grpc/peer"
-
-	tracingpb "github.com/go-fries/fries/v3/internal/genproto/tests/middleware/tracing/v1"
 )
 
 func Test_parseFullMethod(t *testing.T) {
