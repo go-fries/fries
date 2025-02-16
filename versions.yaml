@@ -40,9 +40,6 @@ module-sets:
       # Eventbus
       - github.com/go-fries/fries/eventbus/v3
 
-      # Features
-      - github.com/go-fries/fries/features/v3
-
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
