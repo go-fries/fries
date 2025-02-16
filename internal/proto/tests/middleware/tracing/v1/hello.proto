@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package tests.middleware.tracing.v1;
-
-option go_package = "tests/middleware/tracing/v1;tracingpb";
-
-message HelloRequest {
-  string name = 1;
-}

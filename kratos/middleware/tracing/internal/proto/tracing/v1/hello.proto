@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package tracing.v1;
+
+option go_package = "tracing/v1;tracingpb";
+
+message HelloRequest {
+  string name = 1;
+}
