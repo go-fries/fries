@@ -5,7 +5,7 @@ go 1.22.10
 replace github.com/go-fries/fries/contract/v3 => ../contract
 
 require (
-	github.com/go-fries/fries/contract/v3 v3.0.0
+	github.com/go-fries/fries/contract/v3 v3.0.0-alpha.1
 	github.com/go-kratos/kratos/v2 v2.8.3
 	github.com/stretchr/testify v1.10.0
 )
