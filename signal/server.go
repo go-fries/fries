@@ -81,7 +81,7 @@ func (s *Server) Start(ctx context.Context) error {
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
 					// if Support asyncFeature
-					if async, ok := h.(v3.Asyncable); ok && async.Async() {
+					if async, ok := h.(contract.Asyncable); ok && async.Async() {
 						go s.handle(sig, h)
 					} else {
 						s.handle(sig, h)
