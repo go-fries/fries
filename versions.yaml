@@ -50,6 +50,10 @@ module-sets:
       - github.com/go-fries/fries/gin/v3
       - github.com/go-fries/fries/gin/middleware/tracing/v3
 
+      # Gorm
+      - github.com/go-fries/fries/gorm/v3
+      - github.com/go-fries/fries/gorm/scope/v3
+
       # Hyperf
       - github.com/go-fries/fries/hyperf/jet/v3
       - github.com/go-fries/fries/hyperf/jet/middleware/logging/v3
