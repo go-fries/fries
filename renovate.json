@@ -22,14 +22,6 @@
         "indirect"
       ],
       "enabled": true
-    },
-    {
-      "matchFileNames": [
-        "./internal/tools/**"
-      ],
-      "constraints": {
-        "go": "1.24.0"
-      }
     }
   ]
 }

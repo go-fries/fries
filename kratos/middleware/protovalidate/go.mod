@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/kratos/middleware/protovalidate/v3
 
-go 1.22.10
+go 1.23.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.5-20250130201111-63bb56e20495.1

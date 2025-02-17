@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/foundation/v3
 
-go 1.22.10
+go 1.23.0
 
 require github.com/stretchr/testify v1.10.0
 
