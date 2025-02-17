@@ -45,7 +45,6 @@ module-sets:
 
       # Gin
       - github.com/go-fries/fries/gin/v3
-      - github.com/go-fries/fries/gin/middleware/tracing/v3
 
       # Gorm
       - github.com/go-fries/fries/gorm/v3
