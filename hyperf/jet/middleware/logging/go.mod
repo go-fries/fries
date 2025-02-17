@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/hyperf/jet/middleware/logging/v3
 
-go 1.22.10
+go 1.23.0
 
 replace github.com/go-fries/fries/hyperf/jet/v3 => ../../
 

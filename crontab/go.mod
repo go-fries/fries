@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/crontab/v3
 
-go 1.22.10
+go 1.23.0
 
 require (
 	github.com/flc1125/go-cron/v4 v4.4.1
