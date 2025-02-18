@@ -15,33 +15,28 @@ import (
 )
 
 type Store struct {
-	redis redis.UniversalClient
-
-	opts *options
-}
-
-type options struct {
 	prefix string
 	codec  codec.Codec
+	redis  redis.UniversalClient
 }
 
-type Option func(*options)
+type Option func(*Store)
 
 func Prefix(prefix string) Option {
-	return func(o *options) {
+	return func(s *Store) {
 		if prefix != "" {
 			if !strings.HasSuffix(prefix, ":") {
-				o.prefix = prefix + ":"
+				s.prefix = prefix + ":"
 			} else {
-				o.prefix = prefix
+				s.prefix = prefix
 			}
 		}
 	}
 }
 
 func Codec(codec codec.Codec) Option {
-	return func(o *options) {
-		o.codec = codec
+	return func(s *Store) {
+		s.codec = codec
 	}
 }
 
@@ -51,22 +46,18 @@ var (
 )
 
 func New(redis redis.UniversalClient, opts ...Option) *Store {
-	opt := &options{
+	story := &Store{
 		codec: json.Codec,
-	}
-
-	for _, o := range opts {
-		o(opt)
-	}
-
-	return &Store{
 		redis: redis,
-		opts:  opt,
 	}
+	for _, o := range opts {
+		o(story)
+	}
+	return story
 }
 
 func (s *Store) Has(ctx context.Context, key string) (bool, error) {
-	r := s.redis.Exists(ctx, s.opts.prefix+key)
+	r := s.redis.Exists(ctx, s.prefix+key)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
@@ -75,7 +66,7 @@ func (s *Store) Has(ctx context.Context, key string) (bool, error) {
 }
 
 func (s *Store) Get(ctx context.Context, key string, dest any) error {
-	r := s.redis.Get(ctx, s.opts.prefix+key)
+	r := s.redis.Get(ctx, s.prefix+key)
 	if r.Err() != nil {
 		if errors.Is(r.Err(), redis.Nil) {
 			return cache.ErrNotFound
@@ -83,16 +74,16 @@ func (s *Store) Get(ctx context.Context, key string, dest any) error {
 		return r.Err()
 	}
 
-	return s.opts.codec.Unmarshal([]byte(r.Val()), dest)
+	return s.codec.Unmarshal([]byte(r.Val()), dest)
 }
 
 func (s *Store) Put(ctx context.Context, key string, value any, ttl time.Duration) (bool, error) {
-	valued, err := s.opts.codec.Marshal(value)
+	valued, err := s.codec.Marshal(value)
 	if err != nil {
 		return false, err
 	}
 
-	r := s.redis.Set(ctx, s.opts.prefix+key, valued, ttl)
+	r := s.redis.Set(ctx, s.prefix+key, valued, ttl)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
@@ -101,7 +92,7 @@ func (s *Store) Put(ctx context.Context, key string, value any, ttl time.Duratio
 }
 
 func (s *Store) Increment(ctx context.Context, key string, value int) (int, error) {
-	r := s.redis.IncrBy(ctx, s.opts.prefix+key, int64(value))
+	r := s.redis.IncrBy(ctx, s.prefix+key, int64(value))
 	if r.Err() != nil {
 		return 0, r.Err()
 	}
@@ -110,7 +101,7 @@ func (s *Store) Increment(ctx context.Context, key string, value int) (int, erro
 }
 
 func (s *Store) Decrement(ctx context.Context, key string, value int) (int, error) {
-	r := s.redis.DecrBy(ctx, s.opts.prefix+key, int64(value))
+	r := s.redis.DecrBy(ctx, s.prefix+key, int64(value))
 	if r.Err() != nil {
 		return 0, r.Err()
 	}
@@ -119,12 +110,12 @@ func (s *Store) Decrement(ctx context.Context, key string, value int) (int, erro
 }
 
 func (s *Store) Forever(ctx context.Context, key string, value any) (bool, error) {
-	valued, err := s.opts.codec.Marshal(value)
+	valued, err := s.codec.Marshal(value)
 	if err != nil {
 		return false, err
 	}
 
-	r := s.redis.Set(ctx, s.opts.prefix+key, valued, redis.KeepTTL)
+	r := s.redis.Set(ctx, s.prefix+key, valued, redis.KeepTTL)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
@@ -133,7 +124,7 @@ func (s *Store) Forever(ctx context.Context, key string, value any) (bool, error
 }
 
 func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
-	r := s.redis.Del(ctx, s.opts.prefix+key)
+	r := s.redis.Del(ctx, s.prefix+key)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
@@ -151,16 +142,16 @@ func (s *Store) Flush(ctx context.Context) (bool, error) {
 }
 
 func (s *Store) GetPrefix() string {
-	return s.opts.prefix
+	return s.prefix
 }
 
 func (s *Store) Add(ctx context.Context, key string, value any, ttl time.Duration) (bool, error) {
-	valued, err := s.opts.codec.Marshal(value)
+	valued, err := s.codec.Marshal(value)
 	if err != nil {
 		return false, err
 	}
 
-	r := s.redis.SetNX(ctx, s.opts.prefix+key, valued, ttl)
+	r := s.redis.SetNX(ctx, s.prefix+key, valued, ttl)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
@@ -170,7 +161,7 @@ func (s *Store) Add(ctx context.Context, key string, value any, ttl time.Duratio
 
 func (s *Store) Lock(key string, ttl time.Duration) locker.Locker {
 	return lockerredis.NewLocker(s.redis,
-		lockerredis.WithName(s.opts.prefix+key),
+		lockerredis.WithName(s.prefix+key),
 		lockerredis.WithTTL(ttl),
 	)
 }
