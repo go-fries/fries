@@ -55,7 +55,9 @@ jobs:
       - run: go version
 
       - name: Run tests
-        run: make test-coverage
+        run: |
+          make test-coverage
+          ls -al
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
