@@ -6,7 +6,7 @@ require (
 	github.com/golangci/golangci-lint v1.64.5
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/multimod v0.18.0
-	golang.org/x/exp v0.0.0-20250215185904-eff6e970281f
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 )
 
 require (
