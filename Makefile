@@ -64,21 +64,22 @@ test/%:
 		&& $(GO) list ./... \
 		| xargs $(GO) test -timeout $(TIMEOUT)s $(ARGS)
 
-
 COVERAGE_MODE    = atomic
 COVERAGE_PROFILE = coverage.out
 .PHONY: test-coverage
-test-coverage: $(GOCOVMERGE)
+test-coverage: $(ALL_COVERAGE_MOD_DIRS:%=test-coverage/%) | $(GOCOVMERGE)
+	@printf "" > coverage.txt \
+		&& $(GOCOVMERGE) $$(find . -name $(COVERAGE_PROFILE)) > coverage.txt
+test-coverage/%: DIR=$*
+test-coverage/%:
 	@set -e; \
-	printf "" > coverage.txt; \
-	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
-	  echo "$(GO) test -v -race -coverpkg=github.com/go-fries/fries/... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" $${dir}/..."; \
-	  (cd "$${dir}" && \
-	    $(GO) list ./... \
-	    | xargs $(GO) test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" && \
-	  $(GO) tool cover -html=coverage.out -o coverage.html); \
-	done; \
-	$(GOCOVMERGE) $$(find . -name coverage.out) > coverage.txt
+		CMD="$(GO) test -race -covermode=$(COVERAGE_MODE) -coverprofile=$(COVERAGE_PROFILE)"; \
+		echo "$(DIR)" | grep -q 'test$$' \
+		&& CMD="$$CMD -coverpkg=github.com/go-fries/fries/$$( dirname "$(DIR)" | sed -e "s/^\.\///g" )/..."; \
+		echo "$$CMD $(DIR)/..."; \
+		cd "$(DIR)" \
+		&& $$CMD ./... \
+		&& $(GO) tool cover -html=coverage.out -o coverage.html;
 
 .PHONY: golangci-lint golangci-lint-fix
 golangci-lint-fix: ARGS=--fix
