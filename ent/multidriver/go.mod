@@ -3,7 +3,7 @@ module github.com/go-fries/fries/ent/multidriver/v3
 go 1.23.0
 
 require (
-	entgo.io/ent v0.14.2
+	entgo.io/ent v0.14.3
 	github.com/stretchr/testify v1.10.0
 )
 
