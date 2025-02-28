@@ -21,11 +21,11 @@ func TestDispatcher(t *testing.T) {
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
 			})),
-			AdaptListener(ListenerFunc[*OrderEvent](func(_ context.Context, event *OrderEvent) error {
+			AdaptListenerFunc(func(_ context.Context, event *OrderEvent) error {
 				t.Logf("this is order listener, the order id is %s", event.OrderID)
 				assert.Equal(t, "123456", event.OrderID)
 				return nil
-			})),
+			}),
 		)
 
 		assert.NoError(t, dispatcher.Dispatch(ctx, &UserEvent{Name: "zhangsan"}))

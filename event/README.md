@@ -11,39 +11,48 @@ github.com/go-fries/fries/event/v3
 ## Usage
 
 ```go
-package event_test
+package event
 
 import (
 	"context"
-	"fmt"
+	"sync"
 
-	"github.com/go-fries/fries/event/v3"
+	"golang.org/x/sync/errgroup"
 )
 
-func Example() {
-	dispatcher := event.NewDispatcher()
+type Dispatcher struct {
+	mu        sync.RWMutex
+	listeners []AnyListener
+}
 
-	dispatcher.RegisterListeners(
-		event.AdaptListener(event.ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
-			fmt.Println("this is user func listener, the name is", event.Name)
-			return nil
-		})),
-		event.AdaptListener(&UserListener{}),
-	)
-
-	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "zhangsan"}); err != nil {
-		fmt.Println(err)
+func NewDispatcher() *Dispatcher {
+	return &Dispatcher{
+		listeners: make([]AnyListener, 0),
 	}
 }
 
-type UserEvent struct {
-	Name string
+func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.listeners = append(d.listeners, ls...)
 }
 
-type UserListener struct{}
+func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
-func (u *UserListener) Handle(ctx context.Context, event *UserEvent) error {
-	fmt.Println("this is user struct listener, the name is", event.Name)
-	return nil
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, l := range d.listeners {
+		eg.Go(func() error {
+			return l.Handle(ctx, event)
+		})
+	}
+	return eg.Wait()
+}
+
+func (d *Dispatcher) Reset() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.listeners = make([]AnyListener, 0)
 }
 ```
