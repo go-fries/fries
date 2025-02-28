@@ -16,12 +16,12 @@ func TestDispatcher(t *testing.T) {
 		dispatcher.Reset()
 
 		dispatcher.RegisterListeners(
-			AdaptListener(ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+			AdaptListener(ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 				t.Logf("this is user listener, the name is %s", event.Name)
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
 			})),
-			AdaptListener(ListenerFunc[*OrderEvent](func(ctx context.Context, event *OrderEvent) error {
+			AdaptListener(ListenerFunc[*OrderEvent](func(_ context.Context, event *OrderEvent) error {
 				t.Logf("this is order listener, the order id is %s", event.OrderID)
 				assert.Equal(t, "123456", event.OrderID)
 				return nil
