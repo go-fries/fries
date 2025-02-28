@@ -36,12 +36,12 @@ func TestDispatcher(t *testing.T) {
 		dispatcher.Reset()
 
 		dispatcher.RegisterListeners(
-			AdaptListener(ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+			AdaptListener(ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 				t.Logf("this is user listener, the name is %s", event.Name)
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
 			})),
-			AdaptListener(ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+			AdaptListener(ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 				t.Logf("this is user listener, the name is %s", event.Name)
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
@@ -56,13 +56,13 @@ func TestDispatcher(t *testing.T) {
 		dispatcher.Reset()
 
 		dispatcher.RegisterListeners(
-			AdaptListener(ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+			AdaptListener(ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 				t.Logf("this is user listener, the name is %s", event.Name)
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
 			})),
 			AdaptListener(&UserListener{tb: t}),
-			AdaptListener(ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+			AdaptListener(ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 				t.Logf("this is user listener, the name is %s", event.Name)
 				assert.Equal(t, "zhangsan", event.Name)
 				return nil
@@ -83,7 +83,7 @@ type UserListener struct {
 	tb testing.TB
 }
 
-func (u *UserListener) Handle(ctx context.Context, event *UserEvent) error {
+func (u *UserListener) Handle(_ context.Context, event *UserEvent) error {
 	assert.Equal(u.tb, "zhangsan", event.Name)
 	return nil
 }
@@ -100,7 +100,7 @@ func (o *OrderListener) Listen() []string {
 	return []string{"order"}
 }
 
-func (o *OrderListener) Handle(ctx context.Context, event *OrderEvent) error {
+func (o *OrderListener) Handle(_ context.Context, event *OrderEvent) error {
 	assert.Equal(o.tb, "123456", event.OrderID)
 	return nil
 }
