@@ -37,7 +37,8 @@ module-sets:
       - github.com/go-fries/fries/ent/v3
       - github.com/go-fries/fries/ent/multidriver/v3
 
-      # Eventbus
+      # Event & EventBus
+      - github.com/go-fries/fries/event/v3
       - github.com/go-fries/fries/eventbus/v3
 
       # Foundation
