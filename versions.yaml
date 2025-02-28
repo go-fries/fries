@@ -39,6 +39,7 @@ module-sets:
 
       # Event & EventBus
       - github.com/go-fries/fries/event/v3
+      - github.com/go-fries/fries/event/middleware/recovery/v3
       - github.com/go-fries/fries/eventbus/v3
 
       # Foundation

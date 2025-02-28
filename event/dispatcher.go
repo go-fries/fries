@@ -8,14 +8,19 @@ import (
 )
 
 type Dispatcher struct {
-	mu        sync.RWMutex
-	listeners []AnyListener
+	mu         sync.RWMutex
+	listeners  []AnyListener
+	middleware []Middleware
 }
 
 func NewDispatcher() *Dispatcher {
 	return &Dispatcher{
 		listeners: make([]AnyListener, 0),
 	}
+}
+
+func (d *Dispatcher) Use(mws ...Middleware) {
+	d.middleware = append(d.middleware, mws...)
 }
 
 func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
@@ -31,7 +36,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, l := range d.listeners {
 		eg.Go(func() error {
-			return l.Handle(ctx, event)
+			handler := Chain(d.middleware...)(func(ctx context.Context, event any) error {
+				return l.Handle(ctx, event)
+			})
+			return handler(ctx, event)
 		})
 	}
 	return eg.Wait()
