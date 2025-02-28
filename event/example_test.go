@@ -15,6 +15,10 @@ func Example() {
 			fmt.Println("this is user func listener, the name is", event.Name)
 			return nil
 		})),
+		event.AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			fmt.Println("this is user func listener, the name is", event.Name)
+			return nil
+		}),
 		event.AdaptListener(&UserListener{}),
 	)
 

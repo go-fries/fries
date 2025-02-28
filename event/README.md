@@ -24,10 +24,14 @@ func Example() {
 	dispatcher := event.NewDispatcher()
 
 	dispatcher.RegisterListeners(
-		event.AdaptListener(event.ListenerFunc[*UserEvent](func(ctx context.Context, event *UserEvent) error {
+		event.AdaptListener(event.ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
 			fmt.Println("this is user func listener, the name is", event.Name)
 			return nil
 		})),
+		event.AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			fmt.Println("this is user func listener, the name is", event.Name)
+			return nil
+		}),
 		event.AdaptListener(&UserListener{}),
 	)
 
@@ -42,7 +46,7 @@ type UserEvent struct {
 
 type UserListener struct{}
 
-func (u *UserListener) Handle(ctx context.Context, event *UserEvent) error {
+func (u *UserListener) Handle(_ context.Context, event *UserEvent) error {
 	fmt.Println("this is user struct listener, the name is", event.Name)
 	return nil
 }

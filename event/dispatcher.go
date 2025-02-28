@@ -31,7 +31,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, l := range d.listeners {
 		eg.Go(func() error {
-			return l.HandleEvent(ctx, event)
+			return l.Handle(ctx, event)
 		})
 	}
 	return eg.Wait()
