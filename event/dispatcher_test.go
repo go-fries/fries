@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,6 +72,28 @@ func TestDispatcher(t *testing.T) {
 		)
 
 		assert.NoError(t, dispatcher.Dispatch(ctx, &UserEvent{Name: "zhangsan"}))
+		assert.NoError(t, dispatcher.Dispatch(ctx, &OrderEvent{OrderID: "123456"}))
+	})
+
+	t.Run("wait for all listeners to complete", func(t *testing.T) {
+		defer dispatcher.Reset()
+
+		ch := make(chan string, 1)
+
+		dispatcher.RegisterListeners(
+			AdaptListenerFunc(func(_ context.Context, event *OrderEvent) error {
+				assert.Equal(t, "123456", event.OrderID)
+				time.Sleep(1 * time.Second)
+				ch <- event.OrderID
+				return nil
+			}),
+		)
+
+		go func() {
+			dispatcher.Wait()
+			assert.Equal(t, "123456", <-ch)
+		}()
+
 		assert.NoError(t, dispatcher.Dispatch(ctx, &OrderEvent{OrderID: "123456"}))
 	})
 }
