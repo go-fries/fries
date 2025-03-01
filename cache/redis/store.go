@@ -25,11 +25,7 @@ type Option func(*Store)
 func Prefix(prefix string) Option {
 	return func(s *Store) {
 		if prefix != "" {
-			if !strings.HasSuffix(prefix, ":") {
-				s.prefix = prefix + ":"
-			} else {
-				s.prefix = prefix
-			}
+			s.prefix = strings.TrimSuffix(prefix, ":") + ":"
 		}
 	}
 }
