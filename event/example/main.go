@@ -1,14 +1,20 @@
-package event_test
+package main
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/go-fries/fries/event/middleware/recovery/v3"
 	"github.com/go-fries/fries/event/v3"
 )
 
-func Example() {
+func main() {
 	dispatcher := event.NewDispatcher()
+
+	// Use middleware
+	dispatcher.Use(
+		recovery.New(),
+	)
 
 	dispatcher.RegisterListeners(
 		event.AdaptListener(event.ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
@@ -25,6 +31,9 @@ func Example() {
 	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "zhangsan"}); err != nil {
 		fmt.Println(err)
 	}
+
+	// Wait for all listeners to finish processing
+	dispatcher.Wait()
 }
 
 type UserEvent struct {

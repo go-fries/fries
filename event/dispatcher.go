@@ -11,6 +11,7 @@ type Dispatcher struct {
 	mu         sync.RWMutex
 	listeners  []AnyListener
 	middleware []Middleware
+	wg         sync.WaitGroup
 }
 
 func NewDispatcher() *Dispatcher {
@@ -35,7 +36,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, l := range d.listeners {
+		d.wg.Add(1)
 		eg.Go(func() error {
+			defer d.wg.Done()
+
 			handler := Chain(d.middleware...)(func(ctx context.Context, event any) error {
 				return l.Handle(ctx, event)
 			})
@@ -49,4 +53,8 @@ func (d *Dispatcher) Reset() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.listeners = make([]AnyListener, 0)
+}
+
+func (d *Dispatcher) Wait() {
+	d.wg.Wait()
 }
