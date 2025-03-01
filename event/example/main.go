@@ -8,7 +8,7 @@ import (
 	"github.com/go-fries/fries/event/v3"
 )
 
-func Example() {
+func main() {
 	dispatcher := event.NewDispatcher()
 
 	// Use middleware
