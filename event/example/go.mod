@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/event/middleware/recovery/v3 v3.0.0-20250302090124-217899a0f1c4
+	github.com/go-fries/fries/event/middleware/recovery/v3 v3.0.0-alpha.2
 	github.com/go-fries/fries/event/v3 v3.0.0-alpha.2
 )
 
