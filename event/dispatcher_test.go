@@ -147,25 +147,25 @@ func TestDispatcher(t *testing.T) {
 		d.RegisterListeners(
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return errors.New("some error")
 			}),
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return errors.New("some error")
 			}),
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return nil
 			}),
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return nil
 			}),

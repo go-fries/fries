@@ -25,7 +25,8 @@ type options struct {
 	// [withError] enforces an error interrupt. When [withError] is true, one of the listeners returns an error,
 	// which interrupts the execution of other listeners in the listener collection
 	// Note: When parallel is set to an integer of -1 or>1 and an error interrupt is thrown,
-	//if there is a blocking operation in the listener, the ctx should be actively detected Done(), Avoid interruption failure
+	// if there is a blocking operation in the listener, the listener implementation should actively check ctx.Done()
+	// to ensure proper cancellation and avoid interruption failures
 	withError bool
 }
 
@@ -78,8 +79,9 @@ func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option) error {
+	currentOption := *d.option
 	for _, option := range options {
-		option(d.option)
+		option(&currentOption)
 	}
 
 	d.mu.RLock()
