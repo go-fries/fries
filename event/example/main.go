@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	dispatcher := event.NewDispatcher(event.WithOutErrorOption(), event.ParallelLimitOption(1))
+	dispatcher := event.NewDispatcher(event.WithoutErrorOption(), event.ParallelLimitOption(1))
 
 	// Use middleware
 	dispatcher.Use(

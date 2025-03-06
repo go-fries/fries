@@ -37,7 +37,7 @@ func WithErrorOption() func(option *options) {
 	}
 }
 
-func WithOutErrorOption() func(option *options) {
+func WithoutErrorOption() func(option *options) {
 	return func(option *options) {
 		option.withError = false
 	}
@@ -90,8 +90,8 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option)
 
 	middleChain := Chain(d.middleware...)
 	for _, l := range d.listeners {
+		d.wg.Add(1)
 		eg.Go(func() error {
-			d.wg.Add(1)
 			defer d.wg.Done()
 
 			select {

@@ -143,7 +143,7 @@ func TestDispatcher(t *testing.T) {
 	t.Run("has error when [withError] eq false", func(t *testing.T) {
 		var l sync.Mutex
 		ec := 0
-		d := NewDispatcher(WithOutErrorOption(), ParallelLimitOption(3))
+		d := NewDispatcher(WithoutErrorOption(), ParallelLimitOption(3))
 		d.RegisterListeners(
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
@@ -177,7 +177,7 @@ func TestDispatcher(t *testing.T) {
 
 	t.Run("check the number of parallel goroutines", func(t *testing.T) {
 		parallel := 3
-		d := NewDispatcher(WithOutErrorOption(), ParallelLimitOption(parallel))
+		d := NewDispatcher(WithoutErrorOption(), ParallelLimitOption(parallel))
 		startedCount := runtime.NumGoroutine()
 		for i := 0; i < 10; i++ {
 			d.RegisterListeners(
