@@ -187,7 +187,7 @@ func TestDispatcher(t *testing.T) {
 				}))
 		}
 		go func() {
-			time.After(300 * time.Second)
+			<-time.After(300 * time.Millisecond)
 			currentNum := runtime.NumGoroutine()
 			// startedCount should eq currentNum - 1(this goroutine) - parallel
 			assert.Equal(t, startedCount, currentNum-1-parallel)
