@@ -88,7 +88,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option)
 	defer d.mu.RUnlock()
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(d.option.parallel)
+	eg.SetLimit(currentOption.parallel)
 
 	middleChain := Chain(d.middleware...)
 	for _, l := range d.listeners {
@@ -104,7 +104,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option)
 					return l.Handle(ctx, event)
 				})
 
-				if err := handler(ctx, event); err != nil && d.option.withError {
+				if err := handler(ctx, event); err != nil && currentOption.withError {
 					return err
 				}
 				return nil
