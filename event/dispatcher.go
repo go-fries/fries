@@ -11,12 +11,27 @@ type Dispatcher struct {
 	mu         sync.RWMutex
 	listeners  []AnyListener
 	middleware []Middleware
-	wg         sync.WaitGroup
+	option     *Option
 }
 
-func NewDispatcher() *Dispatcher {
+type Option struct {
+	WithError bool
+	Works     int
+}
+
+type Options func(option *Option)
+
+func NewDispatcher(opts ...Options) *Dispatcher {
+	defaultOption := &Option{
+		WithError: true,
+		Works:     1,
+	}
+	for _, opt := range opts {
+		opt(defaultOption)
+	}
 	return &Dispatcher{
 		listeners: make([]AnyListener, 0),
+		option:    defaultOption,
 	}
 }
 
@@ -35,15 +50,25 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 	defer d.mu.RUnlock()
 
 	eg, ctx := errgroup.WithContext(ctx)
-	for _, l := range d.listeners {
-		d.wg.Add(1)
-		eg.Go(func() error {
-			defer d.wg.Done()
+	eg.SetLimit(d.option.Works)
 
-			handler := Chain(d.middleware...)(func(ctx context.Context, event any) error {
-				return l.Handle(ctx, event)
-			})
-			return handler(ctx, event)
+	middleChain := Chain(d.middleware...)
+	for _, l := range d.listeners {
+		ll := l
+		eg.Go(func() error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				handler := middleChain(func(ctx context.Context, event any) error {
+					return ll.Handle(ctx, event)
+				})
+
+				if err := handler(ctx, event); err != nil && d.option.WithError {
+					return err
+				}
+				return nil
+			}
 		})
 	}
 	return eg.Wait()
@@ -55,6 +80,5 @@ func (d *Dispatcher) Reset() {
 	d.listeners = make([]AnyListener, 0)
 }
 
-func (d *Dispatcher) Wait() {
-	d.wg.Wait()
-}
+// Wait keep compatible
+func (d *Dispatcher) Wait() {}

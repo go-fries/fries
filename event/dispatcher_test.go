@@ -2,6 +2,8 @@ package event
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -90,11 +92,92 @@ func TestDispatcher(t *testing.T) {
 		)
 
 		go func() {
-			dispatcher.Wait()
 			assert.Equal(t, "123456", <-ch)
 		}()
 
 		assert.NoError(t, dispatcher.Dispatch(ctx, &OrderEvent{OrderID: "123456"}))
+	})
+
+	t.Run("has error when [WithError] eq true", func(t *testing.T) {
+		var l sync.Mutex
+		var ec = 0
+		d := NewDispatcher(func(option *Option) {
+			option.WithError = true
+			option.Works = 1
+		})
+		d.RegisterListeners(
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return errors.New("some error")
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return errors.New("some error")
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return nil
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return nil
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return nil
+			}),
+		)
+		err := d.Dispatch(ctx, &UserEvent{})
+		assert.Equal(t, 1, ec)
+		assert.Error(t, err)
+	})
+
+	t.Run("has error when [WithError] eq false", func(t *testing.T) {
+		var l sync.Mutex
+		var ec = 0
+		d := NewDispatcher(func(option *Option) {
+			option.WithError = false
+			option.Works = 2
+		})
+		d.RegisterListeners(
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return errors.New("some error")
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return errors.New("some error")
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return nil
+			}),
+			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+				l.Lock()
+				ec += 1
+				l.Unlock()
+				return nil
+			}),
+		)
+		err := d.Dispatch(ctx, &UserEvent{})
+		assert.Equal(t, 4, ec)
+		assert.NoError(t, err)
 	})
 }
 

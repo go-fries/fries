@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	dispatcher := event.NewDispatcher()
+	dispatcher := event.NewDispatcher(func(option *event.Option) {
+		option.Works = 1         // number of parallel listeners
+		option.WithError = false // if true, other listener will be canceled when errors
+	})
 
 	// Use middleware
 	dispatcher.Use(
