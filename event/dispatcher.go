@@ -8,11 +8,12 @@ import (
 )
 
 type Dispatcher struct {
-	mu         sync.RWMutex
-	listeners  []AnyListener
-	middleware []Middleware
-	wg         sync.WaitGroup
-	option     *options
+	mu             sync.RWMutex
+	listeners      []AnyListener
+	middleware     []Middleware
+	wg             sync.WaitGroup
+	option         *options
+	runningOptions *runningOptions
 }
 
 type options struct {
@@ -32,28 +33,46 @@ type options struct {
 
 type Option func(option *options)
 
-func WithErrorOption() func(option *options) {
+func WithError() func(option *options) {
 	return func(option *options) {
 		option.withError = true
 	}
 }
 
-func WithoutErrorOption() func(option *options) {
+func WithoutError() func(option *options) {
 	return func(option *options) {
 		option.withError = false
 	}
 }
 
-func ParallelLimitOption(parallel int) func(option *options) {
+func WithParallel(parallel int) func(option *options) {
 	return func(option *options) {
 		option.parallel = parallel
 	}
 }
 
-func WithDefaultOption() func(option *options) {
-	return func(option *options) {
+type runningOptions struct {
+	options
+	// others running option...
+}
+
+type RunningOption func(option *runningOptions)
+
+func WithRunningError() func(option *runningOptions) {
+	return func(option *runningOptions) {
+		option.withError = true
+	}
+}
+
+func WithoutRunningError() func(option *runningOptions) {
+	return func(option *runningOptions) {
 		option.withError = false
-		option.parallel = -1
+	}
+}
+
+func WithRunningParallel(parallel int) func(option *runningOptions) {
+	return func(option *runningOptions) {
+		option.parallel = parallel
 	}
 }
 
@@ -63,8 +82,9 @@ func NewDispatcher(opts ...Option) *Dispatcher {
 		opt(defaultOption)
 	}
 	return &Dispatcher{
-		listeners: make([]AnyListener, 0),
-		option:    defaultOption,
+		listeners:      make([]AnyListener, 0),
+		option:         defaultOption,
+		runningOptions: &runningOptions{*defaultOption},
 	}
 }
 
@@ -78,8 +98,11 @@ func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
 	d.listeners = append(d.listeners, ls...)
 }
 
-func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option) error {
-	currentOption := *d.option
+// Dispatch the event to listeners
+// If the options of the dispatch method have a value,
+// it will overwrite the options of the NewDispatch method
+func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...RunningOption) error {
+	currentOption := *d.runningOptions
 	for _, option := range options {
 		option(&currentOption)
 	}
@@ -88,7 +111,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option)
 	defer d.mu.RUnlock()
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(d.option.parallel)
+	eg.SetLimit(currentOption.parallel)
 
 	middleChain := Chain(d.middleware...)
 	for _, l := range d.listeners {
@@ -104,7 +127,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option)
 					return l.Handle(ctx, event)
 				})
 
-				if err := handler(ctx, event); err != nil && d.option.withError {
+				if err := handler(ctx, event); err != nil && currentOption.withError {
 					return err
 				}
 				return nil

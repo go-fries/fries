@@ -102,7 +102,7 @@ func TestDispatcher(t *testing.T) {
 	t.Run("has error when [withError] eq true", func(t *testing.T) {
 		var l sync.Mutex
 		ec := 0
-		d := NewDispatcher(WithErrorOption(), ParallelLimitOption(1))
+		d := NewDispatcher(WithError(), WithParallel(1))
 		d.RegisterListeners(
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
@@ -143,7 +143,7 @@ func TestDispatcher(t *testing.T) {
 	t.Run("has error when [withError] eq false", func(t *testing.T) {
 		var l sync.Mutex
 		ec := 0
-		d := NewDispatcher(WithoutErrorOption(), ParallelLimitOption(3))
+		d := NewDispatcher(WithoutError(), WithParallel(3))
 		d.RegisterListeners(
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
@@ -177,7 +177,7 @@ func TestDispatcher(t *testing.T) {
 
 	t.Run("check the number of parallel goroutines", func(t *testing.T) {
 		parallel := 3
-		d := NewDispatcher(WithoutErrorOption(), ParallelLimitOption(parallel))
+		d := NewDispatcher(WithoutError(), WithParallel(parallel))
 		startedCount := runtime.NumGoroutine()
 		for i := 0; i < 10; i++ {
 			d.RegisterListeners(
@@ -195,10 +195,10 @@ func TestDispatcher(t *testing.T) {
 		_ = d.Dispatch(ctx, &UserEvent{})
 	})
 
-	t.Run("Check if the options of the Dispatch method are valid", func(t *testing.T) {
+	t.Run("Check if the runningOptions of the Dispatch method are valid", func(t *testing.T) {
 		var l sync.Mutex
 		ec := 0
-		d := NewDispatcher(WithErrorOption(), ParallelLimitOption(1))
+		d := NewDispatcher(WithError(), WithParallel(1))
 		d.RegisterListeners(
 			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
@@ -219,7 +219,7 @@ func TestDispatcher(t *testing.T) {
 				return nil
 			}),
 		)
-		err := d.Dispatch(ctx, &UserEvent{}, WithDefaultOption())
+		err := d.Dispatch(ctx, &UserEvent{}, WithRunningParallel(-1), WithoutRunningError())
 		assert.Equal(t, 3, ec)
 		assert.NoError(t, err)
 	})
