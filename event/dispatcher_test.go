@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"errors"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -98,41 +99,38 @@ func TestDispatcher(t *testing.T) {
 		assert.NoError(t, dispatcher.Dispatch(ctx, &OrderEvent{OrderID: "123456"}))
 	})
 
-	t.Run("has error when [WithError] eq true", func(t *testing.T) {
+	t.Run("has error when [withError] eq true", func(t *testing.T) {
 		var l sync.Mutex
-		var ec = 0
-		d := NewDispatcher(func(option *Option) {
-			option.WithError = true
-			option.Works = 1
-		})
+		ec := 0
+		d := NewDispatcher(WithErrorOption(), ParallelLimitOption(1))
 		d.RegisterListeners(
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return errors.New("some error")
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return errors.New("some error")
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return nil
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return nil
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
-				ec += 1
+				ec++
 				l.Unlock()
 				return nil
 			}),
@@ -142,33 +140,30 @@ func TestDispatcher(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("has error when [WithError] eq false", func(t *testing.T) {
+	t.Run("has error when [withError] eq false", func(t *testing.T) {
 		var l sync.Mutex
-		var ec = 0
-		d := NewDispatcher(func(option *Option) {
-			option.WithError = false
-			option.Works = 2
-		})
+		ec := 0
+		d := NewDispatcher(WithOutErrorOption(), ParallelLimitOption(3))
 		d.RegisterListeners(
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
 				ec += 1
 				l.Unlock()
 				return errors.New("some error")
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
 				ec += 1
 				l.Unlock()
 				return errors.New("some error")
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
 				ec += 1
 				l.Unlock()
 				return nil
 			}),
-			AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 				l.Lock()
 				ec += 1
 				l.Unlock()
@@ -177,6 +172,55 @@ func TestDispatcher(t *testing.T) {
 		)
 		err := d.Dispatch(ctx, &UserEvent{})
 		assert.Equal(t, 4, ec)
+		assert.NoError(t, err)
+	})
+
+	t.Run("check the number of parallel goroutines", func(t *testing.T) {
+		parallel := 3
+		d := NewDispatcher(WithOutErrorOption(), ParallelLimitOption(parallel))
+		startedCount := runtime.NumGoroutine()
+		for i := 0; i < 10; i++ {
+			d.RegisterListeners(
+				AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
+					<-time.After(200 * time.Millisecond)
+					return nil
+				}))
+		}
+		go func() {
+			time.After(300 * time.Second)
+			currentNum := runtime.NumGoroutine()
+			// startedCount should eq currentNum - 1(this goroutine) - parallel
+			assert.Equal(t, startedCount, currentNum-1-parallel)
+		}()
+		_ = d.Dispatch(ctx, &UserEvent{})
+	})
+
+	t.Run("Check if the options of the Dispatch method are valid", func(t *testing.T) {
+		var l sync.Mutex
+		ec := 0
+		d := NewDispatcher(WithErrorOption(), ParallelLimitOption(1))
+		d.RegisterListeners(
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
+				l.Lock()
+				ec++
+				l.Unlock()
+				return errors.New("some error")
+			}),
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
+				l.Lock()
+				ec++
+				l.Unlock()
+				return nil
+			}),
+			AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
+				l.Lock()
+				ec++
+				l.Unlock()
+				return nil
+			}),
+		)
+		err := d.Dispatch(ctx, &UserEvent{}, WithDefaultOption())
+		assert.Equal(t, 3, ec)
 		assert.NoError(t, err)
 	})
 }

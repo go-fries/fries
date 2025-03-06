@@ -11,21 +11,53 @@ type Dispatcher struct {
 	mu         sync.RWMutex
 	listeners  []AnyListener
 	middleware []Middleware
-	option     *Option
+	wg         sync.WaitGroup
+	option     *options
 }
 
-type Option struct {
-	WithError bool
-	Works     int
+type options struct {
+	// [parallel] limits the number of active goroutines in listeners to at most n.
+	// A negative value indicates no limit. A limit of zero will prevent any new goroutines from being added.
+	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the configured limit.
+	// The limit must not be modified while any listener in the listeners are active.
+	parallel int
+
+	// [withError] enforces an error interrupt. When [withError] is true, one of the listeners returns an error,
+	// which interrupts the execution of other listeners in the listener collection
+	// Note: When parallel is set to an integer of -1 or>1 and an error interrupt is thrown,
+	//if there is a blocking operation in the listener, the ctx should be actively detected Done(), Avoid interruption failure
+	withError bool
 }
 
-type Options func(option *Option)
+type Option func(option *options)
 
-func NewDispatcher(opts ...Options) *Dispatcher {
-	defaultOption := &Option{
-		WithError: true,
-		Works:     1,
+func WithErrorOption() func(option *options) {
+	return func(option *options) {
+		option.withError = true
 	}
+}
+
+func WithOutErrorOption() func(option *options) {
+	return func(option *options) {
+		option.withError = false
+	}
+}
+
+func ParallelLimitOption(parallel int) func(option *options) {
+	return func(option *options) {
+		option.parallel = parallel
+	}
+}
+
+func WithDefaultOption() func(option *options) {
+	return func(option *options) {
+		option.withError = false
+		option.parallel = -1
+	}
+}
+
+func NewDispatcher(opts ...Option) *Dispatcher {
+	defaultOption := &options{parallel: -1}
 	for _, opt := range opts {
 		opt(defaultOption)
 	}
@@ -45,26 +77,32 @@ func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
 	d.listeners = append(d.listeners, ls...)
 }
 
-func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
+func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...Option) error {
+	for _, option := range options {
+		option(d.option)
+	}
+
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(d.option.Works)
+	eg.SetLimit(d.option.parallel)
 
 	middleChain := Chain(d.middleware...)
 	for _, l := range d.listeners {
-		ll := l
 		eg.Go(func() error {
+			d.wg.Add(1)
+			defer d.wg.Done()
+
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
 				handler := middleChain(func(ctx context.Context, event any) error {
-					return ll.Handle(ctx, event)
+					return l.Handle(ctx, event)
 				})
 
-				if err := handler(ctx, event); err != nil && d.option.WithError {
+				if err := handler(ctx, event); err != nil && d.option.withError {
 					return err
 				}
 				return nil
@@ -80,5 +118,6 @@ func (d *Dispatcher) Reset() {
 	d.listeners = make([]AnyListener, 0)
 }
 
-// Wait keep compatible
-func (d *Dispatcher) Wait() {}
+func (d *Dispatcher) Wait() {
+	d.wg.Wait()
+}
