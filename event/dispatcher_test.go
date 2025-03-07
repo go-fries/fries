@@ -219,7 +219,7 @@ func TestDispatcher(t *testing.T) {
 				return nil
 			}),
 		)
-		err := d.Dispatch(ctx, &UserEvent{}, WithDispatchParallel(-1), WithDispatchWithError())
+		err := d.Dispatch(ctx, &UserEvent{}, WithDispatchParallel(-1), WithDispatchWithoutError())
 		assert.Equal(t, 3, ec)
 		assert.NoError(t, err)
 	})
