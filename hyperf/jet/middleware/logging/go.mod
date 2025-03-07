@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/hyperf/jet/v3 => ../../
 
 require (
 	github.com/go-fries/fries/hyperf/jet/v3 v3.0.0-alpha.2
-	github.com/go-kratos/kratos/v2 v2.8.3
+	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/stretchr/testify v1.10.0
 )
 
