@@ -195,7 +195,7 @@ func TestDispatcher(t *testing.T) {
 		_ = d.Dispatch(ctx, &UserEvent{})
 	})
 
-	t.Run("Check if the runningOptions of the Dispatch method are valid", func(t *testing.T) {
+	t.Run("Check if the dispatchOptions of the Dispatch method are valid", func(t *testing.T) {
 		var l sync.Mutex
 		ec := 0
 		d := NewDispatcher(WithError(), WithParallel(1))
@@ -219,7 +219,7 @@ func TestDispatcher(t *testing.T) {
 				return nil
 			}),
 		)
-		err := d.Dispatch(ctx, &UserEvent{}, WithRunningParallel(-1), WithoutRunningError())
+		err := d.Dispatch(ctx, &UserEvent{}, WithDispatchParallel(-1), WithDispatchWithError())
 		assert.Equal(t, 3, ec)
 		assert.NoError(t, err)
 	})
