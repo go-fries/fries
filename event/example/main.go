@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	dispatcher := event.NewDispatcher()
+	dispatcher := event.NewDispatcher(event.WithoutError(), event.WithParallel(1))
 
 	// Use middleware
 	dispatcher.Use(
@@ -28,7 +28,8 @@ func main() {
 		event.AdaptListener(&UserListener{}),
 	)
 
-	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "zhangsan"}); err != nil {
+	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "z"},
+		event.WithDispatchWithError()); err != nil {
 		fmt.Println(err)
 	}
 
