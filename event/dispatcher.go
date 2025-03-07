@@ -18,7 +18,8 @@ type Dispatcher struct {
 type options struct {
 	// [parallel] limits the number of active goroutines in listeners to at most n.
 	// A negative value indicates no limit. A limit of zero will prevent any new goroutines from being added.
-	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the configured limit.
+	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the
+	// configured limit.
 	// The limit must not be modified while any listener in the listeners are active.
 	parallel int
 
@@ -76,7 +77,8 @@ func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
 type dispatchOptions struct {
 	// [parallel] limits the number of active goroutines in listeners to at most n.
 	// A negative value indicates no limit. A limit of zero will prevent any new goroutines from being added.
-	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the configured limit.
+	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the
+	// configured limit.
 	// The limit must not be modified while any listener in the listeners are active.
 	parallel int
 

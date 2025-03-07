@@ -28,7 +28,8 @@ func main() {
 		event.AdaptListener(&UserListener{}),
 	)
 
-	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "zhangsan"}, event.WithDispatchWithError()); err != nil {
+	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "z"},
+		event.WithDispatchWithError()); err != nil {
 		fmt.Println(err)
 	}
 
