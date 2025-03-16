@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3 v3.0.0-alpha.2
-	github.com/go-fries/fries/hyperf/jet/v3 v3.0.0-alpha.2
+	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3 v3.0.0-alpha.3
+	github.com/go-fries/fries/hyperf/jet/v3 v3.0.0-alpha.3
 	github.com/stretchr/testify v1.10.0
 )
 
