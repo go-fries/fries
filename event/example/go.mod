@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/event/middleware/recovery/v3 v3.0.0-alpha.2
-	github.com/go-fries/fries/event/v3 v3.0.0-alpha.2
+	github.com/go-fries/fries/event/middleware/recovery/v3 v3.0.0-alpha.3
+	github.com/go-fries/fries/event/v3 v3.0.0-alpha.3
 )
 
 require golang.org/x/sync v0.12.0 // indirect
