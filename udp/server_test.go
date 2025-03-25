@@ -42,7 +42,7 @@ func TestServer(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer c.Close()
+		defer c.Close() //nolint:errcheck
 
 		_, err = c.Write([]byte("test"))
 		if err != nil {

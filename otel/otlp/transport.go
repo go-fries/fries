@@ -8,7 +8,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -64,11 +63,11 @@ func (t *GRPCTransport) GetMetricExporter(ctx context.Context) (metric.Exporter,
 	opts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithEndpoint(t.endpoint),
 		otlpmetricgrpc.WithCompressor("gzip"),
-		otlpmetricgrpc.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
+		otlpmetricgrpc.WithTemporalitySelector(func(kind metric.InstrumentKind) metricdata.Temporality {
 			switch kind {
-			case sdkmetric.InstrumentKindCounter,
-				sdkmetric.InstrumentKindObservableCounter,
-				sdkmetric.InstrumentKindHistogram:
+			case metric.InstrumentKindCounter,
+				metric.InstrumentKindObservableCounter,
+				metric.InstrumentKindHistogram:
 				return metricdata.DeltaTemporality
 			default:
 				return metricdata.CumulativeTemporality

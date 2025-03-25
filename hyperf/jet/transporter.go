@@ -66,7 +66,7 @@ func (t *HTTPTransporter) Send(ctx context.Context, data []byte) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	response, err := t.Client.Do(request)
+	response, err := t.Do(request)
 	if err != nil {
 		return nil, err
 	}
