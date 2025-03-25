@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -57,6 +58,7 @@ func (s *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer output.Body.Close() // nolint:errcheck
 
 	body, err := io.ReadAll(output.Body)
 	if err != nil {
@@ -68,9 +70,11 @@ func (s *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 
 func (s *Filesystem) Write(ctx context.Context, path string, value []byte) error {
 	_, err := s.s3.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: ptr(s.bucket),
-		Key:    ptr(s.prefixer.Prefix(path)),
-		Body:   io.NopCloser(bytes.NewBuffer(value)),
+		Bucket:        ptr(s.bucket),
+		Key:           ptr(s.prefixer.Prefix(path)),
+		Body:          io.NopCloser(bytes.NewBuffer(value)),
+		ContentType:   ptr(http.DetectContentType(value)),
+		ContentLength: ptr(int64(len(value))),
 	})
 	return err
 }
@@ -165,7 +169,8 @@ func (s *Filesystem) Path(_ context.Context, path string) string {
 }
 
 func (s *Filesystem) Name(ctx context.Context, path string) string {
-
+	// TODO implement me
+	panic("implement me")
 }
 
 func (s *Filesystem) Basename(ctx context.Context, path string) string {
@@ -191,104 +196,48 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 	return err
 }
 
-//
-// func (s *Filesystem) Move(ctx context.Context, oldPath, newPath string) error {
-// 	if err := s.Copy(ctx, oldPath, newPath); err != nil {
-// 		return err
-// 	}
-// 	return s.Delete(ctx, oldPath)
-// }
-//
-// func (s *Filesystem) Copy(ctx context.Context, oldPath, newPath string) error {
-// 	_, err := s.s3.CopyObject(ctx, &s3.CopyObjectInput{
-// 		Bucket:     ptr(s.bucket),
-// 		CopySource: ptr(s.bucket + "/" + s.prefixer.Prefix(oldPath)),
-// 		Key:        ptr(s.prefixer.Prefix(newPath)),
-// 	})
-// 	return err
-// }
-//
-// func (s *Filesystem) Link(context.Context, string, string) error {
-// 	return storage.ErrNotSupported
-// }
-//
-// func (s *Filesystem) Symlink(context.Context, string, string) error {
-// 	return storage.ErrNotSupported
-// }
-//
-// func (s *Filesystem) Files(ctx context.Context, path string) ([]string, error) {
-// 	output, err := s.s3.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-// 		Bucket: ptr(s.bucket),
-// 		Prefix: ptr(s.prefixer.Prefix(path)),
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var files []string
-// 	for _, obj := range output.Contents {
-// 		files = append(files, *obj.Key)
-// 	}
-// 	return files, nil
-// }
-//
-// func (s *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
-// 	output, err := s.s3.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-// 		Bucket: ptr(s.bucket),
-// 		Prefix: ptr(s.prefixer.Prefix(path)),
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var files []string
-// 	for _, obj := range output.Contents {
-// 		files = append(files, *obj.Key)
-// 	}
-// 	return files, nil
-// }
-//
-// func (s *Filesystem) Directories(ctx context.Context, path string) ([]string, error) {
-// 	output, err := s.s3.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-// 		Bucket: ptr(s.bucket),
-// 		Prefix: ptr(s.prefixer.Prefix(path)),
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var dirs []string
-// 	for _, obj := range output.Contents {
-// 		dirs = append(dirs, *obj.Key)
-// 	}
-// 	return dirs, nil
-// }
-//
-// func (s *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
-// 	output, err := s.s3.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-// 		Bucket: ptr(s.bucket),
-// 		Prefix: ptr(s.prefixer.Prefix(path)),
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var dirs []string
-// 	for _, obj := range output.Contents {
-// 		dirs = append(dirs, *obj.Key)
-// 	}
-// 	return dirs, nil
-// }
-//
-// func (s *Filesystem) IsFile(ctx context.Context, path string) (bool, error) {
-// 	// TODO implement me
-// 	panic("implement me")
-// }
-//
-// func (s *Filesystem) IsDir(ctx context.Context, path string) (bool, error) {
-// 	// TODO implement me
-// 	panic("implement me")
-// }
+func (s *Filesystem) Link(context.Context, string, string) error {
+	return filesystem.ErrNotSupported
+}
+
+func (s *Filesystem) Symlink(context.Context, string, string) error {
+	return filesystem.ErrNotSupported
+}
+
+func (s *Filesystem) Files(ctx context.Context, path string) ([]string, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) Directories(ctx context.Context, path string) ([]string, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) IsFile(ctx context.Context, path string) (bool, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) IsDir(ctx context.Context, path string) (bool, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s *Filesystem) Copy(ctx context.Context, oldPath, newPath string) error {
+	// TODO implement me
+	panic("implement me")
+}
 
 func ptr[T any](v T) *T {
 	return &v
