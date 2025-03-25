@@ -28,15 +28,16 @@ func (m *mockLogger) Log(level log.Level, keyvals ...any) error {
 	assert.Equal(m.t, "service", keyvals[3])
 	assert.Equal(m.t, "method", keyvals[4])
 
-	if keyvals[5] == "no-error" {
+	switch keyvals[5] {
+	case "no-error":
 		assert.Equal(m.t, log.LevelInfo, level)
 		assert.Equal(m.t, "response", keyvals[9])
 		assert.Nil(m.t, keyvals[11])
-	} else if keyvals[5] == "with-error" {
+	case "with-error":
 		assert.Equal(m.t, log.LevelError, level)
 		assert.Nil(m.t, keyvals[9])
 		assert.Equal(m.t, assert.AnError, keyvals[11])
-	} else {
+	default:
 		assert.Fail(m.t, "unexpected name")
 	}
 

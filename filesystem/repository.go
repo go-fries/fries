@@ -74,7 +74,7 @@ func (r *repository) Missing(ctx context.Context, path string) (bool, error) {
 }
 
 func (r *repository) Move(ctx context.Context, oldPath, newPath string) error {
-	return r.Filesystem.Rename(ctx, oldPath, newPath)
+	return r.Rename(ctx, oldPath, newPath)
 }
 
 func (r *repository) Prepend(ctx context.Context, path string, value []byte) error {

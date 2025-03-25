@@ -19,7 +19,7 @@ func NewServer(c *cron.Cron) *Server {
 
 func (s *Server) Start(context.Context) error {
 	log.Info("[Crontab] server starting")
-	s.Cron.Run()
+	s.Run()
 	return nil
 }
 

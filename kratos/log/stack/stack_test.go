@@ -13,8 +13,8 @@ func redirectStdout(fn func()) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(fs.Name())
-	defer fs.Close()
+	defer os.Remove(fs.Name()) //nolint:errcheck
+	defer fs.Close()           //nolint:errcheck
 
 	org := os.Stdout
 	os.Stdout = fs

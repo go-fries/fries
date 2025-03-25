@@ -19,7 +19,7 @@ func TestSyslogLogger(t *testing.T) {
 		Addr:    "192.168.8.92:30732",
 		Tag:     "test",
 	})
-	defer logger.Close()
+	defer logger.Close() //nolint:errcheck
 
 	err := logger.Log(log.LevelDebug, "test", "test")
 	if err != nil {
