@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var ErrNotSupported = errors.New("[storage] not supported")
+var ErrNotSupported = errors.New("filesystem: the operation is not supported")
 
 type Filesystem interface {
 	// Read the value at the given path.
