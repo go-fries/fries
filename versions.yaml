@@ -96,6 +96,11 @@ module-sets:
       # Support
       - github.com/go-fries/fries/support/v3
 
+      # Storage
+      - github.com/go-fries/fries/storage/v3
+      - github.com/go-fries/fries/storage/s3/v3
+      - github.com/go-fries/fries/storage/local/v3
+
       # Timezone
       - github.com/go-fries/fries/timezone/v3
 
