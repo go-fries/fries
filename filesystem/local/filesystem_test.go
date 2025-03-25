@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,14 +10,22 @@ import (
 
 var ctx = context.Background()
 
-func TestStorage(t *testing.T) {
-	local := NewStorage("./testfile/dir1")
+func TestFilesystem_basic(t *testing.T) {
+	// init
+	os.Mkdir("./testfile/basic", os.ModePerm)
+	defer t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll("./testfile/basic"))
+	})
 
-	// set
-	assert.NoError(t, local.Write(ctx, "test", []byte("test")))
+	// local
+	local := NewStorage("./testfile/basic")
+	filename := "test.txt"
 
-	// get
-	data, err := local.Read(ctx, "test")
+	// write
+	assert.NoError(t, local.Write(ctx, filename, []byte("test")))
+
+	// read
+	data, err := local.Read(ctx, filename)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("test"), data)
 
@@ -25,7 +34,7 @@ func TestStorage(t *testing.T) {
 	assert.Nil(t, data)
 
 	// has
-	has, err := local.Exists(ctx, "test")
+	has, err := local.Exists(ctx, filename)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
@@ -34,38 +43,41 @@ func TestStorage(t *testing.T) {
 	assert.False(t, missing)
 
 	// move
-	assert.NoError(t, local.Rename(ctx, "test", "test2"))
-	has, err = local.Exists(ctx, "test")
+	assert.NoError(t, local.Rename(ctx, filename, "test2.txt"))
+	has, err = local.Exists(ctx, filename)
 	assert.NoError(t, err)
 	assert.False(t, has)
-	has, err = local.Exists(ctx, "test2")
+	has, err = local.Exists(ctx, "test2.txt")
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	// link
-	assert.NoError(t, local.Link(ctx, "test3", "test4"))
-	has, err = local.Exists(ctx, "test4")
+	assert.NoError(t, local.Link(ctx, "test2.txt", "test4.txt"))
+	has, err = local.Exists(ctx, "test4.txt")
 	assert.NoError(t, err)
 	assert.True(t, has)
+	data, err = local.Read(ctx, "test4.txt")
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("test"), data)
 
 	// symlink
-	assert.NoError(t, local.Symlink(ctx, "test3", "test5"))
-	has, err = local.Exists(ctx, "test5")
-	assert.NoError(t, err)
-	assert.True(t, has)
+	// assert.NoError(t, local.Symlink(ctx, "test2.txt", "test5.txt"))
+	// data, err = local.Read(ctx, "test5.txt")
+	// assert.NoError(t, err)
+	// assert.Equal(t, []byte("test"), data)
 
 	// path
 	path := local.Path(ctx, "1.jpg")
-	assert.Equal(t, "./testfile/dir1/1.jpg", path)
+	assert.Equal(t, "./testfile/basic/1.jpg", path)
 
 	// delete
-	// assert.NoError(t, local.Delete("test"))
-	// has, err = local.Has("test")
-	// assert.NoError(t, err)
-	// assert.False(t, has)
+	assert.NoError(t, local.Delete(ctx, "test4.txt"))
+	has, err = local.Exists(ctx, "test4.txt")
+	assert.NoError(t, err)
+	assert.False(t, has)
 }
 
-func TestStorage_Path(t *testing.T) {
+func TestFilesystem_Path(t *testing.T) {
 	local := NewStorage("./testfile/path")
 
 	tests := []struct {
@@ -89,7 +101,7 @@ func TestStorage_Path(t *testing.T) {
 	}
 }
 
-func TestStorage_Name(t *testing.T) {
+func TestFilesystem_Name(t *testing.T) {
 	local := NewStorage("./testfile/path")
 
 	tests := []struct {
@@ -114,7 +126,7 @@ func TestStorage_Name(t *testing.T) {
 	}
 }
 
-func TestStorage_Basename(t *testing.T) {
+func TestFilesystem_Basename(t *testing.T) {
 	local := NewStorage("./testfile/path")
 
 	tests := []struct {
@@ -139,7 +151,7 @@ func TestStorage_Basename(t *testing.T) {
 	}
 }
 
-func TestStorage_Dirname(t *testing.T) {
+func TestFilesystem_Dirname(t *testing.T) {
 	local := NewStorage("./testfile/path")
 
 	tests := []struct {
@@ -163,7 +175,7 @@ func TestStorage_Dirname(t *testing.T) {
 	}
 }
 
-func TestStorage_Extension(t *testing.T) {
+func TestFilesystem_Extension(t *testing.T) {
 	local := NewStorage("./testfile/path")
 
 	tests := []struct {

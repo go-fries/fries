@@ -1,4 +1,4 @@
-package storage
+package filesystem
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 var ErrNotSupported = errors.New("[storage] not supported")
 
-type Storage interface {
+type Filesystem interface {
 	// Read the value at the given path.
 	Read(ctx context.Context, path string) ([]byte, error)
 
@@ -80,33 +80,33 @@ type Copyable interface {
 	Copy(ctx context.Context, oldPath, newPath string) error
 }
 
-type NoopStorage struct{}
+type NoopFilesystem struct{}
 
 var (
-	_ Storage  = (*NoopStorage)(nil)
-	_ Copyable = (*NoopStorage)(nil)
+	_ Filesystem = (*NoopFilesystem)(nil)
+	_ Copyable   = (*NoopFilesystem)(nil)
 )
 
-func (NoopStorage) Read(context.Context, string) ([]byte, error)             { return nil, nil }
-func (NoopStorage) Write(context.Context, string, []byte) error              { return nil }
-func (NoopStorage) Delete(context.Context, string) error                     { return nil }
-func (NoopStorage) Exists(context.Context, string) (bool, error)             { return true, nil }
-func (NoopStorage) Rename(context.Context, string, string) error             { return nil }
-func (NoopStorage) Link(context.Context, string, string) error               { return nil }
-func (NoopStorage) Symlink(context.Context, string, string) error            { return nil }
-func (NoopStorage) Files(context.Context, string) ([]string, error)          { return nil, nil }
-func (NoopStorage) AllFiles(context.Context, string) ([]string, error)       { return nil, nil }
-func (NoopStorage) Directories(context.Context, string) ([]string, error)    { return nil, nil }
-func (NoopStorage) AllDirectories(context.Context, string) ([]string, error) { return nil, nil }
-func (NoopStorage) MakeDirectory(context.Context, string) error              { return nil }
-func (NoopStorage) DeleteDirectory(context.Context, string) error            { return nil }
-func (NoopStorage) IsFile(context.Context, string) (bool, error)             { return false, nil }
-func (NoopStorage) IsDir(context.Context, string) (bool, error)              { return false, nil }
-func (NoopStorage) Size(context.Context, string) (int64, error)              { return 0, nil }
-func (NoopStorage) LastModified(context.Context, string) (*time.Time, error) { return nil, nil }
-func (NoopStorage) Path(context.Context, string) string                      { return "" }
-func (NoopStorage) Name(context.Context, string) string                      { return "" }
-func (NoopStorage) Basename(context.Context, string) string                  { return "" }
-func (NoopStorage) Dirname(context.Context, string) string                   { return "" }
-func (NoopStorage) Extension(context.Context, string) string                 { return "" }
-func (NoopStorage) Copy(context.Context, string, string) error               { return nil }
+func (NoopFilesystem) Read(context.Context, string) ([]byte, error)             { return nil, nil }
+func (NoopFilesystem) Write(context.Context, string, []byte) error              { return nil }
+func (NoopFilesystem) Delete(context.Context, string) error                     { return nil }
+func (NoopFilesystem) Exists(context.Context, string) (bool, error)             { return true, nil }
+func (NoopFilesystem) Rename(context.Context, string, string) error             { return nil }
+func (NoopFilesystem) Link(context.Context, string, string) error               { return nil }
+func (NoopFilesystem) Symlink(context.Context, string, string) error            { return nil }
+func (NoopFilesystem) Files(context.Context, string) ([]string, error)          { return nil, nil }
+func (NoopFilesystem) AllFiles(context.Context, string) ([]string, error)       { return nil, nil }
+func (NoopFilesystem) Directories(context.Context, string) ([]string, error)    { return nil, nil }
+func (NoopFilesystem) AllDirectories(context.Context, string) ([]string, error) { return nil, nil }
+func (NoopFilesystem) MakeDirectory(context.Context, string) error              { return nil }
+func (NoopFilesystem) DeleteDirectory(context.Context, string) error            { return nil }
+func (NoopFilesystem) IsFile(context.Context, string) (bool, error)             { return false, nil }
+func (NoopFilesystem) IsDir(context.Context, string) (bool, error)              { return false, nil }
+func (NoopFilesystem) Size(context.Context, string) (int64, error)              { return 0, nil }
+func (NoopFilesystem) LastModified(context.Context, string) (*time.Time, error) { return nil, nil }
+func (NoopFilesystem) Path(context.Context, string) string                      { return "" }
+func (NoopFilesystem) Name(context.Context, string) string                      { return "" }
+func (NoopFilesystem) Basename(context.Context, string) string                  { return "" }
+func (NoopFilesystem) Dirname(context.Context, string) string                   { return "" }
+func (NoopFilesystem) Extension(context.Context, string) string                 { return "" }
+func (NoopFilesystem) Copy(context.Context, string, string) error               { return nil }

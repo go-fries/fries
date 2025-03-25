@@ -1,4 +1,4 @@
-package storage
+package filesystem
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 func TestStorage(t *testing.T) {
 	var (
-		noop = NoopStorage{}
+		noop = NoopFilesystem{}
 		ctx  = context.Background()
 	)
 

@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/storage/v3
+module github.com/go-fries/fries/filesystem/v3
 
 go 1.23.0
 

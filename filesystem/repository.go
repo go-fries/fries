@@ -1,9 +1,9 @@
-package storage
+package filesystem
 
 import "context"
 
 type Repository interface {
-	Storage
+	Filesystem
 	Copyable
 
 	// Get retrieves the value for the given path.
@@ -35,12 +35,12 @@ type Repository interface {
 }
 
 type repository struct {
-	Storage
+	Filesystem
 }
 
-func NewRepository(store Storage) Repository {
+func NewRepository(store Filesystem) Repository {
 	return &repository{
-		Storage: store,
+		Filesystem: store,
 	}
 }
 
@@ -74,7 +74,7 @@ func (r *repository) Missing(ctx context.Context, path string) (bool, error) {
 }
 
 func (r *repository) Move(ctx context.Context, oldPath, newPath string) error {
-	return r.Storage.Rename(ctx, oldPath, newPath)
+	return r.Filesystem.Rename(ctx, oldPath, newPath)
 }
 
 func (r *repository) Prepend(ctx context.Context, path string, value []byte) error {
@@ -94,7 +94,7 @@ func (r *repository) Append(ctx context.Context, path string, value []byte) erro
 }
 
 func (r *repository) Copy(ctx context.Context, oldPath, newPath string) error {
-	if copier, ok := r.Storage.(Copyable); ok {
+	if copier, ok := r.Filesystem.(Copyable); ok {
 		return copier.Copy(ctx, oldPath, newPath)
 	}
 

@@ -1,4 +1,4 @@
-package storage
+package filesystem
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestNoopRepository(t *testing.T) {
-	repo := NewRepository(NoopStorage{})
+	repo := NewRepository(NoopFilesystem{})
 	ctx := context.Background()
 
 	assert.NoError(t, repo.Put(ctx, "noop", []byte("noop")))
