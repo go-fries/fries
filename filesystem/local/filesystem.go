@@ -15,9 +15,7 @@ type Filesystem struct {
 	prefixer *filesystem.PathPrefixer
 }
 
-var (
-	_ filesystem.Filesystem = (*Filesystem)(nil)
-)
+var _ filesystem.Filesystem = (*Filesystem)(nil)
 
 func NewStorage(root string) *Filesystem {
 	return &Filesystem{
@@ -31,7 +29,7 @@ func (s *Filesystem) Read(_ context.Context, path string) ([]byte, error) {
 }
 
 func (s *Filesystem) Write(_ context.Context, path string, value []byte) error {
-	return os.WriteFile(s.prefixer.Prefix(path), value, 0o644)
+	return os.WriteFile(s.prefixer.Prefix(path), value, 0o644) //nolint:mnd
 }
 
 func (s *Filesystem) Delete(_ context.Context, path string) error {
@@ -59,6 +57,7 @@ func (s *Filesystem) Link(_ context.Context, oldPath, newPath string) error {
 }
 
 func (s *Filesystem) Symlink(_ context.Context, oldPath, newPath string) error {
+	_, _ = oldPath, newPath
 	panic("not implemented") // TODO: Implement
 	// return os.Symlink(s.prefixer.Prefix(oldPath), s.prefixer.Prefix(newPath))
 }

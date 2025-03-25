@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var ctx = context.Background()
 
 func TestFilesystem_basic(t *testing.T) {
 	// init
-	os.Mkdir("./testfile/basic", os.ModePerm)
+	require.NoError(t, os.Mkdir("./testfile/basic", os.ModePerm))
 	defer t.Cleanup(func() {
 		assert.NoError(t, os.RemoveAll("./testfile/basic"))
 	})

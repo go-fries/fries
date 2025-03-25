@@ -16,7 +16,6 @@ linters:
     - mnd
     - gocyclo
     - ineffassign
-    - lll
     - prealloc
     - revive
     - staticcheck
