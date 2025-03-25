@@ -82,7 +82,10 @@ type Copyable interface {
 
 type NoopStorage struct{}
 
-var _ Storage = (*NoopStorage)(nil)
+var (
+	_ Storage  = (*NoopStorage)(nil)
+	_ Copyable = (*NoopStorage)(nil)
+)
 
 func (NoopStorage) Read(context.Context, string) ([]byte, error)             { return nil, nil }
 func (NoopStorage) Write(context.Context, string, []byte) error              { return nil }
@@ -106,3 +109,4 @@ func (NoopStorage) Name(context.Context, string) string                      { r
 func (NoopStorage) Basename(context.Context, string) string                  { return "" }
 func (NoopStorage) Dirname(context.Context, string) string                   { return "" }
 func (NoopStorage) Extension(context.Context, string) string                 { return "" }
+func (NoopStorage) Copy(context.Context, string, string) error               { return nil }
