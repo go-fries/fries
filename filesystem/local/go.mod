@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/storage/local/v3
+module github.com/go-fries/fries/filesystem/local/v3
 
 go 1.23.0
 
-replace github.com/go-fries/fries/storage/v3 => ../
+replace github.com/go-fries/fries/filesystem/v3 => ../
 
 require (
-	github.com/go-fries/fries/storage/v3 v3.0.0-alpha.3
+	github.com/go-fries/fries/filesystem/v3 v3.0.0-alpha.3
 	github.com/stretchr/testify v1.10.0
 )
 
