@@ -9,8 +9,8 @@ replace (
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-fries/fries/constraints/v3 v3.0.0-alpha.3
-	github.com/go-fries/fries/errors/v3 v3.0.0-alpha.3
+	github.com/go-fries/fries/constraints/v3 v3.0.0-rc.1
+	github.com/go-fries/fries/errors/v3 v3.0.0-rc.1
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
 )
