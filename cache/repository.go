@@ -25,7 +25,7 @@ func NewRepository(store Store) Repository {
 }
 
 func (r *repository) Missing(ctx context.Context, key string) (bool, error) {
-	had, err := r.Store.Has(ctx, key)
+	had, err := r.Has(ctx, key)
 	if err != nil {
 		return false, err
 	}

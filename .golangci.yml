@@ -1,5 +1,7 @@
+version: "2"
+
 linters:
-  disable-all: true
+  default: none
 
   enable:
     - bodyclose
@@ -8,27 +10,31 @@ linters:
     - errcheck
     - copyloopvar
     - govet
-    - gosimple
-    - gofmt
-    - gofumpt
     - goconst
-    - goimports
     - mnd
     - gocyclo
     - ineffassign
-    - lll
     - prealloc
     - revive
     - staticcheck
-    - typecheck
     - unused
     - whitespace
     - wastedassign
     - unconvert
     - misspell
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
 
-linters-settings:
-  gofmt:
-    rewrite-rules:
-      - pattern: 'interface{}'
-        replacement: 'any'
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofmt:
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'

@@ -19,6 +19,6 @@ func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
 }
 
 func (p *Provider) Terminate(ctx context.Context) (context.Context, error) {
-	p.Dispatcher.Wait() // wait for all events to be processed
+	p.Wait()
 	return ctx, nil
 }

@@ -1,6 +1,6 @@
 module-sets:
   stable:
-    version: v3.0.0-alpha.1
+    version: v3.0.0-alpha.3
     modules:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
@@ -37,11 +37,19 @@ module-sets:
       - github.com/go-fries/fries/ent/v3
       - github.com/go-fries/fries/ent/multidriver/v3
 
-      # Eventbus
+      # Event & EventBus
+      - github.com/go-fries/fries/event/v3
+      - github.com/go-fries/fries/event/middleware/recovery/v3
+      - github.com/go-fries/fries/event/example/v3
       - github.com/go-fries/fries/eventbus/v3
 
       # Foundation
       - github.com/go-fries/fries/foundation/v3
+
+      # Filesystem
+      - github.com/go-fries/fries/filesystem/v3
+      - github.com/go-fries/fries/filesystem/s3/v3
+      - github.com/go-fries/fries/filesystem/local/v3
 
       # Gin
       - github.com/go-fries/fries/gin/v3

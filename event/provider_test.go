@@ -10,7 +10,7 @@ import (
 func TestProvider(t *testing.T) {
 	d := NewDispatcher()
 	p := NewProvider(d)
-	p.AddListener(nil)
+	p.RegisterListeners(nil)
 
 	ctx, err := p.Bootstrap(context.Background())
 	assert.NoError(t, err)
