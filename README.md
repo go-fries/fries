@@ -20,11 +20,6 @@
 go get github.com/go-fries/fries/v3
 ```
 
-## Thanks
-
-<a href="https://jb.gg/OpenSourceSupport" target="_blank"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains" width="120"></a>
-
-
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.
