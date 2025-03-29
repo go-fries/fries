@@ -17,7 +17,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -170,7 +170,7 @@ func (c *Client) configureResource(ctx context.Context) error {
 	}
 
 	if c.deploymentEnvironment != "" {
-		attrs = append(attrs, semconv.DeploymentEnvironment(c.deploymentEnvironment))
+		attrs = append(attrs, semconv.DeploymentEnvironmentName(c.deploymentEnvironment))
 	}
 
 	res, err := sdkresource.New(ctx,
