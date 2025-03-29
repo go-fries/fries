@@ -17,7 +17,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -33,9 +33,9 @@ type Client struct {
 	loggerProvider log.LoggerProvider
 
 	// resource options
-	serviceName           string
-	deploymentEnvironment string
-	attributes            []attribute.KeyValue
+	serviceName               string
+	deploymentEnvironmentName string
+	attributes                []attribute.KeyValue
 
 	// trance options
 	traceSampler sdktrace.Sampler // default is always on
@@ -88,10 +88,15 @@ func WithServiceName(serviceName string) Option {
 	}
 }
 
-func WithDeploymentEnvironment(deploymentEnvironment string) Option {
+func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
 	return func(c *Client) {
-		c.deploymentEnvironment = deploymentEnvironment
+		c.deploymentEnvironmentName = deploymentEnvironment
 	}
+}
+
+// WithDeploymentEnvironment is deprecated, use WithDeploymentEnvironmentName instead.
+func WithDeploymentEnvironment(deploymentEnvironment string) Option {
+	return WithDeploymentEnvironmentName(deploymentEnvironment)
 }
 
 func WithAttributes(attributes ...attribute.KeyValue) Option {
@@ -169,8 +174,8 @@ func (c *Client) configureResource(ctx context.Context) error {
 		attrs = append(attrs, semconv.ServiceName(c.serviceName))
 	}
 
-	if c.deploymentEnvironment != "" {
-		attrs = append(attrs, semconv.DeploymentEnvironment(c.deploymentEnvironment))
+	if c.deploymentEnvironmentName != "" {
+		attrs = append(attrs, semconv.DeploymentEnvironmentName(c.deploymentEnvironmentName))
 	}
 
 	res, err := sdkresource.New(ctx,
