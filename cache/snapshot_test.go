@@ -3,6 +3,7 @@ package cache
 import (
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -75,4 +76,36 @@ func TestSnapshotWithErr(t *testing.T) {
 	}
 
 	assert.Equal(t, int32(len(tests)), total.Load())
+}
+
+func TestSnapshotWithExpireAndErr(t *testing.T) {
+	var (
+		snap  SnapshotWithExpireAndErr[string, *snapshotValue]
+		total atomic.Int32
+	)
+
+	value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+		total.Add(1)
+		return &snapshotValue{value: "value"}, nil
+	}, time.Millisecond*10)
+	assert.NoError(t, err)
+	assert.Equal(t, "value", value.value)
+
+	value, err = snap.Lookup("key", func() (*snapshotValue, error) {
+		total.Add(1)
+		return &snapshotValue{value: "value1"}, nil
+	}, time.Millisecond*10)
+	assert.NoError(t, err)
+	assert.Equal(t, "value", value.value)
+
+	// after 10ms, the value should be expired
+	time.Sleep(time.Millisecond * 20)
+	value, err = snap.Lookup("key", func() (*snapshotValue, error) {
+		total.Add(1)
+		return &snapshotValue{value: "value2"}, nil
+	}, time.Millisecond*10)
+	assert.NoError(t, err)
+	assert.Equal(t, "value2", value.value)
+
+	assert.Equal(t, int32(2), total.Load())
 }

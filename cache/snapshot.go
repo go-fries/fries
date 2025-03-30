@@ -1,6 +1,9 @@
 package cache
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Snapshot[K comparable, V any] struct {
 	mu   sync.RWMutex
@@ -46,6 +49,34 @@ func (c *SnapshotWithErr[K, V]) Lookup(key K, fn func() (V, error)) (V, error) {
 
 		if v, ok = c.data[key]; !ok {
 			v.value, v.err = fn()
+			c.data[key] = v
+		}
+	}
+	return v.value, v.err
+}
+
+type SnapshotWithExpireAndErr[K comparable, V any] Snapshot[K, valueWithExpireAndError[V]]
+
+type valueWithExpireAndError[V any] struct {
+	value   V
+	expired time.Time
+	err     error
+}
+
+func (c *SnapshotWithExpireAndErr[K, V]) Lookup(key K, fn func() (V, error), expire time.Duration) (V, error) {
+	c.mu.RLock()
+	v, ok := c.data[key]
+	c.mu.RUnlock()
+	if !ok || time.Now().After(v.expired) {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.data == nil {
+			c.data = make(map[K]valueWithExpireAndError[V])
+		}
+
+		if v, ok = c.data[key]; !ok || time.Now().After(v.expired) {
+			v.value, v.err = fn()
+			v.expired = time.Now().Add(expire)
 			c.data[key] = v
 		}
 	}
