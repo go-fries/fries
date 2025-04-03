@@ -1,8 +1,3 @@
-# Cache
-
-## Usage Example
-
-```go
 package main
 
 import (
@@ -66,4 +61,3 @@ func main() {
 	}
 	log.Printf("user2: %+v", user2)
 }
-```
