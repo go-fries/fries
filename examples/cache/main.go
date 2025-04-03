@@ -1,8 +1,3 @@
-# Cache
-
-## Usage Example
-
-```go
 package main
 
 import (
@@ -28,7 +23,7 @@ func main() {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer rdb.Close()
+	defer rdb.Close() // nolint:errcheck
 
 	// create a redis store
 	store := redisStore.New(rdb, redisStore.Prefix("example:cache"))
@@ -39,8 +34,8 @@ func main() {
 	// set cache
 	ok, err := repository.Set(ctx, "key", User{
 		Name: "example",
-		Age:  18,
-	}, time.Second*10)
+		Age:  18, //nolint:mnd
+	}, time.Second*10) //nolint:mnd
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,10 +50,10 @@ func main() {
 	log.Printf("user: %+v", user)
 
 	// remember
-	user2, err := cache.Remember(ctx, repository, "key2", time.Second*10, func() (User, error) {
+	user2, err := cache.Remember(ctx, repository, "key2", time.Second*10, func() (User, error) { //nolint:mnd
 		return User{
 			Name: "example2",
-			Age:  20,
+			Age:  20, //nolint:mnd
 		}, nil
 	})
 	if err != nil {
@@ -66,4 +61,3 @@ func main() {
 	}
 	log.Printf("user2: %+v", user2)
 }
-```
