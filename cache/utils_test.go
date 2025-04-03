@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type utilRememberMockStore struct {
+type utilMockStore struct {
 	NullStore
 
 	data map[string]struct {
@@ -22,8 +22,8 @@ type utilRememberMockStore struct {
 	mu sync.Mutex
 }
 
-func newUtilRememberMockStore() *utilRememberMockStore {
-	return &utilRememberMockStore{
+func newUtilMockStore() *utilMockStore {
+	return &utilMockStore{
 		data: make(map[string]struct {
 			value   any
 			expired time.Time
@@ -31,7 +31,7 @@ func newUtilRememberMockStore() *utilRememberMockStore {
 	}
 }
 
-func (t *utilRememberMockStore) Get(_ context.Context, key string, dest any) error {
+func (t *utilMockStore) Get(_ context.Context, key string, dest any) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -48,7 +48,7 @@ func (t *utilRememberMockStore) Get(_ context.Context, key string, dest any) err
 	return ErrNotFound
 }
 
-func (t *utilRememberMockStore) Put(_ context.Context, key string, value any, ttl time.Duration) (bool, error) {
+func (t *utilMockStore) Put(_ context.Context, key string, value any, ttl time.Duration) (bool, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -83,9 +83,22 @@ func setPointerValue(dest any, value any) error {
 	return nil
 }
 
+func TestUtils_Get(t *testing.T) {
+	ctx := context.Background()
+	repo := NewRepository(newUtilMockStore())
+
+	ok, err := repo.Set(ctx, "test_key", "test_value", time.Second*10)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	value, err := Get[string](ctx, repo, "test_key")
+	assert.NoError(t, err)
+	assert.Equal(t, "test_value", value)
+}
+
 func TestUtils_Remember(t *testing.T) {
 	ctx := context.Background()
-	repo := NewRepository(newUtilRememberMockStore())
+	repo := NewRepository(newUtilMockStore())
 	var total int32 = 0
 
 	rememberFunc := func(value string) (string, error) {

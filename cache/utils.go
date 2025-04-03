@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+// Get is a utility function that retrieves a value from the cache using the provided key.
+// It unmarshals the value into the provided destination variable.
+func Get[T any](ctx context.Context, repository Repository, key string) (T, error) {
+	var result T
+	return result, repository.Get(ctx, key, &result)
+}
+
+// Remember is a utility function that retrieves a value from the cache using the provided key.
+// If the value is not found, it calls the provided callback function to generate the value,
+// If the value is found in the cache, it returns the cached value and a nil error.
 func Remember[T any](ctx context.Context, repository Repository, key string, ttl time.Duration, callback func() (T, error)) (T, error) {
 	var result T
 	err := repository.Get(ctx, key, &result)
