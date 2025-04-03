@@ -8,14 +8,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
-github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.1 h1:SWyQA+mXpKkEGtDnsaVvDnAPYa6N85k6S6mA670lMxc=
-github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.1/go.mod h1:SoQem2nqHMhrPT00s6ihc+EjQO7lkAhBx/VXRHir7y4=
-github.com/go-fries/fries/codec/v3 v3.0.0-rc.1 h1:IM9lWqnkqaXcMOoOHBqc2RwnAYacxnLk//ToODmilR0=
-github.com/go-fries/fries/codec/v3 v3.0.0-rc.1/go.mod h1:el1FCzBJE1n3w1viyCWywO+Q2RW5nEgCzhqo7u3UV9U=
-github.com/go-fries/fries/locker/redis/v3 v3.0.0-rc.1 h1:sxtqQZccDklS6JiKcmdVOH2yzW02QZueqvV/t696UVE=
-github.com/go-fries/fries/locker/redis/v3 v3.0.0-rc.1/go.mod h1:Zb32Rqnp6Rdmkztgv4Vv0Ed1VR67yaorqr04T4U8IKE=
-github.com/go-fries/fries/locker/v3 v3.0.0-rc.1 h1:deyDoa1IrlP1K+fEV8L9Xbfijqu1Fv2ZzUj1630oKiQ=
-github.com/go-fries/fries/locker/v3 v3.0.0-rc.1/go.mod h1:6psVoFIULtRfffiUkhvctzWKfJjGKgGwj8bUJ9MbY74=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
