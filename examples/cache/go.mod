@@ -5,6 +5,10 @@ go 1.23.0
 replace (
 	github.com/go-fries/fries/cache/redis/v3 => ../../cache/redis/
 	github.com/go-fries/fries/cache/v3 => ../../cache/
+	github.com/go-fries/fries/codec/json/v3 => ../../codec/json/
+	github.com/go-fries/fries/codec/v3 => ../../codec/
+	github.com/go-fries/fries/locker/redis/v3 => ../../locker/redis/
+	github.com/go-fries/fries/locker/v3 => ../../locker/
 )
 
 require (
