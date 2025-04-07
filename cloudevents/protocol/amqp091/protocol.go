@@ -33,7 +33,6 @@ func (p *Protocol) Receive(ctx context.Context) (binding.Message, error) {
 
 type Config struct {
 	Channel         *amqp.Channel
-	Channel2        *amqp.Channel
 	Exchange        string
 	RoutingKey      string
 	Queue           string
