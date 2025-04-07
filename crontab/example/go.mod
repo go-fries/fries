@@ -16,7 +16,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250404141209-ee84b53bf3d0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250407143221-ac9807e6c755 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250407143221-ac9807e6c755 // indirect
 	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
