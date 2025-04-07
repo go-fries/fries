@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
+	"github.com/cloudevents/sdk-go/v2/protocol"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -15,6 +16,11 @@ type Receiver struct {
 	queue      string
 	consumer   string
 }
+
+var (
+	_ protocol.Receiver = (*Receiver)(nil)
+	_ protocol.Opener   = (*Receiver)(nil)
+)
 
 func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*Receiver, error) {
 	if channel == nil {
@@ -32,24 +38,25 @@ func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*
 		}
 	}
 
-	deliveries, err := channel.Consume(
-		queue,
-		r.consumer,
-		false, // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	r.deliveries = deliveries
 	return r, nil
 }
 
 func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
+	// Todo: 带重构，目前还不太优雅的做法。。。
+	if r.deliveries == nil {
+		for {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+				if r.deliveries != nil {
+					// wait for deliveries to be set, see r.OpenInbound
+					break // nolint:staticcheck
+				}
+			}
+		}
+	}
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -59,6 +66,24 @@ func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
 		}
 		return newMessage(&delivery), nil
 	}
+}
+
+func (r *Receiver) OpenInbound(context.Context) error {
+	deliveries, err := r.channel.Consume(
+		r.queue,
+		r.consumer,
+		false, // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
+	)
+	if err != nil {
+		return err
+	}
+
+	r.deliveries = deliveries
+	return nil
 }
 
 type ReceiverOption func(*Receiver) error
