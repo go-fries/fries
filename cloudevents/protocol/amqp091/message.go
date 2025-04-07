@@ -19,7 +19,7 @@ type Message struct {
 	format   format.Format
 }
 
-func NewMessage(delivery *amqp.Delivery) *Message {
+func newMessage(delivery *amqp.Delivery) *Message {
 	return &Message{
 		delivery: delivery,
 		version:  spec.VS.Version("1.0"),
