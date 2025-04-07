@@ -2,7 +2,7 @@
 
 ## Overview
 
-This component implements the AMQP 0.9.1 protocol binding for CloudEvents, following the [CloudEvents AMQP Protocol Binding Specification](https://github.com/cloudevents/spec/blob/v1.0.2/amqp-protocol-binding.md).
+This component implements the AMQP 0.9.1 protocol binding for CloudEvents.
 
 ## Features
 
