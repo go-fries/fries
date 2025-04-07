@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Receiver struct {
-	channel     *amqp.Channel
-	queue       string
-	deliveries  <-chan amqp.Delivery
-	consumeOnce sync.Once
-	consumer    string
+	channel    *amqp.Channel
+	deliveries <-chan amqp.Delivery
+	queue      string
+	consumer   string
 }
 
 func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*Receiver, error) {

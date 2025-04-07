@@ -13,8 +13,10 @@ type Protocol struct {
 	receiver *Receiver
 }
 
-var _ protocol.Sender = (*Protocol)(nil)
-var _ protocol.Receiver = (*Protocol)(nil)
+var (
+	_ protocol.Sender   = (*Protocol)(nil)
+	_ protocol.Receiver = (*Protocol)(nil)
+)
 
 func NewProtocol(sender *Sender, receiver *Receiver) *Protocol {
 	return &Protocol{
@@ -41,6 +43,7 @@ type Config struct {
 }
 
 func NewProtocolFromConfig(config *Config) (*Protocol, error) {
+	// if exchange, queue, and routing key are not set, create a default one
 	if err := config.Channel.ExchangeDeclare(
 		config.Exchange, // name
 		"topic",         // type
@@ -53,7 +56,6 @@ func NewProtocolFromConfig(config *Config) (*Protocol, error) {
 		return nil, err
 	}
 
-	// if the queue doesn't exist, create it
 	if _, err := config.Channel.QueueDeclare(
 		config.Queue, // name
 		true,         // durable

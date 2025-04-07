@@ -16,13 +16,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck
 
 	channel, err := conn.Channel()
 	if err != nil {
 		log.Fatal(channel)
 	}
-	defer channel.Close()
+	defer channel.Close() //nolint:errcheck
 
 	protocol, err := amqp091.NewProtocolFromConfig(&amqp091.Config{
 		Channel:    channel,

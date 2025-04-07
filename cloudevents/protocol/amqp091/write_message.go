@@ -124,7 +124,7 @@ func (a *amqpMessageWriter) End(context.Context) error {
 	return nil
 }
 
-func safeAMQPHeadersUnwrap(value interface{}) (interface{}, error) {
+func safeAMQPHeadersUnwrap(value any) (any, error) {
 	v, err := types.Validate(value)
 	if err != nil {
 		return nil, err

@@ -69,7 +69,7 @@ func (m *Message) ReadBinary(ctx context.Context, encoder binding.BinaryWriter) 
 	return encoder.SetData(bytes.NewReader(m.delivery.Body))
 }
 
-func (m *Message) GetAttribute(attributeKind spec.Kind) (spec.Attribute, interface{}) {
+func (m *Message) GetAttribute(attributeKind spec.Kind) (spec.Attribute, any) {
 	attribute := m.version.AttributeFromKind(attributeKind)
 	if attribute != nil {
 		return attribute, m.delivery.Headers[attribute.PrefixedName()]
@@ -77,7 +77,7 @@ func (m *Message) GetAttribute(attributeKind spec.Kind) (spec.Attribute, interfa
 	return nil, nil
 }
 
-func (m *Message) GetExtension(name string) interface{} {
+func (m *Message) GetExtension(name string) any {
 	return m.delivery.Headers[prefix+strings.ToLower(name)]
 }
 
