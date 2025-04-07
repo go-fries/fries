@@ -4,16 +4,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Receiver struct {
-	channel    *amqp.Channel
-	queue      string
-	deliveries <-chan amqp.Delivery
-	consumer   string
+	channel     *amqp.Channel
+	queue       string
+	deliveries  <-chan amqp.Delivery
+	consumeOnce sync.Once
+	consumer    string
 }
 
 func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*Receiver, error) {
@@ -32,24 +34,28 @@ func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*
 		}
 	}
 
-	deliveries, err := channel.Consume(
-		queue,
-		r.consumer,
-		false, // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	r.deliveries = deliveries
+	// deliveries, err := channel.Consume(
+	// 	queue,
+	// 	r.consumer,
+	// 	false, // auto-ack
+	// 	false, // exclusive
+	// 	false, // no-local
+	// 	false, // no-wait
+	// 	nil,   // args
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// r.deliveries = deliveries
 	return r, nil
 }
 
 func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
+	if err := r.receive(); err != nil {
+		return nil, err
+	}
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -59,6 +65,25 @@ func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
 		}
 		return NewMessage(&delivery), nil
 	}
+}
+
+func (r *Receiver) receive() (err error) {
+	r.consumeOnce.Do(func() {
+		deliveries, deErr := r.channel.Consume(
+			r.queue,
+			r.consumer,
+			false, // auto-ack
+			false, // exclusive
+			false, // no-local
+			false, // no-wait
+			nil,   // args
+		)
+		if deErr != nil {
+			return
+		}
+		r.deliveries = deliveries
+	})
+	return err
 }
 
 type ReceiverOption func(*Receiver) error

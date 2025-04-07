@@ -2,7 +2,6 @@ package amqp091
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"github.com/cloudevents/sdk-go/v2/protocol"
@@ -22,10 +21,6 @@ type Sender struct {
 var _ protocol.Sender = (*Sender)(nil)
 
 func NewSender(channel *amqp.Channel, exchange, routingKey string, opts ...SenderOption) (*Sender, error) {
-	if channel == nil {
-		return nil, fmt.Errorf("channel cannot be nil")
-	}
-
 	s := &Sender{
 		channel:    channel,
 		exchange:   exchange,
@@ -43,13 +38,7 @@ func NewSender(channel *amqp.Channel, exchange, routingKey string, opts ...Sende
 }
 
 // Send implements the CloudEvents sender interface
-func (s *Sender) Send(ctx context.Context, in binding.Message, transformers ...binding.Transformer) error {
-	if in == nil {
-		return fmt.Errorf("message cannot be nil")
-	}
-
-	var err error
-
+func (s *Sender) Send(ctx context.Context, in binding.Message, transformers ...binding.Transformer) (err error) {
 	defer func() {
 		_ = in.Finish(err)
 	}()
@@ -62,7 +51,7 @@ func (s *Sender) Send(ctx context.Context, in binding.Message, transformers ...b
 		msg.DeliveryMode = amqp.Transient
 	}
 
-	err = WriteMessage(ctx, in, msg, transformers...)
+	err = writeMessage(ctx, in, msg, transformers...)
 	if err != nil {
 		return err
 	}

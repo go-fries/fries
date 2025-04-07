@@ -2,7 +2,6 @@ package amqp091
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
@@ -12,17 +11,13 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func WriteMessage(ctx context.Context, m binding.Message, amqpMessage *amqp.Publishing, transformers ...binding.Transformer) error {
-	if m == nil {
-		return fmt.Errorf("message cannot be nil")
-	}
-
+func writeMessage(ctx context.Context, in binding.Message, amqpMessage *amqp.Publishing, transformers ...binding.Transformer) error {
 	structuredWriter := newAMQPMessageWriter(amqpMessage)
 	binaryWriter := newAMQPMessageWriter(amqpMessage)
 
 	_, err := binding.Write(
 		ctx,
-		m,
+		in,
 		structuredWriter,
 		binaryWriter,
 		transformers...,

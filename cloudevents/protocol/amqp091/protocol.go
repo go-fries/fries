@@ -32,7 +32,8 @@ func (p *Protocol) Receive(ctx context.Context) (binding.Message, error) {
 }
 
 type Config struct {
-	Channal         *amqp.Channel
+	Channel         *amqp.Channel
+	Channel2        *amqp.Channel
 	Exchange        string
 	RoutingKey      string
 	Queue           string
@@ -41,11 +42,45 @@ type Config struct {
 }
 
 func NewProtocolFromConfig(config *Config) (*Protocol, error) {
-	sender, err := NewSender(config.Channal, config.Exchange, config.RoutingKey, config.SenderOptions...)
+	if err := config.Channel.ExchangeDeclare(
+		config.Exchange, // name
+		"topic",         // type
+		true,            // durable
+		false,           // auto-delete
+		false,           // internal
+		false,           // no-wait
+		nil,             // args
+	); err != nil {
+		return nil, err
+	}
+
+	// if the queue doesn't exist, create it
+	if _, err := config.Channel.QueueDeclare(
+		config.Queue, // name
+		true,         // durable
+		false,        // auto-delete
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // args
+	); err != nil {
+		return nil, err
+	}
+
+	if err := config.Channel.QueueBind(
+		config.Queue,      // queue name
+		config.RoutingKey, // routing key
+		config.Exchange,   // exchange
+		false,
+		nil,
+	); err != nil {
+		return nil, err
+	}
+
+	sender, err := NewSender(config.Channel, config.Exchange, config.RoutingKey, config.SenderOptions...)
 	if err != nil {
 		return nil, err
 	}
-	receiver, err := NewReceiver(config.Channal, config.Queue, config.ReceiverOptions...)
+	receiver, err := NewReceiver(config.Channel, config.Queue, config.ReceiverOptions...)
 	if err != nil {
 		return nil, err
 	}
