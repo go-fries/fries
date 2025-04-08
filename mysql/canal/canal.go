@@ -3,11 +3,16 @@ package canal
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
+	"time"
 
 	"github.com/go-fries/fries/mysql/canal/v3/internal"
 	orgcanal "github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 )
+
+var logger = slog.New(slog.NewTextHandler(os.Stderr, nil))
 
 type Config struct {
 	Addr     string // host
@@ -26,11 +31,24 @@ type Canal struct {
 	config *Config
 	canal  *orgcanal.Canal
 
+	positioner Positioner
+
 	// event dispatcher
 	dispatcher *internal.Dispatcher
 }
 
 type Option func(*Canal) error
+
+// WithPositioner sets the positioner for the canal.
+func WithPositioner(positioner Positioner) Option {
+	return func(c *Canal) error {
+		if positioner == nil {
+			return fmt.Errorf("canal: positioner is nil")
+		}
+		c.positioner = positioner
+		return nil
+	}
+}
 
 // WithListeners registers listeners to the canal dispatcher.
 // The listeners must implement the corresponding listener interfaces.
@@ -55,6 +73,8 @@ func New(config *Config, opts ...Option) (*Canal, error) {
 		}
 	}
 
+	c.initPositioner()
+
 	return c, nil
 }
 
@@ -63,7 +83,7 @@ func (c *Canal) Start(ctx context.Context) error {
 		return err
 	}
 
-	position, err := c.canal.GetMasterPos()
+	position, err := c.getStartPosition(ctx)
 	if err != nil {
 		return err
 	}
@@ -86,6 +106,11 @@ func (c *Canal) Stop(ctx context.Context) error {
 		// Canal closed successfully
 		return nil
 	}
+}
+
+// GetDelay returns the delay of the canal in duration.
+func (c *Canal) GetDelay() time.Duration {
+	return time.Duration(c.canal.GetDelay()) * time.Second
 }
 
 func (c *Canal) initCanal(ctx context.Context) error {
@@ -134,4 +159,28 @@ func (c *Canal) initCanal(ctx context.Context) error {
 
 	c.canal = cnl
 	return nil
+}
+
+func (c *Canal) initPositioner() {
+	if c.positioner == nil {
+		return
+	}
+
+	c.dispatcher.Registers(newPositionListener(c.positioner))
+}
+
+// getStartPosition returns the start position for the canal.
+// If extracted from Positioner, use it; otherwise, default to using the latest Position.
+func (c *Canal) getStartPosition(ctx context.Context) (pos mysql.Position, err error) {
+	if c.positioner != nil {
+		pos, err = c.positioner.Get(ctx)
+		if err == nil && pos.Name != "" && pos.Pos != 0 {
+			return pos, nil
+		} else {
+			logger.Warn("canal: positioner get error, using the latest position")
+		}
+	}
+
+	return c.canal.GetMasterPos()
+
 }
