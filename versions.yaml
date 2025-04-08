@@ -89,6 +89,7 @@ module-sets:
 
       # MySQL
       - github.com/go-fries/fries/mysql/canal/v3
+      - github.com/go-fries/fries/mysql/canal/redispositioner/v3
 
       # Otel
       - github.com/go-fries/fries/otel/otlp/v3
