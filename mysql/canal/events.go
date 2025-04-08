@@ -3,70 +3,54 @@ package canal
 import (
 	"context"
 
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/mysql/canal/v3/internal"
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 )
 
 // ====================================================
-// Some events opened for Event Dispatcher
+// Some events opened for Dispatcher
 // ====================================================
 
-type RotateEvent struct {
-	Header      *replication.EventHeader
-	RotateEvent *replication.RotateEvent
-}
+type (
+	RotateEvent       = internal.RotateEvent
+	TableChangedEvent = internal.TableChangedEvent
+	DDLEvent          = internal.DDLEvent
+	RowEvent          = internal.RowEvent
+	XIDEvent          = internal.XIDEvent
+	GTIDEvent         = internal.GTIDEvent
+	PosSyncedEvent    = internal.PosSyncedEvent
+	RowsQueryEvent    = internal.RowsQueryEvent
+)
 
-type TableChangedEvent struct {
-	Header *replication.EventHeader
-	Schema string
-	Table  string
-}
+// ====================================================
+// Some listeners opened for Dispatcher
+// ====================================================
 
-type DDLEvent struct {
-	Header     *replication.EventHeader
-	NextPos    mysql.Position
-	QueryEvent *replication.QueryEvent
-}
-
-type RowEvent struct {
-	RowsEvent *canal.RowsEvent
-}
-
-type XIDEvent struct {
-	Header  *replication.EventHeader
-	NextPos mysql.Position
-}
-
-type GTIDEvent struct {
-	Header    *replication.EventHeader
-	GTIDEvent mysql.BinlogGTIDEvent
-}
-
-type PosSyncedEvent struct {
-	Header *replication.EventHeader
-	Pos    mysql.Position
-	Set    mysql.GTIDSet
-	Force  bool
-}
-
-type RowsQueryEvent struct {
-	RowsQueryEvent *replication.RowsQueryEvent
-}
+type (
+	RotateListener         = internal.RotateListener
+	TableChangedListener   = internal.TableChangedListener
+	DDLEventListener       = internal.DDLEventListener
+	RowEventListener       = internal.RowEventListener
+	XIDEventListener       = internal.XIDEventListener
+	GTIDEventListener      = internal.GTIDEventListener
+	PosSyncedEventListener = internal.PosSyncedEventListener
+	RowsQueryEventListener = internal.RowsQueryEventListener
+)
 
 // ==========================================================================================
-// EventHandler is a canal event handler that dispatches events to the event dispatcher.
+// EventHandler is a canal event handler that dispatches events to the dispatcher.
 // ==========================================================================================
 
 type eventHandler struct {
 	ctx        context.Context
-	dispatcher *event.Dispatcher
+	dispatcher *internal.Dispatcher
 }
 
 var _ canal.EventHandler = (*eventHandler)(nil)
 
-func newEventHandler(ctx context.Context, dispatcher *event.Dispatcher) *eventHandler {
+func newEventHandler(ctx context.Context, dispatcher *internal.Dispatcher) *eventHandler {
 	return &eventHandler{
 		ctx:        ctx,
 		dispatcher: dispatcher,
@@ -74,14 +58,14 @@ func newEventHandler(ctx context.Context, dispatcher *event.Dispatcher) *eventHa
 }
 
 func (eh *eventHandler) OnRotate(header *replication.EventHeader, rotateEvent *replication.RotateEvent) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &RotateEvent{
+	return eh.dispatcher.DispatchRotate(eh.ctx, &RotateEvent{
 		Header:      header,
 		RotateEvent: rotateEvent,
 	})
 }
 
 func (eh *eventHandler) OnTableChanged(header *replication.EventHeader, schema string, table string) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &TableChangedEvent{
+	return eh.dispatcher.DispatchTableChanged(eh.ctx, &TableChangedEvent{
 		Header: header,
 		Schema: schema,
 		Table:  table,
@@ -89,7 +73,7 @@ func (eh *eventHandler) OnTableChanged(header *replication.EventHeader, schema s
 }
 
 func (eh *eventHandler) OnDDL(header *replication.EventHeader, nextPos mysql.Position, queryEvent *replication.QueryEvent) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &DDLEvent{
+	return eh.dispatcher.DispatchDDL(eh.ctx, &DDLEvent{
 		Header:     header,
 		NextPos:    nextPos,
 		QueryEvent: queryEvent,
@@ -97,27 +81,27 @@ func (eh *eventHandler) OnDDL(header *replication.EventHeader, nextPos mysql.Pos
 }
 
 func (eh *eventHandler) OnRow(rowsEvent *canal.RowsEvent) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &RowEvent{
+	return eh.dispatcher.DispatchRow(eh.ctx, &RowEvent{
 		RowsEvent: rowsEvent,
 	})
 }
 
 func (eh *eventHandler) OnXID(header *replication.EventHeader, nextPos mysql.Position) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &XIDEvent{
+	return eh.dispatcher.DispatchXID(eh.ctx, &XIDEvent{
 		Header:  header,
 		NextPos: nextPos,
 	})
 }
 
 func (eh *eventHandler) OnGTID(header *replication.EventHeader, gtidEvent mysql.BinlogGTIDEvent) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &GTIDEvent{
+	return eh.dispatcher.DispatchGTID(eh.ctx, &GTIDEvent{
 		Header:    header,
 		GTIDEvent: gtidEvent,
 	})
 }
 
 func (eh *eventHandler) OnPosSynced(header *replication.EventHeader, pos mysql.Position, set mysql.GTIDSet, force bool) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &PosSyncedEvent{
+	return eh.dispatcher.DispatchPosSynced(eh.ctx, &PosSyncedEvent{
 		Header: header,
 		Pos:    pos,
 		Set:    set,
@@ -126,11 +110,11 @@ func (eh *eventHandler) OnPosSynced(header *replication.EventHeader, pos mysql.P
 }
 
 func (eh *eventHandler) OnRowsQueryEvent(e *replication.RowsQueryEvent) error {
-	return eh.dispatcher.Dispatch(eh.ctx, &RowsQueryEvent{
+	return eh.dispatcher.DispatchRowsQuery(eh.ctx, &RowsQueryEvent{
 		RowsQueryEvent: e,
 	})
 }
 
 func (eh *eventHandler) String() string {
-	return "eventHandler"
+	return "canal:handler"
 }

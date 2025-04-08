@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/mysql/canal/v3/internal"
 	orgcanal "github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 )
@@ -22,15 +22,17 @@ type Canal struct {
 	canal  *orgcanal.Canal
 
 	// event dispatcher
-	dispatcher *event.Dispatcher
+	dispatcher *internal.Dispatcher
 }
 
 type Option func(*Canal) error
 
-func WithListeners(listeners ...event.AnyListener) Option {
+// WithListeners registers listeners to the canal dispatcher.
+// The listeners must implement the corresponding listener interfaces.
+func WithListeners(listeners ...any) Option {
 	return func(c *Canal) error {
 		if len(listeners) > 0 {
-			c.dispatcher.RegisterListeners(listeners...)
+			c.dispatcher.Registers(listeners...)
 		}
 		return nil
 	}
@@ -39,7 +41,7 @@ func WithListeners(listeners ...event.AnyListener) Option {
 func NewCanal(config *Config, opts ...Option) (*Canal, error) {
 	c := &Canal{
 		config:     config,
-		dispatcher: event.NewDispatcher(),
+		dispatcher: internal.NewDispatcher(),
 	}
 
 	for _, opt := range opts {
