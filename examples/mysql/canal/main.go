@@ -23,7 +23,7 @@ func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 	l.sb.WriteString(fmt.Sprintf("Table: %s.%s\n", event.RowsEvent.Table.Schema, event.RowsEvent.Table.Name))
 	l.sb.WriteString(fmt.Sprintf("Action: %s\n", event.RowsEvent.Action))
 	for i, row := range event.RowsEvent.Rows {
-		maps := make(map[string]interface{}, len(row))
+		maps := make(map[string]any, len(row))
 		for j, col := range event.RowsEvent.Table.Columns {
 			maps[col.Name] = row[j]
 		}
@@ -55,7 +55,7 @@ func main() {
 		panic(err)
 	}
 
-	time.AfterFunc(1000*time.Second, func() {
+	time.AfterFunc(1000*time.Second, func() { //nolint:mnd
 		_ = c.Stop(context.Background())
 	})
 

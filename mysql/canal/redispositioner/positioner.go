@@ -2,8 +2,6 @@ package redispositioner
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"strings"
 
 	"github.com/go-fries/fries/codec/json/v3"
@@ -29,10 +27,10 @@ type Option func(*Positioner)
 
 func WithPrefix(prefix string) Option {
 	return func(p *Positioner) {
-		if strings.HasSuffix(prefix, ":") {
-			prefix = strings.TrimSuffix(prefix, ":")
+		prefix = strings.TrimSuffix(prefix, ":")
+		if prefix != "" {
+			p.prefix = prefix + ":"
 		}
-		p.prefix = prefix + ":"
 	}
 }
 
@@ -70,7 +68,6 @@ func (p *Positioner) Get(ctx context.Context) (mysql.Position, error) {
 }
 
 func (p *Positioner) Set(ctx context.Context, pos mysql.Position) error {
-	log.Println(fmt.Sprintf("set canal position: %s", pos))
 	data, err := p.codec.Marshal(pos)
 	if err != nil {
 		return err

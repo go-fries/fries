@@ -163,6 +163,7 @@ func (d *Dispatcher) DispatchTableChanged(ctx context.Context, event *TableChang
 	}
 	return nil
 }
+
 func (d *Dispatcher) DispatchDDL(ctx context.Context, event *DDLEvent) error {
 	for _, listener := range d.ddlListeners {
 		if err := listener.OnDDL(ctx, event); err != nil {

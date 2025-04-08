@@ -182,5 +182,4 @@ func (c *Canal) getStartPosition(ctx context.Context) (pos mysql.Position, err e
 	}
 
 	return c.canal.GetMasterPos()
-
 }
