@@ -87,6 +87,9 @@ module-sets:
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
 
+      # MySQL
+      - github.com/go-fries/fries/mysql/canal/v3
+
       # Otel
       - github.com/go-fries/fries/otel/otlp/v3
 
@@ -119,3 +122,4 @@ excluded-modules:
   - github.com/go-fries/fries/crontab/example/v3 # todo: migrate to /examples
   - github.com/go-fries/fries/event/example/v3 # todo: migrate to /examples
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v3
+  - github.com/go-fries/fries/examples/mysql/canal/v3

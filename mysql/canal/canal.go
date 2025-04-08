@@ -38,7 +38,7 @@ func WithListeners(listeners ...any) Option {
 	}
 }
 
-func NewCanal(config *Config, opts ...Option) (*Canal, error) {
+func New(config *Config, opts ...Option) (*Canal, error) {
 	c := &Canal{
 		config:     config,
 		dispatcher: internal.NewDispatcher(),
@@ -108,7 +108,7 @@ func (c *Canal) initCanal(ctx context.Context) error {
 	if c.config.Flavor != "" {
 		cfg.Flavor = c.config.Flavor
 	} else {
-		cfg.Flavor = mysql.DEFAULT_FLAVOR // 默认使用mysql
+		cfg.Flavor = mysql.MySQLFlavor // 默认使用mysql
 	}
 
 	cnl, err := orgcanal.NewCanal(cfg)

@@ -2,9 +2,7 @@ module github.com/go-fries/fries/mysql/canal/v3
 
 go 1.23.0
 
-replace (
-	github.com/go-fries/fries/contract/v3 => ../../contract/
-)
+replace github.com/go-fries/fries/contract/v3 => ../../contract/
 
 require (
 	github.com/go-mysql-org/go-mysql v1.12.0
