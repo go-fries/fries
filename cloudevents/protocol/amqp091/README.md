@@ -14,7 +14,7 @@ This component implements the AMQP 0.9.1 protocol binding for CloudEvents.
 ## Installation
 
 ```bash
-go get github.com/your-repo/cloudevents/protocol/amqp091/v3
+go get github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
 ```
 
 ## Usage
