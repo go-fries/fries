@@ -1,6 +1,6 @@
 module-sets:
   stable:
-    version: v3.0.0-alpha.3
+    version: v3.0.0-rc.2
     modules:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
@@ -14,7 +14,6 @@ module-sets:
 
       ## Crontab
       - github.com/go-fries/fries/crontab/v3
-      - github.com/go-fries/fries/crontab/example/v3
 
       # Codec
       - github.com/go-fries/fries/codec/v3
@@ -26,6 +25,9 @@ module-sets:
 
       # Chi
       - github.com/go-fries/fries/chi/v3
+
+      # CloudEvents
+      - github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
 
       # Env
       - github.com/go-fries/fries/env/v3
@@ -40,7 +42,6 @@ module-sets:
       # Event & EventBus
       - github.com/go-fries/fries/event/v3
       - github.com/go-fries/fries/event/middleware/recovery/v3
-      - github.com/go-fries/fries/event/example/v3
       - github.com/go-fries/fries/eventbus/v3
 
       # Foundation
@@ -86,6 +87,10 @@ module-sets:
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
 
+      # MySQL
+      - github.com/go-fries/fries/mysql/canal/v3
+      - github.com/go-fries/fries/mysql/canal/redispositioner/v3
+
       # Otel
       - github.com/go-fries/fries/otel/otlp/v3
 
@@ -108,9 +113,14 @@ module-sets:
       - github.com/go-fries/fries/udp/v3
 
       # X (Extra)
-      - github.com/go-fries/fries/x/event/v3
       - github.com/go-fries/fries/x/pagination/v3
       - github.com/go-fries/fries/x/prints/v3
-      - github.com/go-fries/fries/x/snap/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
+
+  # examples
+  - github.com/go-fries/fries/examples/cache/v3
+  - github.com/go-fries/fries/crontab/example/v3 # todo: migrate to /examples
+  - github.com/go-fries/fries/event/example/v3 # todo: migrate to /examples
+  - github.com/go-fries/fries/examples/cloudevents/amqp091/v3
+  - github.com/go-fries/fries/examples/mysql/canal/v3

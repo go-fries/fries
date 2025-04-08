@@ -12,8 +12,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/go-kratos-ecosystem/components/v2/cache"
-	redisStore "github.com/go-kratos-ecosystem/components/v2/cache/redis"
+	redisStore "github.com/go-fries/fries/cache/redis/v3"
+	"github.com/go-fries/fries/cache/v3"
 )
 
 var ctx = context.Background()
@@ -52,7 +52,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	log.Printf("user: %+v", user)
+
+	// remember
+	user2, err := cache.Remember(ctx, repository, "key2", time.Second*10, func() (User, error) {
+		return User{
+			Name: "example2",
+			Age:  20,
+		}, nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("user2: %+v", user2)
 }
 ```
