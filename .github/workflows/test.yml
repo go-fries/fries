@@ -64,8 +64,3 @@ jobs:
           fail_ci_if_error: true
           files: ./coverage.txt
           verbose: true
-          fixes:
-            - "github.com/GoKillers/gorm"
-            - "github.com/GoKillers/gorm/logger"
-            - "github.com/GoKillers/gorm/schema"
-            - "github.com/GoKillers/gorm/utils"
