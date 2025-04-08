@@ -13,8 +13,13 @@ type Config struct {
 	Addr     string // host
 	User     string // username
 	Password string // password
-	Charset  string
-	Flavor   string
+	Charset  string // charset
+	Flavor   string // support mysql, mariadb
+
+	// include/exclude tables
+	// 	IncludeTablesRegex : [".*\\.canal"], ExcludeTablesRegex : ["mysql\\..*"]
+	IncludeTablesRegex []string
+	ExcludeTablesRegex []string
 }
 
 type Canal struct {
@@ -109,6 +114,14 @@ func (c *Canal) initCanal(ctx context.Context) error {
 		cfg.Flavor = c.config.Flavor
 	} else {
 		cfg.Flavor = mysql.MySQLFlavor // 默认使用mysql
+	}
+
+	if len(c.config.IncludeTablesRegex) > 0 {
+		cfg.IncludeTableRegex = c.config.IncludeTablesRegex
+	}
+
+	if len(c.config.ExcludeTablesRegex) > 0 {
+		cfg.ExcludeTableRegex = c.config.ExcludeTablesRegex
 	}
 
 	cnl, err := orgcanal.NewCanal(cfg)

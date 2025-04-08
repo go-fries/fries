@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -235,6 +236,6 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 	case *RowsQueryEvent:
 		return d.DispatchRowsQuery(ctx, e)
 	default:
-		return nil
+		return fmt.Errorf("unsupported event type: %T", event)
 	}
 }
