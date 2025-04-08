@@ -14,7 +14,7 @@ type Listener struct {
 	sb strings.Builder
 }
 
-var _ canal.RowEventListener = (*Listener)(nil)
+var _ canal.RowListener = (*Listener)(nil)
 
 func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 	defer l.sb.Reset()

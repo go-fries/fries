@@ -29,14 +29,14 @@ type (
 // ====================================================
 
 type (
-	RotateListener         = internal.RotateListener
-	TableChangedListener   = internal.TableChangedListener
-	DDLEventListener       = internal.DDLEventListener
-	RowEventListener       = internal.RowEventListener
-	XIDEventListener       = internal.XIDEventListener
-	GTIDEventListener      = internal.GTIDEventListener
-	PosSyncedEventListener = internal.PosSyncedEventListener
-	RowsQueryEventListener = internal.RowsQueryEventListener
+	RotateListener       = internal.RotateListener
+	TableChangedListener = internal.TableChangedListener
+	DDLListener          = internal.DDLListener
+	RowListener          = internal.RowListener
+	XIDListener          = internal.XIDListener
+	GTIDListener         = internal.GTIDListener
+	PosSyncedListener    = internal.PosSyncedListener
+	RowsQueryListener    = internal.RowsQueryListener
 )
 
 // ==========================================================================================

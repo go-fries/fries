@@ -66,27 +66,27 @@ type TableChangedListener interface {
 	OnTableChanged(ctx context.Context, event *TableChangedEvent) error
 }
 
-type DDLEventListener interface {
+type DDLListener interface {
 	OnDDL(ctx context.Context, event *DDLEvent) error
 }
 
-type RowEventListener interface {
+type RowListener interface {
 	OnRow(ctx context.Context, event *RowEvent) error
 }
 
-type XIDEventListener interface {
+type XIDListener interface {
 	OnXID(ctx context.Context, event *XIDEvent) error
 }
 
-type GTIDEventListener interface {
+type GTIDListener interface {
 	OnGTID(ctx context.Context, event *GTIDEvent) error
 }
 
-type PosSyncedEventListener interface {
+type PosSyncedListener interface {
 	OnPosSynced(ctx context.Context, event *PosSyncedEvent) error
 }
 
-type RowsQueryEventListener interface {
+type RowsQueryListener interface {
 	OnRowsQuery(ctx context.Context, event *RowsQueryEvent) error
 }
 
@@ -97,12 +97,12 @@ type RowsQueryEventListener interface {
 type Dispatcher struct {
 	rotateListeners       []RotateListener
 	tableChangedListeners []TableChangedListener
-	ddlListeners          []DDLEventListener
-	rowListeners          []RowEventListener
-	xidListeners          []XIDEventListener
-	gtidListeners         []GTIDEventListener
-	posSyncedListeners    []PosSyncedEventListener
-	rowsQueryListeners    []RowsQueryEventListener
+	ddlListeners          []DDLListener
+	rowListeners          []RowListener
+	xidListeners          []XIDListener
+	gtidListeners         []GTIDListener
+	posSyncedListeners    []PosSyncedListener
+	rowsQueryListeners    []RowsQueryListener
 }
 
 func NewDispatcher() *Dispatcher {
@@ -119,27 +119,27 @@ func (d *Dispatcher) Registers(listeners ...any) {
 			d.tableChangedListeners = append(d.tableChangedListeners, l)
 		}
 
-		if l, ok := listener.(DDLEventListener); ok {
+		if l, ok := listener.(DDLListener); ok {
 			d.ddlListeners = append(d.ddlListeners, l)
 		}
 
-		if l, ok := listener.(RowEventListener); ok {
+		if l, ok := listener.(RowListener); ok {
 			d.rowListeners = append(d.rowListeners, l)
 		}
 
-		if l, ok := listener.(XIDEventListener); ok {
+		if l, ok := listener.(XIDListener); ok {
 			d.xidListeners = append(d.xidListeners, l)
 		}
 
-		if l, ok := listener.(GTIDEventListener); ok {
+		if l, ok := listener.(GTIDListener); ok {
 			d.gtidListeners = append(d.gtidListeners, l)
 		}
 
-		if l, ok := listener.(PosSyncedEventListener); ok {
+		if l, ok := listener.(PosSyncedListener); ok {
 			d.posSyncedListeners = append(d.posSyncedListeners, l)
 		}
 
-		if l, ok := listener.(RowsQueryEventListener); ok {
+		if l, ok := listener.(RowsQueryListener); ok {
 			d.rowsQueryListeners = append(d.rowsQueryListeners, l)
 		}
 	}
