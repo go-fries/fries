@@ -17,6 +17,5 @@ comment:
   require_changes: yes
 
 fixes:
-  - "github.com/go-fries/fries/::"
-  - "github.com/go-fries/fries/cache/v3::cache/"
-  - "github.com/go-fries/fries/kratos/middleware/cors/v3::kratos/middleware/cors/"
+  - "/home/runner/work/fries/fries/::"
+  - "github.com/go-fries/fries/(.*)/v3/::\\1/"
