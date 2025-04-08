@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-fries/fries/mysql/canal/redispositioner/v3"
 	"github.com/go-fries/fries/mysql/canal/v3"
 )
 
@@ -54,10 +55,15 @@ func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 
 func main() {
 	c, err := canal.New(&canal.Config{
-		Addr:     "localhost:3306",
-		User:     "root",
-		Password: "123456",
-	}, canal.WithListeners(&Listener{}))
+		Addr:               "localhost:3306",
+		User:               "root",
+		Password:           "123456",
+		IncludeTablesRegex: []string{"test\\..*"},
+		ExcludeTablesRegex: []string{".*no.*"},
+	},
+		canal.WithPositioner(redispositioner.NewPositioner(nil)), // replace with your Redis client
+		canal.WithListeners(&Listener{}),
+	)
 	if err != nil {
 		panic(err)
 	}
