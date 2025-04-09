@@ -2,7 +2,7 @@ package redispositioner
 
 import (
 	"context"
-	"strings"
+	"errors"
 	"sync"
 	"time"
 
@@ -18,28 +18,21 @@ const name = "canal:position"
 var zeroPosition = mysql.Position{}
 
 type Positioner struct {
-	prefix string
 	client redis.UniversalClient
+	prefix string
 	codec  codec.Codec
 }
 
 var _ canal.Positioner = (*Positioner)(nil)
 
-type Option func(*Positioner)
-
-func WithPrefix(prefix string) Option {
-	return func(p *Positioner) {
-		prefix = strings.TrimSuffix(prefix, ":")
-		if prefix != "" {
-			p.prefix = prefix + ":"
-		}
-	}
+type Option interface {
+	apply(*Positioner)
 }
 
-func WithCodec(codec codec.Codec) Option {
-	return func(p *Positioner) {
-		p.codec = codec
-	}
+type optionFunc func(*Positioner)
+
+func (f optionFunc) apply(p *Positioner) {
+	f(p)
 }
 
 func NewPositioner(client redis.UniversalClient, opts ...Option) *Positioner {
@@ -49,7 +42,7 @@ func NewPositioner(client redis.UniversalClient, opts ...Option) *Positioner {
 	}
 
 	for _, opt := range opts {
-		opt(positioner)
+		opt.apply(positioner)
 	}
 
 	return positioner
@@ -58,6 +51,10 @@ func NewPositioner(client redis.UniversalClient, opts ...Option) *Positioner {
 func (p *Positioner) Get(ctx context.Context) (mysql.Position, error) {
 	data, err := p.client.Get(ctx, p.prefix+name).Bytes()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			// key not found, return zero position
+			return zeroPosition, nil
+		}
 		return zeroPosition, err
 	}
 
@@ -99,41 +96,44 @@ type BufferedPositioner struct {
 
 var _ canal.Positioner = (*BufferedPositioner)(nil)
 
-type BufferedOption func(*BufferedPositioner)
+type BufferedOption interface {
+	applyBuffered(*BufferedPositioner)
+}
+
+type bufferedOptionFunc func(*BufferedPositioner)
+
+func (f bufferedOptionFunc) applyBuffered(p *BufferedPositioner) {
+	f(p)
+}
 
 // WithFlushInterval is a buffered option to set the flush interval
 func WithFlushInterval(interval time.Duration) BufferedOption {
-	return func(p *BufferedPositioner) {
+	return bufferedOptionFunc(func(p *BufferedPositioner) {
 		p.flushInterval = interval
-	}
+	})
 }
 
 // WithBatchSize is a buffered option to set the batch size
 func WithBatchSize(size int) BufferedOption {
-	return func(p *BufferedPositioner) {
+	return bufferedOptionFunc(func(p *BufferedPositioner) {
 		p.batchSize = size
-	}
+	})
 }
 
-func NewBufferedPositioner(client redis.UniversalClient, opts ...Option) *BufferedPositioner {
-	basePositioner := NewPositioner(client, opts...)
-
+func NewBufferedPositioner(client redis.UniversalClient, opts ...BufferedOption) *BufferedPositioner {
 	buffered := &BufferedPositioner{
-		Positioner:    basePositioner,
+		Positioner:    NewPositioner(client),
 		flushInterval: 3 * time.Second,
 		batchSize:     100,
+	}
+
+	for _, opt := range opts {
+		opt.applyBuffered(buffered)
 	}
 
 	buffered.startFlushTimer()
 
 	return buffered
-}
-
-// ConfigureBuffered buffer parameters
-func (p *BufferedPositioner) ConfigureBuffered(opts ...BufferedOption) {
-	for _, opt := range opts {
-		opt(p)
-	}
 }
 
 // Start scheduled refresh task
