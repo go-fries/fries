@@ -22,7 +22,7 @@ require (
 	github.com/go-fries/fries/codec/v3 v3.0.0-rc.2 // indirect
 	github.com/go-mysql-org/go-mysql v1.12.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
