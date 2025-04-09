@@ -137,3 +137,6 @@ COMMIT ?= "HEAD"
 add-tags: verify-mods
 	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
 	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
+
+# push-tags
+# git tag -l | grep 'v3.0.0-rc.3$' | xargs -I {} git push origin {}
