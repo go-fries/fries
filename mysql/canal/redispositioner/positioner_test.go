@@ -73,3 +73,59 @@ func TestBufferedPositioner(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, value, pos)
 }
+
+func TestBufferedPositioner_Batching(t *testing.T) {
+	positioner := NewBufferedPositioner(createRedisClient(t),
+		WithPrefix("buffered:batch"),
+		WithBatchSize(3),
+	)
+
+	for i := 1; i <= 2; i++ {
+		value := mysql.Position{
+			Name: "mysql-bin.000001",
+			Pos:  uint32(i * 1000),
+		}
+		assert.NoError(t, positioner.Set(ctx, value))
+	}
+
+	// Check that only the latest position is returned (buffered, not flushed)
+	pos, err := positioner.Get(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, uint32(2000), pos.Pos)
+
+	// Add one more position to trigger batch flush
+	final := mysql.Position{
+		Name: "mysql-bin.000001",
+		Pos:  3000,
+	}
+	assert.NoError(t, positioner.Set(ctx, final))
+
+	// Check that position was flushed to Redis
+	time.Sleep(100 * time.Millisecond) // Allow time for flush
+	pos, err = positioner.Get(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, uint32(3000), pos.Pos)
+}
+
+func TestBufferedPositioner_FlushInterval(t *testing.T) {
+	positioner := NewBufferedPositioner(createRedisClient(t),
+		WithPrefix("buffered:interval"),
+		WithFlushInterval(500*time.Millisecond),
+		WithBatchSize(100), // Large batch size to ensure interval triggers first
+	)
+
+	// Set position
+	value := mysql.Position{
+		Name: "mysql-bin.000001",
+		Pos:  5000,
+	}
+	assert.NoError(t, positioner.Set(ctx, value))
+
+	// Wait for flush interval
+	time.Sleep(600 * time.Millisecond)
+
+	// Check that position was flushed to Redis
+	pos, err := positioner.Get(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, uint32(5000), pos.Pos)
+}
