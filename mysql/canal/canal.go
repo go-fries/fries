@@ -55,7 +55,7 @@ func WithPositioner(positioner Positioner) Option {
 func WithListeners(listeners ...any) Option {
 	return func(c *Canal) error {
 		if len(listeners) > 0 {
-			c.dispatcher.Registers(listeners...)
+			c.RegisterListeners(listeners...)
 		}
 		return nil
 	}
@@ -89,6 +89,11 @@ func (c *Canal) Start(ctx context.Context) error {
 	}
 
 	return c.canal.RunFrom(position)
+}
+
+// RegisterListeners registers listeners to the canal dispatcher.
+func (c *Canal) RegisterListeners(listeners ...any) {
+	c.dispatcher.Registers(listeners...)
 }
 
 func (c *Canal) Stop(ctx context.Context) error {
