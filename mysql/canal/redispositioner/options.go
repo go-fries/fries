@@ -28,7 +28,6 @@ func (p *prefixOption) apply(positioner *Positioner) {
 	if prefix != "" {
 		positioner.prefix = prefix + ":"
 	}
-
 }
 
 func (p *prefixOption) applyBuffered(positioner *BufferedPositioner) {
@@ -52,5 +51,5 @@ func (c *codecOption) apply(positioner *Positioner) {
 }
 
 func (c *codecOption) applyBuffered(positioner *BufferedPositioner) {
-	positioner.Positioner.codec = c.codec
+	positioner.codec = c.codec
 }

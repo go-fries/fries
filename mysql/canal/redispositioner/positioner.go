@@ -29,12 +29,6 @@ type Option interface {
 	apply(*Positioner)
 }
 
-type optionFunc func(*Positioner)
-
-func (f optionFunc) apply(p *Positioner) {
-	f(p)
-}
-
 func NewPositioner(client redis.UniversalClient, opts ...Option) *Positioner {
 	positioner := &Positioner{
 		client: client,
@@ -123,8 +117,8 @@ func WithBatchSize(size int) BufferedOption {
 func NewBufferedPositioner(client redis.UniversalClient, opts ...BufferedOption) *BufferedPositioner {
 	buffered := &BufferedPositioner{
 		Positioner:    NewPositioner(client),
-		flushInterval: 3 * time.Second,
-		batchSize:     100,
+		flushInterval: 3 * time.Second, //nolint:mnd
+		batchSize:     100,             //nolint:mnd
 	}
 
 	for _, opt := range opts {
