@@ -16,10 +16,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
-github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.2 h1:obE1fuZjeF9b835xGaJoQD7M4TnfaER4crs1fX46b2g=
-github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.2/go.mod h1:K9xlCiLaCbL879JRvjNpcS68cVmayLm4IZ2qRVxQjss=
-github.com/go-fries/fries/codec/v3 v3.0.0-rc.2 h1:4oR/QqQpzKjxIMRWTL+Zdk3R039HhE+MZiNq4S6HbKE=
-github.com/go-fries/fries/codec/v3 v3.0.0-rc.2/go.mod h1:el1FCzBJE1n3w1viyCWywO+Q2RW5nEgCzhqo7u3UV9U=
 github.com/go-mysql-org/go-mysql v1.12.0 h1:tyToNggfCfl11OY7GbWa2Fq3ofyScO9GY8b5f5wAmE4=
 github.com/go-mysql-org/go-mysql v1.12.0/go.mod h1:/XVjs1GlT6NPSf13UgXLv/V5zMNricTCqeNaehSBghs=
 github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=

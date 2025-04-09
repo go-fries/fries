@@ -3,6 +3,8 @@ module github.com/go-fries/fries/examples/mysql/canal/v3
 go 1.23.0
 
 replace (
+	github.com/go-fries/fries/codec/json/v3 => ../../../codec/json
+	github.com/go-fries/fries/codec/v3 => ../../../codec
 	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 => ./../../../mysql/canal/positioner/redis/
 	github.com/go-fries/fries/mysql/canal/v3 => ../../../mysql/canal/
 )
