@@ -48,7 +48,7 @@ func main() {
 		IncludeTablesRegex: []string{"test\\..*"},
 		ExcludeTablesRegex: []string{".*no.*"},
 	},
-		canal.WithPositioner(redispositioner.NewPositioner(nil)), // replace with your Redis client
+		canal.WithPositioner(redispositioner.NewBufferedPositioner(nil)), // replace with your Redis client
 		canal.WithListeners(&Listener{}),
 	)
 	if err != nil {
