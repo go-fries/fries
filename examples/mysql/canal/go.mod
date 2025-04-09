@@ -3,13 +3,14 @@ module github.com/go-fries/fries/examples/mysql/canal/v3
 go 1.23.0
 
 replace (
-	github.com/go-fries/fries/mysql/canal/redispositioner/v3 => ../../../mysql/canal/redispositioner/
+	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 => ./../../../mysql/canal/positioner/redis/
 	github.com/go-fries/fries/mysql/canal/v3 => ../../../mysql/canal/
 )
 
 require (
-	github.com/go-fries/fries/mysql/canal/redispositioner/v3 v3.0.0-rc.2
+	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 v3.0.0-rc.2
 	github.com/go-fries/fries/mysql/canal/v3 v3.0.0-rc.2
+	github.com/go-mysql-org/go-mysql v1.12.0
 )
 
 require (
@@ -20,7 +21,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.2 // indirect
 	github.com/go-fries/fries/codec/v3 v3.0.0-rc.2 // indirect
-	github.com/go-mysql-org/go-mysql v1.12.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect

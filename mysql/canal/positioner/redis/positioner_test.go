@@ -1,4 +1,4 @@
-package redispositioner
+package redis
 
 import (
 	"context"

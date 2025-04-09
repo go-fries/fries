@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/mysql/canal/redispositioner/v3
+module github.com/go-fries/fries/mysql/canal/positioner/redis/v3
 
 go 1.23.0
 
 replace (
-	github.com/go-fries/fries/codec/json/v3 => ../../../codec/json
-	github.com/go-fries/fries/codec/v3 => ../../../codec
-	github.com/go-fries/fries/mysql/canal/v3 => ../
+	github.com/go-fries/fries/codec/json/v3 => ./../../../../codec/json
+	github.com/go-fries/fries/codec/v3 => ./../../../../codec
+	github.com/go-fries/fries/mysql/canal/v3 => ../../
 )
 
 require (

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-fries/fries/mysql/canal/redispositioner/v3"
+	positionerredis "github.com/go-fries/fries/mysql/canal/positioner/redis/v3"
 	"github.com/go-fries/fries/mysql/canal/v3"
 )
 
@@ -61,7 +61,7 @@ func main() {
 		IncludeTablesRegex: []string{"test\\..*"},
 		ExcludeTablesRegex: []string{".*no.*"},
 	},
-		canal.WithPositioner(redispositioner.NewBufferedPositioner(nil)), // replace with your Redis client
+		canal.WithPositioner(positionerredis.NewBufferedPositioner(nil)), // replace with your Redis client
 		canal.WithListeners(&Listener{}),
 	)
 	if err != nil {

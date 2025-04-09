@@ -1,15 +1,22 @@
-module github.com/go-fries/fries/mysql/canal/v3
+module github.com/go-fries/fries/mysql/canal/server/v3
 
 go 1.23.0
 
-replace github.com/go-fries/fries/contract/v3 => ../../contract
+replace (
+	github.com/go-fries/fries/contract/v3 => ../../../contract
+	github.com/go-fries/fries/mysql/canal/v3 => ../
+)
 
-require github.com/go-mysql-org/go-mysql v1.12.0
+require (
+	github.com/go-fries/fries/contract/v3 v3.0.0-rc.2
+	github.com/go-fries/fries/mysql/canal/v3 v3.0.0-rc.2
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/go-mysql-org/go-mysql v1.12.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
@@ -18,7 +25,6 @@ require (
 	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250408225152-83ee05d080bc // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
