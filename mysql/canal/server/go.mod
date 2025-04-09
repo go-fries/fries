@@ -14,7 +14,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/go-mysql-org/go-mysql v1.12.0 // indirect
-	github.com/go-playground/form/v4 v4.2.0 // indirect
+	github.com/go-playground/form/v4 v4.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
