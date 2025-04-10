@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/mysql/canal/v3 => ../
 
 require (
-	github.com/go-fries/fries/mysql/canal/v3 v3.0.0-rc.3
+	github.com/go-fries/fries/mysql/canal/v3 v3.0.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 )
 
