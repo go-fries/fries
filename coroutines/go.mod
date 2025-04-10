@@ -3,6 +3,7 @@ module github.com/go-fries/fries/coroutines/v3
 go 1.23.0
 
 replace (
+	github.com/go-fries/fries/constraints/v3 => ../constraints
 	github.com/go-fries/fries/errors/v3 => ../errors
 	github.com/go-fries/fries/support/v3 => ./../support
 )
