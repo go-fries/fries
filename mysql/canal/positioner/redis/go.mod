@@ -9,9 +9,9 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/codec/json/v3 v3.0.0-rc.3
-	github.com/go-fries/fries/codec/v3 v3.0.0-rc.3
-	github.com/go-fries/fries/mysql/canal/v3 v3.0.0-rc.3
+	github.com/go-fries/fries/codec/json/v3 v3.0.0
+	github.com/go-fries/fries/codec/v3 v3.0.0
+	github.com/go-fries/fries/mysql/canal/v3 v3.0.0
 	github.com/go-mysql-org/go-mysql v1.12.0
 	github.com/redis/go-redis/v9 v9.7.3
 	github.com/stretchr/testify v1.10.0
