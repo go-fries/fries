@@ -101,7 +101,9 @@ func (c *Canal) Stop(ctx context.Context) error {
 
 	go func() {
 		defer close(done)
-		c.canal.Close()
+		if c.canal != nil {
+			c.canal.Close()
+		}
 	}()
 
 	select {
