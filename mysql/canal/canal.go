@@ -156,6 +156,10 @@ func (c *Canal) initCanal(ctx context.Context) error {
 		cfg.ExcludeTableRegex = c.config.ExcludeTablesRegex
 	}
 
+	cfg.Dump = orgcanal.DumpConfig{
+		ExecutionPath: "", // 留空表示不调用 mysqldump
+	}
+
 	cnl, err := orgcanal.NewCanal(cfg)
 	if err != nil {
 		return fmt.Errorf("canal: new canal error: %w", err)
