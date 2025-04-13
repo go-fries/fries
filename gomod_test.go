@@ -23,8 +23,7 @@ func TestAllGoModVersions(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-
-	assert.NotEmpty(t, modFiles)
+	require.NotEmpty(t, modFiles)
 
 	for _, file := range modFiles {
 		t.Run(file, func(t *testing.T) {
