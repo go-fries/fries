@@ -24,123 +24,123 @@ func WithRoot(root string) Option {
 }
 
 func New(client *oss.Client, bucket string, opts ...Option) *Filesystem {
-	f := &Filesystem{
+	fs := &Filesystem{
 		client: client,
 		bucket: bucket,
 	}
 	for _, opt := range opts {
-		opt(f)
+		opt(fs)
 	}
-	f.prefixer = filesystem.NewPathPrefixer(f.root)
-	return f
+	fs.prefixer = filesystem.NewPathPrefixer(fs.root)
+	return fs
 }
 
-func (f *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
+func (fs *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Write(ctx context.Context, path string, value []byte) error {
+func (fs *Filesystem) Write(ctx context.Context, path string, value []byte) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Delete(ctx context.Context, path string) error {
+func (fs *Filesystem) Delete(ctx context.Context, path string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Exists(ctx context.Context, path string) (bool, error) {
+func (fs *Filesystem) Exists(ctx context.Context, path string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Rename(ctx context.Context, oldPath, newPath string) error {
+func (fs *Filesystem) Rename(ctx context.Context, oldPath, newPath string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Link(ctx context.Context, oldPath, newPath string) error {
+func (fs *Filesystem) Link(ctx context.Context, oldPath, newPath string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Symlink(ctx context.Context, oldPath, newPath string) error {
+func (fs *Filesystem) Symlink(ctx context.Context, oldPath, newPath string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Files(ctx context.Context, path string) ([]string, error) {
+func (fs *Filesystem) Files(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
+func (fs *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Directories(ctx context.Context, path string) ([]string, error) {
+func (fs *Filesystem) Directories(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
+func (fs *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) MakeDirectory(ctx context.Context, path string) error {
+func (fs *Filesystem) MakeDirectory(ctx context.Context, path string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) DeleteDirectory(ctx context.Context, path string) error {
+func (fs *Filesystem) DeleteDirectory(ctx context.Context, path string) error {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) IsFile(ctx context.Context, path string) (bool, error) {
+func (fs *Filesystem) IsFile(ctx context.Context, path string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) IsDir(ctx context.Context, path string) (bool, error) {
+func (fs *Filesystem) IsDir(ctx context.Context, path string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Size(ctx context.Context, path string) (int64, error) {
+func (fs *Filesystem) Size(ctx context.Context, path string) (int64, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) LastModified(ctx context.Context, path string) (*time.Time, error) {
+func (fs *Filesystem) LastModified(ctx context.Context, path string) (*time.Time, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Path(ctx context.Context, path string) string {
+func (fs *Filesystem) Path(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Name(ctx context.Context, path string) string {
+func (fs *Filesystem) Name(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Basename(ctx context.Context, path string) string {
+func (fs *Filesystem) Basename(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Dirname(ctx context.Context, path string) string {
+func (fs *Filesystem) Dirname(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (f *Filesystem) Extension(ctx context.Context, path string) string {
+func (fs *Filesystem) Extension(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
