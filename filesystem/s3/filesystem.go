@@ -60,12 +60,7 @@ func (s *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 	}
 	defer output.Body.Close() // nolint:errcheck
 
-	body, err := io.ReadAll(output.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return io.ReadAll(output.Body)
 }
 
 func (s *Filesystem) Write(ctx context.Context, path string, value []byte) error {
