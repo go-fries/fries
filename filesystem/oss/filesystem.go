@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
@@ -45,15 +46,17 @@ func (fs *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer result.Body.Close()
+	defer result.Body.Close() //nolint:errcheck
 	return io.ReadAll(result.Body)
 }
 
 func (fs *Filesystem) Write(ctx context.Context, path string, value []byte) error {
 	_, err := fs.client.PutObject(ctx, &oss.PutObjectRequest{
-		Bucket: oss.Ptr(fs.bucket),
-		Key:    oss.Ptr(fs.prefixer.Prefix(path)),
-		Body:   bytes.NewBuffer(value),
+		Bucket:        oss.Ptr(fs.bucket),
+		Key:           oss.Ptr(fs.prefixer.Prefix(path)),
+		Body:          bytes.NewBuffer(value),
+		ContentType:   oss.Ptr(http.DetectContentType(value)),
+		ContentLength: oss.Ptr(int64(len(value))),
 	})
 	return err
 }
@@ -71,8 +74,13 @@ func (fs *Filesystem) Exists(ctx context.Context, path string) (bool, error) {
 }
 
 func (fs *Filesystem) Rename(ctx context.Context, oldPath, newPath string) error {
-	// TODO implement me
-	panic("implement me")
+	_, err := fs.client.CopyObject(ctx, &oss.CopyObjectRequest{
+		Bucket:       oss.Ptr(fs.bucket),
+		Key:          oss.Ptr(fs.prefixer.Prefix(newPath)),
+		SourceBucket: oss.Ptr(fs.bucket),
+		SourceKey:    oss.Ptr(fs.prefixer.Prefix(oldPath)),
+	})
+	return err
 }
 
 func (fs *Filesystem) Link(ctx context.Context, oldPath, newPath string) error {
