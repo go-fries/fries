@@ -1,7 +1,9 @@
 package oss
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"time"
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
@@ -36,23 +38,36 @@ func New(client *oss.Client, bucket string, opts ...Option) *Filesystem {
 }
 
 func (fs *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
-	// TODO implement me
-	panic("implement me")
+	result, err := fs.client.GetObject(ctx, &oss.GetObjectRequest{
+		Bucket: oss.Ptr(fs.bucket),
+		Key:    oss.Ptr(fs.prefixer.Prefix(path)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer result.Body.Close()
+	return io.ReadAll(result.Body)
 }
 
 func (fs *Filesystem) Write(ctx context.Context, path string, value []byte) error {
-	// TODO implement me
-	panic("implement me")
+	_, err := fs.client.PutObject(ctx, &oss.PutObjectRequest{
+		Bucket: oss.Ptr(fs.bucket),
+		Key:    oss.Ptr(fs.prefixer.Prefix(path)),
+		Body:   bytes.NewBuffer(value),
+	})
+	return err
 }
 
 func (fs *Filesystem) Delete(ctx context.Context, path string) error {
-	// TODO implement me
-	panic("implement me")
+	_, err := fs.client.DeleteObject(ctx, &oss.DeleteObjectRequest{
+		Bucket: oss.Ptr(fs.bucket),
+		Key:    oss.Ptr(fs.prefixer.Prefix(path)),
+	})
+	return err
 }
 
 func (fs *Filesystem) Exists(ctx context.Context, path string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	return fs.client.IsObjectExist(ctx, fs.bucket, fs.prefixer.Prefix(path))
 }
 
 func (fs *Filesystem) Rename(ctx context.Context, oldPath, newPath string) error {
