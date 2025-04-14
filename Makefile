@@ -104,6 +104,10 @@ lint-modules: go-mod-tidy
 .PHONY: lint
 lint: lint-modules golangci-lint
 
+.PHONY: clean
+clean:
+	rm -rf $(TOOLS)
+
 .PHONY: check-clean-work-tree
 check-clean-work-tree:
 	@if ! git diff --quiet; then \
