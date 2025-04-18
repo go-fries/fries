@@ -11,10 +11,10 @@ import (
 )
 
 type Receiver struct {
-	channel    *amqp.Channel
-	deliveries <-chan amqp.Delivery
-	queue      string
-	consumer   string
+	channel  *amqp.Channel
+	queue    string
+	incoming chan amqp.Delivery
+	consumer string
 }
 
 var (
@@ -28,8 +28,9 @@ func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*
 	}
 
 	r := &Receiver{
-		channel: channel,
-		queue:   queue,
+		channel:  channel,
+		queue:    queue,
+		incoming: make(chan amqp.Delivery),
 	}
 
 	for _, opt := range opts {
@@ -42,25 +43,10 @@ func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*
 }
 
 func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
-	// Todo: 带重构，目前还不太优雅的做法。。。
-	if r.deliveries == nil {
-		for {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-				if r.deliveries != nil {
-					// wait for deliveries to be set, see r.OpenInbound
-					break // nolint:staticcheck
-				}
-			}
-		}
-	}
-
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case delivery, ok := <-r.deliveries:
+	case delivery, ok := <-r.incoming:
 		if !ok {
 			return nil, io.EOF
 		}
@@ -82,7 +68,12 @@ func (r *Receiver) OpenInbound(context.Context) error {
 		return err
 	}
 
-	r.deliveries = deliveries
+	go func() {
+		for delivery := range deliveries {
+			r.incoming <- delivery
+		}
+	}()
+
 	return nil
 }
 

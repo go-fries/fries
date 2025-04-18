@@ -83,7 +83,7 @@ func (m *Message) GetExtension(name string) any {
 
 func (m *Message) Finish(err error) error {
 	if err != nil {
-		return m.delivery.Reject(false)
+		return m.delivery.Nack(false, true)
 	}
 	return m.delivery.Ack(false)
 }
