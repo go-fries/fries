@@ -17,6 +17,7 @@ var (
 	_ protocol.Sender   = (*Protocol)(nil)
 	_ protocol.Receiver = (*Protocol)(nil)
 	_ protocol.Opener   = (*Protocol)(nil)
+	_ protocol.Closer   = (*Protocol)(nil)
 )
 
 func NewProtocol(sender *Sender, receiver *Receiver) *Protocol {
@@ -37,6 +38,10 @@ func (p *Protocol) Receive(ctx context.Context) (binding.Message, error) {
 // OpenInbound opens the inbound channel for the protocol.
 func (p *Protocol) OpenInbound(ctx context.Context) error {
 	return p.receiver.OpenInbound(ctx)
+}
+
+func (p *Protocol) Close(ctx context.Context) error {
+	return p.receiver.Close(ctx)
 }
 
 type Config struct {

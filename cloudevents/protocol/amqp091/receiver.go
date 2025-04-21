@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"github.com/cloudevents/sdk-go/v2/protocol"
@@ -13,13 +14,17 @@ import (
 type Receiver struct {
 	channel  *amqp.Channel
 	queue    string
-	incoming chan amqp.Delivery
 	consumer string
+	closed   chan struct{}
+
+	incoming chan amqp.Delivery
+	once     sync.Once
 }
 
 var (
 	_ protocol.Receiver = (*Receiver)(nil)
 	_ protocol.Opener   = (*Receiver)(nil)
+	_ protocol.Closer   = (*Receiver)(nil)
 )
 
 func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*Receiver, error) {
@@ -31,6 +36,7 @@ func NewReceiver(channel *amqp.Channel, queue string, opts ...ReceiverOption) (*
 		channel:  channel,
 		queue:    queue,
 		incoming: make(chan amqp.Delivery),
+		closed:   make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -69,11 +75,27 @@ func (r *Receiver) OpenInbound(context.Context) error {
 	}
 
 	go func() {
-		for delivery := range deliveries {
-			r.incoming <- delivery
+		for {
+			select {
+			case <-r.closed:
+				return
+			case delivery, ok := <-deliveries:
+				if !ok {
+					return
+				}
+				r.incoming <- delivery
+			}
 		}
 	}()
 
+	return nil
+}
+
+func (r *Receiver) Close(context.Context) error {
+	r.once.Do(func() {
+		close(r.closed)
+		close(r.incoming)
+	})
 	return nil
 }
 
