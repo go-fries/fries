@@ -70,14 +70,8 @@ func (r *Receiver) OpenInbound(context.Context) error {
 
 	go func() {
 		defer close(r.incoming)
-		for {
-			select {
-			case delivery, ok := <-deliveries:
-				if !ok {
-					return
-				}
-				r.incoming <- delivery
-			}
+		for delivery := range deliveries {
+			r.incoming <- delivery
 		}
 	}()
 
