@@ -55,7 +55,7 @@ func WithPositioner(positioner Positioner) Option {
 func WithListeners(listeners ...any) Option {
 	return func(c *Canal) error {
 		if len(listeners) > 0 {
-			c.dispatcher.Registers(listeners...)
+			c.RegisterListeners(listeners...)
 		}
 		return nil
 	}
@@ -91,12 +91,19 @@ func (c *Canal) Start(ctx context.Context) error {
 	return c.canal.RunFrom(position)
 }
 
+// RegisterListeners registers listeners to the canal dispatcher.
+func (c *Canal) RegisterListeners(listeners ...any) {
+	c.dispatcher.Registers(listeners...)
+}
+
 func (c *Canal) Stop(ctx context.Context) error {
 	done := make(chan struct{})
 
 	go func() {
 		defer close(done)
-		c.canal.Close()
+		if c.canal != nil {
+			c.canal.Close()
+		}
 	}()
 
 	select {
@@ -147,6 +154,10 @@ func (c *Canal) initCanal(ctx context.Context) error {
 
 	if len(c.config.ExcludeTablesRegex) > 0 {
 		cfg.ExcludeTableRegex = c.config.ExcludeTablesRegex
+	}
+
+	cfg.Dump = orgcanal.DumpConfig{
+		ExecutionPath: "", // 留空表示不调用 mysqldump
 	}
 
 	cnl, err := orgcanal.NewCanal(cfg)

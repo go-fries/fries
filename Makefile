@@ -105,6 +105,10 @@ lint-modules: go-mod-tidy
 .PHONY: lint
 lint: lint-modules golangci-lint
 
+.PHONY: clean
+clean:
+	rm -rf $(TOOLS)
+
 .PHONY: check-clean-work-tree
 check-clean-work-tree:
 	@if ! git diff --quiet; then \
@@ -138,3 +142,6 @@ COMMIT ?= "HEAD"
 add-tags: verify-mods
 	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
 	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
+
+# push-tags
+# git tag -l | grep 'v3.0.0-rc.3$' | xargs -I {} git push origin {}

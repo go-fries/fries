@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-fries/fries/mysql/canal/redispositioner/v3"
+	positionerredis "github.com/go-fries/fries/mysql/canal/positioner/redis/v3"
 	"github.com/go-fries/fries/mysql/canal/v3"
 )
 
@@ -36,7 +36,7 @@ func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 	l.sb.WriteString(fmt.Sprintf("Table: %s.%s\n", event.RowsEvent.Table.Schema, event.RowsEvent.Table.Name))
 	l.sb.WriteString(fmt.Sprintf("Action: %s\n", event.RowsEvent.Action))
 	for i, row := range event.RowsEvent.Rows {
-		maps := make(map[string]interface{}, len(row))
+		maps := make(map[string]any, len(row))
 		for j, col := range event.RowsEvent.Table.Columns {
 			maps[col.Name] = row[j]
 		}
@@ -61,14 +61,14 @@ func main() {
 		IncludeTablesRegex: []string{"test\\..*"},
 		ExcludeTablesRegex: []string{".*no.*"},
 	},
-		canal.WithPositioner(redispositioner.NewPositioner(nil)), // replace with your Redis client
+		canal.WithPositioner(positionerredis.NewBufferedPositioner(nil)), // replace with your Redis client
 		canal.WithListeners(&Listener{}),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	time.AfterFunc(1000*time.Second, func() {
+	time.AfterFunc(1000*time.Second, func() { //nolint:mnd
 		_ = c.Stop(context.Background())
 	})
 

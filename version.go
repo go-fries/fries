@@ -1,5 +1,5 @@
 package fries
 
 func Version() string {
-	return "3.0.0-rc.2"
+	return "3.0.2"
 }

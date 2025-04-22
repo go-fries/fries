@@ -2,6 +2,7 @@ package fries
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -9,13 +10,42 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGoModVersion(t *testing.T) {
-	bytes, err := os.ReadFile("go.mod")
+var expectedVersion = "go 1.23.0"
+
+func TestAllGoModVersions(t *testing.T) {
+	var modFiles []string
+
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		require.NoError(t, err)
+		if !info.IsDir() && filepath.Base(path) == "go.mod" {
+			modFiles = append(modFiles, path)
+		}
+		return nil
+	})
 	require.NoError(t, err)
-	content := string(bytes)
+	require.NotEmpty(t, modFiles)
 
-	assert.NotContains(t, content, "toolchain")
+	for _, file := range modFiles {
+		t.Run(file, func(t *testing.T) {
+			bytes, err := os.ReadFile(file)
+			require.NoError(t, err)
 
-	contents := strings.Split(content, "\n")
-	assert.Contains(t, contents, "go 1.23.0")
+			content := string(bytes)
+			assert.NotContains(t, content, "toolchain")
+
+			contents := strings.Split(content, "\n")
+			goVersionFound := false
+
+			for _, line := range contents {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "go ") {
+					goVersionFound = true
+					assert.Equal(t, expectedVersion, line)
+					break
+				}
+			}
+
+			assert.True(t, goVersionFound)
+		})
+	}
 }

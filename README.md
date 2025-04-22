@@ -12,7 +12,8 @@
 > This repository has been migrated from the original `github.com/go-kratos-ecosystem/components`.
 
 > [!IMPORTANT]
-> The V3 version is still under development. The V2 version is stable and recommended for production use.
+> The v3 may have cases of non-backward compatibility, please use with caution.  
+> Backward compatibility is the default behavior, and any incompatibilities will be noted in the release.
 
 ## Installation
 
