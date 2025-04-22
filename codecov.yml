@@ -21,4 +21,4 @@ ignore:
   - '**/*.pb.go'
 
 fixes:
-  - github.com/go-fries/fries/*/v3::/
+  - github.com/go-fries/fries/*/v3::/*
