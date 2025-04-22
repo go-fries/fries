@@ -17,6 +17,8 @@ comment:
   behavior: default
   require_changes: yes
 
+ignore:
+  - '**/*.pb.go'
+
 fixes:
-  - "github.com/go-fries/fries/*/v3/:github.com/go-fries/fries/*/"
-  - "github.com/go-fries/fries/v3/:github.com/go-fries/fries/"
+  - "github.com/go-fries/fries/(.*)/v3::/\1"
