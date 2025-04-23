@@ -15,13 +15,18 @@
   },
   "packageRules": [
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "indirect"
-      ],
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
       "enabled": true
+    },
+    {
+      "matchPackageNames": ["github.com/pingcap/..."],
+      "groupName": "pingcap",
+      "schedule": ["* * 1 * *"]
+    },
+    {
+      "matchPackageNames": ["golang.org/x/**"],
+      "groupName": "golang.org/x"
     }
   ]
 }
