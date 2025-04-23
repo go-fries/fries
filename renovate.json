@@ -20,13 +20,21 @@
       "enabled": true
     },
     {
-      "matchPackageNames": ["github.com/pingcap/**"],
-      "groupName": "pingcap",
+      "matchPackageNames": ["go.opentelemetry.io/build-tools/**"],
+      "groupName": "build-tools"
+    },
+    {
+      "matchPackageNames": ["github.com/pingcap/tidb/**"],
+      "groupName": "pingcap/tidb",
       "schedule": ["* * 1 * *"]
     },
     {
       "matchPackageNames": ["golang.org/x/**"],
       "groupName": "golang.org/x"
+    },
+    {
+      "matchPackageNames": ["go.opentelemetry.io/otel/**"],
+      "groupName": "go.opentelemetry.io/otel"
     }
   ]
 }
