@@ -21,11 +21,11 @@
     },
     {
       "matchPackageNames": ["go.opentelemetry.io/build-tools/**"],
-      "groupName": "build-tools"
+      "groupName": "go.opentelemetry.io/build-tools"
     },
     {
       "matchPackageNames": ["github.com/pingcap/tidb/**"],
-      "groupName": "pingcap/tidb",
+      "groupName": "github.com/pingcap/tidb",
       "schedule": ["* * 1 * *"]
     },
     {
