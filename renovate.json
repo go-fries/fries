@@ -26,7 +26,7 @@
     {
       "matchPackageNames": ["github.com/pingcap/tidb/**"],
       "groupName": "github.com/pingcap/tidb",
-      "schedule": ["* * 1 * *"]
+      "schedule": ["0 0 1 * *"]
     },
     {
       "matchPackageNames": ["golang.org/x/**"],
