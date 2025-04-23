@@ -20,7 +20,7 @@
       "enabled": true
     },
     {
-      "matchPackageNames": ["github.com/pingcap/..."],
+      "matchPackageNames": ["github.com/pingcap/**"],
       "groupName": "pingcap",
       "schedule": ["* * 1 * *"]
     },
