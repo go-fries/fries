@@ -18,19 +18,12 @@ func (f HandlerFunc) Handle(ctx context.Context) error {
 }
 
 type Kernel struct {
-	context.Context
 	handler          Handler
 	providers        []Provider
 	terminateTimeout time.Duration
 }
 
 type Option func(*Kernel)
-
-func WithContext(ctx context.Context) Option {
-	return func(k *Kernel) {
-		k.Context = ctx
-	}
-}
 
 func WithHandler(handler Handler) Option {
 	return func(k *Kernel) {
@@ -60,10 +53,6 @@ func NewKernel(opts ...Option) *Kernel {
 }
 
 func (k *Kernel) init() {
-	if k.Context == nil {
-		k.Context = context.Background()
-	}
-
 	if k.terminateTimeout <= 0 {
 		k.terminateTimeout = defaultTerminateTimeout
 	}
@@ -83,17 +72,17 @@ func (k *Kernel) bootstrap(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-func (k *Kernel) Run() (err error) {
-	var ctx context.Context
-	if ctx, err = k.bootstrap(k.Context); err != nil {
-		return err
+func (k *Kernel) Run(ctx context.Context) (err error) {
+	if ctx, err = k.bootstrap(ctx); err != nil {
+		return
 	}
+
 	defer func(ctx context.Context) {
 		ctx, cancel := context.WithTimeout(ctx, k.terminateTimeout)
 		defer cancel()
 
-		if _, e := k.terminate(ctx); e != nil {
-			err = e
+		if ctx, err = k.terminate(ctx); err != nil {
+			return
 		}
 	}(ctx)
 
