@@ -77,14 +77,14 @@ func (k *Kernel) Run(ctx context.Context) (err error) {
 		return
 	}
 
-	defer func(ctx context.Context) {
+	defer func() {
 		ctx, cancel := context.WithTimeout(ctx, k.terminateTimeout)
 		defer cancel()
 
-		if ctx, err = k.terminate(ctx); err != nil {
+		if _, err = k.terminate(ctx); err != nil {
 			return
 		}
-	}(ctx)
+	}()
 
 	if k.handler != nil {
 		return k.handler.Handle(ctx)
