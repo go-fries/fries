@@ -2,7 +2,10 @@ module github.com/go-fries/fries/mysql/canal/v3
 
 go 1.23.0
 
-require github.com/go-mysql-org/go-mysql v1.12.0
+require (
+	github.com/go-mysql-org/go-mysql v1.12.0
+	golang.org/x/sync v0.13.0
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
