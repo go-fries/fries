@@ -1,4 +1,3 @@
-// Copy from https://github.com/open-telemetry/opentelemetry-go-contrib/blob/b83e063313ea0e25c1970d2020bae75265a08605/bridges/otelzap/convert.go
 package otel
 
 import (
@@ -11,8 +10,12 @@ import (
 	"go.opentelemetry.io/otel/log"
 )
 
+// Code adapted from the OpenTelemetry Go Contrib repository, licensed under Apache License 2.0:
+// https://github.com/open-telemetry/opentelemetry-go-contrib/blob/b83e063313ea0e25c1970d2020bae75265a08605/bridges/otelzap/convert.go
+// Original license: https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/LICENSE
+
 // convertValue converts various types to log.Value.
-func convertValue(v any) log.Value {
+func convertValue(v any) log.Value { // nolint:gocyclo
 	// Handling the most common types without reflect is a small perf win.
 	switch val := v.(type) {
 	case bool:

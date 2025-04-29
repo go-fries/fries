@@ -78,6 +78,7 @@ module-sets:
       # Kratos
       - github.com/go-fries/fries/kratos/log/stack/v3
       - github.com/go-fries/fries/kratos/log/syslog/v3
+      - github.com/go-fries/fries/kratos/log/otel/v3
 
       - github.com/go-fries/fries/kratos/middleware/cors/v3
       - github.com/go-fries/fries/kratos/middleware/protovalidate/v3

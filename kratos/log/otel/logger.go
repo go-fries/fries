@@ -1,10 +1,11 @@
-package otel
+package otel // import "github.com/go-fries/fries/kratos/log/otel/v3"
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	"github.com/go-fries/fries/v3"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel/log"
 )
@@ -18,7 +19,9 @@ var _ kratoslog.Logger = (*Logger)(nil)
 func NewLogger(opts ...Option) *Logger {
 	o := newOptions(opts...)
 
-	logger := o.provider.Logger("otel-logger")
+	logger := o.provider.Logger("otel-logger",
+		log.WithInstrumentationVersion(fries.Version()),
+	)
 
 	return &Logger{
 		logger: logger,
@@ -31,7 +34,7 @@ func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
 	record.SetSeverity(convertLevel(level))
 	record.SetSeverityText(level.String())
 
-	ctx, body, kvs := convertKVs(context.TODO(), keyvals...)
+	ctx, body, kvs := convertKVs(context.Background(), keyvals...)
 	if body != "" {
 		record.SetBody(log.StringValue(body))
 	}
@@ -66,7 +69,7 @@ func convertKVs(ctx context.Context, keyvals ...any) (context.Context, string, [
 	}
 
 	body := ""
-	kvs := make([]log.KeyValue, 0, len(keyvals)/2)
+	kvs := make([]log.KeyValue, 0, len(keyvals)/2) //nolint:mnd
 	for i := 0; i < len(keyvals); i += 2 {
 		key, ok := keyvals[i].(string)
 		if !ok {
