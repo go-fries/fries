@@ -148,7 +148,7 @@ func (d *Dispatcher) Registers(listeners ...any) {
 }
 
 func (d *Dispatcher) DispatchRotate(ctx context.Context, event *RotateEvent) error {
-	return 	dispatch(ctx, d.rotateListeners, func(ctx context.Context, listener RotateListener) error {
+	return dispatch(ctx, d.rotateListeners, func(ctx context.Context, listener RotateListener) error {
 		return listener.OnRotate(ctx, event)
 	})
 }
@@ -184,12 +184,12 @@ func (d *Dispatcher) DispatchGTID(ctx context.Context, event *GTIDEvent) error {
 }
 
 func (d *Dispatcher) DispatchPosSynced(ctx context.Context, event *PosSyncedEvent) error {
-	return dispatch(ctx, d.posSyncedListeners, func(ctx context.Context, listener PosSyncedListener) error {)
+	return dispatch(ctx, d.posSyncedListeners, func(ctx context.Context, listener PosSyncedListener) error {
 		return listener.OnPosSynced(ctx, event)
 	})
 }
 
-func (d *Dispatcher) DispatchRowsQuery(ctx context.Context, event *RowsQueryEvent) error {=
+func (d *Dispatcher) DispatchRowsQuery(ctx context.Context, event *RowsQueryEvent) error {
 	return dispatch(ctx, d.rowsQueryListeners, func(ctx context.Context, listener RowsQueryListener) error {
 		return listener.OnRowsQuery(ctx, event)
 	})
