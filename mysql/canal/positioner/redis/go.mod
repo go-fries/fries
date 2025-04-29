@@ -29,7 +29,7 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
-	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
+	github.com/pingcap/log v1.1.1-0.20250424032633-85a82d016f84 // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250423103223-6bd86d5dec59 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
