@@ -7,6 +7,7 @@ import (
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
+	"golang.org/x/sync/errgroup"
 )
 
 // ====================================================
@@ -147,77 +148,64 @@ func (d *Dispatcher) Registers(listeners ...any) {
 }
 
 func (d *Dispatcher) DispatchRotate(ctx context.Context, event *RotateEvent) error {
-	for _, listener := range d.rotateListeners {
-		if err := listener.OnRotate(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return 	dispatch(ctx, d.rotateListeners, func(ctx context.Context, listener RotateListener) error {
+		return listener.OnRotate(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchTableChanged(ctx context.Context, event *TableChangedEvent) error {
-	for _, listener := range d.tableChangedListeners {
-		if err := listener.OnTableChanged(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.tableChangedListeners, func(ctx context.Context, listener TableChangedListener) error {
+		return listener.OnTableChanged(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchDDL(ctx context.Context, event *DDLEvent) error {
-	for _, listener := range d.ddlListeners {
-		if err := listener.OnDDL(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.ddlListeners, func(ctx context.Context, listener DDLListener) error {
+		return listener.OnDDL(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchRow(ctx context.Context, event *RowEvent) error {
-	for _, listener := range d.rowListeners {
-		if err := listener.OnRow(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.rowListeners, func(ctx context.Context, listener RowListener) error {
+		return listener.OnRow(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchXID(ctx context.Context, event *XIDEvent) error {
-	for _, listener := range d.xidListeners {
-		if err := listener.OnXID(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.xidListeners, func(ctx context.Context, listener XIDListener) error {
+		return listener.OnXID(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchGTID(ctx context.Context, event *GTIDEvent) error {
-	for _, listener := range d.gtidListeners {
-		if err := listener.OnGTID(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.gtidListeners, func(ctx context.Context, listener GTIDListener) error {
+		return listener.OnGTID(ctx, event)
+	})
 }
 
 func (d *Dispatcher) DispatchPosSynced(ctx context.Context, event *PosSyncedEvent) error {
-	for _, listener := range d.posSyncedListeners {
-		if err := listener.OnPosSynced(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+	return dispatch(ctx, d.posSyncedListeners, func(ctx context.Context, listener PosSyncedListener) error {)
+		return listener.OnPosSynced(ctx, event)
+	})
 }
 
-func (d *Dispatcher) DispatchRowsQuery(ctx context.Context, event *RowsQueryEvent) error {
-	for _, listener := range d.rowsQueryListeners {
-		if err := listener.OnRowsQuery(ctx, event); err != nil {
-			return err
-		}
-	}
-	return nil
+func (d *Dispatcher) DispatchRowsQuery(ctx context.Context, event *RowsQueryEvent) error {=
+	return dispatch(ctx, d.rowsQueryListeners, func(ctx context.Context, listener RowsQueryListener) error {
+		return listener.OnRowsQuery(ctx, event)
+	})
 }
 
+func dispatch[L any](ctx context.Context, listeners []L, callback func(ctx context.Context, listener L) error) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, listener := range listeners {
+		eg.Go(func() error {
+			return callback(ctx, listener)
+		})
+	}
+	return eg.Wait()
+}
+
+// Deprecated: use [Dispatcher.DispatchRotate], [Dispatcher.DispatchTableChanged], etc. instead.
 func (d *Dispatcher) Dispatch(ctx context.Context, event any) error {
 	switch e := event.(type) {
 	case *RotateEvent:
