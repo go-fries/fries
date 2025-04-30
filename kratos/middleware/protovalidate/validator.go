@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bufbuild/protovalidate-go"
+	"buf.build/go/protovalidate"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"google.golang.org/protobuf/proto"
