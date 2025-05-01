@@ -94,7 +94,7 @@ func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
 	}
 }
 
-// WithDeploymentEnvironment is deprecated, use WithDeploymentEnvironmentName instead.
+// Deprecated: WithDeploymentEnvironment is deprecated, use [WithDeploymentEnvironmentName] instead.
 func WithDeploymentEnvironment(deploymentEnvironment string) Option {
 	return WithDeploymentEnvironmentName(deploymentEnvironment)
 }
