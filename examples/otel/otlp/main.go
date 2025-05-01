@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	defer client.Shutdown(ctx)
+	defer client.Shutdown(ctx) //nolint:errcheck
 
 	// do something
 }
