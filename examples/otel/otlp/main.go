@@ -1,16 +1,3 @@
-# OTLP Configuration
-
-This package provides a configuration for the OpenTelemetry Protocol (OTLP) exporter.
-
-## Installation
-
-```shell
-go get github.com/go-fries/fries/otel/otlp/v3
-```
-
-## Usage Example
-
-```go
 package main
 
 import (
@@ -47,4 +34,3 @@ func main() {
 
 	// do something
 }
-```
