@@ -17,7 +17,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/log v1.1.1-0.20250424032633-85a82d016f84 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20250423103223-6bd86d5dec59 // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250430074133-5865d158698b // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
