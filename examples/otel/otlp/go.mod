@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/otel/otlp/v3 => ../../../otel/otlp
 
 require (
-	github.com/go-fries/fries/otel/otlp/v3 v3.0.0-00010101000000-000000000000
+	github.com/go-fries/fries/otel/otlp/v3 v3.1.0
 	go.opentelemetry.io/otel v1.35.0
 )
 
