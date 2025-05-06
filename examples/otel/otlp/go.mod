@@ -2,17 +2,21 @@ module github.com/go-fries/fries/examples/otel/otlp/v3
 
 go 1.23.0
 
-replace github.com/go-fries/fries/otel/otlp/v3 => ../../../otel/otlp
+replace (
+	github.com/go-fries/fries/foundation/v3 => ../../../foundation
+	github.com/go-fries/fries/otel/otlp/v3 => ../../../otel/otlp
+
+)
 
 require (
-	github.com/go-fries/fries/otel/otlp/v3 v3.1.0
+	github.com/go-fries/fries/otel/otlp/v3 v3.2.0
 	go.opentelemetry.io/otel v1.35.0
 )
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect
-	github.com/go-fries/fries/foundation/v3 v3.1.0 // indirect
+	github.com/go-fries/fries/foundation/v3 v3.2.0 // indirect
 	github.com/go-kratos/kratos/v2 v2.8.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
