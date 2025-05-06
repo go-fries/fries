@@ -1,8 +1,3 @@
-# Gorm/Scopes
-
-## Example
-
-```go
 package scope_test
 
 import (
@@ -59,4 +54,3 @@ func Example_scopes() {
 		scope.Page(1, 20),
 	).Find(&[]struct{}{})
 }
-```
