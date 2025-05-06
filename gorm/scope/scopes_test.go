@@ -14,7 +14,9 @@ func TestScopes(t *testing.T) {
 		GetUser("ScopeUser3", GetUserOptions{}),
 	}
 
-	scopes := New().Add(func(db *gorm.DB) *gorm.DB {
+	var scopes Scopes
+
+	scopes := scopes.Add(func(db *gorm.DB) *gorm.DB {
 		return db.Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"})
 	})
 

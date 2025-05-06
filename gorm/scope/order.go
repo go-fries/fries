@@ -12,22 +12,22 @@ import (
 //	OrderBy("name")
 //	OrderBy("name", "desc")
 //	OrderBy("name", "asc")
-func OrderBy(column string, reorder ...string) *Scopes {
-	return New().OrderBy(column, reorder...)
+func OrderBy(column string, reorder ...string) Scopes {
+	return Scopes{}.OrderBy(column, reorder...)
 }
 
 // OrderByDesc add order by desc condition
 //
 //	OrderByDesc("name")
-func OrderByDesc(column string) *Scopes {
-	return New().OrderByDesc(column)
+func OrderByDesc(column string) Scopes {
+	return Scopes{}.OrderByDesc(column)
 }
 
 // OrderByAsc add order by asc condition
 //
 //	OrderByAsc("name")
-func OrderByAsc(column string) *Scopes {
-	return New().OrderByAsc(column)
+func OrderByAsc(column string) Scopes {
+	return Scopes{}.OrderByAsc(column)
 }
 
 // OrderByRaw add order by raw condition
@@ -36,8 +36,8 @@ func OrderByAsc(column string) *Scopes {
 //	OrderByRaw("name asc")
 //	OrderByRaw("name desc, age asc")
 //	OrderByRaw("FIELD(id, 3, 1, 2)")
-func OrderByRaw(sql any) *Scopes {
-	return New().OrderByRaw(sql)
+func OrderByRaw(sql any) Scopes {
+	return Scopes{}.OrderByRaw(sql)
 }
 
 // OrderBy add order by condition
@@ -45,7 +45,7 @@ func OrderByRaw(sql any) *Scopes {
 //	OrderBy("name")
 //	OrderBy("name", "desc")
 //	OrderBy("name", "asc")
-func (s *Scopes) OrderBy(column string, reorder ...string) *Scopes {
+func (s Scopes) OrderBy(column string, reorder ...string) Scopes {
 	return s.Add(func(db *gorm.DB) *gorm.DB {
 		return db.Order(fmt.Sprintf("%s %s", column, s.buildReorder(reorder...)))
 	})
@@ -54,14 +54,14 @@ func (s *Scopes) OrderBy(column string, reorder ...string) *Scopes {
 // OrderByDesc add order by desc condition
 //
 //	OrderByDesc("name")
-func (s *Scopes) OrderByDesc(column string) *Scopes {
+func (s Scopes) OrderByDesc(column string) Scopes {
 	return s.OrderBy(column, "desc")
 }
 
 // OrderByAsc add order by asc condition
 //
 //	OrderByAsc("name")
-func (s *Scopes) OrderByAsc(column string) *Scopes {
+func (s Scopes) OrderByAsc(column string) Scopes {
 	return s.OrderBy(column, "asc")
 }
 
@@ -71,13 +71,13 @@ func (s *Scopes) OrderByAsc(column string) *Scopes {
 //	OrderByRaw("name asc")
 //	OrderByRaw("name desc, age asc")
 //	OrderByRaw("FIELD(id, 3, 1, 2)")
-func (s *Scopes) OrderByRaw(sql any) *Scopes {
+func (s Scopes) OrderByRaw(sql any) Scopes {
 	return s.Add(func(db *gorm.DB) *gorm.DB {
 		return db.Order(sql)
 	})
 }
 
-func (s *Scopes) buildReorder(reorder ...string) string {
+func (s Scopes) buildReorder(reorder ...string) string {
 	if len(reorder) > 0 && strings.ToUpper(reorder[0]) == "DESC" {
 		return "DESC"
 	}
