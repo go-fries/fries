@@ -21,7 +21,7 @@ func TestScopes(t *testing.T) {
 	CleanUsers()
 	DB.Create(&users)
 
-	var users1, users2, users3, users4 []User
+	var users1, users2, users3, users4, users5 []User
 
 	// Scope/Add
 	DB.Scopes(scopes.Scope()).Find(&users1)
@@ -39,4 +39,8 @@ func TestScopes(t *testing.T) {
 	// Scopes
 	DB.Scopes(scopes.Scopes()...).Find(&users4)
 	assert.Len(t, users4, 2)
+
+	// ...
+	DB.Scopes(scopes...).Find(&users5)
+	assert.Len(t, users5, 2)
 }
