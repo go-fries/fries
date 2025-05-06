@@ -21,7 +21,7 @@ func TestPagination(t *testing.T) {
 	var users1, users2, users3, users4, users5, users6 []User
 
 	// Offset&Limit
-	DB.Scopes(Offset(2).Limit(2).Scope()).Find(&users1)
+	DB.Scopes(Offset(2).Limit(2)...).Find(&users1)
 	assert.Len(t, users1, 2)
 	assert.Equal(t, "PaginationUser3", users1[0].Name)
 	assert.Equal(t, "PaginationUser4", users1[1].Name)
