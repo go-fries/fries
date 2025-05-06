@@ -10,13 +10,13 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/go-kratos-ecosystem/components/v2/gorm/scopes"
+	"github.com/go-fries/fries/gorm/scope/v3"
 )
 
 func main() {
 	var db *gorm.DB
 
-	db.Scopes(scopes.
+	db.Scopes(scope.
 		// trait
 		When(true, func(db *gorm.DB) *gorm.DB {
 			return db.Where("deleted_at IS NULL")
