@@ -4,6 +4,8 @@ import (
 	"gorm.io/gorm"
 )
 
+type Scopes []func(*gorm.DB) *gorm.DB
+
 func (s Scopes) Apply(db *gorm.DB) *gorm.DB {
 	return db.Scopes(s...)
 }

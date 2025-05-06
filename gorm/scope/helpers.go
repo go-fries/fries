@@ -86,7 +86,7 @@ func OrderByRaw(sql any) func(db *gorm.DB) *gorm.DB {
 }
 
 // ==============================================================================
-// Offset/Limit/Page
+// Pagination: Offset/Limit/Page
 // ==============================================================================
 
 // Offset add offset condition
@@ -276,7 +276,7 @@ func WhereNe(field string, value any) func(db *gorm.DB) *gorm.DB {
 //	WhereNot("name = ? AND age = ?", "Flc", 20)
 func WhereNot(query any, args ...any) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where(query, args...)
+		return db.Not(query, args...)
 	}
 }
 
