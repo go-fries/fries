@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ==============================================================================
@@ -46,31 +47,34 @@ func Unless(condition bool, f func(db *gorm.DB) *gorm.DB) func(db *gorm.DB) *gor
 //	OrderBy("name")
 //	OrderBy("name", "desc")
 //	OrderBy("name", "asc")
-func OrderBy(column string, reorder ...string) func(db *gorm.DB) *gorm.DB {
+func OrderBy(field string, reorder ...string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Order(fmt.Sprintf("%s %s", column, buildReorder(reorder...)))
+		return db.Order(clause.OrderByColumn{
+			Column: clause.Column{Name: field},
+			Desc:   reorderIsDesc(reorder...),
+		})
 	}
 }
 
-func buildReorder(reorder ...string) string {
-	if len(reorder) > 0 && strings.ToUpper(reorder[0]) == "DESC" {
-		return "DESC"
-	}
-	return "ASC"
+// reorderIsAsc check if reorder is DESC
+// if return true, reorder is DESC
+// if return false, reorder is ASC
+func reorderIsDesc(reorder ...string) bool {
+	return len(reorder) > 0 && strings.ToUpper(reorder[0]) == "DESC"
 }
 
 // OrderByDesc add order by desc condition
 //
 //	OrderByDesc("name")
-func OrderByDesc(column string) func(db *gorm.DB) *gorm.DB {
-	return OrderBy(column, "desc")
+func OrderByDesc(field string) func(db *gorm.DB) *gorm.DB {
+	return OrderBy(field, "desc")
 }
 
 // OrderByAsc add order by asc condition
 //
 //	OrderByAsc("name")
-func OrderByAsc(column string) func(db *gorm.DB) *gorm.DB {
-	return OrderBy(column, "asc")
+func OrderByAsc(field string) func(db *gorm.DB) *gorm.DB {
+	return OrderBy(field, "asc")
 }
 
 // OrderByRaw add order by raw condition

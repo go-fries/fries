@@ -358,7 +358,7 @@ func TestPagination(t *testing.T) {
 	assert.Equal(t, "PaginationUser5", users6[0].Name)
 }
 
-func TestOrderBy(t *testing.T) {
+func TestHelpers_OrderBy(t *testing.T) {
 	birthday1 := time.Now()
 	birthday2 := time.Now()
 	birthday3 := time.Now().Add(2 * time.Hour)
