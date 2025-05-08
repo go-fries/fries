@@ -19,6 +19,7 @@ module-sets:
       - github.com/go-fries/fries/codec/v3
       - github.com/go-fries/fries/codec/json/v3
       - github.com/go-fries/fries/codec/msgpack/v3
+      - github.com/go-fries/fries/codec/sonic/v3
 
       # Config
       - github.com/go-fries/fries/config/v3

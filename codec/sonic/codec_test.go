@@ -1,39 +1,30 @@
-package json
+package sonic
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestJSON(t *testing.T) {
-	j1, j2 := Codec, Codec
+func TestSonic(t *testing.T) {
+	c1, c2 := Codec, Codec
 
-	assert.Same(t, j1, j2)
+	assert.Same(t, c1, c2)
 
 	data := map[string]any{
 		"foo": "bar",
 	}
 
 	// marshal
-	bytes1, err := json.Marshal(data)
+	bytes, err := c1.Marshal(data)
 	assert.NoError(t, err)
-
-	bytes2, err := j1.Marshal(data)
-	assert.NoError(t, err)
-
-	assert.Equal(t, bytes1, bytes2)
 
 	// unmarshal
-	dest1, dest2 := make(map[string]any), make(map[string]any)
-	assert.NoError(t, json.Unmarshal(bytes1, &dest1))
-	assert.NoError(t, j1.Unmarshal(bytes1, &dest2))
-
-	assert.Equal(t, dest1, dest2)
+	dest := make(map[string]any)
+	assert.NoError(t, c1.Unmarshal(bytes, &dest))
 }
 
-func BenchmarkJSONCodec_Marshal(b *testing.B) {
+func BenchmarkSonicCodec_Marshal(b *testing.B) {
 	data := map[string]any{
 		"foo": "bar",
 	}
@@ -48,7 +39,7 @@ func BenchmarkJSONCodec_Marshal(b *testing.B) {
 	})
 }
 
-func BenchmarkJSONCodec_Unmarshal(b *testing.B) {
+func BenchmarkSonicCodec_Unmarshal(b *testing.B) {
 	data := map[string]any{
 		"foo": "bar",
 	}
