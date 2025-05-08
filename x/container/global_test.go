@@ -13,7 +13,7 @@ func TestGlobal_SetAndGet(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "value", v)
 
-	non, err := Get[int]("key-known")
+	non, err := Get[int]("key-unknown")
 	require.ErrorIs(t, err, ErrKeyNotFound)
 	assert.Equal(t, 0, non)
 
