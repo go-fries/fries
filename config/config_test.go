@@ -22,6 +22,10 @@ func TestConfig(t *testing.T) {
 		Host: "localhost",
 		Port: 8080,
 	})
+	ctx2 := NewContext(ctx, &config2{
+		Host: "localhost2",
+		Port: 8080,
+	})
 
 	cfg, ok := FromContext[*config](ctx)
 	assert.True(t, ok)
@@ -31,4 +35,8 @@ func TestConfig(t *testing.T) {
 	cfg2, ok := FromContext[*config2](ctx)
 	assert.False(t, ok)
 	assert.Nil(t, cfg2)
+
+	cfg2, ok = FromContext[*config2](ctx2)
+	assert.True(t, ok)
+	assert.Equal(t, "localhost2", cfg2.Host)
 }
