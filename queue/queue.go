@@ -8,33 +8,46 @@ import (
 )
 
 type Queue struct {
-	driver Driver
-	codec  codec.Codec
+	driver    Driver
+	codec     codec.Codec
+	generator Generator
 }
 
 func NewQueue(driver Driver) *Queue {
 	return &Queue{
-		driver: driver,
-		codec:  json.Codec,
+		driver:    driver,
+		codec:     json.Codec,
+		generator: UUIDGenerator(),
 	}
 }
 
 func (q *Queue) Enqueue(ctx context.Context, queue string, task any) error {
-	bytes, err := q.codec.Marshal(task)
+	taskBytes, err := q.codec.Marshal(task)
 	if err != nil {
 		return err
 	}
-	return q.driver.Enqueue(ctx, queue, bytes)
+
+	msg := Message{
+		ID:      q.generator.Generate(),
+		Queue:   queue,
+		Payload: taskBytes,
+	}
+	msgBytes, err := q.codec.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return q.driver.Enqueue(ctx, queue, msgBytes)
 }
 
-func (q *Queue) Dequeue(ctx context.Context, queue string) (any, error) {
+func (q *Queue) Start(ctx context.Context, queue string, fn func(ctx context.Context, msg Message) error) error {
 	data, err := q.driver.Dequeue(ctx, queue)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var task any
-	if err := q.codec.Unmarshal(data, &task); err != nil {
-		return nil, err
+	var msg Message
+	if err := q.codec.Unmarshal(data, &msg); err != nil {
+		return err
 	}
-	return task, nil
+	return fn(ctx, msg)
 }

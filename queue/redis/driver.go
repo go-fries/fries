@@ -25,12 +25,12 @@ func NewDriver(client redis.UniversalClient, opts ...Option) *Driver {
 	return d
 }
 
-func (q *Driver) Enqueue(ctx context.Context, queue string, data []byte) error {
-	return q.client.LPush(ctx, q.prefix+queue, data).Err()
+func (d *Driver) Enqueue(ctx context.Context, queue string, data []byte) error {
+	return d.client.LPush(ctx, d.prefix+queue, data).Err()
 }
 
-func (q *Driver) Dequeue(ctx context.Context, queue string) ([]byte, error) {
-	data, err := q.client.RPop(ctx, q.prefix+queue).Bytes()
+func (d *Driver) Dequeue(ctx context.Context, queue string) ([]byte, error) {
+	data, err := d.client.RPop(ctx, d.prefix+queue).Bytes()
 	if err != nil {
 		return nil, err
 	}
