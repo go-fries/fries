@@ -5,11 +5,16 @@ import (
 	"time"
 )
 
+// Snapshot is a thread-safe structure that holds a snapshot of data, used for querying data by key.
 type Snapshot[K comparable, V any] struct {
 	mu   sync.RWMutex
 	data map[K]V
 }
 
+// Lookup queries the data for the specified key.
+// If the key does not exist, it uses the result of fn to populate the value for that key.
+// This method ensures that even if multiple goroutines query the same non-existent key at the same time,
+// the fn willonly be called once.
 func (s *Snapshot[K, V]) Lookup(key K, fn func() V) V {
 	s.mu.RLock()
 	v, ok := s.data[key]
@@ -29,6 +34,8 @@ func (s *Snapshot[K, V]) Lookup(key K, fn func() V) V {
 	return v
 }
 
+// SnapshotWithErr is a thread-safe structure that holds a snapshot of data with error handling.
+// It ensures that the data for a key can be populated with an error if needed.
 type SnapshotWithErr[K comparable, V any] Snapshot[K, valueWithError[V]]
 
 type valueWithError[V any] struct {
