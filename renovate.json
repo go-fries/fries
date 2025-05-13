@@ -35,6 +35,10 @@
     {
       "matchPackageNames": ["go.opentelemetry.io/otel/**"],
       "groupName": "go.opentelemetry.io/otel"
+    },
+    {
+      "matchPackageNames": ["google.golang.org/genproto/googleapis/**"],
+      "groupName": "googleapis"
     }
   ]
 }
