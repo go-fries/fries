@@ -1,42 +1,24 @@
 package stack
 
-import "github.com/go-kratos/kratos/v2/log"
+import (
+	"errors"
 
-var _ log.Logger = (*stackLogger)(nil)
+	"github.com/go-kratos/kratos/v2/log"
+)
 
-type stackLogger struct {
-	loggers   []log.Logger
-	ignoreErr bool
+type stackLogger []log.Logger
+
+var _ log.Logger = (stackLogger)(nil)
+
+func New(loggers ...log.Logger) log.Logger {
+	return stackLogger(loggers)
 }
 
-type Option func(*stackLogger)
-
-func IgnoreErr() Option {
-	return func(logger *stackLogger) {
-		logger.ignoreErr = true
-	}
-}
-
-func New(loggers []log.Logger, opts ...Option) log.Logger {
-	logger := &stackLogger{
-		loggers: loggers,
-	}
-
-	for _, opt := range opts {
-		opt(logger)
-	}
-
-	return logger
-}
-
-func (s *stackLogger) Log(level log.Level, keyvals ...any) error {
-	for _, logger := range s.loggers {
-		if err := logger.Log(level, keyvals...); err != nil {
-			if !s.ignoreErr {
-				return err
-			}
+func (s stackLogger) Log(level log.Level, keyvals ...any) (err error) {
+	for _, logger := range s {
+		if e := logger.Log(level, keyvals...); e != nil {
+			err = errors.Join(err, e)
 		}
 	}
-
-	return nil
+	return err
 }

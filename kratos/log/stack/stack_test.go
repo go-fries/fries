@@ -1,140 +1,59 @@
 package stack
 
 import (
+	"errors"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/stretchr/testify/assert"
 )
 
-func redirectStdout(fn func()) ([]byte, error) {
-	fs, err := os.CreateTemp("", "stdout")
-	if err != nil {
-		return nil, err
+type mockLogger struct {
+	logs []string
+	err  error
+}
+
+func (m *mockLogger) Log(level log.Level, keyvals ...any) error {
+	if m.err != nil {
+		return m.err
 	}
-	defer os.Remove(fs.Name()) //nolint:errcheck
-	defer fs.Close()           //nolint:errcheck
-
-	org := os.Stdout
-	os.Stdout = fs
-	fn()
-	os.Stdout = org
-
-	return os.ReadFile(fs.Name())
-}
-
-type testLogger struct {
-	name string
-}
-
-func (t *testLogger) Log(level log.Level, keyvals ...any) error {
-	fmt.Printf("name: %s, level: %v, keyvals: %v\n", t.name, level, keyvals)
-
+	m.logs = append(m.logs, formatLog(level, keyvals...))
 	return nil
 }
 
-type errorLogger struct{}
-
-func (t *errorLogger) Log(_ log.Level, _ ...any) error {
-	return fmt.Errorf("error")
+func formatLog(level log.Level, keyvals ...any) string {
+	return fmt.Sprintf("level: %v, keyvals: %v", level, keyvals)
 }
 
-func TestStackLogger(t *testing.T) {
-	logger := New([]log.Logger{
-		&testLogger{"log1"},
-		&testLogger{"log2"},
-	})
+func TestStackLogger_Log(t *testing.T) {
+	logger1 := &mockLogger{}
+	logger2 := &mockLogger{}
+	stack := New(logger1, logger2)
 
-	tests := []struct {
-		name  string
-		level log.Level
-		want  string
-	}{
-		{
-			name:  "debug",
-			level: log.LevelDebug,
-			want:  "name: log1, level: DEBUG, keyvals: [test test]\nname: log2, level: DEBUG, keyvals: [test test]\n",
-		},
-		{
-			name:  "info",
-			level: log.LevelInfo,
-			want:  "name: log1, level: INFO, keyvals: [test test]\nname: log2, level: INFO, keyvals: [test test]\n",
-		},
-		{
-			name:  "warn",
-			level: log.LevelWarn,
-			want:  "name: log1, level: WARN, keyvals: [test test]\nname: log2, level: WARN, keyvals: [test test]\n",
-		},
-		{
-			name:  "error",
-			level: log.LevelError,
-			want:  "name: log1, level: ERROR, keyvals: [test test]\nname: log2, level: ERROR, keyvals: [test test]\n",
-		},
-		{
-			name:  "fatal",
-			level: log.LevelFatal,
-			want:  "name: log1, level: FATAL, keyvals: [test test]\nname: log2, level: FATAL, keyvals: [test test]\n",
-		},
-	}
+	err := stack.Log(log.LevelInfo, "key", "value")
+	assert.NoError(t, err)
+	assert.Len(t, logger1.logs, 1)
+	assert.Len(t, logger2.logs, 1)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf, err := redirectStdout(func() {
-				_ = logger.Log(tt.level, "test", "test")
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
+	expectedLog := "level: INFO, keyvals: [key value]"
+	assert.Equal(t, expectedLog, logger1.logs[0])
+	assert.Equal(t, expectedLog, logger2.logs[0])
 
-			if string(buf) != tt.want {
-				t.Fatal("unexpected output")
-			}
-		})
-	}
 }
 
-func TestIgnoreExceptions(t *testing.T) {
-	tests := []struct {
-		name             string
-		ignoreExceptions bool
-		want             string
-	}{
-		{
-			name:             "false",
-			ignoreExceptions: false,
-			want:             "",
-		},
-		{
-			name:             "true",
-			ignoreExceptions: true,
-			want:             "name: log, level: DEBUG, keyvals: [test test]\n",
-		},
-	}
+func TestStackLogger_LogWithError(t *testing.T) {
+	logger1 := &mockLogger{}
+	logger2 := &mockLogger{err: errors.New("mock error")}
+	stack := New(logger1, logger2)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var opts []Option
+	err := stack.Log(log.LevelInfo, "key", "value")
+	assert.Error(t, err)
+	assert.Equal(t, "mock error", err.Error())
 
-			if tt.ignoreExceptions {
-				opts = append(opts, IgnoreErr())
-			}
+	assert.Len(t, logger1.logs, 1)
+	assert.Len(t, logger2.logs, 0)
 
-			logger := New([]log.Logger{
-				&errorLogger{},
-				&testLogger{"log"},
-			}, opts...)
-
-			buf, err := redirectStdout(func() {
-				_ = logger.Log(log.LevelDebug, "test", "test")
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if string(buf) != tt.want {
-				t.Fatal("unexpected output")
-			}
-		})
-	}
+	expectedLog := "level: INFO, keyvals: [key value]"
+	assert.Equal(t, expectedLog, logger1.logs[0])
 }
