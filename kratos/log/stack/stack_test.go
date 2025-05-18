@@ -39,7 +39,6 @@ func TestStackLogger_Log(t *testing.T) {
 	expectedLog := "level: INFO, keyvals: [key value]"
 	assert.Equal(t, expectedLog, logger1.logs[0])
 	assert.Equal(t, expectedLog, logger2.logs[0])
-
 }
 
 func TestStackLogger_LogWithError(t *testing.T) {
