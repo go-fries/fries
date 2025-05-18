@@ -57,3 +57,18 @@ func TestStackLogger_LogWithError(t *testing.T) {
 	expectedLog := "level: INFO, keyvals: [key value]"
 	assert.Equal(t, expectedLog, logger1.logs[0])
 }
+
+func TestStackLogger_LogWithMultipleErrors(t *testing.T) {
+	logger1 := &mockLogger{err: errors.New("error 1")}
+	logger2 := &mockLogger{err: errors.New("error 2")}
+	stack := New(logger1, logger2)
+
+	err := stack.Log(log.LevelInfo, "key", "value")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error 1")
+	assert.Contains(t, err.Error(), "error 2")
+
+	assert.Len(t, logger1.logs, 0)
+	assert.Len(t, logger2.logs, 0)
+}
