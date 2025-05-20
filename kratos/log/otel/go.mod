@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/v3 => ../../../
 
 require (
-	github.com/go-fries/fries/v3 v3.2.0
+	github.com/go-fries/fries/v3 v3.3.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel/log v0.11.0

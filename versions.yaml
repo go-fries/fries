@@ -1,6 +1,6 @@
 module-sets:
   stable:
-    version: v3.2.0
+    version: v3.3.0
     modules:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
@@ -119,6 +119,7 @@ module-sets:
       # X (Extra)
       - github.com/go-fries/fries/x/pagination/v3
       - github.com/go-fries/fries/x/prints/v3
+      - github.com/go-fries/fries/x/container/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
 
