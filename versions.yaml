@@ -119,6 +119,7 @@ module-sets:
       # X (Extra)
       - github.com/go-fries/fries/x/pagination/v3
       - github.com/go-fries/fries/x/prints/v3
+      - github.com/go-fries/fries/x/container/v3
 excluded-modules:
   - github.com/go-fries/fries/internal/tools/v3
 
