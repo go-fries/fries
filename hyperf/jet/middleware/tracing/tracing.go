@@ -10,11 +10,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const instrumentation = "github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/tracing"
+const instrumentation = "github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3"
 
 type options struct {
 	mp    propagation.TextMapPropagator
@@ -102,7 +102,7 @@ func formatterAttributes(ctx context.Context) []attribute.KeyValue {
 	case jet.FormatterKindJSONRPC:
 		return []attribute.KeyValue{
 			semconv.RPCSystemKey.String("jsonrpc"),
-			semconv.RPCJsonrpcVersion(jet.JSONRPCVersion),
+			semconv.RPCJSONRPCVersion(jet.JSONRPCVersion),
 		}
 	default:
 		return []attribute.KeyValue{}
