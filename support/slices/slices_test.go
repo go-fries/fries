@@ -602,6 +602,9 @@ func TestMin(t *testing.T) {
 
 	s2 := []string{"1", "2", "3"}
 	assert.Equal(t, "1", Min(s2))
+
+	s3 := []int{3, 2, 1}
+	assert.Equal(t, 1, Min(s3))
 }
 
 func TestMax(t *testing.T) {
