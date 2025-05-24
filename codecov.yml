@@ -15,3 +15,74 @@ comment:
   layout: "reach,diff,flags,tree"
   behavior: default
   require_changes: yes
+
+ignore:
+  - '**/*.pb.go'
+
+fixes:
+  - github.com/go-fries/fries/cache/v3::cache/
+  - github.com/go-fries/fries/cache/redis/v3::cache/redis/
+  - github.com/go-fries/fries/chi/v3::chi/
+  - github.com/go-fries/fries/cloudevents/protocol/amqp091/v3::cloudevents/protocol/amqp091/
+  - github.com/go-fries/fries/codec/v3::codec/
+  - github.com/go-fries/fries/codec/json/v3::codec/json/
+  - github.com/go-fries/fries/codec/msgpack/v3::codec/msgpack/
+  - github.com/go-fries/fries/codec/sonic/v3::codec/sonic/
+  - github.com/go-fries/fries/config/v3::config/
+  - github.com/go-fries/fries/constraints/v3::constraints/
+  - github.com/go-fries/fries/contract/v3::contract/
+  - github.com/go-fries/fries/coroutines/v3::coroutines/
+  - github.com/go-fries/fries/crontab/example/v3::crontab/example/
+  - github.com/go-fries/fries/crontab/v3::crontab/
+  - github.com/go-fries/fries/encrypter/v3::encrypter/
+  - github.com/go-fries/fries/ent/v3::ent/
+  - github.com/go-fries/fries/ent/multidriver/v3::ent/multidriver/
+  - github.com/go-fries/fries/env/v3::env/
+  - github.com/go-fries/fries/errors/v3::errors/
+  - github.com/go-fries/fries/event/example/v3::event/example/
+  - github.com/go-fries/fries/event/v3::event/
+  - github.com/go-fries/fries/event/middleware/recovery/v3::event/middleware/recovery/
+  - github.com/go-fries/fries/eventbus/v3::eventbus/
+  - github.com/go-fries/fries/examples/cache/v3::examples/cache/
+  - github.com/go-fries/fries/examples/cloudevents/amqp091/v3::examples/cloudevents/amqp091/
+  - github.com/go-fries/fries/examples/mysql/canal/v3::examples/mysql/canal/
+  - github.com/go-fries/fries/examples/otel/otlp/v3::examples/otel/otlp/
+  - github.com/go-fries/fries/filesystem/v3::filesystem/
+  - github.com/go-fries/fries/filesystem/local/v3::filesystem/local/
+  - github.com/go-fries/fries/filesystem/oss/v3::filesystem/oss/
+  - github.com/go-fries/fries/filesystem/s3/v3::filesystem/s3/
+  - github.com/go-fries/fries/foundation/v3::foundation/
+  - github.com/go-fries/fries/gin/v3::gin/
+  - github.com/go-fries/fries/gorm/v3::gorm/
+  - github.com/go-fries/fries/gorm/scope/v3::gorm/scope/
+  - github.com/go-fries/fries/hashing/v3::hashing/
+  - github.com/go-fries/fries/hashing/md5/v3::hashing/md5/
+  - github.com/go-fries/fries/http/server/v3::http/server/
+  - github.com/go-fries/fries/hyperf/jet/v3::hyperf/jet/
+  - github.com/go-fries/fries/hyperf/jet/middleware/logging/v3::hyperf/jet/middleware/logging/
+  - github.com/go-fries/fries/hyperf/jet/middleware/recovery/v3::hyperf/jet/middleware/recovery/
+  - github.com/go-fries/fries/hyperf/jet/middleware/retry/v3::hyperf/jet/middleware/retry/
+  - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3::hyperf/jet/middleware/timeout/
+  - github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3::hyperf/jet/middleware/tracing/
+  - github.com/go-fries/fries/kratos/log/otel/v3::kratos/log/otel/
+  - github.com/go-fries/fries/kratos/log/stack/v3::kratos/log/stack/
+  - github.com/go-fries/fries/kratos/log/syslog/v3::kratos/log/syslog/
+  - github.com/go-fries/fries/kratos/middleware/cors/v3::kratos/middleware/cors/
+  - github.com/go-fries/fries/kratos/middleware/protovalidate/v3::kratos/middleware/protovalidate/
+  - github.com/go-fries/fries/kratos/middleware/slowlog/v3::kratos/middleware/slowlog/
+  - github.com/go-fries/fries/kratos/middleware/tracing/v3::kratos/middleware/tracing/
+  - github.com/go-fries/fries/locker/v3::locker/
+  - github.com/go-fries/fries/locker/redis/v3::locker/redis/
+  - github.com/go-fries/fries/mysql/canal/v3::mysql/canal/
+  - github.com/go-fries/fries/mysql/canal/positioner/redis/v3::mysql/canal/positioner/redis/
+  - github.com/go-fries/fries/mysql/canal/server/v3::mysql/canal/server/
+  - github.com/go-fries/fries/otel/otlp/v3::otel/otlp/
+  - github.com/go-fries/fries/recovery/v3::recovery/
+  - github.com/go-fries/fries/redis/v3::redis/
+  - github.com/go-fries/fries/signal/v3::signal/
+  - github.com/go-fries/fries/support/v3::support/
+  - github.com/go-fries/fries/timezone/v3::timezone/
+  - github.com/go-fries/fries/udp/v3::udp/
+  - github.com/go-fries/fries/x/container/v3::x/container/
+  - github.com/go-fries/fries/x/pagination/v3::x/pagination/
+  - github.com/go-fries/fries/x/prints/v3::x/prints/

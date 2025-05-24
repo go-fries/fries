@@ -31,8 +31,11 @@ $(TOOLS)/gocovmerge: PACKAGE=github.com/wadey/gocovmerge
 MULTIMOD = $(TOOLS)/multimod
 $(TOOLS)/multimod: PACKAGE=go.opentelemetry.io/build-tools/multimod
 
+CODECOVFIX = $(TOOLS)/codecovfix
+$(TOOLS)/codecovfix: PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_DIR)/v3/codecovfix
+
 .PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD)
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX)
 
 
 # Build
@@ -117,6 +120,12 @@ check-clean-work-tree:
 	  git status; \
 	  exit 1; \
 	fi
+
+# Fix the "fixes" field of Codecov
+.PHONY: codecovfix
+codecovfix: $(CODECOVFIX)
+	@echo "Fixing codecov.yml 'fixes' field:" \
+		&& $(CODECOVFIX)
 
 .PHONY: gorelease
 gorelease: $(ROOT_GO_MOD_DIRS:%=gorelease/%)
