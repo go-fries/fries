@@ -1,6 +1,5 @@
 codecov:
   require_ci_to_pass: yes
-  disable_default_path_fixes: true
 
 coverage:
   precision: 1
@@ -21,5 +20,5 @@ ignore:
   - '**/*.pb.go'
 
 fixes:
-  - 'github.com/go-fries/fries/(.*)/v3/::/'
-  - 'github.com/go-fries/fries/v3/::./'
+  - github.com/go-fries/fries/(.*)/v3/::\1/
+  - github.com/go-fries/fries/v3/::./
