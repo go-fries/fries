@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const instrumentation = "github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/tracing"
+const instrumentation = "github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3"
 
 type options struct {
 	mp    propagation.TextMapPropagator
