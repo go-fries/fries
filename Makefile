@@ -144,4 +144,4 @@ add-tags: verify-mods
 	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
 
 # push-tags
-# git tag -l | grep 'v3.0.0-rc.3$' | xargs -I {} git push origin {}
+# git tag -l | grep 'v3.0.0-rc.3$' | xargs -P 4 -I {} git push origin {}

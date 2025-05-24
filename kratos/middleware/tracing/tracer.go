@@ -13,6 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const tracerName = "github.com/go-fries/fries/kratos/middleware/tracing/v3"
+
 // Tracer is otel span tracer
 type Tracer struct {
 	tracer trace.Tracer
@@ -24,7 +26,7 @@ type Tracer struct {
 func NewTracer(kind trace.SpanKind, opts ...Option) *Tracer {
 	op := options{
 		propagator: propagation.NewCompositeTextMapPropagator(Metadata{}, propagation.Baggage{}, propagation.TraceContext{}),
-		tracerName: "kratos",
+		tracerName: tracerName,
 	}
 	for _, o := range opts {
 		o(&op)

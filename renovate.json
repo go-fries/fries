@@ -1,11 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":configMigration"
   ],
   "labels": [
     "dependencies"
   ],
+  "ignorePaths": [],
   "separateMajorMinor": true,
   "postUpdateOptions": [
     "gomodTidy"
@@ -15,13 +17,30 @@
   },
   "packageRules": [
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "indirect"
-      ],
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
       "enabled": true
+    },
+    {
+      "matchPackageNames": ["go.opentelemetry.io/build-tools/**"],
+      "groupName": "go.opentelemetry.io/build-tools"
+    },
+    {
+      "matchPackageNames": ["github.com/pingcap/tidb/**"],
+      "groupName": "github.com/pingcap/tidb",
+      "schedule": ["* * 1 * *"]
+    },
+    {
+      "matchPackageNames": ["golang.org/x/**"],
+      "groupName": "golang.org/x"
+    },
+    {
+      "matchPackageNames": ["go.opentelemetry.io/otel/**"],
+      "groupName": "go.opentelemetry.io/otel"
+    },
+    {
+      "matchPackageNames": ["google.golang.org/genproto/googleapis/**"],
+      "groupName": "googleapis"
     }
   ]
 }

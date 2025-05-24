@@ -3,64 +3,60 @@
 ## Example
 
 ```go
-package main
+package scope_test
 
 import (
 	"time"
 
+	"github.com/go-fries/fries/gorm/scope/v3"
 	"gorm.io/gorm"
-
-	"github.com/go-kratos-ecosystem/components/v2/gorm/scopes"
 )
 
-func main() {
+func Example_scopes() {
 	var db *gorm.DB
 
-	db.Scopes(scopes.
-		// trait
-		When(true, func(db *gorm.DB) *gorm.DB {
+	db.Scopes(
+		// when
+		scope.When(true, func(db *gorm.DB) *gorm.DB {
 			return db.Where("deleted_at IS NULL")
-		}).
-		Unless(true, func(db *gorm.DB) *gorm.DB {
+		}),
+		scope.Unless(true, func(db *gorm.DB) *gorm.DB {
 			return db.Where("deleted_at IS NOT NULL")
-		}).
+		}),
 
 		// Where
-		Where("name = ?", "Flc").
-		WhereBetween("created_at", time.Now(), time.Now()).
-		WhereNotBetween("created_at", time.Now(), time.Now()).
-		WhereIn("name", "Flc", "Flc 2").
-		WhereNotIn("name", "Flc", "Flc 2").
-		WhereLike("name", "Flc%").
-		WhereNotLike("name", "Flc%").
-		WhereEq("name", "Flc").
-		WhereNe("name", "Flc").
-		WhereGt("age", 18).
-		WhereEgt("age", 18).
-		WhereLt("age", 18).
-		WhereElt("age", 18).
+		scope.Where("name = ?", "Flc"),
+		scope.WhereBetween("created_at", time.Now(), time.Now()),
+		scope.WhereNotBetween("created_at", time.Now(), time.Now()),
+		scope.WhereIn("name", "Flc", "Flc 2"),
+		scope.WhereNotIn("name", "Flc", "Flc 2"),
+		scope.WhereLike("name", "Flc%"),
+		scope.WhereNotLike("name", "Flc%"),
+		scope.WhereEq("name", "Flc"),
+		scope.WhereNe("name", "Flc"),
+		scope.WhereGt("age", 18),
+		scope.WhereEgt("age", 18),
+		scope.WhereLt("age", 18),
+		scope.WhereElt("age", 18),
 
 		// Order
-		OrderBy("id").
-		OrderBy("id", "desc").
-		OrderBy("id", "asc").
-		OrderByDesc("id").
-		OrderByAsc("id").
-		OrderByRaw("id desc").
+		scope.OrderBy("id"),
+		scope.OrderBy("id", "desc"),
+		scope.OrderBy("id", "asc"),
+		scope.OrderByDesc("id"),
+		scope.OrderByAsc("id"),
+		scope.OrderByRaw("id desc"),
 
 		// Limit
-		Limit(10).
-		Take(10).
+		scope.Limit(10),
+		scope.Take(10),
 
 		// Offset
-		Offset(10).
-		Skip(10).
+		scope.Offset(10),
+		scope.Skip(10),
 
 		// Page
-		Page(1, 20).
-
-		// To Scope()
-		Scope()).
-		Find(&[]struct{}{})
+		scope.Page(1, 20),
+	).Find(&[]struct{}{})
 }
 ```

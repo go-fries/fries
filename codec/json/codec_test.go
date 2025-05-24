@@ -32,3 +32,36 @@ func TestJSON(t *testing.T) {
 
 	assert.Equal(t, dest1, dest2)
 }
+
+func BenchmarkJSONCodec_Marshal(b *testing.B) {
+	data := map[string]any{
+		"foo": "bar",
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := Codec.Marshal(data)
+			assert.NoError(b, err)
+		}
+	})
+}
+
+func BenchmarkJSONCodec_Unmarshal(b *testing.B) {
+	data := map[string]any{
+		"foo": "bar",
+	}
+
+	bytes, err := Codec.Marshal(data)
+	assert.NoError(b, err)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var dest map[string]any
+			assert.NoError(b, Codec.Unmarshal(bytes, &dest))
+		}
+	})
+}
