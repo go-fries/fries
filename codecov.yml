@@ -22,3 +22,4 @@ ignore:
 
 fixes:
   - "github.com/go-fries/fries/(.*)/v3/::\\1/"
+  - "github.com/go-fries/fries/v3/::./"
