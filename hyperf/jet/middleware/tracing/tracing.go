@@ -102,7 +102,7 @@ func formatterAttributes(ctx context.Context) []attribute.KeyValue {
 	case jet.FormatterKindJSONRPC:
 		return []attribute.KeyValue{
 			semconv.RPCSystemKey.String("jsonrpc"),
-			semconv.RPCJsonrpcVersion(jet.JSONRPCVersion),
+			semconv.RPCJSONRPCVersion(jet.JSONRPCVersion),
 		}
 	default:
 		return []attribute.KeyValue{}
