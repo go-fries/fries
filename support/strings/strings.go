@@ -200,14 +200,14 @@ func Before(subject, search string) string {
 //
 //	SubstrCount("babababbaaba", "a", 0, 10) //  5
 //	SubstrCount("121212312", "1", 1, 5) // 2
-func SubstrCount(haystack, needle string, offset int, length ...int) int {
+func SubstrCount(haystack, needle string, offset int, lengths ...int) int {
 	if offset < 0 || offset >= len(haystack) {
 		return 0
 	}
 
 	var end int
-	if len(length) > 0 {
-		end = offset + length[0]
+	if len(lengths) > 0 {
+		end = offset + lengths[0]
 		if end > len(haystack) {
 			end = len(haystack)
 		}
