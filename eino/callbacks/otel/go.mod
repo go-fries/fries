@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/v3 => ../../../
 
 require (
 	github.com/cloudwego/eino v0.3.37
-	github.com/go-fries/fries/v3 v3.0.0
+	github.com/go-fries/fries/v3 v3.3.0
 	go.opentelemetry.io/otel v1.36.0
 	go.opentelemetry.io/otel/trace v1.36.0
 )
