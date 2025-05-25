@@ -66,7 +66,7 @@ func TestClient_HandleRPC(_ *testing.T) {
 	})
 	client.HandleRPC(ctx, &rs)
 
-	// Handle context with span
+	// Handle context with Span
 	_, span := noop.NewTracerProvider().Tracer("Tracer").Start(ctx, "Spanname")
 	spanCtx := trace.SpanContext{}
 	spanID := [8]byte{12, 12, 12, 12, 12, 12, 12, 12}
