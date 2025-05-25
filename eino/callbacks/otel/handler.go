@@ -41,12 +41,13 @@ func (h *Handler) OnStart(ctx context.Context, info *callbacks.RunInfo, input ca
 	if info == nil {
 		return ctx
 	}
-
-	spanName := getName(info)
-
-	ctx, span := h.tracer.Start(ctx, spanName,
+	ctx, span := h.tracer.Start(ctx, getName(info),
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
+
+	// span with attributes
+	spanWithRunInfo(span, info)
+	spanWithModelCallbackInput(span, input)
 
 	return withOTelState(ctx, &otelState{
 		span: span,
