@@ -35,7 +35,7 @@ func (a *listenerAdapter[T]) Handle(ctx context.Context, event cloudevents.Event
 
 type ListenerFunc[T any] func(ctx context.Context, event T) error
 
-var _ AnyListener[cloudevents.Event] = ListenerFunc[cloudevents.Event](nil)
+var _ Listener = ListenerFunc[string](nil)
 
 func (l ListenerFunc[T]) Handle(ctx context.Context, event cloudevents.Event) error {
 	var data T
