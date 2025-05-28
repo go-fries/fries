@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.14.0
 )
 
 require (
