@@ -43,6 +43,6 @@ func main() {
 
 	_ = client.StartReceiver(context.Background(), func(ctx context.Context, event cloudevents.Event) error {
 		log.Printf("Received event: %v", event)
-		return nil
+		return dispatcher.Dispatch(ctx, event)
 	})
 }
