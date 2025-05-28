@@ -24,6 +24,7 @@ fixes:
   - github.com/go-fries/fries/cache/redis/v3::cache/redis/
   - github.com/go-fries/fries/chi/v3::chi/
   - github.com/go-fries/fries/cloudevents/protocol/amqp091/v3::cloudevents/protocol/amqp091/
+  - github.com/go-fries/fries/cloudevents/eventdispatcher/v3::cloudevents/eventdispatcher/
   - github.com/go-fries/fries/codec/v3::codec/
   - github.com/go-fries/fries/codec/json/v3::codec/json/
   - github.com/go-fries/fries/codec/msgpack/v3::codec/msgpack/
