@@ -29,7 +29,7 @@ func TestDispatcher(t *testing.T) {
 	t.Run("Register and Dispatch", func(t *testing.T) {
 		defer dispatcher.Reset()
 
-		eventType := "test.event"
+		eventType := "test.event" //nolint:goconst
 		listener := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
 			return nil // Simulate handling the event
 		})
@@ -112,7 +112,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType(eventType)
 
-		ctx := context.WithValue(context.Background(), "key", "value")
+		ctx := context.WithValue(context.Background(), "key", "value") //nolint:staticcheck
 
 		assert.NoError(t, dispatcher.Dispatch(ctx, event))
 	})

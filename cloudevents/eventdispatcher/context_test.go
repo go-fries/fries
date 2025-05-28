@@ -9,7 +9,6 @@ import (
 )
 
 func TestContext(t *testing.T) {
-
 	t.Run("with event", func(t *testing.T) {
 		event := cloudevents.NewEvent()
 		event.SetID("test-event")

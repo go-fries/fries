@@ -9,9 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var (
-	ErrNoListener = fmt.Errorf("no listener registered for the event")
-)
+var ErrNoListener = fmt.Errorf("no listener registered for the event")
 
 type Dispatcher struct {
 	listeners map[string][]Listener
