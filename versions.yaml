@@ -29,6 +29,7 @@ module-sets:
 
       # CloudEvents
       - github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
+      - github.com/go-fries/fries/cloudevents/eventdispatcher/v3
 
       # Env
       - github.com/go-fries/fries/env/v3
@@ -128,5 +129,6 @@ excluded-modules:
   - github.com/go-fries/fries/crontab/example/v3 # todo: migrate to /examples
   - github.com/go-fries/fries/event/example/v3 # todo: migrate to /examples
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v3
+  - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v3
   - github.com/go-fries/fries/examples/mysql/canal/v3
   - github.com/go-fries/fries/examples/otel/otlp/v3
