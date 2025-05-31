@@ -6,7 +6,7 @@ require (
 	github.com/golangci/golangci-lint/v2 v2.1.6
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/multimod v0.23.1
-	golang.org/x/exp v0.0.0-20250530174510-65e920069ea6
+	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b
 )
 
 require (
@@ -206,7 +206,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20250530174510-65e920069ea6 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20250531010427-b6e5de432a8b // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
