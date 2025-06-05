@@ -60,5 +60,7 @@ func NewHashGenerator(hasher hash.Hash) *HashGenerator {
 
 func (g *HashGenerator) Generate(ctx context.Context, text string, opt GeneratorOption) string {
 	plainText := g.SimpleGenerator.Generate(ctx, text, opt)
-	return fmt.Sprintf("%x", g.hasher.Sum([]byte(plainText)))
+	g.hasher.Reset()
+	g.hasher.Write([]byte(plainText))
+	return fmt.Sprintf("%x", g.hasher.Sum(nil))
 }
