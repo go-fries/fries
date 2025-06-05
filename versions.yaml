@@ -46,6 +46,10 @@ module-sets:
       - github.com/go-fries/fries/event/middleware/recovery/v3
       - github.com/go-fries/fries/eventbus/v3
 
+      # Eino
+      - github.com/go-fries/fries/eino/components/embedding/cached/v3
+      - github.com/go-fries/fries/eino/components/embedding/cached/redis/v3
+
       # Foundation
       - github.com/go-fries/fries/foundation/v3
 
@@ -132,3 +136,4 @@ excluded-modules:
   - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v3
   - github.com/go-fries/fries/examples/mysql/canal/v3
   - github.com/go-fries/fries/examples/otel/otlp/v3
+  - github.com/go-fries/fries/eino/components/embedding/cached/example/v3
