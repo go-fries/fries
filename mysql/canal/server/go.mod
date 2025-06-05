@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/mysql/canal/v3 => ../
 
 require (
-	github.com/go-fries/fries/mysql/canal/v3 v3.3.0
+	github.com/go-fries/fries/mysql/canal/v3 v3.4.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 )
 
@@ -21,12 +21,12 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/log v1.1.1-0.20250514022801-14f3b4ca066e // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20250506034433-e217a01f117d // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250531022214-e7b038b99132 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

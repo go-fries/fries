@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/v3 => ../../../
 
 require (
-	github.com/go-fries/fries/v3 v3.3.0
+	github.com/go-fries/fries/v3 v3.4.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel/log v0.12.2
@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
