@@ -9,15 +9,15 @@ import (
 
 var defaultGenerator Generator = NewHashGenerator(sha256.New())
 
-// GeneratorOption holds options for generating unique keys.
-type GeneratorOption struct {
+// GeneratorOptions holds options for generating unique keys.
+type GeneratorOptions struct {
 	Model string
 }
 
 // Generator is an interface for generating unique keys based on text and optional embedding options.
 // It is used to create cache keys for embedding results.
 type Generator interface {
-	Generate(ctx context.Context, text string, opt GeneratorOption) string
+	Generate(ctx context.Context, text string, opt GeneratorOptions) string
 }
 
 // SimpleGenerator is a concrete implementation of the Generator interface that generates
@@ -31,8 +31,8 @@ func NewSimpleGenerator() *SimpleGenerator {
 	return &SimpleGenerator{}
 }
 
-func (g *SimpleGenerator) Generate(_ context.Context, text string, opt GeneratorOption) string {
-	return fmt.Sprintf("%s-%s", text, opt.Model)
+func (g *SimpleGenerator) Generate(_ context.Context, text string, opts GeneratorOptions) string {
+	return fmt.Sprintf("%s-%s", text, opts.Model)
 }
 
 // HashGenerator is a concrete implementation of the [Generator] interface that uses a hash function
@@ -58,8 +58,8 @@ func NewHashGenerator(hasher hash.Hash) *HashGenerator {
 	}
 }
 
-func (g *HashGenerator) Generate(ctx context.Context, text string, opt GeneratorOption) string {
-	plainText := g.SimpleGenerator.Generate(ctx, text, opt)
+func (g *HashGenerator) Generate(ctx context.Context, text string, opts GeneratorOptions) string {
+	plainText := g.SimpleGenerator.Generate(ctx, text, opts)
 	g.hasher.Reset()
 	g.hasher.Write([]byte(plainText))
 	return fmt.Sprintf("%x", g.hasher.Sum(nil))

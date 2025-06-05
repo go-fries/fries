@@ -49,7 +49,7 @@ func TestEmbedder_EmbedStrings(t *testing.T) {
 	texts := []string{"foo", "bar"}
 	embeddings := [][]float64{{1.1, 2.2}, {3.3, 4.4}}
 	expiration := time.Minute
-	generatorOpt := GeneratorOption{}
+	generatorOpt := GeneratorOptions{}
 
 	t.Run("embedder not set cacher", func(t *testing.T) {
 		me := new(mockEmbedder)

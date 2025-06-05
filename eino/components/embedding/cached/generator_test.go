@@ -12,7 +12,7 @@ import (
 
 func TestGenerator_UniquenessAndDifference(t *testing.T) {
 	ctx := context.Background()
-	opt := GeneratorOption{}
+	opt := GeneratorOptions{}
 
 	for _, tt := range []struct {
 		name      string
@@ -27,7 +27,7 @@ func TestGenerator_UniquenessAndDifference(t *testing.T) {
 					callback func() string
 				}{
 					{func() string { return tt.generator.Generate(ctx, "foo", opt) }},
-					{func() string { return tt.generator.Generate(ctx, "foo", GeneratorOption{Model: "bar"}) }},
+					{func() string { return tt.generator.Generate(ctx, "foo", GeneratorOptions{Model: "bar"}) }},
 				} {
 					assert.Equal(t, tt.callback(), tt.callback())
 				}
@@ -35,9 +35,9 @@ func TestGenerator_UniquenessAndDifference(t *testing.T) {
 
 			t.Run("Generate different keys", func(t *testing.T) {
 				assert.NotEqual(t, tt.generator.Generate(ctx, "foo", opt), tt.generator.Generate(ctx, "bar", opt))
-				assert.NotEqual(t, tt.generator.Generate(ctx, "foo", opt), tt.generator.Generate(ctx, "foo", GeneratorOption{Model: "bar"}))
-				assert.NotEqual(t, tt.generator.Generate(ctx, "foo", GeneratorOption{Model: "bar"}),
-					tt.generator.Generate(ctx, "foo", GeneratorOption{Model: "baz"}))
+				assert.NotEqual(t, tt.generator.Generate(ctx, "foo", opt), tt.generator.Generate(ctx, "foo", GeneratorOptions{Model: "bar"}))
+				assert.NotEqual(t, tt.generator.Generate(ctx, "foo", GeneratorOptions{Model: "bar"}),
+					tt.generator.Generate(ctx, "foo", GeneratorOptions{Model: "baz"}))
 			})
 		})
 	}
@@ -47,10 +47,10 @@ func TestGenerator_SimpleGenerator(t *testing.T) {
 	text := "test text"
 	model := "test-model"
 	ctx := context.Background()
-	opt := GeneratorOption{}
+	opt := GeneratorOptions{}
 
 	generator := NewSimpleGenerator()
-	assert.Equal(t, generator.Generate(ctx, text, GeneratorOption{Model: model}), text+"-"+model)
+	assert.Equal(t, generator.Generate(ctx, text, GeneratorOptions{Model: model}), text+"-"+model)
 	assert.Equal(t, generator.Generate(ctx, text, opt), text+"-")
 	assert.Equal(t, generator.Generate(ctx, "", opt), "-")
 }
@@ -69,7 +69,7 @@ func TestGenerator_HashGenerator(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			generator := NewHashGenerator(tt.hash)
-			assert.NotEmpty(t, generator.Generate(ctx, text, GeneratorOption{Model: model}))
+			assert.NotEmpty(t, generator.Generate(ctx, text, GeneratorOptions{Model: model}))
 		})
 	}
 }
