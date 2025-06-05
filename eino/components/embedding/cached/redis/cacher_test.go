@@ -144,8 +144,16 @@ func TestCacher(t *testing.T) {
 	})
 }
 
-func TestWithPrefix(t *testing.T) {
+func Test_WithPrefix(t *testing.T) {
 	assert.Equal(t, "eino:", NewCacher(nil).prefix)
 	assert.Equal(t, "custom:", NewCacher(nil, WithPrefix("custom:")).prefix)
 	assert.Equal(t, "custom:", NewCacher(nil, WithPrefix("custom")).prefix)
+}
+
+func Test_WithCodec(t *testing.T) {
+	mockCodec := new(mockCodec)
+
+	c := NewCacher(nil, WithCodec(mockCodec))
+
+	assert.Equal(t, mockCodec, c.codec)
 }
