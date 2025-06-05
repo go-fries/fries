@@ -2,7 +2,7 @@
 
 This module provides a cache embedder for Eino, which is designed to store and retrieve embeddings efficiently. The cache embedder can be used to speed up the embedding process by caching previously computed embeddings.
 
-> [!INFO]
+> [!NOTE]  
 > This is an early version of the component, donated to https://github.com/cloudwego/eino-ext/tree/main/components/embedding/cache.
 >
 > Currently, this is a branch of it, and there are some differences between the two versions.
