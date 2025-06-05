@@ -15,11 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - name: Go mod cache
+        uses: actions/cache@v4
         with:
-          go-version: stable
-          check-latest: true
-          cache-dependency-path: "**/go.sum"
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
 
       - name: Tools cache
         uses: actions/cache@v4
@@ -28,6 +31,19 @@ jobs:
         with:
           path: .tools
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('./internal/tools/**') }}
+
+      - name: GolangCI-Lint cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/.golangci.yml') }}
+          restore-keys: ${{ runner.os }}-golangci-lint-
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+          cache: false
 
       - name: Run lint
         run: make lint
