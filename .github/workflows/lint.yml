@@ -8,6 +8,12 @@ on:
     branches:
       - 3.x
 
+env:
+  GOCACHE: ~/.lint/gocache
+  GOMODCACHE: ~/.lint/gomodcache
+  GOLANGCI_LINT_CACHE: ~/.lint/golangci-lint
+
+
 jobs:
   golangci:
     name: lint
@@ -19,8 +25,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
+            ${GOCACHE}
+            ${GOMODCACHE}
           key: ${{ runner.os }}-go-mod
 
       - name: Tools cache
@@ -34,9 +40,8 @@ jobs:
       - name: GolangCI-Lint cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/golangci-lint
+          path: ${GOLANGCI_LINT_CACHE}
           key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/.golangci.yml') }}
-          restore-keys: ${{ runner.os }}-golangci-lint-
 
       - uses: actions/setup-go@v5
         with:
