@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 => ../../../cl
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.0
-	github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 v3.4.0
+	github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 v3.5.0
 	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 )

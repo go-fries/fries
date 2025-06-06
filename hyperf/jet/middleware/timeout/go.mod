@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/hyperf/jet/v3 => ../../
 
 require (
-	github.com/go-fries/fries/hyperf/jet/v3 v3.4.0
+	github.com/go-fries/fries/hyperf/jet/v3 v3.5.0
 	github.com/stretchr/testify v1.10.0
 )
 
