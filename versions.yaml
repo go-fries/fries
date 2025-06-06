@@ -49,6 +49,7 @@ module-sets:
       # Eino
       - github.com/go-fries/fries/eino/components/embedding/cached/v3
       - github.com/go-fries/fries/eino/components/embedding/cached/redis/v3
+      - github.com/go-fries/fries/eino/components/embedding/cached/gorm/v3
 
       # Foundation
       - github.com/go-fries/fries/foundation/v3
