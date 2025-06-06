@@ -8,41 +8,52 @@ import (
 	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Cacher struct {
-	db *gorm.DB
+	db    *gorm.DB
+	model any // model type for the cache entries
 }
 
 var _ cached.Cacher = (*Cacher)(nil)
 
-func NewCacher(db *gorm.DB) *Cacher {
-	return &Cacher{
-		db: db,
+type Option func(*Cacher)
+
+func WithModel(model any) Option {
+	return func(c *Cacher) {
+		c.model = model
 	}
 }
 
+func NewCacher(db *gorm.DB, opts ...Option) *Cacher {
+	cacher := &Cacher{
+		db:    db,
+		model: &Model{}, // Default Model type
+	}
+	for _, opt := range opts {
+		opt(cacher)
+	}
+	return cacher
+}
+
 func (c *Cacher) Set(ctx context.Context, key string, value []float64, expire time.Duration) error {
-	if value == nil {
-		return nil // No need to cache nil values
-	}
-
-	// Create or update the cache entry in the database
-	cacheEntry := &Model{
-		Key:     key,
-		Vector:  datatypes.NewJSONType(value),
-		Expired: time.Now().Add(expire),
-	}
-
-	return c.db.WithContext(ctx).Model(Model{}).Where("key = ?", key).
-		Attrs(cacheEntry).
-		FirstOrCreate(cacheEntry).Error
+	return c.db.WithContext(ctx).Model(c.model).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"vector", "expired"}),
+		}).
+		Create(map[string]any{
+			"key":     key,
+			"vector":  datatypes.NewJSONType(value),
+			"expired": time.Now().Add(expire),
+		}).Error
 }
 
 func (c *Cacher) Get(ctx context.Context, key string) ([]float64, error) {
 	var cacheEntry Model
-	if err := c.db.WithContext(ctx).Model(Model{}).
-		Where("key = ?", key).
+	if err := c.db.WithContext(ctx).Model(c.model).
+		Where("`key` = ?", key).
 		First(&cacheEntry).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, cached.ErrCacherKeyNotFound
@@ -59,11 +70,11 @@ func (c *Cacher) Get(ctx context.Context, key string) ([]float64, error) {
 }
 
 func (c *Cacher) Delete(ctx context.Context, key string) error {
-	return c.db.WithContext(ctx).Model(Model{}).Where("key = ?", key).Delete(&Model{}).Error
+	return c.db.WithContext(ctx).Model(c.model).Where("`key` = ?", key).Delete(c.model).Error
 }
 
-func (c *Cacher) CleanExpired(ctx context.Context) error {
-	return c.db.WithContext(ctx).Model(Model{}).
-		Where("expired < ?", time.Now()).
-		Delete(&Model{}).Error
-}
+// func (c *Cacher) CleanExpired(ctx context.Context) error {
+// 	return c.db.WithContext(ctx).Model(c.model).
+// 		Where("expired < ?", time.Now()).
+// 		Delete(c.model).Error
+// }
