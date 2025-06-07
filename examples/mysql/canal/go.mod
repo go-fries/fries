@@ -30,7 +30,7 @@ require (
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/log v1.1.1-0.20250514022801-14f3b4ca066e // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250606085706-9f38fcae009c // indirect
-	github.com/redis/go-redis/v9 v9.9.0 // indirect
+	github.com/redis/go-redis/v9 v9.10.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
