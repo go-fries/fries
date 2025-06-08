@@ -55,7 +55,13 @@ func (h *Handler) OnEnd(ctx context.Context, info *callbacks.RunInfo, output cal
 	if !ok {
 		return ctx
 	}
+	if state.span == nil || !state.span.IsRecording() {
+		return ctx
+	}
 	defer state.spanEnd()
+
+	// span with attributes
+	spanWithModelCallbackOutput(state.span, output)
 
 	return ctx
 }
@@ -75,8 +81,16 @@ func (h *Handler) OnError(ctx context.Context, info *callbacks.RunInfo, err erro
 }
 
 func (h *Handler) OnStartWithStreamInput(ctx context.Context, info *callbacks.RunInfo, input *schema.StreamReader[callbacks.CallbackInput]) context.Context {
-	// TODO implement me
-	return ctx
+	if info == nil {
+		return ctx
+	}
+	ctx, span := h.tracer.Start(ctx, getName(info),
+		trace.WithSpanKind(trace.SpanKindInternal),
+	)
+
+	return withOTelState(ctx, &state{
+		span: span,
+	})
 }
 
 func (h *Handler) OnEndWithStreamOutput(ctx context.Context, info *callbacks.RunInfo, output *schema.StreamReader[callbacks.CallbackOutput]) context.Context {

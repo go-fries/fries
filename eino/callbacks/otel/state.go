@@ -2,13 +2,8 @@ package otel
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/cloudwego/eino/callbacks"
-	"github.com/cloudwego/eino/components/model"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -48,49 +43,4 @@ func withOTelState(ctx context.Context, state *state) context.Context {
 func fromOTelState(ctx context.Context) (*state, bool) {
 	s, ok := ctx.Value(stateKey{}).(*state)
 	return s, ok
-}
-
-func spanWithRunInfo(span trace.Span, info *callbacks.RunInfo) {
-	span.SetAttributes(
-		attribute.String("eino.runinfo.type", info.Type),
-		attribute.String("eino.runinfo.name", info.Name),
-		attribute.String("eino.runinfo.component", string(info.Component)),
-	)
-}
-
-func spanWithModelCallbackInput(span trace.Span, input callbacks.CallbackInput) {
-	callbackInput := model.ConvCallbackInput(input)
-	if callbackInput == nil {
-		return
-	}
-
-	if config := callbackInput.Config; config != nil {
-		span.SetAttributes(
-			semconv.GenAIRequestModel(config.Model),
-			semconv.GenAIRequestMaxTokens(config.MaxTokens),
-			semconv.GenAIRequestTemperature(float64(config.Temperature)),
-			semconv.GenAIRequestTopP(float64(config.TopP)),
-		)
-	}
-
-	if len(callbackInput.Messages) > 0 {
-		for i, msg := range callbackInput.Messages {
-			span.AddEvent(
-				fmt.Sprintf("input.message.%d", i+1),
-				trace.WithAttributes(
-					attribute.String("gen_ai.request.role", string(msg.Role)),
-					attribute.String("gen_ai.request.content", msg.Content),
-					// Add more attributes as needed
-				),
-			)
-		}
-	}
-
-	if extra := callbackInput.Extra; len(extra) > 0 {
-		attrs := make([]attribute.KeyValue, 0, len(extra))
-		for k, v := range extra {
-			attrs = append(attrs, attribute.String("callback.input.extra."+k, fmt.Sprintf("%v", v)))
-		}
-		span.SetAttributes(attrs...)
-	}
 }
