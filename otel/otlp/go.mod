@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/foundation/v3 => ../../foundation
 
 require (
-	github.com/go-fries/fries/foundation/v3 v3.4.0
+	github.com/go-fries/fries/foundation/v3 v3.5.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 	go.opentelemetry.io/contrib/instrumentation/host v0.61.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.61.0
@@ -38,9 +38,9 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.36.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/grpc v1.73.0 // indirect

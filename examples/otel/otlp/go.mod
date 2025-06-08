@@ -9,14 +9,14 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/otel/otlp/v3 v3.4.0
+	github.com/go-fries/fries/otel/otlp/v3 v3.5.0
 	go.opentelemetry.io/otel v1.36.0
 )
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
-	github.com/go-fries/fries/foundation/v3 v3.4.0 // indirect
+	github.com/go-fries/fries/foundation/v3 v3.5.0 // indirect
 	github.com/go-kratos/kratos/v2 v2.8.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -43,9 +43,9 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.36.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/grpc v1.73.0 // indirect

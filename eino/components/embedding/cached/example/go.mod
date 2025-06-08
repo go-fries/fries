@@ -11,9 +11,9 @@ replace (
 
 require (
 	github.com/cloudwego/eino v0.3.41
-	github.com/go-fries/fries/eino/components/embedding/cached/redis/v3 v3.4.0
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.4.0
-	github.com/redis/go-redis/v9 v9.9.0
+	github.com/go-fries/fries/eino/components/embedding/cached/redis/v3 v3.5.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.5.0
+	github.com/redis/go-redis/v9 v9.10.0
 )
 
 require (
@@ -24,8 +24,8 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/getkin/kin-openapi v0.118.0 // indirect
-	github.com/go-fries/fries/codec/sonic/v3 v3.4.0 // indirect
-	github.com/go-fries/fries/codec/v3 v3.4.0 // indirect
+	github.com/go-fries/fries/codec/sonic/v3 v3.5.0 // indirect
+	github.com/go-fries/fries/codec/v3 v3.5.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
-	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b // indirect
+	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

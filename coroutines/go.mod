@@ -3,18 +3,19 @@ module github.com/go-fries/fries/coroutines/v3
 go 1.23.0
 
 replace (
-	github.com/go-fries/fries/errors/v3 => ../errors
+	github.com/go-fries/fries/constraints/v3 => ./../constraints
+	github.com/go-fries/fries/errors/v3 => ./../errors
 	github.com/go-fries/fries/support/v3 => ./../support
 )
 
 require (
-	github.com/go-fries/fries/support/v3 v3.4.0
+	github.com/go-fries/fries/support/v3 v3.5.0
 	github.com/stretchr/testify v1.10.0
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-fries/fries/errors/v3 v3.4.0 // indirect
+	github.com/go-fries/fries/errors/v3 v3.5.0 // indirect
 	github.com/go-kratos/kratos/v2 v2.8.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
