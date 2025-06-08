@@ -1,0 +1,4 @@
+github.com/go-fries/fries/codec/v3 v3.5.0 h1:yoda7At8NxLQMyIRl3dHXFocNhnb8sf8QQztivnsStU=
+github.com/go-fries/fries/codec/v3 v3.5.0/go.mod h1:el1FCzBJE1n3w1viyCWywO+Q2RW5nEgCzhqo7u3UV9U=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
