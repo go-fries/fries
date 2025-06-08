@@ -7,35 +7,47 @@ import (
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/components/model"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// otelStateKey is a context key for storing OpenTelemetry state.
-type otelStateKey struct{}
+// stateKey is a context key for storing OpenTelemetry state.
+type stateKey struct{}
 
-// otelState holds the OpenTelemetry span for the current context.
-type otelState struct {
+// state holds the OpenTelemetry span for the current context.
+type state struct {
 	span trace.Span
 }
 
+func (s *state) spanRecordErr(err error) {
+	if s.span == nil || !s.span.IsRecording() {
+		return
+	}
+
+	if err != nil {
+		s.span.RecordError(err)
+		s.span.SetStatus(codes.Error, err.Error())
+	}
+}
+
+func (s *state) spanEnd() {
+	if s.span == nil || !s.span.IsRecording() {
+		return
+	}
+
+	s.span.End()
+}
+
 // withOTelState adds the OpenTelemetry state to the context.
-func withOTelState(ctx context.Context, state *otelState) context.Context {
-	return context.WithValue(ctx, otelStateKey{}, state)
+func withOTelState(ctx context.Context, state *state) context.Context {
+	return context.WithValue(ctx, stateKey{}, state)
 }
 
 // fromOTelState retrieves the OpenTelemetry state from the context.
-func fromOTelState(ctx context.Context) (*otelState, bool) {
-	state, ok := ctx.Value(otelStateKey{}).(*otelState)
-	return state, ok
-}
-
-// getName returns the name of the component based on the RunInfo.
-func getName(info *callbacks.RunInfo) string {
-	if len(info.Name) != 0 {
-		return info.Name
-	}
-	return info.Type + string(info.Component)
+func fromOTelState(ctx context.Context) (*state, bool) {
+	s, ok := ctx.Value(stateKey{}).(*state)
+	return s, ok
 }
 
 func spanWithRunInfo(span trace.Span, info *callbacks.RunInfo) {

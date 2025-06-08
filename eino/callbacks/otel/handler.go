@@ -5,36 +5,28 @@ import (
 
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/schema"
-	"github.com/go-fries/fries/v3"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
 const scopeName = "github.com/go-fries/fries/eino/callbacks/otel/v3"
 
 type Handler struct {
-	tp trace.TracerProvider
-
 	tracer trace.Tracer
 }
 
 var _ callbacks.Handler = (*Handler)(nil)
 
 func NewHandler(opts ...Option) *Handler {
-	handler := &Handler{
-		tp: otel.GetTracerProvider(),
-	}
-	for _, opt := range opts {
-		opt.apply(handler)
-	}
+	o := newOptions(opts...)
 
 	// tracer
-	handler.tracer = handler.tp.Tracer(scopeName,
-		trace.WithInstrumentationVersion(fries.Version()),
+	tracer := o.tp.Tracer(scopeName,
+		trace.WithInstrumentationVersion(Version()),
 	)
 
-	return handler
+	return &Handler{
+		tracer: tracer,
+	}
 }
 
 func (h *Handler) OnStart(ctx context.Context, info *callbacks.RunInfo, input callbacks.CallbackInput) context.Context {
@@ -49,7 +41,7 @@ func (h *Handler) OnStart(ctx context.Context, info *callbacks.RunInfo, input ca
 	spanWithRunInfo(span, info)
 	spanWithModelCallbackInput(span, input)
 
-	return withOTelState(ctx, &otelState{
+	return withOTelState(ctx, &state{
 		span: span,
 	})
 }
@@ -63,12 +55,7 @@ func (h *Handler) OnEnd(ctx context.Context, info *callbacks.RunInfo, output cal
 	if !ok {
 		return ctx
 	}
-
-	if state.span == nil || !state.span.IsRecording() {
-		return ctx
-	}
-
-	defer state.span.End()
+	defer state.spanEnd()
 
 	return ctx
 }
@@ -82,15 +69,7 @@ func (h *Handler) OnError(ctx context.Context, info *callbacks.RunInfo, err erro
 	if !ok {
 		return ctx
 	}
-
-	if state.span == nil || !state.span.IsRecording() {
-		return ctx
-	}
-
-	if err != nil {
-		state.span.RecordError(err)
-		state.span.SetStatus(codes.Error, err.Error())
-	}
+	defer state.spanRecordErr(err)
 
 	return ctx
 }
@@ -103,4 +82,12 @@ func (h *Handler) OnStartWithStreamInput(ctx context.Context, info *callbacks.Ru
 func (h *Handler) OnEndWithStreamOutput(ctx context.Context, info *callbacks.RunInfo, output *schema.StreamReader[callbacks.CallbackOutput]) context.Context {
 	// TODO implement me
 	return ctx
+}
+
+// getName returns the name of the component based on the RunInfo.
+func getName(info *callbacks.RunInfo) string {
+	if len(info.Name) != 0 {
+		return info.Name
+	}
+	return info.Type + string(info.Component)
 }
