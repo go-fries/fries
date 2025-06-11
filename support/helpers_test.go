@@ -429,8 +429,8 @@ func TestWhen(t *testing.T) {
 
 func TestMust(t *testing.T) {
 	// success
-	assert.Equal(t, "foo", Must(func() (string, error) {
-		return "foo", nil
+	assert.Equal(t, "foo", Must(func() (string, error) { //nolint:goconst
+		return "foo", nil //nolint:goconst
 	}()))
 
 	// failed
@@ -443,8 +443,8 @@ func TestMust(t *testing.T) {
 
 func TestIgnore(t *testing.T) {
 	// success
-	assert.Equal(t, "foo", Ignore(func() (string, error) {
-		return "foo", nil
+	assert.Equal(t, "foo", Ignore(func() (string, error) { //nolint:goconst
+		return "foo", nil //nolint:goconst
 	}()))
 
 	// failed
