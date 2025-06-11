@@ -221,3 +221,22 @@ func When(condition bool, callback func()) {
 		callback()
 	}
 }
+
+// Must is a helper function that panics if the error is not nil.
+//
+//	Must(strconv.Atoi("123")) // returns 123
+//	Must(strconv.Atoi("abc")) // panics with error
+func Must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Ignore is a helper function that returns the value and ignores the error.
+//
+//	Ignore(strconv.Atoi("123")) // returns 123
+//	Ignore(strconv.Atoi("abc")) // returns 0
+func Ignore[T any](v T, _ error) T {
+	return v
+}
