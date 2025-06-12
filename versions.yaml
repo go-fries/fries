@@ -116,6 +116,9 @@ module-sets:
       # Slices
       - github.com/go-fries/fries/slices/v3
 
+      # Strings
+      - github.com/go-fries/fries/strings/v3
+
       # Support
       - github.com/go-fries/fries/support/v3
 
