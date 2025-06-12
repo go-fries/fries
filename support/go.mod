@@ -2,14 +2,10 @@ module github.com/go-fries/fries/support/v3
 
 go 1.23.0
 
-replace (
-	github.com/go-fries/fries/constraints/v3 => ../constraints
-	github.com/go-fries/fries/errors/v3 => ../errors
-)
+replace github.com/go-fries/fries/errors/v3 => ../errors
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-fries/fries/constraints/v3 v3.5.0
 	github.com/go-fries/fries/errors/v3 v3.5.0
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0

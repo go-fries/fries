@@ -113,6 +113,9 @@ module-sets:
       # Signal
       - github.com/go-fries/fries/signal/v3
 
+      # Slices
+      - github.com/go-fries/fries/slices/v3
+
       # Support
       - github.com/go-fries/fries/support/v3
 

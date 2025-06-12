@@ -90,3 +90,4 @@ fixes:
   - github.com/go-fries/fries/eino/components/embedding/cached/v3::eino/components/embedding/cached/
   - github.com/go-fries/fries/eino/components/embedding/cached/redis/v3::eino/components/embedding/cached/redis/
   - github.com/go-fries/fries/eino/components/embedding/cached/gorm/v3::eino/components/embedding/cached/gorm/
+  - github.com/go-fries/fries/slices/v3::slices/
