@@ -2,9 +2,7 @@ module github.com/go-fries/fries/support/v3
 
 go 1.23.0
 
-replace (
-	github.com/go-fries/fries/errors/v3 => ../errors
-)
+replace github.com/go-fries/fries/errors/v3 => ../errors
 
 require (
 	github.com/davecgh/go-spew v1.1.1
