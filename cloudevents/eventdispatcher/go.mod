@@ -3,7 +3,7 @@ module github.com/go-fries/fries/cloudevents/eventdispatcher/v3
 go 1.23.0
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.16.0
+	github.com/cloudevents/sdk-go/v2 v2.16.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.15.0
 )

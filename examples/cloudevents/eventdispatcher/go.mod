@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/cloudevents/eventdispatcher/v3 => ../../../cloudevents/eventdispatcher/
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.16.0
+	github.com/cloudevents/sdk-go/v2 v2.16.1
 	github.com/go-fries/fries/cloudevents/eventdispatcher/v3 v3.5.0
 )
 
