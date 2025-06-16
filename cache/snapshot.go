@@ -34,6 +34,12 @@ func (s *Snapshot[K, V]) Lookup(key K, fn func() V) V {
 	return v
 }
 
+func (s *Snapshot[K, V]) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data = nil
+}
+
 // SnapshotWithErr is a thread-safe structure that holds a snapshot of data with error handling.
 // It ensures that the data for a key can be populated with an error if needed.
 type SnapshotWithErr[K comparable, V any] Snapshot[K, valueWithError[V]]
@@ -62,6 +68,12 @@ func (c *SnapshotWithErr[K, V]) Lookup(key K, fn func() (V, error)) (V, error) {
 	return v.value, v.err
 }
 
+func (c *SnapshotWithErr[K, V]) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data = nil
+}
+
 type SnapshotWithExpireAndErr[K comparable, V any] Snapshot[K, valueWithExpireAndError[V]]
 
 type valueWithExpireAndError[V any] struct {
@@ -88,4 +100,10 @@ func (c *SnapshotWithExpireAndErr[K, V]) Lookup(key K, fn func() (V, error), exp
 		}
 	}
 	return v.value, v.err
+}
+
+func (c *SnapshotWithExpireAndErr[K, V]) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data = nil
 }
