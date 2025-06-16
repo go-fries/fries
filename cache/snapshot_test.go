@@ -35,6 +35,35 @@ func TestSnapshot(t *testing.T) {
 	assert.Equal(t, int32(2), total.Load())
 }
 
+func TestSnapshot_Reset(t *testing.T) {
+	var (
+		snap  Snapshot[string, *snapshotValue]
+		total atomic.Int32
+	)
+
+	for i := 0; i < 100; i++ {
+		value := snap.Lookup("key", func() *snapshotValue {
+			total.Add(1)
+			return &snapshotValue{value: "value"}
+		})
+		assert.Equal(t, "value", value.value)
+	}
+
+	assert.Equal(t, int32(1), total.Load())
+
+	snap.Reset()
+
+	for i := 0; i < 100; i++ {
+		value := snap.Lookup("key", func() *snapshotValue {
+			total.Add(1)
+			return &snapshotValue{value: "new_value"}
+		})
+		assert.Equal(t, "new_value", value.value)
+	}
+
+	assert.Equal(t, int32(2), total.Load())
+}
+
 func TestSnapshotWithErr(t *testing.T) {
 	var (
 		snap  SnapshotWithErr[string, *snapshotValue]
@@ -78,6 +107,37 @@ func TestSnapshotWithErr(t *testing.T) {
 	assert.Equal(t, int32(len(tests)), total.Load())
 }
 
+func TestSnapshotWithErr_Reset(t *testing.T) {
+	var (
+		snap  SnapshotWithErr[string, *snapshotValue]
+		total atomic.Int32
+	)
+
+	for i := 0; i < 100; i++ {
+		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+			total.Add(1)
+			return &snapshotValue{value: "value"}, nil
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "value", value.value)
+	}
+
+	assert.Equal(t, int32(1), total.Load())
+
+	snap.Reset()
+
+	for i := 0; i < 100; i++ {
+		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+			total.Add(1)
+			return &snapshotValue{value: "new_value"}, nil
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "new_value", value.value)
+	}
+
+	assert.Equal(t, int32(2), total.Load())
+}
+
 func TestSnapshotWithExpireAndErr(t *testing.T) {
 	var (
 		snap  SnapshotWithExpireAndErr[string, *snapshotValue]
@@ -106,6 +166,37 @@ func TestSnapshotWithExpireAndErr(t *testing.T) {
 	}, time.Millisecond*10)
 	assert.NoError(t, err)
 	assert.Equal(t, "value2", value.value)
+
+	assert.Equal(t, int32(2), total.Load())
+}
+
+func TestSnapshotWithExpireAndErr_Reset(t *testing.T) {
+	var (
+		snap  SnapshotWithExpireAndErr[string, *snapshotValue]
+		total atomic.Int32
+	)
+
+	for i := 0; i < 100; i++ {
+		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+			total.Add(1)
+			return &snapshotValue{value: "value"}, nil
+		}, time.Millisecond*10)
+		assert.NoError(t, err)
+		assert.Equal(t, "value", value.value)
+	}
+
+	assert.Equal(t, int32(1), total.Load())
+
+	snap.Reset()
+
+	for i := 0; i < 100; i++ {
+		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+			total.Add(1)
+			return &snapshotValue{value: "new_value"}, nil
+		}, time.Millisecond*10)
+		assert.NoError(t, err)
+		assert.Equal(t, "new_value", value.value)
+	}
 
 	assert.Equal(t, int32(2), total.Load())
 }
