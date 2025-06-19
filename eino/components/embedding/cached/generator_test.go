@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"crypto/sha256"
-	"hash"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ func TestGenerator_UniquenessAndDifference(t *testing.T) {
 		generator Generator
 	}{
 		{"SimpleGenerator", NewSimpleGenerator()},
-		{"HashGenerator", NewHashGenerator(sha256.New())},
+		{"HashGenerator", NewHashGenerator(sha256.New)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Run("Generate uniqueness", func(t *testing.T) {
@@ -61,15 +61,38 @@ func TestGenerator_HashGenerator(t *testing.T) {
 	ctx := context.Background()
 
 	for _, tt := range []struct {
-		name string
-		hash hash.Hash
+		name   string
+		hasher Hasher
 	}{
-		{"sha256", sha256.New()},
-		{"md5", md5.New()},
+		{"sha256", sha256.New},
+		{"md5", md5.New},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewHashGenerator(tt.hash)
+			generator := NewHashGenerator(tt.hasher)
 			assert.NotEmpty(t, generator.Generate(ctx, text, GeneratorOptions{Model: model}))
 		})
+	}
+}
+
+func TestGenerator_HashGenerator_Concurrent(t *testing.T) {
+	ctx := context.Background()
+	generator := NewHashGenerator(sha256.New)
+	results := make(chan string, 100)
+
+	// Start multiple goroutines to test concurrent generation
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			key := generator.Generate(ctx, fmt.Sprintf("%d", i), GeneratorOptions{})
+			results <- key
+		}(i)
+	}
+
+	// Collect results and ensure uniqueness
+	keys := make(map[string]struct{})
+	for i := 0; i < 100; i++ {
+		key := <-results
+		_, exists := keys[key]
+		assert.False(t, exists, "Duplicate key found: %s", key)
+		keys[key] = struct{}{}
 	}
 }
