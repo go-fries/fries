@@ -45,7 +45,7 @@ func main() {
 
 	embedder := cached.NewEmbedder(originalEmbedder,
 		cached.WithCacher(cachedredis.NewCacher(rdb)),            // using Redis as the cache
-		cached.WithGenerator(cached.NewHashGenerator(md5.New())), // using md5 for generating unique keys
+		cached.WithGenerator(cached.NewHashGenerator(md5.New)), // using md5 for generating unique keys
 	)
 	
 	embeddings, err := embedder.EmbedStrings(context.Background(), []string{"hello", "how are you"})
