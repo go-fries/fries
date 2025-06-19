@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
+	"sync"
 )
 
-var defaultGenerator Generator = NewHashGenerator(sha256.New())
+var defaultGenerator Generator = NewHashGenerator(sha256.New)
 
 // GeneratorOptions holds options for generating unique keys.
 type GeneratorOptions struct {
@@ -35,9 +36,9 @@ func (g *SimpleGenerator) Generate(_ context.Context, text string, opts Generato
 	return fmt.Sprintf("%s-%s", text, opts.Model)
 }
 
-// HashGenerator is a concrete implementation of the [Generator] interface that uses a hash function
+// HashGenerator is a concrete implementation of the [Generator] interface that uses a hasher function
 // to generate a unique key based on the provided text and optional embedding options.
-// It wraps a [SimpleGenerator] and applies a hash function to the generated key.
+// It wraps a [SimpleGenerator] and applies a hasher function to the generated key.
 //
 // Note: Because of the use of the [hash.Hash] algorithm, there is a probability that data
 // with different text and options will generate the same key. This is a trade-off
@@ -45,22 +46,32 @@ func (g *SimpleGenerator) Generate(_ context.Context, text string, opts Generato
 // using a different generator or a more complex hashing strategy.
 type HashGenerator struct {
 	*SimpleGenerator
-	hasher hash.Hash
+	pool sync.Pool
 }
+
+type Hasher func() hash.Hash
 
 var _ Generator = (*HashGenerator)(nil)
 
-// NewHashGenerator creates a new [HashGenerator] with the specified hash function.
-func NewHashGenerator(hasher hash.Hash) *HashGenerator {
+// NewHashGenerator creates a new [HashGenerator] with the specified hasher function.
+func NewHashGenerator(hasher Hasher) *HashGenerator {
 	return &HashGenerator{
 		SimpleGenerator: NewSimpleGenerator(),
-		hasher:          hasher,
+		pool: sync.Pool{
+			New: func() any {
+				return hasher()
+			},
+		},
 	}
 }
 
 func (g *HashGenerator) Generate(ctx context.Context, text string, opts GeneratorOptions) string {
 	plainText := g.SimpleGenerator.Generate(ctx, text, opts)
-	g.hasher.Reset()
-	g.hasher.Write([]byte(plainText))
-	return fmt.Sprintf("%x", g.hasher.Sum(nil))
+	hasher := g.pool.Get().(hash.Hash)
+	defer func() {
+		hasher.Reset()
+		g.pool.Put(hasher)
+	}()
+	hasher.Write([]byte(plainText))
+	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
