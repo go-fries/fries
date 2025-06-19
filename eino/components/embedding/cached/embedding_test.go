@@ -128,9 +128,10 @@ func TestEmbedder_EmbedStrings(t *testing.T) {
 	})
 
 	t.Run("cache get error", func(t *testing.T) {
+
 		mc := new(mockCacher)
 		me := new(mockEmbedder)
-		e := NewEmbedder(me, WithCacher(mc), WithGenerator(NewSimpleGenerator()), WithExpiration(expiration))
+		e := NewEmbedder(me, WithCacher(mc))
 
 		key := e.generator.Generate(ctx, texts[0], generatorOpt)
 		mc.On("Get", mock.Anything, key).Return(nil, errors.New("cache error"))
@@ -173,4 +174,53 @@ func TestEmbedder_EmbedStrings(t *testing.T) {
 		mc.AssertExpectations(t)
 		me.AssertExpectations(t)
 	})
+}
+
+type contextMockCacher struct {
+	t        *testing.T
+	getTexts chan string
+	setTexts chan string
+}
+
+func (c *contextMockCacher) Get(ctx context.Context, _ string) ([]float64, error) {
+	text, ok := TextFromContext(ctx)
+	assert.True(c.t, ok)
+	c.getTexts <- text
+	return nil, ErrCacherKeyNotFound
+}
+
+func (c *contextMockCacher) Set(ctx context.Context, _ string, _ []float64, _ time.Duration) error {
+	text, ok := TextFromContext(ctx)
+	assert.True(c.t, ok)
+	c.setTexts <- text
+	return nil
+}
+
+func TestEmbedder_ContextWithText(t *testing.T) {
+	ctx := context.Background()
+	embeddings := [][]float64{{1.1, 2.2}, {3.3, 4.4}}
+
+	mc := &contextMockCacher{
+		t:        t,
+		getTexts: make(chan string, 2),
+		setTexts: make(chan string, 2),
+	}
+	me := new(mockEmbedder)
+	e := NewEmbedder(me, WithCacher(mc))
+
+	texts := []string{"foo", "bar"}
+
+	me.On("EmbedStrings", mock.Anything, texts, mock.Anything).Return(embeddings, nil)
+
+	result, err := e.EmbedStrings(ctx, texts)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(mc.getTexts))
+	assert.Equal(t, 2, len(mc.setTexts))
+	assert.Equal(t, "foo", <-mc.getTexts)
+	assert.Equal(t, "bar", <-mc.getTexts)
+	assert.Equal(t, "foo", <-mc.setTexts)
+	assert.Equal(t, "bar", <-mc.setTexts)
+	assert.Equal(t, embeddings, result)
+
+	me.AssertExpectations(t)
 }
