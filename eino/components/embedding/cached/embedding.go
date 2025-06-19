@@ -64,7 +64,6 @@ func NewEmbedder(embedder embedding.Embedder, opts ...Option) *Embedder {
 }
 
 func (e *Embedder) EmbedStrings(ctx context.Context, texts []string, opts ...embedding.Option) ([][]float64, error) {
-
 	var (
 		embeddingsByKey = make(map[int][]float64)
 		embeddingOpts   = embedding.GetCommonOptions(nil, opts...)

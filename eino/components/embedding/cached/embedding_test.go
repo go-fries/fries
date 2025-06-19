@@ -128,7 +128,6 @@ func TestEmbedder_EmbedStrings(t *testing.T) {
 	})
 
 	t.Run("cache get error", func(t *testing.T) {
-
 		mc := new(mockCacher)
 		me := new(mockEmbedder)
 		e := NewEmbedder(me, WithCacher(mc))
