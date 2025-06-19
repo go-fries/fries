@@ -75,19 +75,14 @@ func TestGenerator_HashGenerator(t *testing.T) {
 }
 
 func TestGenerator_HashGenerator_Concurrent(t *testing.T) {
-	text := "test text"
-	model := "test-model"
 	ctx := context.Background()
-
 	generator := NewHashGenerator(sha256.New)
-
-	// Use a channel to collect results from goroutines
 	results := make(chan string, 100)
 
 	// Start multiple goroutines to test concurrent generation
 	for i := 0; i < 100; i++ {
 		go func(i int) {
-			key := generator.Generate(ctx, fmt.Sprintf("%s:%d", text, i), GeneratorOptions{Model: model})
+			key := generator.Generate(ctx, fmt.Sprintf("%d", i), GeneratorOptions{})
 			results <- key
 		}(i)
 	}
