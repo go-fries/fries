@@ -3,7 +3,7 @@ module github.com/go-fries/fries/chi/v3
 go 1.23.0
 
 require (
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/stretchr/testify v1.10.0
 )
