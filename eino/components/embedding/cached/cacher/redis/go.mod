@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/eino/components/embedding/cached/redis/v3
+module github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3
 
 go 1.23.0
 
 replace (
-	github.com/go-fries/fries/codec/sonic/v3 => ../../../../../codec/sonic
-	github.com/go-fries/fries/codec/v3 => ../../../../../codec
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../
+	github.com/go-fries/fries/codec/sonic/v3 => ./../../../../../../codec/sonic
+	github.com/go-fries/fries/codec/v3 => ./../../../../../../codec
+	github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../../
 )
 
 require (

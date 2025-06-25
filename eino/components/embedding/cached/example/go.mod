@@ -5,13 +5,13 @@ go 1.23.0
 replace (
 	github.com/go-fries/fries/codec/sonic/v3 => ../../../../../codec/sonic
 	github.com/go-fries/fries/codec/v3 => ../../../../../codec
-	github.com/go-fries/fries/eino/components/embedding/cached/redis/v3 => ../redis/
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 => ./../cacher/redis/
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../
 )
 
 require (
 	github.com/cloudwego/eino v0.3.45
-	github.com/go-fries/fries/eino/components/embedding/cached/redis/v3 v3.6.1
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 v3.0.0-00010101000000-000000000000
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.6.1
 	github.com/redis/go-redis/v9 v9.11.0
 )
