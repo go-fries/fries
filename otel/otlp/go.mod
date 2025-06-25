@@ -7,8 +7,8 @@ replace github.com/go-fries/fries/foundation/v3 => ../../foundation
 require (
 	github.com/go-fries/fries/foundation/v3 v3.6.1
 	github.com/go-kratos/kratos/v2 v2.8.4
-	go.opentelemetry.io/contrib/instrumentation/host v0.61.0
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.61.0
+	go.opentelemetry.io/contrib/instrumentation/host v0.62.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.62.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.13.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.37.0
