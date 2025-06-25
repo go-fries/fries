@@ -1,8 +1,8 @@
-module github.com/go-fries/fries/eino/components/embedding/cached/gorm/v3
+module github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v3
 
 go 1.23.0
 
-replace github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../
+replace github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../../
 
 require (
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.6.1
