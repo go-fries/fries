@@ -1,4 +1,4 @@
-module github.com/flc/go-fries/fries/codec/proto/v3
+module github.com/go-fries/fries/codec/proto/v3
 
 go 1.23.0
 
