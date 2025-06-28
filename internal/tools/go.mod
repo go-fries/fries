@@ -47,7 +47,7 @@ require (
 	github.com/bombsimon/wsl/v4 v4.7.0 // indirect
 	github.com/breml/bidichk v0.3.3 // indirect
 	github.com/breml/errchkjson v0.4.1 // indirect
-	github.com/bufbuild/protocompile v0.9.0 // indirect
+	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/bufbuild/protovalidate-go v0.6.0 // indirect
 	github.com/bufbuild/protoyaml-go v0.1.8 // indirect
 	github.com/butuzov/ireturn v0.4.0 // indirect
