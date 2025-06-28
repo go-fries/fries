@@ -29,6 +29,9 @@ fixes:
   - github.com/go-fries/fries/codec/json/v3::codec/json/
   - github.com/go-fries/fries/codec/msgpack/v3::codec/msgpack/
   - github.com/go-fries/fries/codec/sonic/v3::codec/sonic/
+  - github.com/go-fries/fries/codec/proto/v3::codec/proto/
+  - github.com/go-fries/fries/codec/xml/v3::codec/xml/
+  - github.com/go-fries/fries/codec/yaml/v3::codec/yaml/
   - github.com/go-fries/fries/config/v3::config/
   - github.com/go-fries/fries/constraints/v3::constraints/
   - github.com/go-fries/fries/contract/v3::contract/
