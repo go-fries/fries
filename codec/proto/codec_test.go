@@ -3,7 +3,7 @@ package proto
 import (
 	"testing"
 
-	"github.com/flc/go-fries/fries/codec/proto/v3/internal/proto"
+	"github.com/go-fries/fries/codec/proto/v3/internal/proto"
 	"github.com/stretchr/testify/assert"
 )
 

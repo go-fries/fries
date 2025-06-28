@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package protobuf;
+package proto;
 
-option go_package = "github.com/flc/go-fries/fries/codec/proto/internal/v3";
+option go_package = "github.com/flc/go-fries/fries/codec/v3/internal/proto";
 
 message TestMessage {
   string name = 1;

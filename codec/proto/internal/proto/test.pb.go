@@ -4,7 +4,9 @@
 // 	protoc        (unknown)
 // source: codec/proto/internal/proto/test.proto
 
-package v3
+// buf:lint:ignore FILE_SAME_PACKAGE
+
+package proto
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -77,11 +79,11 @@ var File_codec_proto_internal_proto_test_proto protoreflect.FileDescriptor
 
 const file_codec_proto_internal_proto_test_proto_rawDesc = "" +
 	"\n" +
-	"%codec/proto/internal/proto/test.proto\x12\bprotobuf\"7\n" +
+	"%codec/proto/internal/proto/test.proto\x12\x05proto\"7\n" +
 	"\vTestMessage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05valueB\x90\x01\n" +
-	"\fcom.protobufB\tTestProtoP\x01Z5github.com/flc/go-fries/fries/codec/proto/internal/v3\xa2\x02\x03PXX\xaa\x02\bProtobuf\xca\x02\bProtobuf\xe2\x02\x14Protobuf\\GPBMetadata\xea\x02\bProtobufb\x06proto3"
+	"\x05value\x18\x02 \x01(\x05R\x05valueB\x81\x01\n" +
+	"\tcom.protoB\tTestProtoP\x01Z5github.com/flc/go-fries/fries/codec/v3/internal/proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
 
 var (
 	file_codec_proto_internal_proto_test_proto_rawDescOnce sync.Once
@@ -97,7 +99,7 @@ func file_codec_proto_internal_proto_test_proto_rawDescGZIP() []byte {
 
 var file_codec_proto_internal_proto_test_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_codec_proto_internal_proto_test_proto_goTypes = []any{
-	(*TestMessage)(nil), // 0: protobuf.TestMessage
+	(*TestMessage)(nil), // 0: proto.TestMessage
 }
 var file_codec_proto_internal_proto_test_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
