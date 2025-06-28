@@ -3,7 +3,7 @@ module github.com/go-fries/fries/internal/tools/v3
 go 1.23.0
 
 require (
-	github.com/bufbuild/buf v1.30.1
+	github.com/bufbuild/buf v1.55.1
 	github.com/golangci/golangci-lint/v2 v2.1.6
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/multimod v0.23.1
