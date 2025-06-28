@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "github.com/flc/go-fries/fries/codec/proto/internal/v3";
+
+message TestMessage {
+  string name = 1;
+  int32 value = 2;
+}
