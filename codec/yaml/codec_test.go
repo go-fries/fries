@@ -8,7 +8,8 @@ import (
 )
 
 var yamlBytes = []byte(`name: test
-value: 123`)
+value: 123
+`)
 
 type TestMessage struct {
 	Name  string `yaml:"name"`
