@@ -15,8 +15,8 @@ require (
 	4d63.com/gochecknoglobals v0.2.2 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.33.0-20240221180331-f05a6f4403ce.1 // indirect
 	codeberg.org/chavacava/garif v0.2.0 // indirect
-	connectrpc.com/connect v1.16.0 // indirect
-	connectrpc.com/otelconnect v0.7.0 // indirect
+	connectrpc.com/connect v1.17.0 // indirect
+	connectrpc.com/otelconnect v0.7.2 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/4meepo/tagalign v1.4.2 // indirect
 	github.com/Abirdcfly/dupword v0.1.6 // indirect
