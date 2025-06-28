@@ -3,12 +3,12 @@ package proto
 import (
 	"testing"
 
-	"github.com/flc/go-fries/fries/codec/proto/v3/internal"
+	"github.com/flc/go-fries/fries/codec/proto/v3/internal/proto"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCodec(t *testing.T) {
-	msg := &internal.TestMessage{
+	msg := &proto.TestMessage{
 		Name:  "test",
 		Value: 123,
 	}
@@ -16,7 +16,7 @@ func TestCodec(t *testing.T) {
 	data, err := Codec.Marshal(msg)
 	assert.NoError(t, err)
 
-	newMsg := &internal.TestMessage{}
+	newMsg := &proto.TestMessage{}
 	err = Codec.Unmarshal(data, newMsg)
 	assert.NoError(t, err)
 
