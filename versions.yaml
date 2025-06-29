@@ -1,6 +1,6 @@
 module-sets:
   stable:
-    version: v3.5.0
+    version: v3.6.1
     modules:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
@@ -20,6 +20,9 @@ module-sets:
       - github.com/go-fries/fries/codec/json/v3
       - github.com/go-fries/fries/codec/msgpack/v3
       - github.com/go-fries/fries/codec/sonic/v3
+      - github.com/go-fries/fries/codec/proto/v3
+      - github.com/go-fries/fries/codec/xml/v3
+      - github.com/go-fries/fries/codec/yaml/v3
 
       # Config
       - github.com/go-fries/fries/config/v3
@@ -48,8 +51,8 @@ module-sets:
 
       # Eino
       - github.com/go-fries/fries/eino/components/embedding/cached/v3
-      - github.com/go-fries/fries/eino/components/embedding/cached/redis/v3
-      - github.com/go-fries/fries/eino/components/embedding/cached/gorm/v3
+      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3
+      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v3
 
       # Foundation
       - github.com/go-fries/fries/foundation/v3
@@ -112,6 +115,12 @@ module-sets:
 
       # Signal
       - github.com/go-fries/fries/signal/v3
+
+      # Slices
+      - github.com/go-fries/fries/slices/v3
+
+      # Strings
+      - github.com/go-fries/fries/strings/v3
 
       # Support
       - github.com/go-fries/fries/support/v3

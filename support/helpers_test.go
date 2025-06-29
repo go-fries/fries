@@ -426,3 +426,29 @@ func TestWhen(t *testing.T) {
 	})
 	assert.Equal(t, 1, i)
 }
+
+func TestMust(t *testing.T) {
+	// success
+	assert.Equal(t, "foo", Must(func() (string, error) { //nolint:goconst
+		return "foo", nil //nolint:goconst
+	}()))
+
+	// failed
+	assert.Panics(t, func() {
+		Must(func() (string, error) {
+			return "", assert.AnError
+		}())
+	})
+}
+
+func TestIgnore(t *testing.T) {
+	// success
+	assert.Equal(t, "foo", Ignore(func() (string, error) { //nolint:goconst
+		return "foo", nil //nolint:goconst
+	}()))
+
+	// failed
+	assert.Equal(t, "", Ignore(func() (string, error) {
+		return "", assert.AnError
+	}()))
+}

@@ -80,7 +80,7 @@ func (e *Embedder) EmbedStrings(ctx context.Context, texts []string, opts ...emb
 	// Get cached embeddings and find uncached texts
 	for idx, text := range texts {
 		key := e.generator.Generate(ctx, text, generatorOpts)
-		emb, err := e.cacher.Get(ctx, key)
+		emb, err := e.cacher.Get(contextWithText(ctx, text), key)
 		if err != nil {
 			if errors.Is(err, ErrCacherKeyNotFound) {
 				// If the key is not found, we consider it as uncached
@@ -104,7 +104,7 @@ func (e *Embedder) EmbedStrings(ctx context.Context, texts []string, opts ...emb
 		// Cache the uncachedEmbeddings
 		for i, idx := range uncached {
 			key := e.generator.Generate(ctx, texts[idx], generatorOpts)
-			if err := e.cacher.Set(ctx, key, uncachedEmbeddings[i], e.expiration); err != nil {
+			if err := e.cacher.Set(contextWithText(ctx, texts[idx]), key, uncachedEmbeddings[i], e.expiration); err != nil {
 				_ = err // skip caching if there's an error
 			}
 			embeddingsByKey[idx] = uncachedEmbeddings[i]

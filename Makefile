@@ -34,9 +34,12 @@ $(TOOLS)/multimod: PACKAGE=go.opentelemetry.io/build-tools/multimod
 CODECOVFIX = $(TOOLS)/codecovfix
 $(TOOLS)/codecovfix: PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_DIR)/v3/codecovfix
 
-.PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX)
+BUF = $(TOOLS)/buf
+$(TOOLS)/buf: PACKAGE=github.com/bufbuild/buf/cmd/buf
 
+.PHONY: tools
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(BUF)
+	@echo "✅ Tools are ready"
 
 # Build
 
@@ -110,6 +113,27 @@ lint: lint-modules golangci-lint
 .PHONY: clean
 clean:
 	rm -rf $(TOOLS)
+
+# BUF
+.PHONY: buf-lint
+buf-lint: $(BUF)
+	@echo "buf linting..." \
+		&& $(BUF) lint
+
+.PHONY: buf-build
+buf-build: $(BUF)
+	@echo "buf building..." \
+		&& $(BUF) build
+
+.PHONY: buf-validate
+buf-validate: $(BUF)
+	@echo "buf validating..." \
+		&& $(BUF) validate
+
+.PHONY: buf-generate
+buf-generate: $(BUF)
+	@echo "buf generating..." \
+		&& $(BUF) generate
 
 .PHONY: check-clean-work-tree
 check-clean-work-tree:

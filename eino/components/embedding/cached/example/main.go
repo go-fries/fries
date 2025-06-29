@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/cloudwego/eino/components/embedding"
-	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/redis/v3"
+	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3"
 	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
 	"github.com/redis/go-redis/v9"
 )
@@ -25,8 +25,8 @@ func main() {
 	// ...
 
 	embedder := cached.NewEmbedder(originalEmbedder,
-		cached.WithCacher(cachedredis.NewCacher(rdb)),            // using Redis as the cache
-		cached.WithGenerator(cached.NewHashGenerator(md5.New())), // using md5 for generating unique keys
+		cached.WithCacher(cachedredis.NewCacher(rdb)),          // using Redis as the cache
+		cached.WithGenerator(cached.NewHashGenerator(md5.New)), // using md5 for generating unique keys
 	)
 
 	embeddings, err := embedder.EmbedStrings(context.Background(), []string{"hello", "how are you"})
