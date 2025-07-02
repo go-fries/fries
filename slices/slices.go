@@ -108,10 +108,27 @@ func FilterN[S ~[]E, E any](s S, fn func(E, int) bool) S {
 // Reduce applies the given function against an accumulator
 // and each element in the slice to reduce it to a single value.
 //
-//	Reduce([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 0) // 6
-//	Reduce([]string{"a", "b", "c"}, func(acc, s string, _ int) string { return acc + s }, "") // "abc"
-//	Reduce([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 5) // 11
-func Reduce[S ~[]E, E, R any](s S, fn func(R, E, int) R, defaults ...R) R {
+//	Reduce([]int{1, 2, 3}, func(acc, i int) int { return acc + i }, 0) // 6
+//	Reduce([]string{"a", "b", "c"}, func(acc, s string) string { return acc + s }, "") // "abc"
+//	Reduce([]int{1, 2, 3}, func(acc, i int) int { return acc + i }, 5) // 11
+func Reduce[S ~[]E, E, R any](s S, fn func(R, E) R, defaults ...R) R {
+	var result R
+	if len(defaults) > 0 {
+		result = defaults[0]
+	}
+	for _, item := range s {
+		result = fn(result, item)
+	}
+	return result
+}
+
+// ReduceN applies the given function against an accumulator
+// and each element in the slice to reduce it to a single value.
+//
+//	ReduceN([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 0) // 6
+//	ReduceN([]string{"a", "b", "c"}, func(acc, s string, _ int) string { return acc + s }, "") // "abc"
+//	ReduceN([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 5) // 11
+func ReduceN[S ~[]E, E, R any](s S, fn func(R, E, int) R, defaults ...R) R {
 	var result R
 	if len(defaults) > 0 {
 		result = defaults[0]

@@ -147,14 +147,25 @@ func TestFilter(t *testing.T) {
 
 func TestReduce(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, 15, Reduce(s1, func(acc, n, _ int) int { return acc + n }))
-
 	s2 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, 0, Reduce(s2, func(acc, n, _ int) int { return acc * n }))
-	assert.Equal(t, 120, Reduce(s2, func(acc, n, _ int) int { return acc * n }, 1))
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, "12345", Reduce(s3, func(acc, s string, _ int) string { return acc + s }))
+	t.Run("Reduce", func(t *testing.T) {
+		assert.Equal(t, 15, Reduce(s1, func(acc, n int) int { return acc + n }))
+
+		assert.Equal(t, 0, Reduce(s2, func(acc, n int) int { return acc * n }))
+		assert.Equal(t, 120, Reduce(s2, func(acc, n int) int { return acc * n }, 1))
+
+		assert.Equal(t, "12345", Reduce(s3, func(acc, s string) string { return acc + s }))
+	})
+
+	t.Run("ReduceN", func(t *testing.T) {
+		assert.Equal(t, 15, ReduceN(s1, func(acc, n, _ int) int { return acc + n }))
+
+		assert.Equal(t, 0, ReduceN(s2, func(acc, n, _ int) int { return acc * n }))
+		assert.Equal(t, 120, ReduceN(s2, func(acc, n, _ int) int { return acc * n }, 1))
+
+		assert.Equal(t, "12345", ReduceN(s3, func(acc, s string, _ int) string { return acc + s }))
+	})
 }
 
 func TestReverse(t *testing.T) {
