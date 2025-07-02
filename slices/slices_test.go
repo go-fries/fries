@@ -274,16 +274,23 @@ func TestUnique(t *testing.T) {
 
 func TestUniqueBy(t *testing.T) {
 	s1 := []int{1, 2, 3, 1, 2, 3}
-	assert.Equal(t, []int{1, 2, 3}, UniqueBy(s1, func(n, _ int) int { return n }))
-
 	s2 := []string{"1", "2", "3", "1", "2", "3"}
-	assert.Equal(t, []string{"1", "2", "3"}, UniqueBy(s2, func(s string, _ int) string { return s }))
-
 	s3 := []T{{"1"}, {"2"}, {"3"}, {"1"}, {"2"}, {"3"}}
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueBy(s3, func(t T, _ int) string { return t.A }))
-
 	s4 := []string{"apple", "apple2", "cherry"}
-	assert.Equal(t, []string{"apple", "cherry"}, UniqueBy(s4, func(s string, _ int) string { return s[:1] }))
+
+	t.Run("UniqueBy", func(t *testing.T) {
+		assert.Equal(t, []int{1, 2, 3}, UniqueBy(s1, func(n int) int { return n }))
+		assert.Equal(t, []string{"1", "2", "3"}, UniqueBy(s2, func(s string) string { return s }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueBy(s3, func(t T) string { return t.A }))
+		assert.Equal(t, []string{"apple", "cherry"}, UniqueBy(s4, func(s string) string { return s[:1] }))
+	})
+
+	t.Run("UniqueByN", func(t *testing.T) {
+		assert.Equal(t, []int{1, 2, 3}, UniqueByN(s1, func(n, _ int) int { return n }))
+		assert.Equal(t, []string{"1", "2", "3"}, UniqueByN(s2, func(s string, _ int) string { return s }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueByN(s3, func(t T, _ int) string { return t.A }))
+		assert.Equal(t, []string{"apple", "cherry"}, UniqueByN(s4, func(s string, _ int) string { return s[:1] }))
+	})
 }
 
 func TestDifference(t *testing.T) {

@@ -236,10 +236,29 @@ func Unique[S ~[]E, E comparable](s S) S {
 // UniqueBy returns a new slice containing the unique items of
 // a given slice based on the given function.
 //
-//	UniqueBy([]string{"apple", "apple2", "cherry"}, func(s string, _ int) string {
+//	UniqueBy([]string{"apple", "apple2", "cherry"}, func(s string) string {
 //		return s[:1]
 //	}) // []string{"apple", "cherry"}
-func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
+func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E) K) S {
+	var result S
+	seeds := make(map[K]struct{})
+	for _, item := range s {
+		key := fn(item)
+		if _, ok := seeds[key]; !ok {
+			seeds[key] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// UniqueByN returns a new slice containing the unique items of
+// a given slice based on the given function.
+//
+//	UniqueByN([]string{"apple", "apple2", "cherry"}, func(s string, _ int) string {
+//		return s[:1]
+//	}) // []string{"apple", "cherry"}
+func UniqueByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
 	var result S
 	seeds := make(map[K]struct{})
 	for i, item := range s {
