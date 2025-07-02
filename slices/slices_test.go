@@ -539,66 +539,94 @@ func TestFindLast(t *testing.T) {
 
 func TestIndex(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	index1, ok1 := Index(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 1, index1)
-	assert.True(t, ok1)
-
 	s2 := []string{"1", "2", "3"}
-	index2, ok2 := Index(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, 1, index2)
-	assert.True(t, ok2)
-
 	s3 := []T{{"1"}, {"2"}, {"3"}}
-	index3, ok3 := Index(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, 1, index3)
-	assert.True(t, ok3)
 
-	s4 := []int{}
-	index4, ok4 := Index(s4, func(n int, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, -1, index4)
-	assert.False(t, ok4)
+	t.Run("Index", func(t *testing.T) {
+		index1, ok1 := Index(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 1, index1)
+		assert.True(t, ok1)
 
-	s5 := []string{}
-	index5, ok5 := Index(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, -1, index5)
-	assert.False(t, ok5)
+		index2, ok2 := Index(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, 1, index2)
+		assert.True(t, ok2)
 
-	var s6 []*T
-	index6, ok6 := Index(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, -1, index6)
-	assert.False(t, ok6)
+		index3, ok3 := Index(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, 1, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := Index([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+	})
+
+	t.Run("IndexN", func(t *testing.T) {
+		index1, ok1 := IndexN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 1, index1)
+		assert.True(t, ok1)
+
+		index2, ok2 := IndexN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, 1, index2)
+		assert.True(t, ok2)
+
+		index3, ok3 := IndexN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, 1, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := IndexN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+
+		index5, ok5 := IndexN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 1, index5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestLastIndex(t *testing.T) {
-	s1 := []int{1, 2, 3}
-	index1, ok1 := LastIndex(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 1, index1)
-	assert.True(t, ok1)
+	s1 := []int{1, 2, 3, 2}
+	s2 := []string{"1", "2", "3", "2"}
+	s3 := []T{{"1"}, {"2"}, {"3"}, {"2"}}
 
-	s2 := []string{"1", "2", "3"}
-	index2, ok2 := LastIndex(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, 1, index2)
-	assert.True(t, ok2)
+	t.Run("LastIndex", func(t *testing.T) {
+		index1, ok1 := LastIndex(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 3, index1)
+		assert.True(t, ok1)
 
-	s3 := []T{{"1"}, {"2"}, {"3"}}
-	index3, ok3 := LastIndex(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, 1, index3)
-	assert.True(t, ok3)
+		index2, ok2 := LastIndex(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, 3, index2)
+		assert.True(t, ok2)
 
-	s4 := []int{}
-	index4, ok4 := LastIndex(s4, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, -1, index4)
-	assert.False(t, ok4)
+		index3, ok3 := LastIndex(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, 3, index3)
+		assert.True(t, ok3)
 
-	s5 := []string{}
-	index5, ok5 := LastIndex(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, -1, index5)
-	assert.False(t, ok5)
+		index4, ok4 := LastIndex([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+	})
 
-	var s6 []*T
-	index6, ok6 := LastIndex(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, -1, index6)
-	assert.False(t, ok6)
+	t.Run("LastIndexN", func(t *testing.T) {
+		index1, ok1 := LastIndexN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 3, index1)
+		assert.True(t, ok1)
+
+		index2, ok2 := LastIndexN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, 3, index2)
+		assert.True(t, ok2)
+
+		index3, ok3 := LastIndexN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, 3, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := LastIndexN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+
+		index5, ok5 := LastIndexN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 1, index5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestFill(t *testing.T) {

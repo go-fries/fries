@@ -457,9 +457,23 @@ func FindLast[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 // Index returns the index of the first item of a given slice that satisfies
 // the given predicate function, or -1 and false if no item satisfies the predicate function.
 //
-//	Index([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 1, true
-//	Index([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // -1, false
-func Index[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
+//	Index([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 1, true
+//	Index([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // -1, false
+func Index[S ~[]E, E any](s S, fn func(E) bool) (int, bool) {
+	for i, item := range s {
+		if fn(item) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// IndexN returns the index of the first item of a given slice that satisfies
+// the given predicate function with index, or -1 and false if no item satisfies the predicate function.
+//
+//	IndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 1, true
+//	IndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // -1, false
+func IndexN[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 	for i, item := range s {
 		if fn(item, i) {
 			return i, true
@@ -471,9 +485,23 @@ func Index[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 // LastIndex returns the index of the last item of a given slice that satisfies
 // the given predicate function, or -1 and false if no item satisfies the predicate function.
 //
-//	LastIndex([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 2, true
-//	LastIndex([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // -1, false
-func LastIndex[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
+//	LastIndex([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 2, true
+//	LastIndex([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // -1, false
+func LastIndex[S ~[]E, E any](s S, fn func(E) bool) (int, bool) {
+	for i := len(s) - 1; i >= 0; i-- {
+		if fn(s[i]) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// LastIndexN returns the index of the last item of a given slice that satisfies
+// the given predicate function with index, or -1 and false if no item satisfies the predicate function.
+//
+//	LastIndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 2, true
+//	LastIndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // -1, false
+func LastIndexN[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 	for i := len(s) - 1; i >= 0; i-- {
 		if fn(s[i], i) {
 			return i, true
