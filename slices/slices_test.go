@@ -124,19 +124,25 @@ func TestAppend(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []int{2, 4}, Filter(s1, func(n, _ int) bool { return n%2 == 0 }))
-
 	s2 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []int{1, 3, 5}, Filter(s2, func(n, _ int) bool { return n%2 != 0 }))
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, []string{"1", "2", "3"}, Filter(s3, func(s string, _ int) bool { return s < "4" }))
-
 	s4 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, Filter(s4, func(t T, _ int) bool { return t.A < "4" }))
-
 	s5 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, []string{"1", "2", "3"}, Filter(s5, func(_ string, i int) bool { return i <= 2 }))
+
+	t.Run("Filter", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4}, Filter(s1, func(n int) bool { return n%2 == 0 }))
+		assert.Equal(t, []int{1, 3, 5}, Filter(s2, func(n int) bool { return n%2 != 0 }))
+		assert.Equal(t, []string{"1", "2", "3"}, Filter(s3, func(s string) bool { return s < "4" }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, Filter(s4, func(t T) bool { return t.A < "4" }))
+	})
+
+	t.Run("FilterN", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4}, FilterN(s1, func(n, _ int) bool { return n%2 == 0 }))
+		assert.Equal(t, []int{1, 3, 5}, FilterN(s2, func(n, _ int) bool { return n%2 != 0 }))
+		assert.Equal(t, []string{"1", "2", "3"}, FilterN(s3, func(s string, _ int) bool { return s < "4" }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, FilterN(s4, func(t T, _ int) bool { return t.A < "4" }))
+		assert.Equal(t, []string{"1", "2", "3"}, FilterN(s5, func(_ string, i int) bool { return i <= 2 }))
+	})
 }
 
 func TestReduce(t *testing.T) {
