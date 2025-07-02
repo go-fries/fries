@@ -8,9 +8,21 @@ import (
 
 // Map returns a new slice containing the results of applying the given function to each item of a given slice.
 //
+//	Map([]int{1, 2, 3}, func(i int) int { return i * 2 }) // []int{2, 4, 6}
+//	Map([]string{"a", "b", "c"}, func(s string) string { return s + "!" }) // []string{"a!", "b!", "c!"}
+func Map[S ~[]E, E, R any](s S, fn func(E) R) []R {
+	result := make([]R, 0, len(s))
+	for _, item := range s {
+		result = append(result, fn(item))
+	}
+	return result
+}
+
+// MapN returns a new slice containing the results of applying the given function to each item of a given slice.
+//
 //	Map([]int{1, 2, 3}, func(i, _ int) int { return i * 2 }) // []int{2, 4, 6}
 //	Map([]string{"a", "b", "c"}, func(s string, _ int) string { return s + "!" }) // []string{"a!", "b!", "c!"}
-func Map[S ~[]E, E, R any](s S, fn func(E, int) R) []R {
+func MapN[S ~[]E, E, R any](s S, fn func(E, int) R) []R {
 	result := make([]R, 0, len(s))
 	for i, item := range s {
 		result = append(result, fn(item, i))
