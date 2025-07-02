@@ -61,23 +61,43 @@ func TestKeyMap(t *testing.T) {
 
 func TestEach(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	var result []int
-	Each(s1, func(n, i int) {
-		if n == 3 {
-			assert.Equal(t, 2, i)
-		}
-		result = append(result, n*2)
-	})
-	assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
-
 	s2 := []int{1, 2, 3, 4, 5}
-	var result2 []string
-	Each(s2, func(n, _ int) { result2 = append(result2, strconv.Itoa(n)) })
-	assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	var result3 []T
-	Each(s3, func(s string, _ int) { result3 = append(result3, T{s}) })
+
+	t.Run("Each", func(t *testing.T) {
+		var result []int
+		Each(s1, func(n int) {
+			result = append(result, n*2)
+		})
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
+
+		var result2 []string
+		Each(s2, func(n int) { result2 = append(result2, strconv.Itoa(n)) })
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
+
+		var result3 []T
+		Each(s3, func(s string) { result3 = append(result3, T{s}) })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, result3)
+	})
+
+	t.Run("EachN", func(t *testing.T) {
+		var result []int
+		EachN(s1, func(n, i int) {
+			if n == 3 {
+				assert.Equal(t, 2, i)
+			}
+			result = append(result, n*2)
+		})
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
+
+		var result2 []string
+		EachN(s2, func(n, _ int) { result2 = append(result2, strconv.Itoa(n)) })
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
+
+		var result3 []T
+		EachN(s3, func(s string, _ int) { result3 = append(result3, T{s}) })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, result3)
+	})
 }
 
 func TestPrepend(t *testing.T) {

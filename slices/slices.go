@@ -47,8 +47,17 @@ func KeyMap[S ~[]E, E, R any, K comparable](s S, fn func(E, int) (K, R)) map[K]R
 
 // Each calls the given function for each item of a given slice.
 //
-//	Each([]int{1, 2, 3}, func(i int, _ int) { fmt.Println(i) }) // 1\n2\n3\n
-func Each[S ~[]E, E any](s S, fn func(E, int)) {
+//	Each([]int{1, 2, 3}, func(i int) { fmt.Println(i) }) // 1\n2\n3
+func Each[S ~[]E, E any](s S, fn func(E)) {
+	for _, item := range s {
+		fn(item)
+	}
+}
+
+// EachN calls the given function for each item of a given slice.
+//
+//	EachN([]int{1, 2, 3}, func(i int, _ int) { fmt.Println(i) }) // 1\n2\n3
+func EachN[S ~[]E, E any](s S, fn func(E, int)) {
 	for i, item := range s {
 		fn(item, i)
 	}
