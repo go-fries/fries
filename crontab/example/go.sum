@@ -1,7 +1,7 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/flc1125/go-cron/v4 v4.5.6 h1:RGAgbm4pBWF2/5yTlvN3y8ghg4f8m815hF5znKyXHFc=
-github.com/flc1125/go-cron/v4 v4.5.6/go.mod h1:7wGlEw0cBolSHQEyM8Kl46Watl/lXwVkdc8zc5G9WuY=
+github.com/flc1125/go-cron/v4 v4.5.7 h1:SYO2wPzVkeAIjBmJKw8kikQYh6RjDuA1FeF/7Q+v37Y=
+github.com/flc1125/go-cron/v4 v4.5.7/go.mod h1:7wGlEw0cBolSHQEyM8Kl46Watl/lXwVkdc8zc5G9WuY=
 github.com/go-kratos/aegis v0.2.0 h1:dObzCDWn3XVjUkgxyBp6ZeWtx/do0DPZ7LY3yNSJLUQ=
 github.com/go-kratos/aegis v0.2.0/go.mod h1:v0R2m73WgEEYB3XYu6aE2WcMwsZkJ/Rzuf5eVccm7bI=
 github.com/go-kratos/kratos/v2 v2.8.4 h1:eIJLE9Qq9WSoKx+Buy2uPyrahtF/lPh+Xf4MTpxhmjs=
