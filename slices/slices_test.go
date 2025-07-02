@@ -348,19 +348,40 @@ func TestWithoutAndRemove(t *testing.T) {
 
 func TestPartition(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	odd, even := Partition(s1, func(n, _ int) bool { return n%2 != 0 })
-	assert.Equal(t, []int{1, 3, 5}, odd)
-	assert.Equal(t, []int{2, 4}, even)
-
 	s2 := []string{"1", "2", "3", "4", "5"}
-	lessThan3, greaterThan3 := Partition(s2, func(s string, _ int) bool { return s < "3" })
-	assert.Equal(t, []string{"1", "2"}, lessThan3)
-	assert.Equal(t, []string{"3", "4", "5"}, greaterThan3)
-
 	s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
-	lessThan4, greaterThan4 := Partition(s3, func(t T, _ int) bool { return t.A < "4" })
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
-	assert.Equal(t, []T{{"4"}, {"5"}}, greaterThan4)
+
+	t.Run("Partition", func(t *testing.T) {
+		even, odd := Partition(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, []int{2, 4}, even)
+		assert.Equal(t, []int{1, 3, 5}, odd)
+
+		lessThan3, greaterEqual3 := Partition(s2, func(s string) bool { return s < "3" })
+		assert.Equal(t, []string{"1", "2"}, lessThan3)
+		assert.Equal(t, []string{"3", "4", "5"}, greaterEqual3)
+
+		lessThan4, greaterEqual4 := Partition(s3, func(t T) bool { return t.A < "4" })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
+		assert.Equal(t, []T{{"4"}, {"5"}}, greaterEqual4)
+	})
+
+	t.Run("PartitionN", func(t *testing.T) {
+		even, odd := PartitionN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, []int{2, 4}, even)
+		assert.Equal(t, []int{1, 3, 5}, odd)
+
+		lessThan3, greaterEqual3 := PartitionN(s2, func(s string, _ int) bool { return s < "3" })
+		assert.Equal(t, []string{"1", "2"}, lessThan3)
+		assert.Equal(t, []string{"3", "4", "5"}, greaterEqual3)
+
+		lessThan4, greaterEqual4 := PartitionN(s3, func(t T, _ int) bool { return t.A < "4" })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
+		assert.Equal(t, []T{{"4"}, {"5"}}, greaterEqual4)
+
+		firstThree, rest := PartitionN(s1, func(_, i int) bool { return i < 3 })
+		assert.Equal(t, []int{1, 2, 3}, firstThree)
+		assert.Equal(t, []int{4, 5}, rest)
+	})
 }
 
 func TestChunk(t *testing.T) {

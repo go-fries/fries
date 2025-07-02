@@ -342,8 +342,24 @@ func Remove[S ~[]E, E comparable](s S, items ...E) S {
 // the items of a given slice that satisfy the given predicate function,
 // and the second containing the items that do not satisfy the predicate function.
 //
-//	Partition([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
-func Partition[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
+//	Partition([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
+func Partition[S ~[]E, E any](s S, fn func(E) bool) (yes, no S) {
+	for _, item := range s {
+		if fn(item) {
+			yes = append(yes, item)
+		} else {
+			no = append(no, item)
+		}
+	}
+	return
+}
+
+// PartitionN returns two new slices, the first containing the items of a given slice
+// that satisfy the given predicate function with index, and the second containing the items
+// that do not satisfy the predicate function.
+//
+//	PartitionN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
+func PartitionN[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
 	for i, item := range s {
 		if fn(item, i) {
 			yes = append(yes, item)
