@@ -388,8 +388,20 @@ func Chunk[S ~[]E, E any](s S, size int) (result []S) {
 
 // GroupBy returns a new map containing the items of a given slice grouped by the result of the given function.
 //
-//	GroupBy([]int{1, 2, 3, 4, 5}, func(i int, _ int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
-func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
+//	GroupBy([]int{1, 2, 3, 4, 5}, func(i int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
+func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]S {
+	result := make(map[K]S)
+	for _, item := range s {
+		key := fn(item)
+		result[key] = append(result[key], item)
+	}
+	return result
+}
+
+// GroupByN returns a new map containing the items of a given slice grouped by the result of the given function with index.
+//
+//	GroupByN([]int{1, 2, 3, 4, 5}, func(i, idx int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
+func GroupByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
 	result := make(map[K]S)
 	for i, item := range s {
 		key := fn(item, i)
@@ -426,9 +438,25 @@ func Last[S ~[]E, E any](s S) (E, bool) {
 // the given predicate function, or a zero value and false,
 // if no item satisfies the predicate function.
 //
-//	Find([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 2, true
-//	Find([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // 0, false
-func Find[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+//	Find([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 2, true
+//	Find([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // 0, false
+func Find[S ~[]E, E any](s S, fn func(E) bool) (E, bool) {
+	for _, item := range s {
+		if fn(item) {
+			return item, true
+		}
+	}
+	var zero E
+	return zero, false
+}
+
+// FindN returns the first item of a given slice that satisfies
+// the given predicate function with index, or a zero value and false,
+// if no item satisfies the predicate function.
+//
+//	FindN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 2, true
+//	FindN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // 0, false
+func FindN[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 	for i, item := range s {
 		if fn(item, i) {
 			return item, true
@@ -442,12 +470,30 @@ func Find[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 // the given predicate function, or a zero value and false,
 // if no item satisfies the predicate function.
 //
-//	FindLast([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 3, true
-//	FindLast([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // 0, false
-func FindLast[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+//	FindLast([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 3, true
+//	FindLast([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // 0, false
+func FindLast[S ~[]E, E any](s S, fn func(E) bool) (E, bool) {
 	for i := len(s) - 1; i >= 0; i-- {
-		if fn(s[i], i) {
-			return s[i], true
+		item := s[i]
+		if fn(item) {
+			return item, true
+		}
+	}
+	var zero E
+	return zero, false
+}
+
+// FindLastN returns the last item of a given slice that satisfies
+// the given predicate function with index, or a zero value and false,
+// if no item satisfies the predicate function.
+//
+//	FindLastN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 3, true
+//	FindLastN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // 0, false
+func FindLastN[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+	for i := len(s) - 1; i >= 0; i-- {
+		item := s[i]
+		if fn(item, i) {
+			return item, true
 		}
 	}
 	var zero E
