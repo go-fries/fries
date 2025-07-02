@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/filesystem/v3 => ../
 
 require (
-	github.com/go-fries/fries/filesystem/v3 v3.6.1
+	github.com/go-fries/fries/filesystem/v3 v3.7.0
 	github.com/stretchr/testify v1.10.0
 )
 
