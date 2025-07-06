@@ -13,20 +13,25 @@ type T struct {
 
 func TestMap(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []int{2, 4, 6, 8, 10}, Map(s1, func(n, i int) int {
-		if n == 3 {
-			assert.Equal(t, 2, i)
-		}
-		return n * 2
-	}))
-
 	s2 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []string{"1", "2", "3", "4", "5"}, Map(s2, func(n, _ int) string {
-		return strconv.Itoa(n)
-	}))
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, Map(s3, func(s string, _ int) T { return T{s} }))
+
+	t.Run("Map", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, Map(s1, func(n int) int { return n * 2 }))
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, Map(s2, func(n int) string { return strconv.Itoa(n) }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, Map(s3, func(s string) T { return T{s} }))
+	})
+
+	t.Run("MapN", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, MapN(s1, func(n, i int) int {
+			if n == 3 {
+				assert.Equal(t, 2, i)
+			}
+			return n * 2
+		}))
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, MapN(s2, func(n, _ int) string { return strconv.Itoa(n) }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, MapN(s3, func(s string, _ int) T { return T{s} }))
+	})
 }
 
 func TestKeyMap(t *testing.T) {
@@ -56,23 +61,43 @@ func TestKeyMap(t *testing.T) {
 
 func TestEach(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	var result []int
-	Each(s1, func(n, i int) {
-		if n == 3 {
-			assert.Equal(t, 2, i)
-		}
-		result = append(result, n*2)
-	})
-	assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
-
 	s2 := []int{1, 2, 3, 4, 5}
-	var result2 []string
-	Each(s2, func(n, _ int) { result2 = append(result2, strconv.Itoa(n)) })
-	assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	var result3 []T
-	Each(s3, func(s string, _ int) { result3 = append(result3, T{s}) })
+
+	t.Run("Each", func(t *testing.T) {
+		var result []int
+		Each(s1, func(n int) {
+			result = append(result, n*2)
+		})
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
+
+		var result2 []string
+		Each(s2, func(n int) { result2 = append(result2, strconv.Itoa(n)) })
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
+
+		var result3 []T
+		Each(s3, func(s string) { result3 = append(result3, T{s}) })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, result3)
+	})
+
+	t.Run("EachN", func(t *testing.T) {
+		var result []int
+		EachN(s1, func(n, i int) {
+			if n == 3 {
+				assert.Equal(t, 2, i)
+			}
+			result = append(result, n*2)
+		})
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
+
+		var result2 []string
+		EachN(s2, func(n, _ int) { result2 = append(result2, strconv.Itoa(n)) })
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, result2)
+
+		var result3 []T
+		EachN(s3, func(s string, _ int) { result3 = append(result3, T{s}) })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, result3)
+	})
 }
 
 func TestPrepend(t *testing.T) {
@@ -99,31 +124,48 @@ func TestAppend(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []int{2, 4}, Filter(s1, func(n, _ int) bool { return n%2 == 0 }))
-
 	s2 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, []int{1, 3, 5}, Filter(s2, func(n, _ int) bool { return n%2 != 0 }))
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, []string{"1", "2", "3"}, Filter(s3, func(s string, _ int) bool { return s < "4" }))
-
 	s4 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, Filter(s4, func(t T, _ int) bool { return t.A < "4" }))
-
 	s5 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, []string{"1", "2", "3"}, Filter(s5, func(_ string, i int) bool { return i <= 2 }))
+
+	t.Run("Filter", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4}, Filter(s1, func(n int) bool { return n%2 == 0 }))
+		assert.Equal(t, []int{1, 3, 5}, Filter(s2, func(n int) bool { return n%2 != 0 }))
+		assert.Equal(t, []string{"1", "2", "3"}, Filter(s3, func(s string) bool { return s < "4" }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, Filter(s4, func(t T) bool { return t.A < "4" }))
+	})
+
+	t.Run("FilterN", func(t *testing.T) {
+		assert.Equal(t, []int{2, 4}, FilterN(s1, func(n, _ int) bool { return n%2 == 0 }))
+		assert.Equal(t, []int{1, 3, 5}, FilterN(s2, func(n, _ int) bool { return n%2 != 0 }))
+		assert.Equal(t, []string{"1", "2", "3"}, FilterN(s3, func(s string, _ int) bool { return s < "4" }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, FilterN(s4, func(t T, _ int) bool { return t.A < "4" }))
+		assert.Equal(t, []string{"1", "2", "3"}, FilterN(s5, func(_ string, i int) bool { return i <= 2 }))
+	})
 }
 
 func TestReduce(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, 15, Reduce(s1, func(acc, n, _ int) int { return acc + n }))
-
 	s2 := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, 0, Reduce(s2, func(acc, n, _ int) int { return acc * n }))
-	assert.Equal(t, 120, Reduce(s2, func(acc, n, _ int) int { return acc * n }, 1))
-
 	s3 := []string{"1", "2", "3", "4", "5"}
-	assert.Equal(t, "12345", Reduce(s3, func(acc, s string, _ int) string { return acc + s }))
+	t.Run("Reduce", func(t *testing.T) {
+		assert.Equal(t, 15, Reduce(s1, func(acc, n int) int { return acc + n }))
+
+		assert.Equal(t, 0, Reduce(s2, func(acc, n int) int { return acc * n }))
+		assert.Equal(t, 120, Reduce(s2, func(acc, n int) int { return acc * n }, 1))
+
+		assert.Equal(t, "12345", Reduce(s3, func(acc, s string) string { return acc + s }))
+	})
+
+	t.Run("ReduceN", func(t *testing.T) {
+		assert.Equal(t, 15, ReduceN(s1, func(acc, n, _ int) int { return acc + n }))
+
+		assert.Equal(t, 0, ReduceN(s2, func(acc, n, _ int) int { return acc * n }))
+		assert.Equal(t, 120, ReduceN(s2, func(acc, n, _ int) int { return acc * n }, 1))
+
+		assert.Equal(t, "12345", ReduceN(s3, func(acc, s string, _ int) string { return acc + s }))
+	})
 }
 
 func TestReverse(t *testing.T) {
@@ -232,16 +274,23 @@ func TestUnique(t *testing.T) {
 
 func TestUniqueBy(t *testing.T) {
 	s1 := []int{1, 2, 3, 1, 2, 3}
-	assert.Equal(t, []int{1, 2, 3}, UniqueBy(s1, func(n, _ int) int { return n }))
-
 	s2 := []string{"1", "2", "3", "1", "2", "3"}
-	assert.Equal(t, []string{"1", "2", "3"}, UniqueBy(s2, func(s string, _ int) string { return s }))
-
 	s3 := []T{{"1"}, {"2"}, {"3"}, {"1"}, {"2"}, {"3"}}
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueBy(s3, func(t T, _ int) string { return t.A }))
-
 	s4 := []string{"apple", "apple2", "cherry"}
-	assert.Equal(t, []string{"apple", "cherry"}, UniqueBy(s4, func(s string, _ int) string { return s[:1] }))
+
+	t.Run("UniqueBy", func(t *testing.T) {
+		assert.Equal(t, []int{1, 2, 3}, UniqueBy(s1, func(n int) int { return n }))
+		assert.Equal(t, []string{"1", "2", "3"}, UniqueBy(s2, func(s string) string { return s }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueBy(s3, func(t T) string { return t.A }))
+		assert.Equal(t, []string{"apple", "cherry"}, UniqueBy(s4, func(s string) string { return s[:1] }))
+	})
+
+	t.Run("UniqueByN", func(t *testing.T) {
+		assert.Equal(t, []int{1, 2, 3}, UniqueByN(s1, func(n, _ int) int { return n }))
+		assert.Equal(t, []string{"1", "2", "3"}, UniqueByN(s2, func(s string, _ int) string { return s }))
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, UniqueByN(s3, func(t T, _ int) string { return t.A }))
+		assert.Equal(t, []string{"apple", "cherry"}, UniqueByN(s4, func(s string, _ int) string { return s[:1] }))
+	})
 }
 
 func TestDifference(t *testing.T) {
@@ -299,19 +348,40 @@ func TestWithoutAndRemove(t *testing.T) {
 
 func TestPartition(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	odd, even := Partition(s1, func(n, _ int) bool { return n%2 != 0 })
-	assert.Equal(t, []int{1, 3, 5}, odd)
-	assert.Equal(t, []int{2, 4}, even)
-
 	s2 := []string{"1", "2", "3", "4", "5"}
-	lessThan3, greaterThan3 := Partition(s2, func(s string, _ int) bool { return s < "3" })
-	assert.Equal(t, []string{"1", "2"}, lessThan3)
-	assert.Equal(t, []string{"3", "4", "5"}, greaterThan3)
-
 	s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
-	lessThan4, greaterThan4 := Partition(s3, func(t T, _ int) bool { return t.A < "4" })
-	assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
-	assert.Equal(t, []T{{"4"}, {"5"}}, greaterThan4)
+
+	t.Run("Partition", func(t *testing.T) {
+		even, odd := Partition(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, []int{2, 4}, even)
+		assert.Equal(t, []int{1, 3, 5}, odd)
+
+		lessThan3, greaterEqual3 := Partition(s2, func(s string) bool { return s < "3" })
+		assert.Equal(t, []string{"1", "2"}, lessThan3)
+		assert.Equal(t, []string{"3", "4", "5"}, greaterEqual3)
+
+		lessThan4, greaterEqual4 := Partition(s3, func(t T) bool { return t.A < "4" })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
+		assert.Equal(t, []T{{"4"}, {"5"}}, greaterEqual4)
+	})
+
+	t.Run("PartitionN", func(t *testing.T) {
+		even, odd := PartitionN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, []int{2, 4}, even)
+		assert.Equal(t, []int{1, 3, 5}, odd)
+
+		lessThan3, greaterEqual3 := PartitionN(s2, func(s string, _ int) bool { return s < "3" })
+		assert.Equal(t, []string{"1", "2"}, lessThan3)
+		assert.Equal(t, []string{"3", "4", "5"}, greaterEqual3)
+
+		lessThan4, greaterEqual4 := PartitionN(s3, func(t T, _ int) bool { return t.A < "4" })
+		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, lessThan4)
+		assert.Equal(t, []T{{"4"}, {"5"}}, greaterEqual4)
+
+		firstThree, rest := PartitionN(s1, func(_, i int) bool { return i < 3 })
+		assert.Equal(t, []int{1, 2, 3}, firstThree)
+		assert.Equal(t, []int{4, 5}, rest)
+	})
 }
 
 func TestChunk(t *testing.T) {
@@ -327,16 +397,40 @@ func TestChunk(t *testing.T) {
 
 func TestGroupBy(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
-	result1 := GroupBy(s1, func(n, _ int) string { return strconv.Itoa(n % 2) })
-	assert.Equal(t, map[string][]int{"0": {2, 4}, "1": {1, 3, 5}}, result1)
 
-	s2 := []string{"1", "2", "3", "4", "5"}
-	result2 := GroupBy(s2, func(s string, _ int) string { return s })
-	assert.Equal(t, map[string][]string{"1": {"1"}, "2": {"2"}, "3": {"3"}, "4": {"4"}, "5": {"5"}}, result2)
+	t.Run("GroupBy", func(t *testing.T) {
+		result1 := GroupBy(s1, func(n int) int { return n % 2 })
+		assert.Equal(t, map[int][]int{0: {2, 4}, 1: {1, 3, 5}}, result1)
 
-	s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
-	result3 := GroupBy(s3, func(t T, _ int) string { return t.A })
-	assert.Equal(t, map[string][]T{"1": {{"1"}}, "2": {{"2"}}, "3": {{"3"}}, "4": {{"4"}}, "5": {{"5"}}}, result3)
+		s2 := []string{"1", "2", "3", "4", "5"}
+		result2 := GroupBy(s2, func(s string) string { return s })
+		assert.Equal(t, map[string][]string{"1": {"1"}, "2": {"2"}, "3": {"3"}, "4": {"4"}, "5": {"5"}}, result2)
+
+		s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
+		result3 := GroupBy(s3, func(t T) string { return t.A })
+		assert.Equal(t, map[string][]T{"1": {{"1"}}, "2": {{"2"}}, "3": {{"3"}}, "4": {{"4"}}, "5": {{"5"}}}, result3)
+	})
+
+	t.Run("GroupByN", func(t *testing.T) {
+		result1 := GroupByN(s1, func(n, _ int) int { return n % 2 })
+		assert.Equal(t, map[int][]int{0: {2, 4}, 1: {1, 3, 5}}, result1)
+
+		s2 := []string{"1", "2", "3", "4", "5"}
+		result2 := GroupByN(s2, func(s string, _ int) string { return s })
+		assert.Equal(t, map[string][]string{"1": {"1"}, "2": {"2"}, "3": {"3"}, "4": {"4"}, "5": {"5"}}, result2)
+
+		s3 := []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}
+		result3 := GroupByN(s3, func(t T, _ int) string { return t.A })
+		assert.Equal(t, map[string][]T{"1": {{"1"}}, "2": {{"2"}}, "3": {{"3"}}, "4": {{"4"}}, "5": {{"5"}}}, result3)
+
+		result4 := GroupByN(s1, func(_, i int) string {
+			if i < 3 {
+				return "first"
+			}
+			return "last"
+		})
+		assert.Equal(t, map[string][]int{"first": {1, 2, 3}, "last": {4, 5}}, result4)
+	})
 }
 
 func TestFirst(t *testing.T) {
@@ -405,130 +499,186 @@ func TestLast(t *testing.T) {
 
 func TestFind(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	find1, ok1 := Find(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 2, find1)
-	assert.True(t, ok1)
-
 	s2 := []string{"1", "2", "3"}
-	find2, ok2 := Find(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, "2", find2)
-	assert.True(t, ok2)
-
 	s3 := []T{{"1"}, {"2"}, {"3"}}
-	find3, ok3 := Find(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, T{"2"}, find3)
-	assert.True(t, ok3)
 
-	s4 := []int{}
-	find4, ok4 := Find(s4, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 0, find4)
-	assert.False(t, ok4)
+	t.Run("Find", func(t *testing.T) {
+		find1, ok1 := Find(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 2, find1)
+		assert.True(t, ok1)
 
-	s5 := []string{}
-	find5, ok5 := Find(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, "", find5)
-	assert.False(t, ok5)
+		find2, ok2 := Find(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, "2", find2)
+		assert.True(t, ok2)
 
-	var s6 []*T
-	find6, ok6 := Find(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, (*T)(nil), find6)
-	assert.False(t, ok6)
+		find3, ok3 := Find(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, T{"2"}, find3)
+		assert.True(t, ok3)
+
+		find4, ok4 := Find([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 0, find4)
+		assert.False(t, ok4)
+	})
+
+	t.Run("FindN", func(t *testing.T) {
+		find1, ok1 := FindN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 2, find1)
+		assert.True(t, ok1)
+
+		find2, ok2 := FindN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, "2", find2)
+		assert.True(t, ok2)
+
+		find3, ok3 := FindN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, T{"2"}, find3)
+		assert.True(t, ok3)
+
+		find4, ok4 := FindN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 0, find4)
+		assert.False(t, ok4)
+
+		find5, ok5 := FindN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 2, find5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestFindLast(t *testing.T) {
-	s1 := []int{1, 2, 3}
-	find1, ok1 := FindLast(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 2, find1)
-	assert.True(t, ok1)
+	s1 := []int{1, 2, 3, 2}
+	s2 := []string{"1", "2", "3", "2"}
+	s3 := []T{{"1"}, {"2"}, {"3"}, {"2"}}
 
-	s2 := []string{"1", "2", "3"}
-	find2, ok2 := FindLast(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, "2", find2)
-	assert.True(t, ok2)
+	t.Run("FindLast", func(t *testing.T) {
+		find1, ok1 := FindLast(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 2, find1)
+		assert.True(t, ok1)
 
-	s3 := []T{{"1"}, {"2"}, {"3"}}
-	find3, ok3 := FindLast(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, T{"2"}, find3)
-	assert.True(t, ok3)
+		find2, ok2 := FindLast(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, "2", find2)
+		assert.True(t, ok2)
 
-	s4 := []int{}
-	find4, ok4 := FindLast(s4, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 0, find4)
-	assert.False(t, ok4)
+		find3, ok3 := FindLast(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, T{"2"}, find3)
+		assert.True(t, ok3)
 
-	s5 := []string{}
-	find5, ok5 := FindLast(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, "", find5)
-	assert.False(t, ok5)
+		find4, ok4 := FindLast([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 0, find4)
+		assert.False(t, ok4)
+	})
 
-	var s6 []*T
-	find6, ok6 := FindLast(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, (*T)(nil), find6)
-	assert.False(t, ok6)
+	t.Run("FindLastN", func(t *testing.T) {
+		find1, ok1 := FindLastN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 2, find1)
+		assert.True(t, ok1)
+
+		find2, ok2 := FindLastN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, "2", find2)
+		assert.True(t, ok2)
+
+		find3, ok3 := FindLastN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, T{"2"}, find3)
+		assert.True(t, ok3)
+
+		find4, ok4 := FindLastN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 0, find4)
+		assert.False(t, ok4)
+
+		find5, ok5 := FindLastN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 2, find5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestIndex(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	index1, ok1 := Index(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 1, index1)
-	assert.True(t, ok1)
-
 	s2 := []string{"1", "2", "3"}
-	index2, ok2 := Index(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, 1, index2)
-	assert.True(t, ok2)
-
 	s3 := []T{{"1"}, {"2"}, {"3"}}
-	index3, ok3 := Index(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, 1, index3)
-	assert.True(t, ok3)
 
-	s4 := []int{}
-	index4, ok4 := Index(s4, func(n int, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, -1, index4)
-	assert.False(t, ok4)
+	t.Run("Index", func(t *testing.T) {
+		index1, ok1 := Index(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 1, index1)
+		assert.True(t, ok1)
 
-	s5 := []string{}
-	index5, ok5 := Index(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, -1, index5)
-	assert.False(t, ok5)
+		index2, ok2 := Index(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, 1, index2)
+		assert.True(t, ok2)
 
-	var s6 []*T
-	index6, ok6 := Index(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, -1, index6)
-	assert.False(t, ok6)
+		index3, ok3 := Index(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, 1, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := Index([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+	})
+
+	t.Run("IndexN", func(t *testing.T) {
+		index1, ok1 := IndexN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 1, index1)
+		assert.True(t, ok1)
+
+		index2, ok2 := IndexN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, 1, index2)
+		assert.True(t, ok2)
+
+		index3, ok3 := IndexN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, 1, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := IndexN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+
+		index5, ok5 := IndexN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 1, index5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestLastIndex(t *testing.T) {
-	s1 := []int{1, 2, 3}
-	index1, ok1 := LastIndex(s1, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, 1, index1)
-	assert.True(t, ok1)
+	s1 := []int{1, 2, 3, 2}
+	s2 := []string{"1", "2", "3", "2"}
+	s3 := []T{{"1"}, {"2"}, {"3"}, {"2"}}
 
-	s2 := []string{"1", "2", "3"}
-	index2, ok2 := LastIndex(s2, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, 1, index2)
-	assert.True(t, ok2)
+	t.Run("LastIndex", func(t *testing.T) {
+		index1, ok1 := LastIndex(s1, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, 3, index1)
+		assert.True(t, ok1)
 
-	s3 := []T{{"1"}, {"2"}, {"3"}}
-	index3, ok3 := LastIndex(s3, func(t T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, 1, index3)
-	assert.True(t, ok3)
+		index2, ok2 := LastIndex(s2, func(s string) bool { return s == "2" })
+		assert.Equal(t, 3, index2)
+		assert.True(t, ok2)
 
-	s4 := []int{}
-	index4, ok4 := LastIndex(s4, func(n, _ int) bool { return n%2 == 0 })
-	assert.Equal(t, -1, index4)
-	assert.False(t, ok4)
+		index3, ok3 := LastIndex(s3, func(t T) bool { return t.A == "2" })
+		assert.Equal(t, 3, index3)
+		assert.True(t, ok3)
 
-	s5 := []string{}
-	index5, ok5 := LastIndex(s5, func(s string, _ int) bool { return s == "2" })
-	assert.Equal(t, -1, index5)
-	assert.False(t, ok5)
+		index4, ok4 := LastIndex([]int{}, func(n int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+	})
 
-	var s6 []*T
-	index6, ok6 := LastIndex(s6, func(t *T, _ int) bool { return t.A == "2" })
-	assert.Equal(t, -1, index6)
-	assert.False(t, ok6)
+	t.Run("LastIndexN", func(t *testing.T) {
+		index1, ok1 := LastIndexN(s1, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, 3, index1)
+		assert.True(t, ok1)
+
+		index2, ok2 := LastIndexN(s2, func(s string, _ int) bool { return s == "2" })
+		assert.Equal(t, 3, index2)
+		assert.True(t, ok2)
+
+		index3, ok3 := LastIndexN(s3, func(t T, _ int) bool { return t.A == "2" })
+		assert.Equal(t, 3, index3)
+		assert.True(t, ok3)
+
+		index4, ok4 := LastIndexN([]int{}, func(n, _ int) bool { return n%2 == 0 })
+		assert.Equal(t, -1, index4)
+		assert.False(t, ok4)
+
+		index5, ok5 := LastIndexN(s1, func(_, i int) bool { return i == 1 })
+		assert.Equal(t, 1, index5)
+		assert.True(t, ok5)
+	})
 }
 
 func TestFill(t *testing.T) {

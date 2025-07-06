@@ -9,9 +9,9 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/codec/sonic/v3 v3.6.1
-	github.com/go-fries/fries/codec/v3 v3.6.1
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.6.1
+	github.com/go-fries/fries/codec/sonic/v3 v3.7.0
+	github.com/go-fries/fries/codec/v3 v3.7.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.7.0
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/stretchr/testify v1.10.0
 )
@@ -21,7 +21,7 @@ require (
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/cloudwego/eino v0.3.45 // indirect
+	github.com/cloudwego/eino v0.3.48 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

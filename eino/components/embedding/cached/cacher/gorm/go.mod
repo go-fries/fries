@@ -5,8 +5,8 @@ go 1.23.0
 replace github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../../
 
 require (
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.6.1
-	gorm.io/datatypes v1.2.5
+	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.7.0
+	gorm.io/datatypes v1.2.6
 	gorm.io/gorm v1.30.0
 )
 
@@ -15,7 +15,7 @@ require (
 	github.com/bytedance/sonic v1.13.3 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/cloudwego/eino v0.3.45 // indirect
+	github.com/cloudwego/eino v0.3.48 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/getkin/kin-openapi v0.118.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect

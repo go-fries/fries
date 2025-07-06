@@ -8,9 +8,21 @@ import (
 
 // Map returns a new slice containing the results of applying the given function to each item of a given slice.
 //
+//	Map([]int{1, 2, 3}, func(i int) int { return i * 2 }) // []int{2, 4, 6}
+//	Map([]string{"a", "b", "c"}, func(s string) string { return s + "!" }) // []string{"a!", "b!", "c!"}
+func Map[S ~[]E, E, R any](s S, fn func(E) R) []R {
+	result := make([]R, 0, len(s))
+	for _, item := range s {
+		result = append(result, fn(item))
+	}
+	return result
+}
+
+// MapN returns a new slice containing the results of applying the given function to each item of a given slice.
+//
 //	Map([]int{1, 2, 3}, func(i, _ int) int { return i * 2 }) // []int{2, 4, 6}
 //	Map([]string{"a", "b", "c"}, func(s string, _ int) string { return s + "!" }) // []string{"a!", "b!", "c!"}
-func Map[S ~[]E, E, R any](s S, fn func(E, int) R) []R {
+func MapN[S ~[]E, E, R any](s S, fn func(E, int) R) []R {
 	result := make([]R, 0, len(s))
 	for i, item := range s {
 		result = append(result, fn(item, i))
@@ -35,8 +47,17 @@ func KeyMap[S ~[]E, E, R any, K comparable](s S, fn func(E, int) (K, R)) map[K]R
 
 // Each calls the given function for each item of a given slice.
 //
-//	Each([]int{1, 2, 3}, func(i int, _ int) { fmt.Println(i) }) // 1\n2\n3\n
-func Each[S ~[]E, E any](s S, fn func(E, int)) {
+//	Each([]int{1, 2, 3}, func(i int) { fmt.Println(i) }) // 1\n2\n3
+func Each[S ~[]E, E any](s S, fn func(E)) {
+	for _, item := range s {
+		fn(item)
+	}
+}
+
+// EachN calls the given function for each item of a given slice.
+//
+//	EachN([]int{1, 2, 3}, func(i int, _ int) { fmt.Println(i) }) // 1\n2\n3
+func EachN[S ~[]E, E any](s S, fn func(E, int)) {
 	for i, item := range s {
 		fn(item, i)
 	}
@@ -58,10 +79,24 @@ func Append[S ~[]E, E any](s S, items ...E) S {
 
 // Filter returns a new slice containing the items of a given slice that satisfy the given predicate function.
 //
-//	Filter([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // []int{2, 3}
-//	Filter([]string{"a", "b", "c"}, func(s string, _ int) bool { return s != "b" }) // []string{"a", "c"}
-func Filter[S ~[]E, R []E, E any](s S, fn func(E, int) bool) R {
-	var result R
+//	Filter([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // []int{2, 3}
+//	Filter([]string{"a", "b", "c"}, func(s string) bool { return s != "b" }) // []string{"a", "c"}
+func Filter[S ~[]E, E any](s S, fn func(E) bool) S {
+	var result S
+	for _, item := range s {
+		if fn(item) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// FilterN returns a new slice containing the items of a given slice that satisfy the given predicate function.
+//
+//	FilterN([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // []int{2, 3}
+//	FilterN([]string{"a", "b", "c"}, func(s string, _ int) bool { return s != "b" }) // []string{"a", "c"}
+func FilterN[S ~[]E, E any](s S, fn func(E, int) bool) S {
+	var result S
 	for i, item := range s {
 		if fn(item, i) {
 			result = append(result, item)
@@ -73,10 +108,27 @@ func Filter[S ~[]E, R []E, E any](s S, fn func(E, int) bool) R {
 // Reduce applies the given function against an accumulator
 // and each element in the slice to reduce it to a single value.
 //
-//	Reduce([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 0) // 6
-//	Reduce([]string{"a", "b", "c"}, func(acc, s string, _ int) string { return acc + s }, "") // "abc"
-//	Reduce([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 5) // 11
-func Reduce[S ~[]E, E, R any](s S, fn func(R, E, int) R, defaults ...R) R {
+//	Reduce([]int{1, 2, 3}, func(acc, i int) int { return acc + i }, 0) // 6
+//	Reduce([]string{"a", "b", "c"}, func(acc, s string) string { return acc + s }, "") // "abc"
+//	Reduce([]int{1, 2, 3}, func(acc, i int) int { return acc + i }, 5) // 11
+func Reduce[S ~[]E, E, R any](s S, fn func(R, E) R, defaults ...R) R {
+	var result R
+	if len(defaults) > 0 {
+		result = defaults[0]
+	}
+	for _, item := range s {
+		result = fn(result, item)
+	}
+	return result
+}
+
+// ReduceN applies the given function against an accumulator
+// and each element in the slice to reduce it to a single value.
+//
+//	ReduceN([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 0) // 6
+//	ReduceN([]string{"a", "b", "c"}, func(acc, s string, _ int) string { return acc + s }, "") // "abc"
+//	ReduceN([]int{1, 2, 3}, func(acc, i, _ int) int { return acc + i }, 5) // 11
+func ReduceN[S ~[]E, E, R any](s S, fn func(R, E, int) R, defaults ...R) R {
 	var result R
 	if len(defaults) > 0 {
 		result = defaults[0]
@@ -184,10 +236,29 @@ func Unique[S ~[]E, E comparable](s S) S {
 // UniqueBy returns a new slice containing the unique items of
 // a given slice based on the given function.
 //
-//	UniqueBy([]string{"apple", "apple2", "cherry"}, func(s string, _ int) string {
+//	UniqueBy([]string{"apple", "apple2", "cherry"}, func(s string) string {
 //		return s[:1]
 //	}) // []string{"apple", "cherry"}
-func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
+func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E) K) S {
+	var result S
+	seeds := make(map[K]struct{})
+	for _, item := range s {
+		key := fn(item)
+		if _, ok := seeds[key]; !ok {
+			seeds[key] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// UniqueByN returns a new slice containing the unique items of
+// a given slice based on the given function.
+//
+//	UniqueByN([]string{"apple", "apple2", "cherry"}, func(s string, _ int) string {
+//		return s[:1]
+//	}) // []string{"apple", "cherry"}
+func UniqueByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
 	var result S
 	seeds := make(map[K]struct{})
 	for i, item := range s {
@@ -271,8 +342,24 @@ func Remove[S ~[]E, E comparable](s S, items ...E) S {
 // the items of a given slice that satisfy the given predicate function,
 // and the second containing the items that do not satisfy the predicate function.
 //
-//	Partition([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
-func Partition[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
+//	Partition([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
+func Partition[S ~[]E, E any](s S, fn func(E) bool) (yes, no S) {
+	for _, item := range s {
+		if fn(item) {
+			yes = append(yes, item)
+		} else {
+			no = append(no, item)
+		}
+	}
+	return
+}
+
+// PartitionN returns two new slices, the first containing the items of a given slice
+// that satisfy the given predicate function with index, and the second containing the items
+// that do not satisfy the predicate function.
+//
+//	PartitionN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // ([]int{2, 3}, []int{1})
+func PartitionN[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
 	for i, item := range s {
 		if fn(item, i) {
 			yes = append(yes, item)
@@ -301,8 +388,20 @@ func Chunk[S ~[]E, E any](s S, size int) (result []S) {
 
 // GroupBy returns a new map containing the items of a given slice grouped by the result of the given function.
 //
-//	GroupBy([]int{1, 2, 3, 4, 5}, func(i int, _ int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
-func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
+//	GroupBy([]int{1, 2, 3, 4, 5}, func(i int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
+func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]S {
+	result := make(map[K]S)
+	for _, item := range s {
+		key := fn(item)
+		result[key] = append(result[key], item)
+	}
+	return result
+}
+
+// GroupByN returns a new map containing the items of a given slice grouped by the result of the given function with index.
+//
+//	GroupByN([]int{1, 2, 3, 4, 5}, func(i, idx int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
+func GroupByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
 	result := make(map[K]S)
 	for i, item := range s {
 		key := fn(item, i)
@@ -339,9 +438,25 @@ func Last[S ~[]E, E any](s S) (E, bool) {
 // the given predicate function, or a zero value and false,
 // if no item satisfies the predicate function.
 //
-//	Find([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 2, true
-//	Find([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // 0, false
-func Find[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+//	Find([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 2, true
+//	Find([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // 0, false
+func Find[S ~[]E, E any](s S, fn func(E) bool) (E, bool) {
+	for _, item := range s {
+		if fn(item) {
+			return item, true
+		}
+	}
+	var zero E
+	return zero, false
+}
+
+// FindN returns the first item of a given slice that satisfies
+// the given predicate function with index, or a zero value and false,
+// if no item satisfies the predicate function.
+//
+//	FindN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 2, true
+//	FindN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // 0, false
+func FindN[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 	for i, item := range s {
 		if fn(item, i) {
 			return item, true
@@ -355,12 +470,30 @@ func Find[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 // the given predicate function, or a zero value and false,
 // if no item satisfies the predicate function.
 //
-//	FindLast([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 3, true
-//	FindLast([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // 0, false
-func FindLast[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+//	FindLast([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 3, true
+//	FindLast([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // 0, false
+func FindLast[S ~[]E, E any](s S, fn func(E) bool) (E, bool) {
 	for i := len(s) - 1; i >= 0; i-- {
-		if fn(s[i], i) {
-			return s[i], true
+		item := s[i]
+		if fn(item) {
+			return item, true
+		}
+	}
+	var zero E
+	return zero, false
+}
+
+// FindLastN returns the last item of a given slice that satisfies
+// the given predicate function with index, or a zero value and false,
+// if no item satisfies the predicate function.
+//
+//	FindLastN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 3, true
+//	FindLastN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // 0, false
+func FindLastN[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
+	for i := len(s) - 1; i >= 0; i-- {
+		item := s[i]
+		if fn(item, i) {
+			return item, true
 		}
 	}
 	var zero E
@@ -370,9 +503,23 @@ func FindLast[S ~[]E, E any](s S, fn func(E, int) bool) (E, bool) {
 // Index returns the index of the first item of a given slice that satisfies
 // the given predicate function, or -1 and false if no item satisfies the predicate function.
 //
-//	Index([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 1, true
-//	Index([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // -1, false
-func Index[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
+//	Index([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 1, true
+//	Index([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // -1, false
+func Index[S ~[]E, E any](s S, fn func(E) bool) (int, bool) {
+	for i, item := range s {
+		if fn(item) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// IndexN returns the index of the first item of a given slice that satisfies
+// the given predicate function with index, or -1 and false if no item satisfies the predicate function.
+//
+//	IndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 1, true
+//	IndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // -1, false
+func IndexN[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 	for i, item := range s {
 		if fn(item, i) {
 			return i, true
@@ -384,9 +531,23 @@ func Index[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 // LastIndex returns the index of the last item of a given slice that satisfies
 // the given predicate function, or -1 and false if no item satisfies the predicate function.
 //
-//	LastIndex([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // 2, true
-//	LastIndex([]int{1, 2, 3}, func(i int, _ int) bool { return i > 3 }) // -1, false
-func LastIndex[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
+//	LastIndex([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // 2, true
+//	LastIndex([]int{1, 2, 3}, func(i int) bool { return i > 3 }) // -1, false
+func LastIndex[S ~[]E, E any](s S, fn func(E) bool) (int, bool) {
+	for i := len(s) - 1; i >= 0; i-- {
+		if fn(s[i]) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// LastIndexN returns the index of the last item of a given slice that satisfies
+// the given predicate function with index, or -1 and false if no item satisfies the predicate function.
+//
+//	LastIndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 1 }) // 2, true
+//	LastIndexN([]int{1, 2, 3}, func(i, idx int) bool { return i > 3 }) // -1, false
+func LastIndexN[S ~[]E, E any](s S, fn func(E, int) bool) (int, bool) {
 	for i := len(s) - 1; i >= 0; i-- {
 		if fn(s[i], i) {
 			return i, true
