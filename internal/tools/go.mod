@@ -6,6 +6,7 @@ require (
 	github.com/bufbuild/buf v1.30.1
 	github.com/golangci/golangci-lint/v2 v2.2.1
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
+	go.opentelemetry.io/build-tools/crosslink v0.23.1
 	go.opentelemetry.io/build-tools/multimod v0.23.1
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 )
