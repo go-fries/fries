@@ -5,7 +5,6 @@ go 1.23.0
 replace (
 	github.com/go-fries/fries/foundation/v3 => ../../../foundation
 	github.com/go-fries/fries/otel/otlp/v3 => ../../../otel/otlp
-
 )
 
 require (
