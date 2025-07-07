@@ -34,11 +34,14 @@ $(TOOLS)/multimod: PACKAGE=go.opentelemetry.io/build-tools/multimod
 CODECOVFIX = $(TOOLS)/codecovfix
 $(TOOLS)/codecovfix: PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_DIR)/v3/codecovfix
 
+CROSSLINK = $(TOOLS)/crosslink
+$(CROSSLINK): PACKAGE=go.opentelemetry.io/build-tools/crosslink
+
 BUF = $(TOOLS)/buf
 $(TOOLS)/buf: PACKAGE=github.com/bufbuild/buf/cmd/buf
 
 .PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(BUF)
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(CROSSLINK) $(BUF)
 	@echo "✅ Tools are ready"
 
 # Build
@@ -150,6 +153,11 @@ check-clean-work-tree:
 codecovfix: $(CODECOVFIX)
 	@echo "Fixing codecov.yml 'fixes' field:" \
 		&& $(CODECOVFIX)
+
+.PHONY: crosslink
+crosslink: $(CROSSLINK)
+	@echo "Updating intra-repository dependencies in all go modules" \
+		&& $(CROSSLINK) --root=$(shell pwd) --prune
 
 .PHONY: gorelease
 gorelease: $(ROOT_GO_MOD_DIRS:%=gorelease/%)
