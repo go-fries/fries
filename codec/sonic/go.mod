@@ -17,7 +17,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	golang.org/x/arch v0.18.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/arch v0.19.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
