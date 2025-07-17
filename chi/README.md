@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-kratos/kratos/v2"
 
-	chis "github.com/go-kratos-ecosystem/components/v2/chi"
+	chis "github.com/go-fries/fries/v3/chi"
 )
 
 func main() {
