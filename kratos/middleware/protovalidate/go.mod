@@ -3,8 +3,8 @@ module github.com/go-fries/fries/kratos/middleware/protovalidate/v3
 go 1.23.0
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250625184727-c923a0c2a132.1
-	buf.build/go/protovalidate v0.13.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250717165733-d22d418d82d8.1
+	buf.build/go/protovalidate v0.14.0
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.6
