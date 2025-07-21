@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/bufbuild/buf v1.30.1
-	github.com/golangci/golangci-lint/v2 v2.2.2
+	github.com/golangci/golangci-lint/v2 v2.3.0
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/crosslink v0.24.0
 	go.opentelemetry.io/build-tools/multimod v0.24.0
@@ -186,7 +186,7 @@ require (
 	github.com/nakabonne/nestif v0.3.1 // indirect
 	github.com/nishanths/exhaustive v0.12.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
-	github.com/nunnatsa/ginkgolinter v0.19.1 // indirect
+	github.com/nunnatsa/ginkgolinter v0.20.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
