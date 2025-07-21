@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/constraints/v3 => ../constraints
 
 require (
-	github.com/go-fries/fries/constraints/v3 v3.7.0
+	github.com/go-fries/fries/constraints/v3 v3.7.1
 	github.com/stretchr/testify v1.10.0
 )
 
