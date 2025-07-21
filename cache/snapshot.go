@@ -102,6 +102,16 @@ func (c *SnapshotWithExpireAndErr[K, V]) Lookup(key K, fn func() (V, error), exp
 	return v.value, v.err
 }
 
+func (c *SnapshotWithExpireAndErr[K, V]) CleanupExpired() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for k, v := range c.data {
+		if time.Now().After(v.expired) {
+			delete(c.data, k)
+		}
+	}
+}
+
 func (c *SnapshotWithExpireAndErr[K, V]) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
