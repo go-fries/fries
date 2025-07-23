@@ -259,7 +259,7 @@ require (
 	go.augendre.info/arangolint v0.2.0 // indirect
 	go.augendre.info/fatcontext v0.8.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/build-tools v0.24.0 // indirect
+	go.opentelemetry.io/build-tools v0.25.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0 // indirect
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0 // indirect
