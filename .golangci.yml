@@ -26,8 +26,6 @@ linters:
     revive:
       # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
       rules:
-        - name: package-comments
-          disabled: true
         - name: context-as-argument
           arguments:
             - allowTypesBefore: '*testing.T,*testing.B,*testing.F'
@@ -36,13 +34,15 @@ linters:
         - name: early-return
         - name: error-naming
         - name: errorf
+        - name: package-comments
+          disabled: true
         - name: time-equal
         - name: unnecessary-stmt
-        - name: waitgroup-by-value
+        - name: use-any
         - name: useless-break
         - name: var-declaration
         - name: var-naming
-        - name: use-any
+        - name: waitgroup-by-value
 
 formatters:
   enable:
