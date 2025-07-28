@@ -24,17 +24,27 @@ linters:
     - misspell
   settings:
     revive:
+      # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
       rules:
         - name: package-comments
           disabled: true
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: '*testing.T,*testing.B,*testing.F'
+#        - name: context-keys-type
+        - name: duplicated-imports
+        - name: early-return
+        - name: error-naming
+        - name: errorf
+        - name: time-equal
+        - name: unnecessary-stmt
+        - name: waitgroup-by-value
+        - name: useless-break
+        - name: var-declaration
+        - name: var-naming
+        - name: use-any
 
 formatters:
   enable:
-    - gofmt
     - gofumpt
     - goimports
-  settings:
-    gofmt:
-      rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
