@@ -18,7 +18,7 @@ func TestMap(t *testing.T) {
 
 	t.Run("Map", func(t *testing.T) {
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, Map(s1, func(n int) int { return n * 2 }))
-		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, Map(s2, func(n int) string { return strconv.Itoa(n) }))
+		assert.Equal(t, []string{"1", "2", "3", "4", "5"}, Map(s2, strconv.Itoa))
 		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}}, Map(s3, func(s string) T { return T{s} }))
 	})
 

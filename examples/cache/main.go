@@ -37,7 +37,7 @@ func main() {
 		Age:  18, //nolint:mnd
 	}, time.Second*10) //nolint:mnd
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	_ = ok
 
@@ -45,7 +45,7 @@ func main() {
 	var user User
 	err = repository.Get(ctx, "key", &user)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	log.Printf("user: %+v", user)
 
@@ -57,7 +57,7 @@ func main() {
 		}, nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	log.Printf("user2: %+v", user2)
 }

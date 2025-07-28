@@ -13,6 +13,7 @@ linters:
     - goconst
     - mnd
     - gocyclo
+    - gocritic
     - ineffassign
     - prealloc
     - revive
