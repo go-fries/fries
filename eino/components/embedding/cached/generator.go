@@ -72,6 +72,6 @@ func (g *HashGenerator) Generate(ctx context.Context, text string, opts Generato
 		hasher.Reset()
 		g.pool.Put(hasher)
 	}()
-	hasher.Write([]byte(plainText))
+	_, _ = hasher.Write([]byte(plainText))
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }

@@ -20,7 +20,7 @@ func main() {
 
 	channel, err := conn.Channel()
 	if err != nil {
-		log.Fatal(channel)
+		panic(err)
 	}
 	defer channel.Close() //nolint:errcheck
 
@@ -31,12 +31,12 @@ func main() {
 		Queue:      "cloudevents-queue",
 	})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	client, err := cloudevents.NewClient(protocol)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	event := cloudevents.NewEvent()
@@ -44,7 +44,7 @@ func main() {
 	event.SetSource("example/uri")
 	event.SetType("example.type")
 	if err := event.SetData(cloudevents.ApplicationJSON, map[string]string{"hello": "world"}); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	go func() {

@@ -99,7 +99,7 @@ func TestUtils_Get(t *testing.T) {
 func TestUtils_Remember(t *testing.T) {
 	ctx := context.Background()
 	repo := NewRepository(newUtilMockStore())
-	var total int32 = 0
+	var total int32
 
 	rememberFunc := func(value string) (string, error) {
 		return Remember(ctx, repo, "test_key", time.Millisecond*100, func() (string, error) {

@@ -435,7 +435,7 @@ func TestIsType(t *testing.T) {
 	assert.False(t, IsType[*foo](nil))
 
 	assert.True(t, IsType[testInterface](testStruct{}))
-	assert.True(t, IsType[interface{}](testStruct{})) //nolint:gofmt
+	assert.True(t, IsType[interface{}](testStruct{})) //nolint:revive
 	assert.True(t, IsType[any](testStruct{}))
 
 	assert.True(t, IsType[error](errors.New("foo")))

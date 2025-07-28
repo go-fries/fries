@@ -13,6 +13,7 @@ linters:
     - goconst
     - mnd
     - gocyclo
+    - gocritic
     - ineffassign
     - prealloc
     - revive
@@ -24,17 +25,27 @@ linters:
     - misspell
   settings:
     revive:
+      # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
       rules:
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: '*testing.T,*testing.B,*testing.F'
+#        - name: context-keys-type
+        - name: duplicated-imports
+        - name: early-return
+        - name: error-naming
+        - name: errorf
         - name: package-comments
           disabled: true
+        - name: time-equal
+        - name: unnecessary-stmt
+        - name: use-any
+        - name: useless-break
+        - name: var-declaration
+        - name: var-naming
+        - name: waitgroup-by-value
 
 formatters:
   enable:
-    - gofmt
     - gofumpt
     - goimports
-  settings:
-    gofmt:
-      rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
