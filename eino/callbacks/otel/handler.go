@@ -94,7 +94,19 @@ func (h *Handler) OnStartWithStreamInput(ctx context.Context, info *callbacks.Ru
 }
 
 func (h *Handler) OnEndWithStreamOutput(ctx context.Context, info *callbacks.RunInfo, output *schema.StreamReader[callbacks.CallbackOutput]) context.Context {
-	// TODO implement me
+	if info == nil {
+		return ctx
+	}
+
+	state, ok := fromOTelState(ctx)
+	if !ok {
+		return ctx
+	}
+	if state.span == nil || !state.span.IsRecording() {
+		return ctx
+	}
+	defer state.spanEnd()
+
 	return ctx
 }
 
