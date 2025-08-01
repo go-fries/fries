@@ -98,7 +98,7 @@ func (a *amqpMessageWriter) SetData(data io.Reader) error {
 	return nil
 }
 
-func (a *amqpMessageWriter) SetStructuredEvent(ctx context.Context, fmt format.Format, event io.Reader) error {
+func (a *amqpMessageWriter) SetStructuredEvent(_ context.Context, fmt format.Format, event io.Reader) error {
 	if event == nil {
 		return nil
 	}
@@ -113,7 +113,7 @@ func (a *amqpMessageWriter) SetStructuredEvent(ctx context.Context, fmt format.F
 	return nil
 }
 
-func (a *amqpMessageWriter) Start(ctx context.Context) error {
+func (a *amqpMessageWriter) Start(context.Context) error {
 	if a.message.Headers == nil {
 		a.message.Headers = make(amqp.Table)
 	}

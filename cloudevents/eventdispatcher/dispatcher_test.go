@@ -18,7 +18,7 @@ type TestListener struct {
 
 var _ AnyListener[TestEvent] = (*TestListener)(nil)
 
-func (l *TestListener) Handle(ctx context.Context, event TestEvent) error {
+func (l *TestListener) Handle(_ context.Context, event TestEvent) error {
 	assert.Equal(l.t, "test-user", event.User)
 	return nil
 }
@@ -30,7 +30,7 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "test.event" //nolint:goconst
-		listener := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener := ListenerFunc[struct{}](func(context.Context, struct{}) error {
 			return nil // Simulate handling the event
 		})
 
@@ -58,10 +58,10 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "test.event"
-		listener1 := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener1 := ListenerFunc[struct{}](func(context.Context, struct{}) error {
 			return nil // Simulate handling the event
 		})
-		listener2 := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener2 := ListenerFunc[struct{}](func(context.Context, struct{}) error {
 			return nil // Simulate handling the event
 		})
 
@@ -79,7 +79,7 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "test.event"
-		listener := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener := ListenerFunc[struct{}](func(context.Context, struct{}) error {
 			return nil // Simulate handling the event
 		})
 
@@ -98,7 +98,7 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "test.event"
-		listener := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener := ListenerFunc[struct{}](func(ctx context.Context, _ struct{}) error {
 			assert.Equal(t, "value", ctx.Value("key"))
 			evt, ok := FromContext(ctx)
 			assert.True(t, ok)
@@ -121,7 +121,7 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "custom.event"
-		listener := ListenerFunc[string](func(ctx context.Context, event string) error {
+		listener := ListenerFunc[string](func(_ context.Context, event string) error {
 			assert.Equal(t, "test data", event)
 			return nil // Simulate handling the event
 		})
@@ -163,7 +163,7 @@ func TestDispatcher(t *testing.T) {
 		defer dispatcher.Reset()
 
 		eventType := "test.event"
-		listener := ListenerFunc[struct{}](func(ctx context.Context, event struct{}) error {
+		listener := ListenerFunc[struct{}](func(context.Context, struct{}) error {
 			return nil // Simulate handling the event
 		})
 

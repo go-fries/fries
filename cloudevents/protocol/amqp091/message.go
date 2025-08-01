@@ -46,7 +46,7 @@ func (m *Message) ReadStructured(ctx context.Context, encoder binding.Structured
 	return encoder.SetStructuredEvent(ctx, m.format, bytes.NewReader(m.delivery.Body))
 }
 
-func (m *Message) ReadBinary(ctx context.Context, encoder binding.BinaryWriter) error {
+func (m *Message) ReadBinary(_ context.Context, encoder binding.BinaryWriter) error {
 	if m.format != nil {
 		return binding.ErrNotBinary
 	}

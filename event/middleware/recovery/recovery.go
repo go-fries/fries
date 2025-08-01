@@ -10,10 +10,10 @@ import (
 )
 
 // HandlerFunc defines a function to handle panic recovery
-type HandlerFunc func(ctx context.Context, event any, recovery any, stack []byte)
+type HandlerFunc func(ctx context.Context, event any, recovery any, stack []byte) //nolint:gofumpt
 
 // DefaultHandler is the default panic recovery handler that logs the event and stack trace
-var DefaultHandler = func(_ context.Context, event any, recovery any, stack []byte) {
+var DefaultHandler HandlerFunc = func(_ context.Context, event any, recovery any, stack []byte) {
 	log.Printf("panic recovery event: %v\nrecovery: %v\nstack trace:\n%s", event, recovery, stack)
 }
 
