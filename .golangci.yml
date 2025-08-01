@@ -23,6 +23,8 @@ linters:
     - wastedassign
     - unconvert
     - misspell
+    - unparam
+    - gocritic
   settings:
     revive:
       # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
@@ -39,6 +41,7 @@ linters:
           disabled: true
         - name: time-equal
         - name: unnecessary-stmt
+        - name: unused-parameter
         - name: use-any
         - name: useless-break
         - name: var-declaration
@@ -49,3 +52,6 @@ formatters:
   enable:
     - gofumpt
     - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
