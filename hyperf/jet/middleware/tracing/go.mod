@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/go-fries/fries/hyperf/jet/v3 => ../../
 
 require (
-	github.com/go-fries/fries/hyperf/jet/v3 v3.7.1
+	github.com/go-fries/fries/hyperf/jet/v3 v3.8.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/sdk v1.37.0
