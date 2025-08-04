@@ -1,6 +1,6 @@
 module-sets:
   stable:
-    version: v3.7.1
+    version: v3.8.0
     modules:
       - github.com/go-fries/fries/v3
       - github.com/go-fries/fries/errors/v3
