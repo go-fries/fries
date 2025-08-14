@@ -6,8 +6,8 @@ require (
 	github.com/bufbuild/buf v1.30.1
 	github.com/golangci/golangci-lint/v2 v2.3.1
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/crosslink v0.26.1
-	go.opentelemetry.io/build-tools/multimod v0.26.1
+	go.opentelemetry.io/build-tools/crosslink v0.26.2
+	go.opentelemetry.io/build-tools/multimod v0.26.2
 	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 )
 
@@ -260,7 +260,7 @@ require (
 	go.augendre.info/arangolint v0.2.0 // indirect
 	go.augendre.info/fatcontext v0.8.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/build-tools v0.26.1 // indirect
+	go.opentelemetry.io/build-tools v0.26.2 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0 // indirect
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0 // indirect
