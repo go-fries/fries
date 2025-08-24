@@ -17,12 +17,11 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-fries/fries/codec/json/v3 v3.8.0 // indirect
 	github.com/go-fries/fries/codec/v3 v3.8.0 // indirect
-	github.com/go-mysql-org/go-mysql v1.12.0 // indirect
+	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
