@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/eino/components/embedding/cached/v3
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/cloudwego/eino v0.4.4

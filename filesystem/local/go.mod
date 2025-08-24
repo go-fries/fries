@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/filesystem/local/v3
 
-go 1.23.0
+go 1.24.0
 
 replace github.com/go-fries/fries/filesystem/v3 => ../
 

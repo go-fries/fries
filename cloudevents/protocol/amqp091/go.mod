@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.1
