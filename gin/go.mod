@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/gin/v3
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/gin-gonic/gin v1.10.1

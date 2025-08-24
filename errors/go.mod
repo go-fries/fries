@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/errors/v3
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/go-kratos/kratos/v2 v2.8.4

@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/examples/cloudevents/amqp091/v3
 
-go 1.23.0
+go 1.24.0
 
 replace github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 => ../../../cloudevents/protocol/amqp091/
 

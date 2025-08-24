@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/redis/v3
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/redis/go-redis/v9 v9.12.1

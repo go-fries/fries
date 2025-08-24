@@ -148,6 +148,17 @@ check-clean-work-tree:
 	  exit 1; \
 	fi
 
+# Upgrade Go version in all go.mod files to the version specified in the GO_VERSION env var
+# Example: make upgrade-go-version GO_VERSION=1.24.0
+.PHONY: upgrade-go-version
+upgrade-go-version: $(ALL_GO_MOD_DIRS:%=upgrade-go-version/%)
+upgrade-go-version/%: DIR=$*
+upgrade-go-version/%:
+	@[ "${GO_VERSION}" ] || ( echo ">> env var GO_VERSION is not set"; exit 1 )
+	@echo "Upgrading Go version in $(DIR)" \
+		&& cd $(DIR) \
+		&& $(GO) mod edit -go=$(GO_VERSION)
+
 # Fix the "fixes" field of Codecov
 .PHONY: codecovfix
 codecovfix: $(CODECOVFIX)

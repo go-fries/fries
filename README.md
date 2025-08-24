@@ -1,6 +1,6 @@
 # Go Fries Components
 
-![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.23.0-blue)
+![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.24.0-blue)
 [![Package Version](https://badgen.net/github/release/go-fries/fries/stable)](https://github.com/go-fries/fries/releases)
 [![GoDoc](https://pkg.go.dev/badge/github.com/go-fries/fries/v3)](https://pkg.go.dev/github.com/go-fries/fries/v3)
 [![codecov](https://codecov.io/gh/go-fries/fries/graph/badge.svg?token=QPTHZ5L9GT)](https://codecov.io/gh/go-fries/fries)
