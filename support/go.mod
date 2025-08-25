@@ -7,7 +7,7 @@ replace github.com/go-fries/fries/errors/v3 => ../errors
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-fries/fries/errors/v3 v3.9.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
