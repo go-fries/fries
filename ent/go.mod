@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/go-kratos/kratos/v2 v2.8.4
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
