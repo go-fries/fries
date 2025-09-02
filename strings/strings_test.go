@@ -7,11 +7,12 @@ import (
 )
 
 func TestIs(t *testing.T) {
-	assert.True(t, Is("abc", "abc"))
-	assert.False(t, Is("abcc", "abc"))
-	assert.True(t, Is("ab*", "abc"))
-	assert.True(t, Is("ab*", "ab"))
-	assert.True(t, Is("ab/*", "ab/cc"))
+        assert.True(t, Is("abc", "abc"))
+        assert.False(t, Is("abcc", "abc"))
+       assert.False(t, Is("ab", "abc"))
+        assert.True(t, Is("ab*", "abc"))
+        assert.True(t, Is("ab*", "ab"))
+        assert.True(t, Is("ab/*", "ab/cc"))
 	assert.True(t, Is("ab/*", "ab/"))
 	assert.True(t, Is("*", "ab"))
 	assert.True(t, Is("*", ""))

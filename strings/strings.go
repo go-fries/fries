@@ -27,18 +27,19 @@ const (
 //	Is("*.example.com", "www.example.com") // true
 //	Is("*.example.com", "example.com") // false
 func Is(pattern, value string) bool {
-	if pattern == value {
-		return true
-	}
+        if pattern == value {
+                return true
+        }
 
-	pattern = strings.ReplaceAll(pattern, "*", ".*")
+       pattern = strings.ReplaceAll(pattern, "*", ".*")
+       pattern = "^" + pattern + "$"
 
-	match, err := regexp.Match(pattern, []byte(value))
-	if err != nil {
-		return false
-	}
+       match, err := regexp.MatchString(pattern, value)
+        if err != nil {
+                return false
+        }
 
-	return match
+        return match
 }
 
 // InSlice checks if a string is in a string slice.
