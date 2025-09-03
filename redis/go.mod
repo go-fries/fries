@@ -3,7 +3,7 @@ module github.com/go-fries/fries/redis/v3
 go 1.24.0
 
 require (
-	github.com/redis/go-redis/v9 v9.12.1
+	github.com/redis/go-redis/v9 v9.13.0
 	github.com/stretchr/testify v1.11.1
 )
 
