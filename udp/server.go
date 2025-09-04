@@ -89,7 +89,7 @@ func NewServer(address string, opts ...Option) *Server {
 func (s *Server) Start(_ context.Context) (err error) {
 	s.conn, err = net.ListenPacket("udp", s.address)
 	if err != nil {
-		return
+		return err
 	}
 
 	log.Printf("udp server: listening on %s\n", s.address)

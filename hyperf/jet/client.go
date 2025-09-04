@@ -99,7 +99,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) Invoke(ctx context.Context, method string, request any, response any, middlewares ...Middleware) (err error) { // nolint:lll
+func (c *Client) Invoke(ctx context.Context, method string, request any, response any, middlewares ...Middleware) (err error) { //nolint:lll
 	handler := func(ctx context.Context, service string, method string, request any) (any, error) {
 		err = c.invoke(ctx, service, method, request, response)
 		return response, err
@@ -108,7 +108,7 @@ func (c *Client) Invoke(ctx context.Context, method string, request any, respons
 	handler = Chain(append(c.middlewares, middlewares...)...)(handler)
 
 	response, err = handler(ContextWithClient(ctx, c), c.service, method, request)
-	return
+	return err
 }
 
 func (c *Client) invoke(ctx context.Context, service, method string, request any, response any) error {

@@ -74,7 +74,7 @@ func (k *Kernel) bootstrap(ctx context.Context) (context.Context, error) {
 
 func (k *Kernel) Run(ctx context.Context) (err error) {
 	if ctx, err = k.bootstrap(ctx); err != nil {
-		return
+		return err
 	}
 
 	defer func() {

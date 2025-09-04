@@ -58,7 +58,7 @@ func (s *Filesystem) Read(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer output.Body.Close() // nolint:errcheck
+	defer output.Body.Close() //nolint:errcheck
 
 	return io.ReadAll(output.Body)
 }
@@ -163,22 +163,22 @@ func (s *Filesystem) Path(_ context.Context, path string) string {
 	return s.prefixer.Prefix(path)
 }
 
-func (s *Filesystem) Name(ctx context.Context, path string) string { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Name(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) Basename(ctx context.Context, path string) string { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Basename(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) Dirname(ctx context.Context, path string) string { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Dirname(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) Extension(ctx context.Context, path string) string { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Extension(ctx context.Context, path string) string {
 	// TODO implement me
 	panic("implement me")
 }
@@ -199,37 +199,37 @@ func (s *Filesystem) Symlink(context.Context, string, string) error {
 	return filesystem.ErrNotSupported
 }
 
-func (s *Filesystem) Files(ctx context.Context, path string) ([]string, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Files(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) Directories(ctx context.Context, path string) ([]string, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Directories(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) IsFile(ctx context.Context, path string) (bool, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) IsFile(ctx context.Context, path string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) IsDir(ctx context.Context, path string) (bool, error) { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) IsDir(ctx context.Context, path string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *Filesystem) Copy(ctx context.Context, oldPath, newPath string) error { //nolint:revive // todo: remove nolint:revive
+func (s *Filesystem) Copy(ctx context.Context, oldPath, newPath string) error {
 	// TODO implement me
 	panic("implement me")
 }

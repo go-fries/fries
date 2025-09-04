@@ -5,24 +5,26 @@ linters:
 
   enable:
     - bodyclose
+    - copyloopvar
     - dogsled
     - durationcheck
     - errcheck
-    - copyloopvar
-    - govet
     - goconst
-    - mnd
-    - gocyclo
     - gocritic
+    - gocyclo
+    - gomoddirectives
+    - govet
     - ineffassign
+    - misspell
+    - mnd
+    - nolintlint
     - prealloc
     - revive
     - staticcheck
-    - unused
-    - whitespace
-    - wastedassign
     - unconvert
-    - misspell
+    - unused
+    - wastedassign
+    - whitespace
   settings:
     revive:
       # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
@@ -44,6 +46,15 @@ linters:
         - name: var-declaration
         - name: var-naming
         - name: waitgroup-by-value
+    gomoddirectives:
+      replace-local: true
+      replace-allow-list:
+        - addcn
+        - tw8591
+      toolchain-forbidden: true
+      go-version-pattern: '^1\.24\.0$'
+    nolintlint:
+      require-specific: true
 
 formatters:
   enable:

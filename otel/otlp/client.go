@@ -222,8 +222,8 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(exporter,
 			sdktrace.WithMaxQueueSize(queueSize),
 			sdktrace.WithMaxExportBatchSize(queueSize),
-			sdktrace.WithBatchTimeout(10*time.Second),  // nolint:mnd
-			sdktrace.WithExportTimeout(10*time.Second), // nolint:mnd
+			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
+			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
 		)),
 		sdktrace.WithResource(c.resource),
 		sdktrace.WithSampler(c.traceSampler),

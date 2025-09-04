@@ -47,7 +47,7 @@ func WithStackSize(size int) Option {
 func New(opts ...Option) event.Middleware {
 	o := &options{
 		handler:   DefaultHandler,
-		stackSize: 4 << 10, // nolint:mnd // 4KB default stack size
+		stackSize: 4 << 10, //nolint:mnd // 4KB default stack size
 	}
 	for _, opt := range opts {
 		opt(o)

@@ -10,7 +10,7 @@ import (
 )
 
 func TestSyslogLogger(t *testing.T) {
-	if runtime.GOOS == "windows" { // nolint:staticcheck
+	if runtime.GOOS == "windows" { //nolint:staticcheck
 		t.Skip("skip syslog test")
 	}
 

@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 	})
 
 	go func() {
-		srv.Start(context.Background()) // nolint: errcheck
+		srv.Start(context.Background()) //nolint: errcheck
 	}()
 
 	resp, err := http.Get("http://localhost:8080/ping")
@@ -62,7 +62,7 @@ func TestServer(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
-	defer resp.Body.Close() // nolint: errcheck
+	defer resp.Body.Close() //nolint: errcheck
 	body, _ := io.ReadAll(resp.Body)
 	assert.Equal(t, "pong", string(body))
 

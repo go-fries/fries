@@ -15,7 +15,7 @@ import (
 // Original license: https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/LICENSE
 
 // convertValue converts various types to log.Value.
-func convertValue(v any) log.Value { // nolint:gocyclo
+func convertValue(v any) log.Value { //nolint:gocyclo
 	// Handling the most common types without reflect is a small perf win.
 	switch val := v.(type) {
 	case bool:

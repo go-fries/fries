@@ -72,7 +72,7 @@ func (g *GeneralPathGenerator) ucwords(s string) string {
 }
 
 func (g *GeneralPathGenerator) prefixUpperDelimiter(s string) string {
-	rs := make([]rune, 0, len(s)*2) // nolint:mnd
+	rs := make([]rune, 0, len(s)*2) //nolint:mnd
 	for i, r := range s {
 		if i > 0 && unicode.IsUpper(r) {
 			rs = append(rs, '_')

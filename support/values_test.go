@@ -36,7 +36,7 @@ func TestTap_Int(t *testing.T) {
 	b := 10
 	assert.Equal(t, 10, b)
 	b = Tap(b, func(b int) { //nolint:staticcheck
-		b = 20 //nolint:ineffassign,staticcheck
+		b = 20 //nolint:staticcheck
 		_ = b
 	})
 	assert.Equal(t, 10, b)
@@ -175,7 +175,7 @@ func TestIf(t *testing.T) {
 func TestIfFunc(t *testing.T) {
 	// if true
 	got := IfFunc(true, func() string {
-		return "foo" //nolint:goconst
+		return "foo"
 	}, func() string {
 		return "bar"
 	})

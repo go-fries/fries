@@ -70,7 +70,7 @@ func (t *HTTPTransporter) Send(ctx context.Context, data []byte) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close() // nolint:errcheck
+	defer response.Body.Close() //nolint:errcheck
 
 	// check response status code
 	if isHTTPTransporterServerFailed(response) {

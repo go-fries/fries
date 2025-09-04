@@ -62,7 +62,7 @@ func Server(logger log.Logger, opts ...Option) middleware.Middleware {
 			duration := time.Since(startTime)
 
 			if duration <= o.Threshold {
-				return
+				return reply, err
 			}
 
 			level, stack := extractError(err)
@@ -77,7 +77,7 @@ func Server(logger log.Logger, opts ...Option) middleware.Middleware {
 				"stack", stack,
 				"latency", time.Since(startTime).Seconds(),
 			)
-			return
+			return reply, err
 		}
 	}
 }
@@ -111,7 +111,7 @@ func Client(logger log.Logger, opts ...Option) middleware.Middleware {
 
 			duration := time.Since(startTime)
 			if duration <= o.Threshold {
-				return
+				return reply, err
 			}
 
 			level, stack := extractError(err)
@@ -126,7 +126,7 @@ func Client(logger log.Logger, opts ...Option) middleware.Middleware {
 				"stack", stack,
 				"latency", time.Since(startTime).Seconds(),
 			)
-			return
+			return reply, err
 		}
 	}
 }
