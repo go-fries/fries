@@ -38,7 +38,7 @@ jobs:
           key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/.golangci.yml') }}
           restore-keys: ${{ runner.os }}-golangci-lint-
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
           check-latest: true
