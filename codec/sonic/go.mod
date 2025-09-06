@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/codec/v3 => ../
 
 require (
 	github.com/bytedance/sonic v1.14.1
-	github.com/go-fries/fries/codec/v3 v3.9.0
+	github.com/go-fries/fries/codec/v3 v3.9.1
 	github.com/stretchr/testify v1.11.1
 )
 
