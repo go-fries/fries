@@ -108,7 +108,7 @@ func (c *Client) Invoke(ctx context.Context, method string, request any, respons
 	handler = Chain(append(c.middlewares, middlewares...)...)(handler)
 
 	response, err = handler(ContextWithClient(ctx, c), c.service, method, request)
-	return
+	return err
 }
 
 func (c *Client) invoke(ctx context.Context, service, method string, request any, response any) error {
