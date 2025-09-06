@@ -351,7 +351,7 @@ func Partition[S ~[]E, E any](s S, fn func(E) bool) (yes, no S) {
 			no = append(no, item)
 		}
 	}
-	return
+	return yes, no
 }
 
 // PartitionN returns two new slices, the first containing the items of a given slice
@@ -367,7 +367,7 @@ func PartitionN[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
 			no = append(no, item)
 		}
 	}
-	return
+	return yes, no
 }
 
 // Chunk returns a new slice containing the items of a given slice chunked into smaller slices of a given size.
@@ -383,7 +383,7 @@ func Chunk[S ~[]E, E any](s S, size int) (result []S) {
 		}
 		result = append(result, s[i:end])
 	}
-	return
+	return result
 }
 
 // GroupBy returns a new map containing the items of a given slice grouped by the result of the given function.

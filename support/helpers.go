@@ -30,7 +30,7 @@ func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
 			time.Sleep(sleep)
 		}
 	}
-	return
+	return err
 }
 
 // Until retries the given function until it returns true.

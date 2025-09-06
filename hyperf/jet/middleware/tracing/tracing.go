@@ -87,7 +87,7 @@ func New(opts ...Option) jet.Middleware {
 				span.RecordError(err)
 			}
 
-			return
+			return response, err
 		}
 	}
 }

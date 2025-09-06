@@ -24,11 +24,11 @@ func New(opts ...Option) jet.Middleware {
 			for i := 1; i <= o.attempts; i++ {
 				response, err = next(ctx, service, method, request)
 				if err == nil {
-					return
+					return response, err
 				}
 
 				if !o.allow(err) {
-					return
+					return response, err
 				}
 
 				if i < o.attempts {

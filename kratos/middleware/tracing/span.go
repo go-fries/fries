@@ -125,7 +125,7 @@ func parseFullMethod(fullMethod string) (string, []attribute.KeyValue) {
 func peerAttr(addr string) (attrs []attribute.KeyValue) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
-		return
+		return attrs
 	}
 
 	if host == "" {
@@ -137,13 +137,13 @@ func peerAttr(addr string) (attrs []attribute.KeyValue) {
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		return
+		return attrs
 	}
 	attrs = append(attrs,
 		semconv.NetworkPeerPort(portInt),
 	)
 
-	return
+	return attrs
 }
 
 func parseTarget(endpoint string) (address string, err error) {
