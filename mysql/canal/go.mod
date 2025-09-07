@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/go-mysql-org/go-mysql v1.13.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 )
 
 require (
