@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/foundation/v3 => ../../foundation
 
 require (
 	github.com/go-fries/fries/foundation/v3 v3.9.1
-	github.com/go-kratos/kratos/v2 v2.8.4
+	github.com/go-kratos/kratos/v2 v2.9.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/host v0.63.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.63.0

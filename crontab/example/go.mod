@@ -7,7 +7,7 @@ replace github.com/go-fries/fries/crontab/v3 => ../
 require (
 	github.com/flc1125/go-cron/v4 v4.6.1
 	github.com/go-fries/fries/crontab/v3 v3.9.1
-	github.com/go-kratos/kratos/v2 v2.8.4
+	github.com/go-kratos/kratos/v2 v2.9.0
 )
 
 require (
