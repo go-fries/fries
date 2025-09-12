@@ -2,7 +2,7 @@ module github.com/go-fries/fries/udp/v3
 
 go 1.24.0
 
-require github.com/go-kratos/kratos/v2 v2.9.0
+require github.com/go-kratos/kratos/v2 v2.9.1
 
 require (
 	github.com/go-playground/form/v4 v4.2.3 // indirect
