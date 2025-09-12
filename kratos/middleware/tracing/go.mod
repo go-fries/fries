@@ -3,7 +3,7 @@ module github.com/go-fries/fries/kratos/middleware/tracing/v3
 go 1.24.0
 
 require (
-	github.com/go-kratos/kratos/v2 v2.9.0
+	github.com/go-kratos/kratos/v2 v2.9.1
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/sdk v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
