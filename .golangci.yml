@@ -12,6 +12,7 @@ linters:
     - govet
     - goconst
     - mnd
+    - misspell
     - gocyclo
     - gocritic
     - ineffassign
@@ -22,7 +23,7 @@ linters:
     - whitespace
     - wastedassign
     - unconvert
-    - misspell
+    - usetesting
   settings:
     revive:
       # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
@@ -44,6 +45,9 @@ linters:
         - name: var-declaration
         - name: var-naming
         - name: waitgroup-by-value
+    usetesting:
+      context-background: true
+      context-todo: true
 
 formatters:
   enable:
