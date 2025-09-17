@@ -54,7 +54,7 @@ func TestRetry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := retry(tt.handler)(context.Background(), "service", "test", nil)
+			_, err := retry(tt.handler)(t.Context(), "service", "test", nil)
 			tt.want(t, err)
 		})
 	}

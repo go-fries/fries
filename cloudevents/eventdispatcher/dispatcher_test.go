@@ -40,7 +40,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType(eventType)
 
-		assert.NoError(t, dispatcher.Dispatch(context.Background(), event))
+		assert.NoError(t, dispatcher.Dispatch(t.Context(), event))
 	})
 
 	t.Run("Dispatch without listeners", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType("non.existent.event")
 
-		err := dispatcher.Dispatch(context.Background(), event)
+		err := dispatcher.Dispatch(t.Context(), event)
 		assert.Equal(t, ErrNoListener, err)
 	})
 
@@ -72,7 +72,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType(eventType)
 
-		assert.NoError(t, dispatcher.Dispatch(context.Background(), event))
+		assert.NoError(t, dispatcher.Dispatch(t.Context(), event))
 	})
 
 	t.Run("Dispatch with unmarshal error", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetType(eventType)
 		assert.NoError(t, event.SetData(cloudevents.ApplicationJSON, "invalid data"))
 
-		err := dispatcher.Dispatch(context.Background(), event)
+		err := dispatcher.Dispatch(t.Context(), event)
 		assert.Equal(t, ErrFailedToUnmarshalEvent, err)
 	})
 
@@ -112,7 +112,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType(eventType)
 
-		ctx := context.WithValue(context.Background(), "key", "value") //nolint:staticcheck
+		ctx := context.WithValue(t.Context(), "key", "value") //nolint:staticcheck
 
 		assert.NoError(t, dispatcher.Dispatch(ctx, event))
 	})
@@ -133,7 +133,7 @@ func TestDispatcher(t *testing.T) {
 		event.SetType(eventType)
 		assert.NoError(t, event.SetData(cloudevents.TextPlain, "test data"))
 
-		assert.NoError(t, dispatcher.Dispatch(context.Background(), event))
+		assert.NoError(t, dispatcher.Dispatch(t.Context(), event))
 	})
 
 	t.Run("Dispatch with listener adapter", func(t *testing.T) {
@@ -148,14 +148,14 @@ func TestDispatcher(t *testing.T) {
 		event.SetType(eventType)
 		assert.NoError(t, event.SetData(cloudevents.ApplicationJSON, TestEvent{User: "test-user"}))
 
-		assert.NoError(t, dispatcher.Dispatch(context.Background(), event))
+		assert.NoError(t, dispatcher.Dispatch(t.Context(), event))
 
 		// unmarshalling error
 		unmarshalEvent := cloudevents.NewEvent()
 		unmarshalEvent.SetID("test-event-unmarshal")
 		unmarshalEvent.SetType(eventType)
 		assert.NoError(t, unmarshalEvent.SetData(cloudevents.ApplicationJSON, "invalid data"))
-		err := dispatcher.Dispatch(context.Background(), unmarshalEvent)
+		err := dispatcher.Dispatch(t.Context(), unmarshalEvent)
 		assert.Equal(t, ErrFailedToUnmarshalEvent, err)
 	})
 
@@ -173,11 +173,11 @@ func TestDispatcher(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType(eventType)
 
-		assert.NoError(t, dispatcher.Dispatch(context.Background(), event))
+		assert.NoError(t, dispatcher.Dispatch(t.Context(), event))
 
 		dispatcher.Reset()
 
-		err := dispatcher.Dispatch(context.Background(), event)
+		err := dispatcher.Dispatch(t.Context(), event)
 		assert.Equal(t, ErrNoListener, err)
 	})
 }

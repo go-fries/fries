@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})

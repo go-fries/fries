@@ -1,7 +1,6 @@
 package timezone
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -26,7 +25,7 @@ func TestProvider(t *testing.T) {
 
 	p := NewProvider(PRC)
 
-	ctx, err := p.Bootstrap(context.Background())
+	ctx, err := p.Bootstrap(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, "Asia/Shanghai", time.Local.String())
 

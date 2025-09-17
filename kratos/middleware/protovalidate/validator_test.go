@@ -70,7 +70,7 @@ func TestValidator(t *testing.T) {
 			reply, err := Server(
 				Validator(tt.validator(t)),
 				Handler(defaultHandler),
-			)(next)(context.Background(), tt.req)
+			)(next)(t.Context(), tt.req)
 			tt.want(t, reply, err)
 		})
 	}

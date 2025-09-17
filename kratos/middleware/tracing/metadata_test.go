@@ -34,7 +34,7 @@ func TestMetadata_Inject(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := kratos.New(kratos.Name(tt.args.appName))
-			ctx := kratos.NewContext(context.Background(), a)
+			ctx := kratos.NewContext(t.Context(), a)
 			m := new(Metadata)
 			m.Inject(ctx, tt.args.carrier)
 			if res := tt.args.carrier.Get(serviceHeader); tt.want != res {
@@ -58,7 +58,7 @@ func TestMetadata_Extract(t *testing.T) {
 		{
 			name: "https://go-kratos.dev",
 			args: args{
-				parent:  context.Background(),
+				parent:  t.Context(),
 				carrier: propagation.HeaderCarrier{"X-Md-Service-Name": []string{"https://go-kratos.dev"}},
 			},
 			want: "https://go-kratos.dev",
@@ -66,7 +66,7 @@ func TestMetadata_Extract(t *testing.T) {
 		{
 			name: "https://github.com/go-kratos/kratos",
 			args: args{
-				parent:  metadata.NewServerContext(context.Background(), metadata.Metadata{}),
+				parent:  metadata.NewServerContext(t.Context(), metadata.Metadata{}),
 				carrier: propagation.HeaderCarrier{"X-Md-Service-Name": []string{"https://github.com/go-kratos/kratos"}},
 			},
 			want: "https://github.com/go-kratos/kratos",
@@ -74,7 +74,7 @@ func TestMetadata_Extract(t *testing.T) {
 		{
 			name: "https://github.com/go-kratos/kratos",
 			args: args{
-				parent:  metadata.NewServerContext(context.Background(), metadata.Metadata{}),
+				parent:  metadata.NewServerContext(t.Context(), metadata.Metadata{}),
 				carrier: propagation.HeaderCarrier{"X-Md-Service-Name": nil},
 			},
 			crash: true,

@@ -1,7 +1,6 @@
 package event
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +11,7 @@ func TestProvider(t *testing.T) {
 	p := NewProvider(d)
 	p.RegisterListeners(nil)
 
-	ctx, err := p.Bootstrap(context.Background())
+	ctx, err := p.Bootstrap(t.Context())
 	assert.NoError(t, err)
 
 	d1, ok := FromContext(ctx)

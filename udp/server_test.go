@@ -1,7 +1,6 @@
 package udp
 
 import (
-	"context"
 	"net"
 	"sync"
 	"testing"
@@ -26,10 +25,10 @@ func TestServer(t *testing.T) {
 			t.Log(err)
 		}), WithBufSize(1024))
 
-		go server.Start(context.Background()) //nolint:errcheck
+		go server.Start(t.Context()) //nolint:errcheck
 
 		time.Sleep(time.Second * 5)
-		_ = server.Stop(context.Background())
+		_ = server.Stop(t.Context())
 	}()
 
 	go func() {

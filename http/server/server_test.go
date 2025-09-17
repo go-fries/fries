@@ -10,7 +10,7 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	srv := NewWithHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "server", r.URL.Query().Get("name"))
 

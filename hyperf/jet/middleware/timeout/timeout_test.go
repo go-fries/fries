@@ -46,7 +46,7 @@ func TestTimeout(t *testing.T) {
 				time.Sleep(tt.sleep)
 				return "test", nil
 			})
-			response, err := handler(context.Background(), "service", "test", "request")
+			response, err := handler(t.Context(), "service", "test", "request")
 			tt.want(t, response, err)
 		})
 	}

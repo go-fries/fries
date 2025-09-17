@@ -235,7 +235,7 @@ func TestConvertValue(t *testing.T) {
 		},
 		{
 			name:      "ctx",
-			value:     context.Background(),
+			value:     context.Background(), //nolint:usetesting
 			wantValue: log.StringValue("context.Background"),
 		},
 		{

@@ -10,7 +10,7 @@ import (
 
 func TestCrontab(t *testing.T) {
 	var (
-		ctx  = context.Background()
+		ctx  = t.Context()
 		data = make(chan string, 1)
 		srv  = NewServer(cron.New(
 			cron.WithSeconds(),

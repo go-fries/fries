@@ -147,7 +147,7 @@ func TestRedis_Lock(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := r.Lock("test", 5*time.Second).Try(context.Background(), func() {
+			err := r.Lock("test", 5*time.Second).Try(t.Context(), func() {
 				time.Sleep(time.Second)
 			})
 			if err != nil {

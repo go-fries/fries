@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestRepository(t *testing.T) {
 	repo := NewRepository(&NullStore{})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// -----store----
 

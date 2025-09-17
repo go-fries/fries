@@ -94,7 +94,7 @@ func TestClient_Invoke(t *testing.T) {
 
 	// call service
 	var balance float64
-	err = client.Invoke(context.Background(), "balance", testParams, &balance)
+	err = client.Invoke(t.Context(), "balance", testParams, &balance)
 	assert.NoError(t, err)
 	assert.Equal(t, testBalance, balance)
 }

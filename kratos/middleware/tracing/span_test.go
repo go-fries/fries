@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"context"
 	"net"
 	"net/http"
 	"reflect"
@@ -178,8 +177,8 @@ func Test_parseTarget(t *testing.T) {
 	}
 }
 
-func TestSetServerSpan(_ *testing.T) {
-	ctx := context.Background()
+func TestSetServerSpan(t *testing.T) {
+	ctx := t.Context()
 	_, span := noop.NewTracerProvider().Tracer("Tracer").Start(ctx, "Spanname")
 
 	// Handle without Transport context
@@ -211,8 +210,8 @@ func TestSetServerSpan(_ *testing.T) {
 	setServerSpan(ctx, span, m)
 }
 
-func TestSetClientSpan(_ *testing.T) {
-	ctx := context.Background()
+func TestSetClientSpan(t *testing.T) {
+	ctx := t.Context()
 	_, span := noop.NewTracerProvider().Tracer("Tracer").Start(ctx, "Spanname")
 
 	// Handle without Transport context

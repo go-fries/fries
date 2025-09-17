@@ -40,7 +40,7 @@ func TestMiddleware_Chain(t *testing.T) {
 
 		return "response", nil
 	})
-	response, err := chain(context.Background(), "service", "method", "request")
+	response, err := chain(t.Context(), "service", "method", "request")
 	assert.NoError(t, err)
 	assert.Equal(t, "response", response)
 

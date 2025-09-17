@@ -63,6 +63,6 @@ func TestKernel(t *testing.T) {
 	k.Register(
 		newProvider(t, contextKey2{}, "value2"),
 	)
-	assert.NoError(t, k.Run(context.Background()))
+	assert.NoError(t, k.Run(t.Context()))
 	assert.Equal(t, "done", <-ch)
 }

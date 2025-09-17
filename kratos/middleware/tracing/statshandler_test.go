@@ -15,13 +15,13 @@ type ctxKey string
 
 const testKey ctxKey = "MY_TEST_KEY"
 
-func TestClient_HandleConn(_ *testing.T) {
-	(&ClientHandler{}).HandleConn(context.Background(), nil)
+func TestClient_HandleConn(t *testing.T) {
+	(&ClientHandler{}).HandleConn(t.Context(), nil)
 }
 
 func TestClient_TagConn(t *testing.T) {
 	client := &ClientHandler{}
-	ctx := context.WithValue(context.Background(), testKey, 123)
+	ctx := context.WithValue(t.Context(), testKey, 123)
 
 	if client.TagConn(ctx, nil).Value(testKey) != 123 {
 		t.Errorf(`The context value must be 123 for the "MY_KEY_TEST" key, %v given.`,
@@ -31,7 +31,7 @@ func TestClient_TagConn(t *testing.T) {
 
 func TestClient_TagRPC(t *testing.T) {
 	client := &ClientHandler{}
-	ctx := context.WithValue(context.Background(), testKey, 123)
+	ctx := context.WithValue(t.Context(), testKey, 123)
 
 	if client.TagRPC(ctx, nil).Value(testKey) != 123 {
 		t.Errorf(`The context value must be 123 for the "MY_KEY_TEST" key, %v given.`,
@@ -48,13 +48,13 @@ func (m *mockSpan) SpanContext() trace.SpanContext {
 	return *m.mockSpanCtx
 }
 
-func TestClient_HandleRPC(_ *testing.T) {
+func TestClient_HandleRPC(t *testing.T) {
 	client := &ClientHandler{}
-	ctx := context.Background()
+	ctx := t.Context()
 	rs := stats.OutHeader{}
 
 	// Handle stats.RPCStats is not type of stats.OutHeader case
-	client.HandleRPC(context.TODO(), nil)
+	client.HandleRPC(t.Context(), nil)
 
 	// Handle context doesn't have the peerkey filled with a Peer instance
 	client.HandleRPC(ctx, &rs)

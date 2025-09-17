@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -30,11 +29,11 @@ func TestNewTracer(t *testing.T) {
 	})
 }
 
-func TestTracer_End(_ *testing.T) {
+func TestTracer_End(t *testing.T) {
 	tracer := NewTracer(trace.SpanKindClient, func(o *options) {
 		o.tracerProvider = noop.NewTracerProvider()
 	})
-	ctx, span := noop.NewTracerProvider().Tracer("noop").Start(context.Background(), "noopSpan")
+	ctx, span := noop.NewTracerProvider().Tracer("noop").Start(t.Context(), "noopSpan")
 
 	// Handle with error case
 	tracer.End(ctx, span, nil, errors.New("dummy error"))

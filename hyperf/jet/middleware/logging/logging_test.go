@@ -62,12 +62,12 @@ func TestLogging(t *testing.T) {
 		assert.Equal(t, "service", service)
 		assert.Equal(t, "no-error", method)
 		return "response", nil
-	})(context.Background(), "service", "no-error", nil)
+	})(t.Context(), "service", "no-error", nil)
 
 	// with error
 	_, _ = logging(func(_ context.Context, service, method string, _ any) (response any, err error) {
 		assert.Equal(t, "service", service)
 		assert.Equal(t, "with-error", method)
 		return nil, assert.AnError
-	})(context.Background(), "service", "with-error", nil)
+	})(t.Context(), "service", "with-error", nil)
 }

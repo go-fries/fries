@@ -14,7 +14,7 @@ func TestProvider_BootstrapFunc(t *testing.T) {
 		return context.WithValue(ctx, providerFuncKey{}, "test"), nil
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx, err := p.Bootstrap(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "test", ctx.Value(providerFuncKey{}))
@@ -29,7 +29,7 @@ func TestProvider_BootstrapFuncError(t *testing.T) {
 		return context.WithValue(ctx, providerFuncKey{}, "test"), nil
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx, err := p.Bootstrap(ctx)
 	assert.NoError(t, err)
 	assert.Nil(t, ctx.Value(providerFuncKey{}))
@@ -51,7 +51,7 @@ func TestProvider_Chain(t *testing.T) {
 	})
 
 	c := NewChain(p1, p2, p3)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ctx, err := c.Bootstrap(ctx)
 	assert.NoError(t, err)

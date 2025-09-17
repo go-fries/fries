@@ -1,19 +1,18 @@
 package event
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestContext(t *testing.T) {
-	d1, ok1 := FromContext(context.Background())
+	d1, ok1 := FromContext(t.Context())
 	assert.False(t, ok1)
 	assert.Nil(t, d1)
 
 	var d *Dispatcher
-	ctx := NewContext(context.Background(), d)
+	ctx := NewContext(t.Context(), d)
 
 	d2, ok2 := FromContext(ctx)
 	assert.True(t, ok2)

@@ -36,7 +36,7 @@ func TestTracing(t *testing.T) {
 				assert.Nil(t, request)
 				return nil, tt.err
 			})
-			_, err := handler(context.Background(), "service", "method", nil)
+			_, err := handler(t.Context(), "service", "method", nil)
 			require.Equal(t, tt.err, err)
 
 			spans := imsb.GetSpans()

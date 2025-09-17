@@ -8,7 +8,7 @@ import (
 )
 
 func TestValue(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	type (
 		key1 struct{}

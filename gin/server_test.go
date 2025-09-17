@@ -1,7 +1,6 @@
 package gin
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"sync"
@@ -53,7 +52,7 @@ func TestServer(t *testing.T) {
 	})
 
 	go func() {
-		srv.Start(context.Background()) // nolint: errcheck
+		srv.Start(t.Context()) // nolint: errcheck
 	}()
 
 	resp, err := http.Get("http://localhost:8080/ping")
@@ -68,6 +67,6 @@ func TestServer(t *testing.T) {
 
 	assert.Equal(t, "pong", <-ch)
 
-	err = srv.Stop(context.Background())
+	err = srv.Stop(t.Context())
 	assert.NoError(t, err)
 }

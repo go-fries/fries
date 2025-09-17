@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestNoopRepository(t *testing.T) {
 	repo := NewRepository(NoopFilesystem{})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	assert.NoError(t, repo.Put(ctx, "noop", []byte("noop")))
 	assert.NoError(t, repo.Destroy(ctx, "noop"))

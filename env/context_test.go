@@ -1,14 +1,13 @@
 package env
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	env1, ok1 := FromContext(ctx)
 	assert.NotEqual(t, Dev, env1)

@@ -1,21 +1,20 @@
 package jet
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestContext_Client(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	got1, ok1 := ClientFromContext(ctx)
 	assert.False(t, ok1)
 	assert.Nil(t, got1)
 
 	client := &Client{}
-	ctx = ContextWithClient(context.Background(), client)
+	ctx = ContextWithClient(t.Context(), client)
 
 	got2, ok2 := ClientFromContext(ctx)
 	assert.True(t, ok2)
