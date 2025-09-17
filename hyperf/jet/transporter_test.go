@@ -2,7 +2,6 @@ package jet
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -30,7 +29,7 @@ func TestTransporter_HTTPTransporter(t *testing.T) {
 	assert.NoError(t, err)
 
 	// send a request
-	response, err := transport.Send(context.Background(), testRequest)
+	response, err := transport.Send(t.Context(), testRequest)
 	assert.NoError(t, err)
 	assert.Equal(t, testResponse, response)
 }

@@ -2,7 +2,6 @@ package signal
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -21,7 +20,7 @@ var (
 func TestServer(t *testing.T) {
 	srv := newServer()
 
-	go srv.Start(context.Background()) //nolint:errcheck
+	go srv.Start(t.Context()) //nolint:errcheck
 
 	time.Sleep(2 * time.Second)
 
@@ -37,7 +36,7 @@ exampleHandler signal: user defined signal 2
 `, buffer.String())
 	mu.Unlock()
 
-	srv.Stop(context.Background()) //nolint:errcheck
+	srv.Stop(t.Context()) //nolint:errcheck
 }
 
 func newServer() *Server {

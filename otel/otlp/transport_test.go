@@ -1,7 +1,6 @@
 package otlp
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,7 @@ func TestGRPCTransport(t *testing.T) {
 	assert.Equal(t, endpoint, transport.endpoint)
 	assert.True(t, transport.insecure)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	traceExporter, err := transport.GetTraceSpanExporter(ctx)
 	assert.NoError(t, err)
@@ -36,7 +35,7 @@ func TestHTTPTransport(t *testing.T) {
 	assert.Equal(t, endpoint, transport.endpoint)
 	assert.True(t, transport.insecure)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	traceExporter, err := transport.GetTraceSpanExporter(ctx)
 	assert.NoError(t, err)

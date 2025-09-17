@@ -62,7 +62,7 @@ func TestHTTP(t *testing.T) {
 			err,
 			func() context.Context {
 				return transport.NewServerContext(
-					context.Background(),
+					t.Context(),
 					&Transport{kind: transport.KindHTTP, endpoint: "endpoint", operation: "/package.service/method"},
 				)
 			}(),
@@ -73,7 +73,7 @@ func TestHTTP(t *testing.T) {
 			nil,
 			func() context.Context {
 				return transport.NewServerContext(
-					context.Background(),
+					t.Context(),
 					&Transport{kind: transport.KindHTTP, endpoint: "endpoint", operation: "/package.service/method"},
 				)
 			}(),
@@ -84,7 +84,7 @@ func TestHTTP(t *testing.T) {
 			nil,
 			func() context.Context {
 				return transport.NewClientContext(
-					context.Background(),
+					t.Context(),
 					&Transport{kind: transport.KindHTTP, endpoint: "endpoint", operation: "/package.service/method"},
 				)
 			}(),
@@ -95,7 +95,7 @@ func TestHTTP(t *testing.T) {
 			err,
 			func() context.Context {
 				return transport.NewClientContext(
-					context.Background(),
+					t.Context(),
 					&Transport{kind: transport.KindHTTP, endpoint: "endpoint", operation: "/package.service/method"},
 				)
 			}(),

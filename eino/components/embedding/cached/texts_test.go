@@ -1,7 +1,6 @@
 package cached
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ func TestTextContext(t *testing.T) {
 		{"text3"},
 	} {
 		t.Run(tt.text, func(t *testing.T) {
-			ctx := contextWithText(context.Background(), tt.text)
+			ctx := contextWithText(t.Context(), tt.text)
 
 			retrievedText, ok := TextFromContext(ctx)
 			assert.True(t, ok, "expected text to be present in context")

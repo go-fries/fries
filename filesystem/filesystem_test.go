@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +9,7 @@ import (
 func TestStorage(t *testing.T) {
 	var (
 		noop = NoopFilesystem{}
-		ctx  = context.Background()
+		ctx  = t.Context()
 	)
 
 	_, err := noop.Read(ctx, "test")

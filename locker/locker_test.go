@@ -1,7 +1,6 @@
 package locker
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 
 func TestLocker_NoopLocker(t *testing.T) {
 	l := NoopLocker{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	assert.NoError(t, l.Try(ctx, func() {}))
 	assert.NoError(t, l.Until(ctx, time.Second, func() {}))

@@ -36,7 +36,7 @@ var (
 func TestPipe(t *testing.T) {
 	result = make(chan string, 2)
 	ctx1, err1 := Pipe(
-		context.Background(),
+		t.Context(),
 		mockProvider1, mockProvider2,
 	)
 	assert.NoError(t, err1)
@@ -46,7 +46,7 @@ func TestPipe(t *testing.T) {
 	assert.Equal(t, "mockProvider2", <-result)
 
 	ctx2, err2 := Pipe(
-		context.Background(),
+		t.Context(),
 		mockProvider1, mockProvider3,
 	)
 	assert.Error(t, err2)
@@ -59,7 +59,7 @@ func TestPipe(t *testing.T) {
 func TestChain(t *testing.T) {
 	result = make(chan string, 2)
 	ctx1, err1 := Chain(
-		context.Background(),
+		t.Context(),
 		mockProvider1, mockProvider2,
 	)
 	assert.NoError(t, err1)
@@ -69,7 +69,7 @@ func TestChain(t *testing.T) {
 	assert.Equal(t, "mockProvider1", <-result)
 
 	ctx2, err2 := Chain(
-		context.Background(),
+		t.Context(),
 		mockProvider3, mockProvider1,
 	)
 	assert.Error(t, err2)

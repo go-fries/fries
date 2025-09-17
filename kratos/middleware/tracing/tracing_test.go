@@ -87,7 +87,7 @@ func TestTracer(t *testing.T) {
 	ts := &mockTransport{kind: transport.KindHTTP, header: carrier}
 
 	ctx, aboveSpan := cliTracer.Start(
-		transport.NewClientContext(context.Background(), ts),
+		transport.NewClientContext(t.Context(), ts),
 		ts.Operation(), ts.RequestHeader())
 	defer cliTracer.End(ctx, aboveSpan, nil, nil)
 
@@ -141,7 +141,7 @@ func TestServer(t *testing.T) {
 
 	var ctx context.Context
 	ctx, span := tracer.Start(
-		transport.NewServerContext(context.Background(), tr),
+		transport.NewServerContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),
 	)
@@ -169,7 +169,7 @@ func TestServer(t *testing.T) {
 	_, err = Server(
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 		WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})),
-	)(next)(context.Background(), "test server: ")
+	)(next)(t.Context(), "test server: ")
 	if err != nil {
 		t.Errorf("expected error, got nil")
 	}
@@ -213,7 +213,7 @@ func TestClient(t *testing.T) {
 
 	var ctx context.Context
 	ctx, span := tracer.Start(
-		transport.NewClientContext(context.Background(), tr),
+		transport.NewClientContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),
 	)

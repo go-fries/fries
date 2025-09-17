@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,7 @@ type config2 struct {
 }
 
 func TestConfig(t *testing.T) {
-	ctx := NewContext(context.Background(), &config{
+	ctx := NewContext(t.Context(), &config{
 		Host: "localhost",
 		Port: 8080,
 	})

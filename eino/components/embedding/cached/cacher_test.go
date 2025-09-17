@@ -1,7 +1,6 @@
 package cached
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestCacher_noCacher(t *testing.T) {
 	c := &noCacher{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	assert.NoError(t, c.Set(ctx, "key", []float64{1.0, 2.0}, 0))
 	value, err := c.Get(ctx, "key")

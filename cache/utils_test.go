@@ -84,7 +84,7 @@ func setPointerValue(dest any, value any) error {
 }
 
 func TestUtils_Get(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := NewRepository(newUtilMockStore())
 
 	ok, err := repo.Set(ctx, "test_key", "test_value", time.Second*10)
@@ -97,7 +97,7 @@ func TestUtils_Get(t *testing.T) {
 }
 
 func TestUtils_Remember(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := NewRepository(newUtilMockStore())
 	var total int32
 

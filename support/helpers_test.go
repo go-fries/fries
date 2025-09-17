@@ -193,7 +193,7 @@ func TestPipeWithErr(t *testing.T) {
 		},
 	)
 
-	ctx, err := pipe3(context.Background())
+	ctx, err := pipe3(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, "bar", ctx.Value("foo"))
 	assert.Equal(t, "baz", ctx.Value("bar"))
@@ -208,7 +208,7 @@ func TestPipeWithErr(t *testing.T) {
 		},
 	)
 
-	ctx, err = pipe4(context.Background())
+	ctx, err = pipe4(t.Context())
 	assert.Error(t, err)
 	assert.Nil(t, ctx)
 }

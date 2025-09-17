@@ -1,7 +1,6 @@
 package otel
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -235,7 +234,7 @@ func TestConvertValue(t *testing.T) {
 		},
 		{
 			name:      "ctx",
-			value:     context.Background(),
+			value:     t.Context(),
 			wantValue: log.StringValue("context.Background"),
 		},
 		{

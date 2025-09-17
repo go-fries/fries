@@ -45,7 +45,7 @@ func (m *mockCacher) Set(ctx context.Context, key string, value []float64, expir
 }
 
 func TestEmbedder_EmbedStrings(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	texts := []string{"foo", "bar"}
 	embeddings := [][]float64{{1.1, 2.2}, {3.3, 4.4}}
 	expiration := time.Minute
@@ -196,7 +196,7 @@ func (c *contextMockCacher) Set(ctx context.Context, _ string, _ []float64, _ ti
 }
 
 func TestEmbedder_ContextWithText(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	embeddings := [][]float64{{1.1, 2.2}, {3.3, 4.4}}
 
 	mc := &contextMockCacher{

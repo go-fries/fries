@@ -1,7 +1,6 @@
 package eventdispatcher
 
 import (
-	"context"
 	"testing"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -14,7 +13,7 @@ func TestContext(t *testing.T) {
 		event.SetID("test-event")
 		event.SetType("test.type")
 
-		ctx := NewContext(context.Background(), event)
+		ctx := NewContext(t.Context(), event)
 
 		retrievedEvent, ok := FromContext(ctx)
 		assert.True(t, ok)
@@ -23,7 +22,7 @@ func TestContext(t *testing.T) {
 	})
 
 	t.Run("empty context", func(t *testing.T) {
-		emptyCtx := context.Background()
+		emptyCtx := t.Context()
 		_, ok := FromContext(emptyCtx)
 		assert.False(t, ok)
 	})

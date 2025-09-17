@@ -56,7 +56,7 @@ func (m *mockRedisClient) Get(ctx context.Context, key string) *redis.StringCmd 
 }
 
 func TestCacher(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	key := "test_key"
 	value := []float64{1.1, 2.2, 3.3}
 	expire := time.Second * 10

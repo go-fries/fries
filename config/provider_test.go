@@ -2,7 +2,6 @@
 package config
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,7 @@ func TestProvider(t *testing.T) {
 	cfg := testConfig{Name: "test", Port: 1234}
 	provider := NewProvider(cfg)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	newCtx, err := provider.Bootstrap(ctx)
 	require.NoError(t, err)
 

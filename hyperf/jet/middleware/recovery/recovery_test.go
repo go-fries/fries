@@ -26,7 +26,7 @@ func TestRecovery(t *testing.T) {
 
 	response, err := recovery(func(context.Context, string, string, any) (response any, err error) {
 		panic(testError)
-	})(context.Background(), testService, testMethod, testRequest)
+	})(t.Context(), testService, testMethod, testRequest)
 	assert.Error(t, err)
 	assert.Nil(t, response)
 }
@@ -36,7 +36,7 @@ func TestRecovery_DefaultHandler(t *testing.T) {
 
 	response, err := recovery(func(context.Context, string, string, any) (response any, err error) {
 		panic("error")
-	})(context.Background(), "service", "method", "request")
+	})(t.Context(), "service", "method", "request")
 	assert.Error(t, err)
 	assert.Nil(t, response)
 }

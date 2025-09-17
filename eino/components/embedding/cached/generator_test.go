@@ -1,7 +1,6 @@
 package cached
 
 import (
-	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestGenerator_UniquenessAndDifference(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	opt := GeneratorOptions{}
 
 	for _, tt := range []struct {
@@ -46,7 +45,7 @@ func TestGenerator_UniquenessAndDifference(t *testing.T) {
 func TestGenerator_SimpleGenerator(t *testing.T) {
 	text := "test text"
 	model := "test-model"
-	ctx := context.Background()
+	ctx := t.Context()
 	opt := GeneratorOptions{}
 
 	generator := NewSimpleGenerator()
@@ -58,7 +57,7 @@ func TestGenerator_SimpleGenerator(t *testing.T) {
 func TestGenerator_HashGenerator(t *testing.T) {
 	text := "test text"
 	model := "test-model"
-	ctx := context.Background()
+	ctx := t.Context()
 
 	for _, tt := range []struct {
 		name   string
@@ -75,7 +74,7 @@ func TestGenerator_HashGenerator(t *testing.T) {
 }
 
 func TestGenerator_HashGenerator_Concurrent(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	generator := NewHashGenerator(sha256.New)
 	results := make(chan string, 100)
 
