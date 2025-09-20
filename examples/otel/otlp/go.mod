@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/ebitengine/purego v0.8.4 // indirect
+	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/go-fries/fries/foundation/v3 v3.9.1 // indirect
 	github.com/go-kratos/kratos/v2 v2.9.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
