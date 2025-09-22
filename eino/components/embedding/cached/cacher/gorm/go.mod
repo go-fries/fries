@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../../
 
 require (
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.9.1
-	gorm.io/datatypes v1.2.6
+	gorm.io/datatypes v1.2.7
 	gorm.io/gorm v1.31.0
 )
 
