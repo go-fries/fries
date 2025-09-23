@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 => ../../../cloudevents/protocol/amqp091/
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.16.1
+	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 v3.9.1
 	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.10.0

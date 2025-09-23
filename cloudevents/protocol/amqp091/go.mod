@@ -3,7 +3,7 @@ module github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
 go 1.24.0
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.16.1
+	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/rabbitmq/amqp091-go v1.10.0
 )
 
