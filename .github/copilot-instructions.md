@@ -80,9 +80,10 @@ This is a multi-module repository with the following organization:
 4. **Integration testing**: Only in CI environment with services
 
 **Manual Testing Scenarios:**
-- Build and run example applications in `examples/` directory
-- Test that imports work: `go run examples/cache/main.go` (requires Redis)
-- Validate module interfaces haven't broken by spot-checking key modules
+- Build and run example applications in `examples/` directory: `cd examples/cache && go build .` (builds successfully, requires Redis to run)
+- Test that imports work with module functionality: Create a simple test program importing key modules like `strings/v3` and `support/v3`
+- Validate module interfaces haven't broken by spot-checking key modules like `support`, `strings`, `errors`
+- Run example test: `cd /tmp && mkdir test_app && cd test_app && go mod init test && echo 'package main; import "github.com/go-fries/fries/strings/v3"; func main() { println(strings.MD5("test")) }' > main.go` then `go mod tidy && go run main.go`
 
 ## Module Development Patterns
 
@@ -123,10 +124,10 @@ Always run `make lint` and `make build` before committing to ensure CI will pass
 ## Performance Notes
 
 **Expected Command Durations:**
-- Tool installation: 30-60 seconds
-- Full build: 1-2 minutes  
-- Full lint: 6-8 minutes
+- Tool installation: 7-10 seconds (clean) to 30-60 seconds (first time)
+- Full build: 8-12 seconds (clean) to 1-2 minutes (first time with downloads)
+- Full lint: 6-8 minutes (always takes this long due to 79+ modules)
 - Individual module test: 1-10 seconds
 - Individual module build: 5-30 seconds
 
-Do NOT cancel long-running commands. The multi-module nature of this repository requires significant processing time.
+Do NOT cancel long-running commands. The multi-module nature of this repository requires significant processing time, especially for linting which processes all modules individually.
