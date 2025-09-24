@@ -17,6 +17,13 @@ import (
 //	Retry(func() error { return nil }, 3, time.Second) => nil
 //	Retry(func() error { return fmt.Errorf("error") }, 3) => error
 func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
+	if fn == nil {
+		return fmt.Errorf("helpers.Retry: function cannot be nil")
+	}
+	if attempts <= 0 {
+		return fmt.Errorf("helpers.Retry: attempts must be greater than 0")
+	}
+	
 	var sleep time.Duration
 	if len(sleeps) > 0 {
 		sleep = sleeps[0]
@@ -26,7 +33,7 @@ func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
 		if err = fn(); err == nil {
 			return nil
 		}
-		if sleep > 0 {
+		if sleep > 0 && i < attempts-1 { // Don't sleep after the last attempt
 			time.Sleep(sleep)
 		}
 	}
@@ -40,6 +47,10 @@ func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
 //	Until(func() bool { return true })
 //	Until(func() bool { return true }, time.Second)
 func Until(fn func() bool, sleeps ...time.Duration) {
+	if fn == nil {
+		return // Exit gracefully if function is nil
+	}
+	
 	var sleep time.Duration
 	if len(sleeps) > 0 {
 		sleep = sleeps[0]
@@ -60,15 +71,27 @@ func Until(fn func() bool, sleeps ...time.Duration) {
 //	UntilTimeout(func() bool { return true }, time.Second)
 //	UntilTimeout(func() bool { return true }, time.Second, time.Millisecond)
 func UntilTimeout(fn func() bool, timeout time.Duration, sleeps ...time.Duration) error {
-	ch := make(chan error, 1)
+	done := make(chan struct{})
+	defer close(done)
+	
 	go func() {
+		defer func() {
+			// Ensure channel is properly drained to prevent goroutine leak
+			select {
+			case <-done:
+			default:
+			}
+		}()
 		Until(fn, sleeps...)
-		ch <- nil
+		select {
+		case done <- struct{}{}:
+		case <-done: // Already timed out, exit gracefully
+		}
 	}()
+	
 	select {
-	case err := <-ch:
-		defer close(ch)
-		return err
+	case <-done:
+		return nil
 	case <-time.After(timeout):
 		return errors.NewTimeoutError(timeout, fmt.Errorf("helpers.UntilTimeout: timeout"))
 	}
@@ -80,13 +103,28 @@ func UntilTimeout(fn func() bool, timeout time.Duration, sleeps ...time.Duration
 //	Timeout(func() error { return nil }, time.Second) => nil
 //	Timeout(func() error { time.Sleep(2 * time.Second); return nil }, time.Second) => error
 func Timeout(fn func() error, timeout time.Duration) error {
-	ch := make(chan error, 1)
+	done := make(chan error, 1)
+	defer close(done)
+	
 	go func() {
-		ch <- fn()
+		defer func() {
+			// Handle potential panic in user function
+			if r := recover(); r != nil {
+				select {
+				case done <- fmt.Errorf("helpers.Timeout: function panicked: %v", r):
+				case <-done: // Already timed out, exit gracefully
+				}
+			}
+		}()
+		err := fn()
+		select {
+		case done <- err:
+		case <-done: // Already timed out, exit gracefully
+		}
 	}()
+	
 	select {
-	case err := <-ch:
-		defer close(ch)
+	case err := <-done:
 		return err
 	case <-time.After(timeout):
 		return errors.NewTimeoutError(timeout, fmt.Errorf("helpers.Timeout: timeout"))

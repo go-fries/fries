@@ -11,6 +11,9 @@ import (
 //	Map([]int{1, 2, 3}, func(i int) int { return i * 2 }) // []int{2, 4, 6}
 //	Map([]string{"a", "b", "c"}, func(s string) string { return s + "!" }) // []string{"a!", "b!", "c!"}
 func Map[S ~[]E, E, R any](s S, fn func(E) R) []R {
+	if fn == nil {
+		return make([]R, 0) // Return empty slice if function is nil
+	}
 	result := make([]R, 0, len(s))
 	for _, item := range s {
 		result = append(result, fn(item))
@@ -82,7 +85,10 @@ func Append[S ~[]E, E any](s S, items ...E) S {
 //	Filter([]int{1, 2, 3}, func(i int) bool { return i > 1 }) // []int{2, 3}
 //	Filter([]string{"a", "b", "c"}, func(s string) bool { return s != "b" }) // []string{"a", "c"}
 func Filter[S ~[]E, E any](s S, fn func(E) bool) S {
-	var result S
+	if fn == nil {
+		return make(S, 0) // Return empty slice if function is nil
+	}
+	result := make(S, 0, len(s)) // Pre-allocate with capacity to avoid multiple reallocations
 	for _, item := range s {
 		if fn(item) {
 			result = append(result, item)
@@ -96,7 +102,10 @@ func Filter[S ~[]E, E any](s S, fn func(E) bool) S {
 //	FilterN([]int{1, 2, 3}, func(i int, _ int) bool { return i > 1 }) // []int{2, 3}
 //	FilterN([]string{"a", "b", "c"}, func(s string, _ int) bool { return s != "b" }) // []string{"a", "c"}
 func FilterN[S ~[]E, E any](s S, fn func(E, int) bool) S {
-	var result S
+	if fn == nil {
+		return make(S, 0) // Return empty slice if function is nil
+	}
+	result := make(S, 0, len(s)) // Pre-allocate with capacity to avoid multiple reallocations
 	for i, item := range s {
 		if fn(item, i) {
 			result = append(result, item)
