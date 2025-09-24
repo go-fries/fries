@@ -5,6 +5,16 @@
 *.so
 *.dylib
 
+# Example binaries (build artifacts from examples/)
+examples/cache/cache
+examples/otel/otlp/otlp
+examples/cloudevents/amqp091/amqp091
+examples/cloudevents/eventdispatcher/eventdispatcher
+examples/mysql/canal/canal
+crontab/example/example
+eino/components/embedding/cached/example/example
+event/example/example
+
 # Test binary, built with `go test -c`
 *.test
 *_ignore_test.go
