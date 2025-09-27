@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/go-fries/fries/contract/v3 => ../contract
 
 require (
-	github.com/go-fries/fries/contract/v3 v3.9.1
+	github.com/go-fries/fries/contract/v3 v3.9.2
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
 )
