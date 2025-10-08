@@ -6,8 +6,8 @@ require (
 	github.com/bufbuild/buf v1.57.2
 	github.com/golangci/golangci-lint/v2 v2.5.0
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/crosslink v0.28.0
-	go.opentelemetry.io/build-tools/multimod v0.28.0
+	go.opentelemetry.io/build-tools/crosslink v0.28.1
+	go.opentelemetry.io/build-tools/multimod v0.28.1
 	golang.org/x/exp v0.0.0-20251002181428-27f1f14c8bb9
 )
 
