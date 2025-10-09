@@ -22,8 +22,16 @@
       "enabled": true
     },
     {
-      "matchPackageNames": ["go.opentelemetry.io/build-tools/**"],
+      "matchPackageNames": ["go.opentelemetry.io/build-tools/**", "go.opentelemetry.io/build-tools"],
       "groupName": "go.opentelemetry.io/build-tools"
+    },
+    {
+      "matchPackageNames": ["google.golang.org/api", "google.golang.org/grpc", "google.golang.org/protobuf"],
+      "groupName": "google.golang.org"
+    },
+    {
+      "matchPackageNames": ["github.com/docker/cli", "github.com/docker/docker"],
+      "groupName": "github.com/docker"
     },
     {
       "matchPackageNames": ["github.com/pingcap/tidb/**"],
