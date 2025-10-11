@@ -23,7 +23,7 @@ type client struct {
 func NewClient(transport Transport) Client {
 	return &client{
 		transport:   transport,
-		idGenerator: NewIDGenerator(),
+		idGenerator: DefaultIDGenerator,
 		codec:       json.Codec,
 	}
 }
