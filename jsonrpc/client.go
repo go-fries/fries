@@ -52,6 +52,7 @@ type Client interface {
 	Invoke(ctx context.Context, result any, method string, args ...any) (*Response, error)
 }
 
+// client is the concrete implementation of the Client interface.
 type client struct {
 	namespace string
 
@@ -61,6 +62,40 @@ type client struct {
 	codec       codec.Codec
 }
 
+// Option defines a configuration option for the Client.
+type Option interface {
+	apple(*client)
+}
+
+// optionFunc is a helper type to implement Option using functions.
+type optionFunc func(*client)
+
+func (f optionFunc) apple(c *client) {
+	f(c)
+}
+
+// WithMiddlewares adds one or more middlewares to the client.
+func WithMiddlewares(middlewares ...Middleware) Option {
+	return optionFunc(func(cl *client) {
+		cl.middlewares = append(cl.middlewares, middlewares...)
+	})
+}
+
+// WithIDGenerator sets a custom IDGenerator for the client.
+func WithIDGenerator(g IDGenerator) Option {
+	return optionFunc(func(cl *client) {
+		cl.idGenerator = g
+	})
+}
+
+// WithCodec sets a custom codec for the client.
+func WithCodec(c codec.Codec) Option {
+	return optionFunc(func(cl *client) {
+		cl.codec = c
+	})
+}
+
+// NewClient creates a new Client with the given Transport.
 func NewClient(transport Transport) Client {
 	return &client{
 		transport:   transport,
@@ -70,10 +105,13 @@ func NewClient(transport Transport) Client {
 	}
 }
 
+// Use adds one or more middlewares to the client. These middlewares will be applied
+// to all requests made by the client.
 func (c *client) Use(middlewares ...Middleware) {
 	c.middlewares = append(c.middlewares, middlewares...)
 }
 
+// Namespace returns a new Client instance scoped to the specified namespace.
 func (c *client) Namespace(name string) Client {
 	nc := new(client)
 	*nc = *c
@@ -81,6 +119,7 @@ func (c *client) Namespace(name string) Client {
 	return nc
 }
 
+// Invoke invokes a remote method with the given arguments and populates the result.
 func (c *client) Invoke(ctx context.Context, result any, method string, args ...any) (*Response, error) {
 	bytes, err := c.codec.Marshal(args)
 	if err != nil {
