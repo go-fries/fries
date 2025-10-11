@@ -85,6 +85,9 @@ module-sets:
       # Http
       - github.com/go-fries/fries/http/server/v3
 
+      # JSON-RPC
+      - github.com/go-fries/fries/jsonrpc/v3
+
       # Kratos
       - github.com/go-fries/fries/kratos/log/stack/v3
       - github.com/go-fries/fries/kratos/log/syslog/v3

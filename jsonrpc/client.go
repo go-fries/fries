@@ -7,6 +7,8 @@ import (
 	"github.com/go-fries/fries/codec/v3"
 )
 
+var DefaultCodec = json.Codec
+
 // Client represents a JSON-RPC client that can invoke remote methods.
 // It supports namespacing to organize method calls and uses a Transport
 // to send requests and receive responses.
@@ -96,13 +98,17 @@ func WithCodec(c codec.Codec) Option {
 }
 
 // NewClient creates a new Client with the given Transport.
-func NewClient(transport Transport) Client {
-	return &client{
+func NewClient(transport Transport, opts ...Option) Client {
+	c := &client{
 		transport:   transport,
 		middlewares: make([]Middleware, 0),
 		idGenerator: DefaultIDGenerator,
-		codec:       json.Codec,
+		codec:       DefaultCodec,
 	}
+	for _, opt := range opts {
+		opt.apple(c)
+	}
+	return c
 }
 
 // Use adds one or more middlewares to the client. These middlewares will be applied
