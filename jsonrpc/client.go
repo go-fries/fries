@@ -141,7 +141,7 @@ func (c *client) Invoke(ctx context.Context, result any, method string, args ...
 	}
 
 	req := &Request{
-		JSONRPC: Version,
+		JSONRPC: ProtocolVersion,
 		Method:  method,
 		Params:  bytes,
 		ID:      c.idGenerator.Generate(),
