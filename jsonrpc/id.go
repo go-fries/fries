@@ -15,7 +15,7 @@ type ID struct {
 
 func (i *ID) String() string {
 	if i.isNil {
-		return "null"
+		return "null" //nolint:goconst
 	}
 	if i.str != nil {
 		return *i.str
