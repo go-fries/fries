@@ -4,12 +4,11 @@ import (
 	"testing"
 )
 
-const expectedProtocolVersion = "2.0"
-
 func TestProtocolVersion(t *testing.T) {
 	// Test that ProtocolVersion is set to JSON-RPC 2.0 specification
-	if ProtocolVersion != expectedProtocolVersion {
-		t.Errorf("ProtocolVersion = %q, want %q", ProtocolVersion, expectedProtocolVersion)
+	const expectedVersion = "2.0"
+	if ProtocolVersion != expectedVersion {
+		t.Errorf("ProtocolVersion = %q, want %q", ProtocolVersion, expectedVersion)
 	}
 }
 
