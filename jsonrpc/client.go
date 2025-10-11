@@ -56,12 +56,20 @@ type Client interface {
 
 // client is the concrete implementation of the Client interface.
 type client struct {
+	// namespace is an optional string that scopes the client's method calls.
 	namespace string
 
+	// transport is the Transport used to send requests and receive responses.
+	transport Transport
+
+	// middlewares is a slice of Middleware functions that will be applied to each request.
 	middlewares []Middleware
-	transport   Transport
+
+	// idGenerator generates unique IDs for each request.
 	idGenerator IDGenerator
-	codec       codec.Codec
+
+	// codec is used to marshal and unmarshal request and response payloads.
+	codec codec.Codec
 }
 
 // Option defines a configuration option for the Client.
