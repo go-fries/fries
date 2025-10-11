@@ -74,13 +74,13 @@ type client struct {
 
 // Option defines a configuration option for the Client.
 type Option interface {
-	apple(*client)
+	apply(*client)
 }
 
 // optionFunc is a helper type to implement Option using functions.
 type optionFunc func(*client)
 
-func (f optionFunc) apple(c *client) {
+func (f optionFunc) apply(c *client) {
 	f(c)
 }
 
@@ -114,7 +114,7 @@ func NewClient(transport Transport, opts ...Option) Client {
 		codec:       DefaultCodec,
 	}
 	for _, opt := range opts {
-		opt.apple(c)
+		opt.apply(c)
 	}
 	return c
 }
