@@ -8,6 +8,7 @@ import (
 
 const Version = "2.0"
 
+// Request represents a JSON-RPC request object
 type Request struct {
 	JSONRPC string          `json:"jsonrpc"`
 	Method  string          `json:"method"`
@@ -15,7 +16,7 @@ type Request struct {
 	ID      *ID             `json:"id,omitempty"`
 }
 
-// Response 表示一个 JSON-RPC 2.0 响应对象
+// Response represents a JSON-RPC response object
 type Response struct {
 	JSONRPC string          `json:"jsonrpc"`
 	Result  json.RawMessage `json:"result,omitempty"`
@@ -23,7 +24,7 @@ type Response struct {
 	ID      *ID             `json:"id"`
 }
 
-// Error 表示一个 JSON-RPC 错误对象
+// Error represents a JSON-RPC error object
 type Error struct {
 	Code    int             `json:"code"`
 	Message string          `json:"message"`
