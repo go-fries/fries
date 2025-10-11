@@ -11,6 +11,14 @@ import (
 // It supports namespacing to organize method calls and uses a Transport
 // to send requests and receive responses.
 type Client interface {
+	// Use adds one or more middlewares to the client. These middlewares will be applied
+	// to all requests made by the client.
+	//
+	// Example:
+	//	client := NewClient(transport)
+	//	client.Use(loggingMiddleware, authMiddleware)
+	Use(middlewares ...Middleware)
+
 	// Namespace returns a new Client instance scoped to the specified namespace.
 	// This allows organizing and isolating method calls under different namespaces.
 	//
@@ -47,6 +55,7 @@ type Client interface {
 type client struct {
 	namespace string
 
+	middlewares []Middleware
 	transport   Transport
 	idGenerator IDGenerator
 	codec       codec.Codec
@@ -55,9 +64,14 @@ type client struct {
 func NewClient(transport Transport) Client {
 	return &client{
 		transport:   transport,
+		middlewares: make([]Middleware, 0),
 		idGenerator: DefaultIDGenerator,
 		codec:       json.Codec,
 	}
+}
+
+func (c *client) Use(middlewares ...Middleware) {
+	c.middlewares = append(c.middlewares, middlewares...)
 }
 
 func (c *client) Namespace(name string) Client {
@@ -79,7 +93,8 @@ func (c *client) Invoke(ctx context.Context, result any, method string, args ...
 		Params:  bytes,
 		ID:      c.idGenerator.Generate(),
 	}
-	resp, err := c.transport.Send(ctx, c.namespace, req)
+
+	resp, err := chain(c.middlewares...)(c.transport.Send)(ctx, c.namespace, req)
 	if err != nil {
 		return resp, err
 	}
