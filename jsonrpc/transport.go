@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // Transport defines the interface for sending JSON-RPC requests and receiving responses.
@@ -29,37 +30,46 @@ type Transport interface {
 
 var _ Transport = (*HTTPTransport)(nil)
 
+// HTTPTransport is an implementation of the Transport interface using HTTP as the transport protocol.
 type HTTPTransport struct {
 	addr       string
 	userAgent  string
 	httpClient *http.Client
 }
 
+// HTTPTransportOption defines a function type for configuring HTTPTransport options.
 type HTTPTransportOption interface {
+	// apply applies the option to the given HTTPTransport instance.
 	apply(*HTTPTransport)
 }
 
+// httpTransportOptionFunc is a helper type to implement HTTPTransportOption using functions.
 type httpTransportOptionFunc func(*HTTPTransport)
 
 func (f httpTransportOptionFunc) apply(h *HTTPTransport) {
 	f(h)
 }
 
+// WithHTTPTransportUserAgent sets the User-Agent header for the HTTPTransport.
 func WithHTTPTransportUserAgent(userAgent string) HTTPTransportOption {
 	return httpTransportOptionFunc(func(h *HTTPTransport) {
 		h.userAgent = userAgent
 	})
 }
 
+// WithHTTPTransportClient sets a custom http.Client for the HTTPTransport.
 func WithHTTPTransportClient(client *http.Client) HTTPTransportOption {
 	return httpTransportOptionFunc(func(h *HTTPTransport) {
 		h.httpClient = client
 	})
 }
 
+// NewHTTPTransport creates a new HTTPTransport with the specified address and options.
+// The addr parameter specifies the base URL for the JSON-RPC server.
+// Additional options can be provided to customize the transport behavior.
 func NewHTTPTransport(addr string, opts ...HTTPTransportOption) *HTTPTransport {
 	h := &HTTPTransport{
-		addr:       addr,
+		addr:       strings.TrimSuffix(addr, "/"),
 		httpClient: http.DefaultClient,
 	}
 	for _, opt := range opts {
@@ -68,10 +78,12 @@ func NewHTTPTransport(addr string, opts ...HTTPTransportOption) *HTTPTransport {
 	return h
 }
 
+// Send sends a JSON-RPC request to the specified namespace and returns the response.
+// It constructs an HTTP POST request with the JSON-encoded request body and processes the response.
 func (h *HTTPTransport) Send(ctx context.Context, namespace string, request *Request) (*Response, error) {
 	addr := h.addr
 	if namespace != "" {
-		addr = addr + "/" + namespace
+		addr = addr + "/" + strings.TrimPrefix(namespace, "/")
 	}
 
 	buf := new(bytes.Buffer)

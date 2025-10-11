@@ -33,7 +33,7 @@ type Error struct {
 var _ error = (*Error)(nil)
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("code: %d, message: %s, data: %s", e.Code, e.Message, string(e.Data))
+	return fmt.Sprintf("code: %d, message: %s", e.Code, e.Message)
 }
 
 func (e *Error) Unwrap() error {
