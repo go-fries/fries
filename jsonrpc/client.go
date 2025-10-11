@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"context"
 
+	"github.com/go-fries/fries/codec/json/v3"
 	"github.com/go-fries/fries/codec/v3"
 )
 
@@ -23,13 +24,15 @@ func NewClient(transport Transport) Client {
 	return &client{
 		transport:   transport,
 		idGenerator: NewIDGenerator(),
+		codec:       json.Codec,
 	}
 }
 
 func (c *client) Namespace(name string) Client {
-	nc := *c
+	nc := new(client)
+	*nc = *c
 	nc.namespace = name
-	return &nc
+	return nc
 }
 
 func (c *client) Call(ctx context.Context, result any, method string, args ...any) (*Response, error) {
