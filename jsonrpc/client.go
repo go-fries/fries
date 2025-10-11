@@ -7,9 +7,41 @@ import (
 	"github.com/go-fries/fries/codec/v3"
 )
 
+// Client represents a JSON-RPC client that can invoke remote methods.
+// It supports namespacing to organize method calls and uses a Transport
+// to send requests and receive responses.
 type Client interface {
+	// Namespace returns a new Client instance scoped to the specified namespace.
+	// This allows organizing and isolating method calls under different namespaces.
+	//
+	// Example:
+	//	client := NewClient(transport)
+	//	nsClient := client.Namespace("myNamespace")
+	//	resp, err := nsClient.Invoke(ctx, &result, "methodName", arg1, arg2)
+	//
+	// The original client remains unchanged and can be used to create other namespace-scoped clients.
+	//
+	// Note: The namespace is typically a string that groups related methods together,
+	// such as a service name or module identifier.
+	//
+	// Concurrency Note:
+	// Returns a new Client instance with the specified namespace. The method does not support concurrency
+	// safety; ensure that the returned Client is used in a single-threaded context or manage synchronization externally.
 	Namespace(name string) Client
-	Call(ctx context.Context, result any, method string, args ...any) (*Response, error)
+
+	// Invoke invokes a remote method with the given arguments and populates the result.
+	// The result parameter should be a pointer to the expected result type.
+	// It returns the full Response and an error if the invocation fails.
+	//
+	// Example:
+	//	var result MyResultType
+	//	resp, err := client.Invoke(ctx, &result, "methodName", arg1, arg2)
+	//
+	// If the remote method returns an error, it will be contained in resp.Error.
+	// If the invocation itself fails (e.g., network error), err will be non-nil.
+	//
+	// Note: The result parameter must be a pointer type to allow unmarshalling of the response.
+	Invoke(ctx context.Context, result any, method string, args ...any) (*Response, error)
 }
 
 type client struct {
@@ -35,14 +67,14 @@ func (c *client) Namespace(name string) Client {
 	return nc
 }
 
-func (c *client) Call(ctx context.Context, result any, method string, args ...any) (*Response, error) {
+func (c *client) Invoke(ctx context.Context, result any, method string, args ...any) (*Response, error) {
 	bytes, err := c.codec.Marshal(args)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &Request{
-		JSONRPC: JSONRPCVersion,
+		JSONRPC: Version,
 		Method:  method,
 		Params:  bytes,
 		ID:      c.idGenerator.Generate(),

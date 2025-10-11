@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const JSONRPCVersion = "2.0"
+const Version = "2.0"
 
 type Request struct {
 	JSONRPC string          `json:"jsonrpc"`

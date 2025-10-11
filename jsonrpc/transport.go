@@ -8,7 +8,22 @@ import (
 	"net/http"
 )
 
+// Transport defines the interface for sending JSON-RPC requests and receiving responses.
 type Transport interface {
+	// Send sends a JSON-RPC request to the specified namespace and returns the response.
+	// The namespace parameter allows scoping the request to a specific context or service.
+	//
+	// Parameters:
+	//   - ctx: The context for managing request lifetime and cancellation.
+	//   - namespace: A string representing the namespace to which the request is sent.
+	//   - request: A pointer to the Request struct containing the JSON-RPC request details.
+	//
+	// Returns:
+	//   - A pointer to the Response struct containing the JSON-RPC response.
+	//   - An error if the request fails or if there is an issue with sending or receiving the response.
+	//
+	// Note: Implementations of this method should handle serialization of the request,
+	// network communication, and deserialization of the response.
 	Send(ctx context.Context, namespace string, request *Request) (*Response, error)
 }
 
