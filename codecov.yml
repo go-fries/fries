@@ -95,3 +95,4 @@ fixes:
   - github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v3::eino/components/embedding/cached/cacher/gorm/
   - github.com/go-fries/fries/slices/v3::slices/
   - github.com/go-fries/fries/strings/v3::strings/
+  - github.com/go-fries/fries/jsonrpc/v3::jsonrpc/
