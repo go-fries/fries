@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const Version = "2.0"
+const ProtocolVersion = "2.0"
 
 // Request represents a JSON-RPC request object
 type Request struct {
