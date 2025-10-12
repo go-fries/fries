@@ -2,14 +2,13 @@ package jsonrpc
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProtocolVersion(t *testing.T) {
 	// Test that ProtocolVersion is set to JSON-RPC 2.0 specification
-	const expectedVersion = "2.0"
-	if ProtocolVersion != expectedVersion {
-		t.Errorf("ProtocolVersion = %q, want %q", ProtocolVersion, expectedVersion)
-	}
+	assert.Equal(t, "2.0", ProtocolVersion)
 }
 
 func TestRequestUsesProtocolVersion(t *testing.T) {
@@ -19,7 +18,5 @@ func TestRequestUsesProtocolVersion(t *testing.T) {
 		Method:  "testMethod",
 	}
 
-	if req.JSONRPC != ProtocolVersion {
-		t.Errorf("Request.JSONRPC = %q, want %q", req.JSONRPC, ProtocolVersion)
-	}
+	assert.Equal(t, ProtocolVersion, req.JSONRPC)
 }
