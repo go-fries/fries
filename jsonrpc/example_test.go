@@ -56,6 +56,13 @@ func Example() {
 	log.Println("Response:", resp)
 	log.Println("User:", user)
 
+	// Invoke a remote method with custom context middlewares
+	_, _ = client.Invoke(
+		jsonrpc.ContextWithMiddlewares(context.Background(), Logger()), // add logging middleware for this request only
+		&user,
+		"getUser", 67890,
+	)
+
 	// Use the client with a namespace
 	nsClient := client.Namespace("myNamespace")
 	var result string
