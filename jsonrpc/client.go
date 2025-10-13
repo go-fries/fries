@@ -135,6 +135,11 @@ func (c *client) Namespace(name string) Client {
 
 // Invoke invokes a remote method with the given arguments and populates the result.
 func (c *client) Invoke(ctx context.Context, result any, method string, args ...any) (*Response, error) {
+	return c.invoke(ctx, result, method, args)
+}
+
+// invoke is the internal implementation of the Invoke method.
+func (c *client) invoke(ctx context.Context, result any, method string, args []any) (*Response, error) {
 	bytes, err := c.codec.Marshal(args)
 	if err != nil {
 		return nil, err
@@ -147,7 +152,11 @@ func (c *client) Invoke(ctx context.Context, result any, method string, args ...
 		ID:      c.idGenerator.Generate(),
 	}
 
-	resp, err := chain(c.middlewares...)(c.transport.Send)(ctx, c.namespace, req)
+	// Combine client middlewares with those from context
+	mws := combineMiddlewares(ctx, c.middlewares)
+
+	// Apply middlewares and send the request using the transport
+	resp, err := chain(mws...)(c.transport.Send)(ctx, c.namespace, req)
 	if err != nil {
 		return resp, err
 	}
@@ -156,4 +165,9 @@ func (c *client) Invoke(ctx context.Context, result any, method string, args ...
 	}
 
 	return resp, c.codec.Unmarshal(resp.Result, result)
+}
+
+// combineMiddlewares merges the client's middlewares with those extracted from the context.
+func combineMiddlewares(ctx context.Context, original []Middleware) []Middleware {
+	return append(original, middlewaresFromContext(ctx)...)
 }
