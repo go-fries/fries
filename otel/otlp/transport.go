@@ -24,6 +24,7 @@ type Transport interface {
 type GRPCTransport struct {
 	endpoint string
 	insecure bool
+	headers  map[string]string
 }
 
 var _ Transport = (*GRPCTransport)(nil)
@@ -33,6 +34,12 @@ type GRPCTransportOption func(*GRPCTransport)
 func WithGRPCTransportInsecure(insecure bool) GRPCTransportOption {
 	return func(t *GRPCTransport) {
 		t.insecure = insecure
+	}
+}
+
+func WithGRPCTransportHeaders(headers map[string]string) GRPCTransportOption {
+	return func(t *GRPCTransport) {
+		t.headers = headers
 	}
 }
 
@@ -59,6 +66,10 @@ func (t *GRPCTransport) GetTraceSpanExporter(ctx context.Context) (trace.SpanExp
 		opts = append(opts, otlptracegrpc.WithInsecure())
 	}
 
+	if t.headers != nil {
+		opts = append(opts, otlptracegrpc.WithHeaders(t.headers))
+	}
+
 	return otlptracegrpc.New(ctx, opts...)
 }
 
@@ -82,6 +93,10 @@ func (t *GRPCTransport) GetMetricExporter(ctx context.Context) (metric.Exporter,
 		opts = append(opts, otlpmetricgrpc.WithInsecure())
 	}
 
+	if t.headers != nil {
+		opts = append(opts, otlpmetricgrpc.WithHeaders(t.headers))
+	}
+
 	return otlpmetricgrpc.New(ctx, opts...)
 }
 
@@ -95,12 +110,17 @@ func (t *GRPCTransport) GetLogExporter(ctx context.Context) (log.Exporter, error
 		opts = append(opts, otlploggrpc.WithInsecure())
 	}
 
+	if t.headers != nil {
+		opts = append(opts, otlploggrpc.WithHeaders(t.headers))
+	}
+
 	return otlploggrpc.New(ctx, opts...)
 }
 
 type HTTPTransport struct {
 	endpoint string
 	insecure bool
+	headers  map[string]string
 }
 
 var _ Transport = (*HTTPTransport)(nil)
@@ -110,6 +130,12 @@ type HTTPTransportOption func(*HTTPTransport)
 func WithHTTPTransportInsecure(insecure bool) HTTPTransportOption {
 	return func(t *HTTPTransport) {
 		t.insecure = insecure
+	}
+}
+
+func WithHTTPTransportHeaders(headers map[string]string) HTTPTransportOption {
+	return func(t *HTTPTransport) {
+		t.headers = headers
 	}
 }
 
@@ -136,6 +162,10 @@ func (t *HTTPTransport) GetTraceSpanExporter(ctx context.Context) (trace.SpanExp
 		opts = append(opts, otlptracehttp.WithInsecure())
 	}
 
+	if t.headers != nil {
+		opts = append(opts, otlptracehttp.WithHeaders(t.headers))
+	}
+
 	return otlptracehttp.New(ctx, opts...)
 }
 
@@ -159,6 +189,10 @@ func (t *HTTPTransport) GetMetricExporter(ctx context.Context) (metric.Exporter,
 		opts = append(opts, otlpmetrichttp.WithInsecure())
 	}
 
+	if t.headers != nil {
+		opts = append(opts, otlpmetrichttp.WithHeaders(t.headers))
+	}
+
 	return otlpmetrichttp.New(ctx, opts...)
 }
 
@@ -170,6 +204,10 @@ func (t *HTTPTransport) GetLogExporter(ctx context.Context) (log.Exporter, error
 
 	if t.insecure {
 		opts = append(opts, otlploghttp.WithInsecure())
+	}
+
+	if t.headers != nil {
+		opts = append(opts, otlploghttp.WithHeaders(t.headers))
 	}
 
 	return otlploghttp.New(ctx, opts...)
