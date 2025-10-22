@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/go-fries/fries/locker/v3 => ../
 
 require (
-	github.com/go-fries/fries/locker/v3 v3.9.2
+	github.com/go-fries/fries/locker/v3 v3.10.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.14.1
 	github.com/stretchr/testify v1.11.1
