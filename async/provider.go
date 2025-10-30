@@ -11,11 +11,6 @@ type Message struct {
 	Args any
 }
 
-type Queue interface {
-	Enqueue(ctx context.Context, message *Message) error
-	Dequeue(ctx context.Context) (*Message, error)
-}
-
 type Handler func(ctx context.Context, args any) error
 
 type Provider interface {
