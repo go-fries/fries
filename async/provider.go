@@ -101,14 +101,17 @@ func (p *provider) Add(task string, handler Handler) error {
 	defer p.mu.Unlock()
 
 	if p.handlers == nil {
-		p.handlers = make(map[string]Handler)
+		p.handlers = make(map[string]*handlerWrapper)
 	}
 
 	if _, exists := p.handlers[task]; exists {
 		return fmt.Errorf("task already exists")
 	}
 
-	p.handlers[task] = handler
+	p.handlers[task] = &handlerWrapper{
+		task:    task,
+		handler: handler,
+	}
 	return nil
 }
 
