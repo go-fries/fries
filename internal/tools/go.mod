@@ -6,8 +6,8 @@ require (
 	github.com/bufbuild/buf v1.59.0
 	github.com/golangci/golangci-lint/v2 v2.6.0
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/crosslink v0.28.1
-	go.opentelemetry.io/build-tools/multimod v0.28.1
+	go.opentelemetry.io/build-tools/crosslink v0.29.0
+	go.opentelemetry.io/build-tools/multimod v0.29.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 )
 
@@ -116,7 +116,7 @@ require (
 	github.com/go-critic/go-critic v0.14.2 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20241228213128-52e213351497 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
-	github.com/go-git/go-git/v5 v5.16.2 // indirect
+	github.com/go-git/go-git/v5 v5.16.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
@@ -284,7 +284,7 @@ require (
 	go.lsp.dev/protocol v0.12.0 // indirect
 	go.lsp.dev/uri v0.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/build-tools v0.28.1 // indirect
+	go.opentelemetry.io/build-tools v0.29.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
