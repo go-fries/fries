@@ -87,8 +87,19 @@ func (p *provider) Stop(ctx context.Context) error {
 	p.stopOnce.Do(func() {
 		close(p.stopCh)
 	})
-	p.processWg.Wait()
-	return nil
+
+	waited := make(chan struct{})
+	go func() {
+		defer close(waited)
+		p.processWg.Wait()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-waited:
+		return nil
+	}
 }
 
 func (p *provider) Add(task string, handler Handler) error {
