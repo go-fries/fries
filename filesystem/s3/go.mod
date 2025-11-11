@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/go-fries/fries/filesystem/v3 => ../
 
 require (
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.1
 	github.com/aws/smithy-go v1.23.2
 	github.com/go-fries/fries/filesystem/v3 v3.10.0
 )
