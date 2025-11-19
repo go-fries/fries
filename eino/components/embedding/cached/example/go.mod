@@ -30,8 +30,8 @@ require (
 	github.com/getkin/kin-openapi v0.118.0 // indirect
 	github.com/go-fries/fries/codec/sonic/v3 v3.10.0 // indirect
 	github.com/go-fries/fries/codec/v3 v3.10.0 // indirect
-	github.com/go-openapi/jsonpointer v0.22.2 // indirect
-	github.com/go-openapi/swag/jsonname v0.25.1 // indirect
+	github.com/go-openapi/jsonpointer v0.22.3 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.3 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
