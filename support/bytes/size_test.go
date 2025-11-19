@@ -1,4 +1,4 @@
-package bytes
+package bytes //nolint:revive
 
 import (
 	"testing"
