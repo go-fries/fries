@@ -12,7 +12,7 @@ require (
 	github.com/go-fries/fries/codec/sonic/v3 v3.10.0
 	github.com/go-fries/fries/codec/v3 v3.10.0
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.10.0
-	github.com/redis/go-redis/v9 v9.16.0
+	github.com/redis/go-redis/v9 v9.17.0
 	github.com/stretchr/testify v1.11.1
 )
 
