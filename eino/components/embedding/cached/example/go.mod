@@ -11,8 +11,8 @@ replace (
 
 require (
 	github.com/cloudwego/eino v0.7.0
-	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 v3.10.0
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.10.0
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 v3.11.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.11.0
 	github.com/redis/go-redis/v9 v9.17.0
 )
 
@@ -27,8 +27,8 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eino-contrib/jsonschema v1.0.2 // indirect
-	github.com/go-fries/fries/codec/sonic/v3 v3.10.0 // indirect
-	github.com/go-fries/fries/codec/v3 v3.10.0 // indirect
+	github.com/go-fries/fries/codec/sonic/v3 v3.11.0 // indirect
+	github.com/go-fries/fries/codec/v3 v3.11.0 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
