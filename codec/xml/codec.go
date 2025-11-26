@@ -1,4 +1,4 @@
-package xml
+package xml //nolint:revive
 
 import (
 	"encoding/xml"
