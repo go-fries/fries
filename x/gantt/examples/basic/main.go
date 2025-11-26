@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	ganttmermaid "github.com/go-fries/fries/gantt/v3"
+	ganttmermaid "github.com/go-fries/fries/x/gantt/v3"
 )
 
 func main() {

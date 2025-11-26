@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-fries/fries/gantt/v3/internal/parser"
-	"github.com/go-fries/fries/gantt/v3/internal/render"
+	"github.com/go-fries/fries/x/gantt/v3/internal/parser"
+	"github.com/go-fries/fries/x/gantt/v3/internal/render"
 )
 
 const defaultFilePerm = 0o644

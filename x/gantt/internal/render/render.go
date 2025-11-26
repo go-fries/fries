@@ -14,8 +14,8 @@ import (
 	xfont "golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/go-fries/fries/gantt/v3/internal/font"
-	"github.com/go-fries/fries/gantt/v3/internal/parser"
+	"github.com/go-fries/fries/x/gantt/v3/internal/font"
+	"github.com/go-fries/fries/x/gantt/v3/internal/parser"
 )
 
 const (

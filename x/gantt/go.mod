@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/gantt/v3
+module github.com/go-fries/fries/x/gantt/v3
 
 go 1.24.0
 
