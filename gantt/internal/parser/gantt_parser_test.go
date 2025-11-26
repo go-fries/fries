@@ -1,0 +1,53 @@
+package parser
+
+import "testing"
+
+func TestParseBasic(t *testing.T) {
+	src := `gantt
+section 开发
+任务A :a1, 2024-01-01, 3d
+任务B :after a1, 2d`
+	m, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	if len(m.Sections) != 1 {
+		t.Fatalf("expected 1 section, got %d", len(m.Sections))
+	}
+	if len(m.Sections[0].Tasks) != 2 {
+		t.Fatalf("expected 2 tasks, got %d", len(m.Sections[0].Tasks))
+	}
+	if m.Sections[0].Tasks[0].Name != "任务A" {
+		t.Fatalf("unexpected task name %s", m.Sections[0].Tasks[0].Name)
+	}
+}
+
+func TestParseEmpty(t *testing.T) {
+	_, err := Parse("")
+	if err == nil {
+		t.Fatalf("expected error on empty source")
+	}
+}
+
+func TestParse_ExcludesWeekends(t *testing.T) {
+	src := `gantt
+dateFormat YYYY-MM-DD
+excludes weekends
+section 开发
+任务A :a1, 2024-01-01, 3d
+section 测试
+任务B :a2, 2024-01-04, 2d`
+	m, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	if !m.ExcludeWeekends {
+		t.Fatalf("expected ExcludeWeekends true")
+	}
+	if len(m.Sections) != 2 {
+		t.Fatalf("expected 2 sections")
+	}
+	if m.Sections[0].Tasks[0].Section != "开发" {
+		t.Fatalf("section name mismatch: %s", m.Sections[0].Tasks[0].Section)
+	}
+}
