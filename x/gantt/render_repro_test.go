@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/go-fries/fries/x/gantt/v3/internal/parser"
 )
@@ -65,5 +66,77 @@ func TestParse_TimezoneOverride(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("task r1 not found")
+	}
+}
+
+func TestRender_ManualCase_SectionSplit(t *testing.T) {
+	src := `
+gantt
+    title A Gantt Diagram
+    dateFormat YYYY-MM-DD
+    section Section
+        A task          :a1, 2014-01-01, 30d
+        Another task    :after a1, 20d
+    section Another
+        Task in Another :2014-01-12, 12d
+        another task    :24d
+`
+	out := filepath.Join(os.TempDir(), "gantt_case1.png")
+	res, err := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if err != nil {
+		t.Fatalf("render manual case failed: %v", err)
+	}
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatalf("output not found: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatalf("output file is empty")
+	}
+	t.Logf("rendered manual case to %s", out)
+
+	// 解析并验证起止时间，确保调度符合预期
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse manual case: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule manual case: %v", err)
+	}
+	type span struct {
+		start time.Time
+		end   time.Time
+	}
+	expect := map[string]span{
+		"A task":          {start: time.Date(2014, 1, 1, 0, 0, 0, 0, time.UTC), end: time.Date(2014, 1, 31, 0, 0, 0, -1, time.UTC)},
+		"Another task":    {start: time.Date(2014, 1, 31, 0, 0, 0, 0, time.UTC), end: time.Date(2014, 2, 20, 0, 0, 0, -1, time.UTC)}, // after a1
+		"Task in Another": {start: time.Date(2014, 1, 12, 0, 0, 0, 0, time.UTC), end: time.Date(2014, 1, 24, 0, 0, 0, -1, time.UTC)},
+		"another task":    {start: time.Date(2014, 1, 24, 0, 0, 0, 0, time.UTC), end: time.Date(2014, 2, 17, 0, 0, 0, -1, time.UTC)}, // chained in same section
+	}
+	checked := 0
+	for _, sec := range model.Sections {
+		for _, task := range sec.Tasks {
+			exp, ok := expect[task.Name]
+			if !ok {
+				continue
+			}
+			checked++
+			if !task.Start.Equal(exp.start) {
+				t.Fatalf("task %s start mismatch: got %v expect %v", task.Name, task.Start, exp.start)
+			}
+			if !task.End.Equal(exp.end) {
+				t.Fatalf("task %s end mismatch: got %v expect %v", task.Name, task.End, exp.end)
+			}
+		}
+	}
+	if checked != len(expect) {
+		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
 	}
 }
