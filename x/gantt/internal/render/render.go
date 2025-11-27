@@ -361,8 +361,14 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	hasToday := today.Enabled && !timeMode
 
 	// 时间轴与纵向网格（贯穿全图，周末着色、今日红线）
+	weekendFill := weekendColor(opt.Theme.Background)
+	if !hasSectionHeader {
+		// 无 section 背景时，排除日统一用稍暗底色，含 weekend 与 excludes
+		weekendFill = darkenColor(opt.Theme.Background, 0.9)
+	}
+
 	if timeMode {
-		drawTimelineMinutes(img, leftMargin, topMargin, gridWidth, axisHeight, minSpan, maxSpan, m.AxisFormat, opt.Theme, calendar, contentBottom, tickMinutes)
+		drawTimelineMinutes(img, leftMargin, topMargin, gridWidth, axisHeight, minSpan, maxSpan, m.AxisFormat, opt.Theme, calendar, contentBottom, tickMinutes, weekendFill)
 	} else {
 		totalDays := calendarSpanDays(minStart, maxEnd)
 		if totalDays <= 0 {
@@ -377,7 +383,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		} else {
 			weekStart = nil
 		}
-		drawTimeline(img, leftMargin, topMargin, totalDays, axisHeight, dayWidth, minStart, m.AxisFormat, opt.Theme, calendar, contentBottom, hasToday, todayX, tickDays, weekStart)
+		drawTimeline(img, leftMargin, topMargin, totalDays, axisHeight, dayWidth, minStart, m.AxisFormat, opt.Theme, calendar, contentBottom, hasToday, todayX, tickDays, weekStart, weekendFill)
 	}
 
 	// 垂直标记（不占用行）
@@ -779,8 +785,7 @@ func abs(v int) int {
 	return v
 }
 
-func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int, minStart, maxEnd time.Time, axisFormat string, theme ThemeColors, calendar parser.Calendar, endY int, forcedTickMinutes int) {
-	weekendFill := weekendColor(theme.Background)
+func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int, minStart, maxEnd time.Time, axisFormat string, theme ThemeColors, calendar parser.Calendar, endY int, forcedTickMinutes int, weekendFill color.Color) {
 	totalMinutes := int(maxEnd.Sub(minStart).Minutes()) + 1
 	if totalMinutes <= 0 {
 		totalMinutes = 1
@@ -867,9 +872,8 @@ func drawVerticalMarkers(img *image.RGBA, xStart, yStart, endY int, spanStart, s
 	}
 }
 
-func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth int, minStart time.Time, axisFormat string, theme ThemeColors, calendar parser.Calendar, endY int, hasToday bool, todayX int, forcedTickDays int, weekStart *time.Weekday) {
+func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth int, minStart time.Time, axisFormat string, theme ThemeColors, calendar parser.Calendar, endY int, hasToday bool, todayX int, forcedTickDays int, weekStart *time.Weekday, weekendFill color.Color) {
 	width := dayWidth * days
-	weekendFill := weekendColor(theme.Background)
 
 	tickEvery := 1
 	if forcedTickDays > 0 {
@@ -1042,6 +1046,17 @@ func weekendColor(base color.Color) color.Color {
 	r := clampFloat(float64(rgba.R) * weekendBrightenFactor)
 	g := clampFloat(float64(rgba.G) * weekendBrightenFactor)
 	b := clampFloat(float64(rgba.B) * weekendBrightenFactor)
+	return color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: rgba.A}
+}
+
+func darkenColor(base color.Color, factor float64) color.Color {
+	if factor <= 0 {
+		factor = 1
+	}
+	rgba := color.RGBAModel.Convert(base).(color.RGBA)
+	r := clampFloat(float64(rgba.R) * factor)
+	g := clampFloat(float64(rgba.G) * factor)
+	b := clampFloat(float64(rgba.B) * factor)
 	return color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: rgba.A}
 }
 

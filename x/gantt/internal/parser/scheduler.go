@@ -188,7 +188,13 @@ func ResolveSchedule(m Model) (Model, error) {
 			start = maxAfter
 		}
 
+		origDur := t.Duration
 		end, days := applyCalendar(start, t.Duration, m.Calendar)
+		// 对周/月等单位使用天数期望，避免包容端偏差
+		if origDur.Unit == DurationWeek && origDur.Value > 0 {
+			days = origDur.Value * 7
+			end = start.Add(durationToDuration(DurationSpec{Value: days, Unit: DurationDay}) - time.Nanosecond)
+		}
 		t.Start = start
 		t.End = end
 		t.DurationDays = days
