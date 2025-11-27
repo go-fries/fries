@@ -616,6 +616,24 @@ func clampInt(v, min, max int) int {
 	return v
 }
 
+func alignTickOffset(minStart time.Time, stepMinutes int) int {
+	if stepMinutes <= 0 {
+		return 0
+	}
+	step := time.Duration(stepMinutes) * time.Minute
+	aligned := minStart.Truncate(step)
+	if aligned.Before(minStart) {
+		aligned = aligned.Add(step)
+	} else if aligned.Equal(minStart) && (minStart.Second() > 0 || minStart.Nanosecond() > 0) {
+		aligned = aligned.Add(step)
+	}
+	offset := aligned.Sub(minStart)
+	if offset < 0 {
+		return 0
+	}
+	return int(offset.Minutes())
+}
+
 func hasTimeGranularity(m parser.Model) bool {
 	for _, sec := range m.Sections {
 		for _, t := range sec.Tasks {
@@ -715,8 +733,15 @@ func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int,
 		tickMinutes = 60
 	}
 	tickMinutes, labelStep := normalizeMinuteTicks(totalMinutes, tickMinutes, isForced)
+	tickOffset := alignTickOffset(minStart, tickMinutes)
+	labelOffset := alignTickOffset(minStart, labelStep)
 
-	for i := 0; i <= totalMinutes; i += tickMinutes {
+	// 起点线
+	for yy := yStart; yy < endY; yy++ {
+		img.Set(xStart, yy, theme.Grid)
+	}
+
+	for i := tickOffset; i <= totalMinutes; i += tickMinutes {
 		x := xStart + int(float64(i)*pixelsPerMinute)
 		current := minStart.Add(time.Duration(i) * time.Minute)
 		if isExcludedDay(current, calendar) {
@@ -741,7 +766,7 @@ func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int,
 	}
 	face, _, _ := font.LoadFaceWithFallback(float64(axisFontSize), "")
 	step := labelStep
-	for i := 0; i <= totalMinutes; i += step {
+	for i := labelOffset; i <= totalMinutes; i += step {
 		x := xStart + int(float64(i)*pixelsPerMinute)
 		date := minStart.Add(time.Duration(i) * time.Minute).Format(format)
 		drawTextWithFace(img, theme.Text, x+tickLabelOffsetPx, yStart+axisHeight-tickLabelOffsetPx, face, date)

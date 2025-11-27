@@ -373,3 +373,68 @@ gantt
 	}
 	t.Logf("rendered until/after case to %s", out)
 }
+
+func TestRender_ManualCase_MinuteMilestones(t *testing.T) {
+	src := `
+gantt
+    dateFormat HH:mm
+    axisFormat %H:%M
+    Initial milestone : milestone, m1, 17:49, 2m
+    Task A : 10m
+    Task B : 5m
+    Final milestone : milestone, m2, 18:08, 4m
+`
+	out := filepath.Join(os.TempDir(), "gantt_minute_axis.png")
+	res, err := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if err != nil {
+		t.Fatalf("render minute case failed: %v", err)
+	}
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	if info, err := os.Stat(out); err != nil || info.Size() == 0 {
+		t.Fatalf("output file missing or empty: %v", err)
+	}
+	t.Logf("rendered minute axis case to %s", out)
+
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse minute case: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule minute case: %v", err)
+	}
+	type span struct {
+		start string
+		end   string
+	}
+	expect := map[string]span{
+		"Initial milestone": {"17:49", "17:51"},
+		"Task A":            {"17:51", "18:01"},
+		"Task B":            {"18:01", "18:06"},
+		"Final milestone":   {"18:08", "18:12"},
+	}
+
+	checked := 0
+	for _, sec := range model.Sections {
+		for _, task := range sec.Tasks {
+			exp, ok := expect[task.Name]
+			if !ok {
+				continue
+			}
+			checked++
+			start := task.Start.Format("15:04")
+			end := task.End.Format("15:04")
+			if start != exp.start || end != exp.end {
+				t.Fatalf("task %s start/end mismatch: got %s -> %s, want %s -> %s", task.Name, start, end, exp.start, exp.end)
+			}
+		}
+	}
+	if checked != len(expect) {
+		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
+	}
+}
