@@ -26,7 +26,7 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/eino-contrib/jsonschema v1.0.2 // indirect
+	github.com/eino-contrib/jsonschema v1.0.3 // indirect
 	github.com/go-fries/fries/codec/sonic/v3 v3.11.0 // indirect
 	github.com/go-fries/fries/codec/v3 v3.11.0 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
