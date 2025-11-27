@@ -1,6 +1,9 @@
 package parser
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestParseBasic(t *testing.T) {
 	src := `gantt
@@ -74,5 +77,32 @@ section Section
 	task := m.Sections[0].Tasks[0]
 	if got := task.End.Format("2006-01-02"); got != "2024-02-11" {
 		t.Fatalf("expected end 2024-02-11, got %s", got)
+	}
+}
+
+func TestSchedule_ExcludesWeekdayName(t *testing.T) {
+	src := `gantt
+dateFormat YYYY-MM-DD
+excludes friday
+section S
+    A task :a1, 2024-01-01, 5d
+`
+	m, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	if !m.Calendar.ExcludeWeekend {
+		t.Fatalf("expected ExcludeWeekend true when weekday excluded")
+	}
+	if len(m.Calendar.WeekendDays) != 1 || m.Calendar.WeekendDays[0] != time.Friday {
+		t.Fatalf("expected only friday in excluded weekdays, got %v", m.Calendar.WeekendDays)
+	}
+	m, err = ResolveSchedule(m)
+	if err != nil {
+		t.Fatalf("schedule failed: %v", err)
+	}
+	task := m.Sections[0].Tasks[0]
+	if got := task.End.Format("2006-01-02"); got != "2024-01-06" {
+		t.Fatalf("expected end 2024-01-06, got %s", got)
 	}
 }

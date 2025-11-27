@@ -155,6 +155,15 @@ func parseCalendarDates(expr string, exclude bool, layout string, model *Model) 
 			}
 			continue
 		}
+		if wd, ok := weekdayFromString(strings.ToLower(p)); ok {
+			if exclude {
+				model.Calendar.ExcludeWeekend = true
+				if !weekdayExists(model.Calendar.WeekendDays, wd) {
+					model.Calendar.WeekendDays = append(model.Calendar.WeekendDays, wd)
+				}
+			}
+			continue
+		}
 		if t, err := time.Parse(layoutOrDefault(layout), p); err == nil {
 			if exclude {
 				model.Calendar.ExcludeDates = append(model.Calendar.ExcludeDates, t)
@@ -407,8 +416,10 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 		}
 	}
 	if task.IsVertical {
-		task.Duration = DurationSpec{Value: 0, Unit: DurationDay}
-		task.DurationExplicit = true
+		if !task.DurationExplicit {
+			task.Duration = DurationSpec{Value: 0, Unit: DurationDay}
+			task.DurationExplicit = true
+		}
 		task.IsMilestone = false
 	}
 	// 若提供开始和结束日期，转换为持续时间

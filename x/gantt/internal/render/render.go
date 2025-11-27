@@ -127,7 +127,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 			}
 		}
 		now := time.Now().In(loc)
-		today.Date = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		today.Date = now
 		today.HasDate = true
 	}
 
@@ -270,32 +270,40 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	}
 
 	// 当前日期位置（按当天百分比放置，超出范围则夹紧到起/止边界）
-	dayStart := today.Date
+	todayTime := today.Date
+	loc := today.Date.Location()
+	if calendar.Timezone != "" {
+		if tz, err := time.LoadLocation(calendar.Timezone); err == nil {
+			loc = tz
+		}
+	}
+	now := time.Now().In(loc)
+	switch {
+	case sameDay(todayTime, now) && todayTime.Hour() == 0 && todayTime.Minute() == 0 && todayTime.Second() == 0:
+		todayTime = now
+	case todayTime.IsZero():
+		todayTime = now
+	}
 	var todayX int
 	if timeMode {
 		todayX = leftMargin
 	} else {
-		switch {
-		case today.Date.Before(minStart):
+		span := maxEnd.Sub(minStart)
+		if span <= 0 {
 			todayX = leftMargin
-		case today.Date.After(maxEnd.Add(time.Duration(hoursPerDay) * time.Hour)):
+		} else if todayTime.Before(minStart) {
+			todayX = leftMargin
+		} else if todayTime.After(maxEnd) {
 			todayX = leftMargin + gridWidth
-		default:
-			offset := calendarOffset(minStart, dayStart)
-			within := today.Date.Sub(dayStart).Seconds() / float64(secondsPerDay)
-			if within < 0 {
-				within = 0
+		} else {
+			ratio := todayTime.Sub(minStart).Seconds() / span.Seconds()
+			if ratio < 0 {
+				ratio = 0
 			}
-			if within > 1 {
-				within = 1
+			if ratio > 1 {
+				ratio = 1
 			}
-			todayX = leftMargin + offset*dayWidth + int(float64(dayWidth)*within)
-			if todayX > leftMargin+gridWidth {
-				todayX = leftMargin + gridWidth
-			}
-			if todayX < leftMargin {
-				todayX = leftMargin
-			}
+			todayX = leftMargin + int(float64(gridWidth)*ratio)
 		}
 	}
 	hasToday := today.Enabled && !timeMode
