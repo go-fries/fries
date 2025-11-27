@@ -136,6 +136,23 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	// 计算时间范围与时间轴宽度
 	minStart, maxEnd := timelineBounds(m)
 	minStart, maxEnd = normalizeSpan(minStart, maxEnd)
+	// 为右侧添加平滑缓冲，避免视觉截断
+	span := maxEnd.Sub(minStart)
+	if span > 0 {
+		var pad time.Duration
+		if timeMode {
+			pad = span / 20 // 5%
+			if pad < 30*time.Minute {
+				pad = 30 * time.Minute
+			}
+		} else {
+			pad = span / 20
+			if pad < 24*time.Hour {
+				pad = 24 * time.Hour
+			}
+		}
+		maxEnd = maxEnd.Add(pad)
+	}
 
 	// 若包含小时/分钟但跨度超过 48 小时，则强制退回日级刻度以避免分钟轴过密
 	if timeMode {
@@ -271,38 +288,38 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 
 	// 当前日期位置（按当天百分比放置，超出范围则夹紧到起/止边界）
 	todayTime := today.Date
-	loc := today.Date.Location()
+	loc := time.Now().Location()
 	if calendar.Timezone != "" {
 		if tz, err := time.LoadLocation(calendar.Timezone); err == nil {
 			loc = tz
 		}
+	} else if today.HasDate {
+		loc = today.Date.Location()
 	}
 	now := time.Now().In(loc)
-	switch {
-	case sameDay(todayTime, now) && todayTime.Hour() == 0 && todayTime.Minute() == 0 && todayTime.Second() == 0:
-		todayTime = now
-	case todayTime.IsZero():
+	if todayTime.IsZero() {
 		todayTime = now
 	}
+	// 仅标记到当天开始
+	todayTime = time.Date(todayTime.Year(), todayTime.Month(), todayTime.Day(), 0, 0, 0, 0, loc)
 	var todayX int
 	if timeMode {
 		todayX = leftMargin
 	} else {
-		span := maxEnd.Sub(minStart)
-		if span <= 0 {
+		spanStart := minStart.In(loc)
+		spanEnd := maxEnd.In(loc)
+		if spanEnd.Before(spanStart) {
 			todayX = leftMargin
-		} else if todayTime.Before(minStart) {
-			todayX = leftMargin
-		} else if todayTime.After(maxEnd) {
-			todayX = leftMargin + gridWidth
 		} else {
-			ratio := todayTime.Sub(minStart).Seconds() / span.Seconds()
-			if ratio < 0 {
-				ratio = 0
+			nowDayStart := todayTime
+			if nowDayStart.Before(spanStart) {
+				nowDayStart = spanStart
 			}
-			if ratio > 1 {
-				ratio = 1
+			if nowDayStart.After(spanEnd) {
+				nowDayStart = spanEnd
 			}
+			spanTotal := spanEnd.Sub(spanStart)
+			ratio := nowDayStart.Sub(spanStart).Seconds() / spanTotal.Seconds()
 			todayX = leftMargin + int(float64(gridWidth)*ratio)
 		}
 	}
