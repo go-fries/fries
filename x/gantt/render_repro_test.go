@@ -290,3 +290,86 @@ func minMax(m parser.Model) (time.Time, time.Time) {
 	}
 	return min, max
 }
+
+func TestRender_ManualCase_UntilAndAfter(t *testing.T) {
+	src := `
+gantt
+    apple :a, 2017-07-20, 1w
+    banana :crit, b, 2017-07-23, 1d
+    cherry :active, c, after b a, 1d
+    kiwi   :d, 2017-07-20, until b c
+`
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule: %v", err)
+	}
+	expectDays := map[string]int{
+		"a": 7,
+		"b": 1,
+		"c": 1,
+		"d": 3,
+	}
+	expectStart := map[string]string{
+		"a": "2017-07-20",
+		"b": "2017-07-23",
+		"c": "2017-07-27", // after both a (ends 7/26) and b (7/23)
+		"d": "2017-07-20",
+	}
+	expectEnd := map[string]string{
+		"d": "2017-07-22", // until min(start b, start c) - 1 day
+	}
+
+	checked := 0
+	for _, sec := range model.Sections {
+		for _, task := range sec.Tasks {
+			id := task.ID
+			if id == "" {
+				continue
+			}
+			if want, ok := expectDays[id]; ok {
+				checked++
+				if task.DurationDays != want {
+					t.Fatalf("task %s duration days mismatch: got %d want %d", id, task.DurationDays, want)
+				}
+				start := task.Start.Format("2006-01-02")
+				if start != expectStart[id] {
+					t.Fatalf("task %s start mismatch: got %s want %s", id, start, expectStart[id])
+				}
+				if endWant, ok := expectEnd[id]; ok {
+					end := task.End.Format("2006-01-02")
+					if end != endWant {
+						t.Fatalf("task %s end mismatch: got %s want %s", id, end, endWant)
+					}
+				}
+			}
+		}
+	}
+	if checked != len(expectDays) {
+		t.Fatalf("expected to check %d tasks, checked %d", len(expectDays), checked)
+	}
+
+	// 渲染生成图片，便于肉眼校对
+	out := filepath.Join(os.TempDir(), "gantt_until_after.png")
+	resOut, renderErr := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if renderErr != nil {
+		t.Fatalf("render until/after failed: %v", renderErr)
+	}
+	if resOut.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	info, statErr := os.Stat(out)
+	if statErr != nil {
+		t.Fatalf("output not found: %v", statErr)
+	}
+	if info.Size() == 0 {
+		t.Fatalf("output file is empty")
+	}
+	t.Logf("rendered until/after case to %s", out)
+}
