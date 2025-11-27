@@ -135,6 +135,14 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	// 计算时间范围与时间轴宽度
 	minStart, maxEnd := timelineBounds(m)
 	minStart, maxEnd = normalizeSpan(minStart, maxEnd)
+
+	// 若包含小时/分钟但跨度超过 48 小时，则强制退回日级刻度以避免分钟轴过密
+	if timeMode {
+		spanHours := maxEnd.Sub(minStart).Hours()
+		if spanHours > 48 {
+			timeMode = false
+		}
+	}
 	minSpan := minStart
 	maxSpan := maxEnd
 	rightMargin := int(float64(rightMarginPx) * scale)
@@ -144,6 +152,15 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 
 	tickMinutes := tickToMinutes(m.Tick)
 	tickDays := tickToDays(m.Tick)
+	if !m.Tick.Valid {
+		autoMin, autoDay := autoTickInterval(minSpan, maxSpan, timeMode)
+		if tickMinutes == 0 {
+			tickMinutes = autoMin
+		}
+		if tickDays == 0 {
+			tickDays = autoDay
+		}
+	}
 
 	if timeMode {
 		totalMinutes := int(maxSpan.Sub(minSpan).Minutes()) + 1
@@ -501,6 +518,83 @@ func normalizeSpan(min, max time.Time) (time.Time, time.Time) {
 	return min, max
 }
 
+func autoTickInterval(min, max time.Time, timeMode bool) (tickMinutes int, tickDays int) {
+	span := max.Sub(min)
+	if span <= 0 {
+		span = time.Minute
+	}
+	hours := span.Hours()
+	days := span.Hours() / floatHoursPerDay
+
+	if timeMode {
+		switch {
+		case hours <= 2:
+			return 5, 0 // 分钟刻度
+		case hours <= 48:
+			return 60, 0 // 小时刻度
+		case days <= 31:
+			return 60, 0 // 小时刻度
+		case days <= 365:
+			return 7 * 24 * 60, 0 // 周刻度
+		default:
+			return 30 * 24 * 60, 0 // 月刻度（按 30 天）
+		}
+	}
+
+	switch {
+	case days <= 30:
+		return 0, 1 // 日
+	case days <= 365:
+		return 0, 7 // 周
+	default:
+		return 0, 30 // 月
+	}
+}
+
+// AutoTickIntervalForTest 暴露给测试验证自动刻度选择。
+func AutoTickIntervalForTest(min, max time.Time, timeMode bool) (int, int) {
+	return autoTickInterval(min, max, timeMode)
+}
+
+func normalizeMinuteTicks(totalMinutes int, tickMinutes int, forced bool) (int, int) {
+	if tickMinutes <= 0 {
+		tickMinutes = 1
+	}
+	if totalMinutes <= 0 {
+		totalMinutes = 1
+	}
+
+	if !forced {
+		maxTicks := 60
+		ticks := totalMinutes / tickMinutes
+		if ticks > maxTicks {
+			target := int(math.Ceil(float64(totalMinutes) / float64(maxTicks)))
+			tickMinutes = snapNiceMinutes(target)
+		}
+	}
+
+	labelStep := tickMinutes
+	maxLabels := 30
+	labels := totalMinutes / labelStep
+	if labels > maxLabels {
+		multiplier := int(math.Ceil(float64(labels) / float64(maxLabels)))
+		labelStep = tickMinutes * multiplier
+		labelStep = snapNiceMinutes(labelStep)
+	}
+
+	return tickMinutes, labelStep
+}
+
+func snapNiceMinutes(v int) int {
+	nice := []int{1, 5, 10, 15, 30, 60, 120, 180, 240, 360, 720, 1440, 10080, 20160, 43200} // up to month
+	for _, n := range nice {
+		if v <= n {
+			return n
+		}
+	}
+	return v
+}
+
 func calendarSpanDays(start, end time.Time) int {
 	if start.After(end) {
 		start, end = end, start
@@ -614,21 +708,13 @@ func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int,
 	}
 	pixelsPerMinute := float64(width) / float64(totalMinutes)
 
-	// 背景网格（粗略每小时）
-	tickMinutes := 60
-	if totalMinutes <= 180 {
-		tickMinutes = 15
-	}
-	if forcedTickMinutes > 0 {
-		tickMinutes = forcedTickMinutes
-	}
+	// 背景网格（粗略每小时），并在自动模式下控制刻度密度
+	tickMinutes := forcedTickMinutes
+	isForced := forcedTickMinutes > 0
 	if tickMinutes <= 0 {
-		tickMinutes = 1
+		tickMinutes = 60
 	}
-	if tickMinutes > totalMinutes {
-		// 保证至少 2-4 个刻度，避免跨度过大只绘制起点
-		tickMinutes = clampInt(int(math.Max(1, float64(totalMinutes)/4)), 1, totalMinutes)
-	}
+	tickMinutes, labelStep := normalizeMinuteTicks(totalMinutes, tickMinutes, isForced)
 
 	for i := 0; i <= totalMinutes; i += tickMinutes {
 		x := xStart + int(float64(i)*pixelsPerMinute)
@@ -654,16 +740,7 @@ func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int,
 		format = "15:04"
 	}
 	face, _, _ := font.LoadFaceWithFallback(float64(axisFontSize), "")
-	step := tickMinutes
-	if forcedTickMinutes == 0 && step < 10 {
-		step = 10
-	}
-	if step < 1 {
-		step = 1
-	}
-	if step > totalMinutes {
-		step = totalMinutes
-	}
+	step := labelStep
 	for i := 0; i <= totalMinutes; i += step {
 		x := xStart + int(float64(i)*pixelsPerMinute)
 		date := minStart.Add(time.Duration(i) * time.Minute).Format(format)
@@ -708,15 +785,38 @@ func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth in
 	width := dayWidth * days
 	weekendFill := weekendColor(theme.Background)
 
-	// 周末着色 + 垂直网格（贯穿内容区域）
+	tickEvery := 1
+	if forcedTickDays > 0 {
+		tickEvery = forcedTickDays
+	} else {
+		if dayWidth < int(minTickWidthPx) {
+			tickEvery = int(math.Ceil(minTickWidthPx / float64(dayWidth)))
+		}
+		if days > longRangeDayThreshold {
+			tickEvery = int(math.Max(float64(tickEvery), float64(minTickStep)))
+		}
+	}
+	// 限制最大刻度数量，避免网格/标签过密
+	maxDayTicks := 12
+	autoStep := int(math.Ceil(float64(days) / float64(maxDayTicks)))
+	if autoStep < 1 {
+		autoStep = 1
+	}
+	if autoStep > tickEvery {
+		tickEvery = autoStep
+	}
+
+	// 周末着色 + 垂直网格（贯穿内容区域），仅在刻度日画主网格
 	for i := 0; i < days; i++ {
 		x := xStart + i*dayWidth
 		dayDate := minStart.Add(time.Duration(i) * time.Duration(hoursPerDay) * time.Hour)
 		if isExcludedDay(dayDate, calendar) {
 			fillRect(img, image.Rect(x, yStart, x+dayWidth, endY), weekendFill)
 		}
-		for yy := yStart; yy < endY; yy++ {
-			img.Set(x, yy, theme.Grid)
+		if i%tickEvery == 0 {
+			for yy := yStart; yy < endY; yy++ {
+				img.Set(x, yy, theme.Grid)
+			}
 		}
 	}
 	// 右边界线
@@ -731,17 +831,6 @@ func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth in
 	}
 
 	// 刻度文本
-	tickEvery := 1
-	if forcedTickDays > 0 {
-		tickEvery = forcedTickDays
-	} else {
-		if dayWidth < int(minTickWidthPx) {
-			tickEvery = int(math.Ceil(minTickWidthPx / float64(dayWidth)))
-		}
-		if days > longRangeDayThreshold {
-			tickEvery = int(math.Max(float64(tickEvery), float64(minTickStep)))
-		}
-	}
 	face, _, _ := font.LoadFaceWithFallback(float64(axisFontSize), "")
 	format := axisFormat
 	if strings.TrimSpace(format) == "" {

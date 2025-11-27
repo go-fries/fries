@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-fries/fries/x/gantt/v3/internal/parser"
+	"github.com/go-fries/fries/x/gantt/v3/internal/render"
 )
 
 func TestRender_ReproducibleWithTodayOff(t *testing.T) {
@@ -139,4 +140,153 @@ gantt
 	if checked != len(expect) {
 		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
 	}
+}
+
+func durationToDuration(d parser.DurationSpec) time.Duration {
+	switch d.Unit {
+	case parser.DurationMinute:
+		return time.Duration(d.Value) * time.Minute
+	case parser.DurationHour:
+		return time.Duration(d.Value) * time.Hour
+	case parser.DurationWeek:
+		return time.Duration(d.Value*7*24) * time.Hour
+	case parser.DurationMonth:
+		return time.Duration(d.Value*30*24) * time.Hour
+	case parser.DurationDay:
+		fallthrough
+	default:
+		return time.Duration(d.Value*24) * time.Hour
+	}
+}
+
+func TestRender_ManualCase_Case2WeekendExcludes(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "mermaid_full", "case2.gantt"))
+	if err != nil {
+		t.Fatalf("read case2: %v", err)
+	}
+	src := string(data)
+	out := filepath.Join(os.TempDir(), "gantt_case2.png")
+	res, err := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if err != nil {
+		t.Fatalf("render case2 failed: %v", err)
+	}
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatalf("output not found: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatalf("output file is empty")
+	}
+	t.Logf("rendered case2 to %s", out)
+
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse case2: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule case2: %v", err)
+	}
+
+	// 验证自动刻度在日模式下不会过密
+	minStart, maxEnd := minMax(model)
+	autoMin, autoDay := render.AutoTickIntervalForTest(minStart, maxEnd, false)
+	if autoDay != 1 {
+		t.Fatalf("expected auto day tick 1 for case2, got min %d day %d", autoMin, autoDay)
+	}
+
+	expect := map[string]struct {
+		start string
+		end   string
+	}{
+		"Completed task":                        {"2014-01-06", "2014-01-08"},
+		"Active task":                           {"2014-01-09", "2014-01-13"},
+		"Future task":                           {"2014-01-14", "2014-01-20"},
+		"Future task2":                          {"2014-01-21", "2014-01-27"},
+		"Completed task in the critical line":   {"2014-01-06", "2014-01-06"},
+		"Implement parser and jison":            {"2014-01-09", "2014-01-10"},
+		"Create tests for parser":               {"2014-01-11", "2014-01-15"},
+		"Future task in critical line":          {"2014-01-16", "2014-01-22"},
+		"Create tests for renderer":             {"2014-01-23", "2014-01-24"},
+		"Add to mermaid":                        {"2014-01-24", "2014-01-24"},
+		"Functionality added":                   {"2014-01-25", "2014-01-25"},
+		"Describe gantt syntax":                 {"2014-01-09", "2014-01-13"},
+		"Add gantt diagram to demo page":        {"2014-01-14", "2014-01-14"},
+		"Add another diagram to demo page":      {"2014-01-14", "2014-01-16"},
+		"Describe gantt syntax Last section":    {"2014-01-16", "2014-01-21"},
+		"Add gantt diagram to demo page Last":   {"2014-01-21", "2014-01-22"},
+		"Add another diagram to demo page Last": {"2014-01-22", "2014-01-24"},
+	}
+
+	findEnd := func(task parser.Task) time.Time {
+		if !task.End.IsZero() {
+			return task.End
+		}
+		return task.Start.Add(durationToDuration(task.Duration) - time.Nanosecond)
+	}
+
+	checked := 0
+	for _, sec := range model.Sections {
+		for _, task := range sec.Tasks {
+			key := task.Name
+			// disambiguate duplicates by suffixing section for last section tasks
+			if task.Name == "Describe gantt syntax" && sec.Name == "Last section" {
+				key = "Describe gantt syntax Last section"
+			}
+			if task.Name == "Add gantt diagram to demo page" && sec.Name == "Last section" {
+				key = "Add gantt diagram to demo page Last"
+			}
+			if task.Name == "Add another diagram to demo page" && sec.Name == "Last section" {
+				key = "Add another diagram to demo page Last"
+			}
+			exp, ok := expect[key]
+			if !ok {
+				continue
+			}
+			checked++
+			start := task.Start.Format("2006-01-02")
+			end := findEnd(task).Format("2006-01-02")
+			if start != exp.start || end != exp.end {
+				t.Fatalf("task %s start/end mismatch: got %s -> %s, expect %s -> %s", key, start, end, exp.start, exp.end)
+			}
+		}
+	}
+	if checked != len(expect) {
+		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
+	}
+}
+
+func minMax(m parser.Model) (time.Time, time.Time) {
+	var min time.Time
+	var max time.Time
+	first := true
+	for _, sec := range m.Sections {
+		for _, task := range sec.Tasks {
+			if task.Start.IsZero() {
+				continue
+			}
+			end := task.End
+			if end.IsZero() {
+				end = task.Start.Add(durationToDuration(task.Duration) - time.Nanosecond)
+			}
+			if first {
+				min, max = task.Start, end
+				first = false
+				continue
+			}
+			if task.Start.Before(min) {
+				min = task.Start
+			}
+			if end.After(max) {
+				max = end
+			}
+		}
+	}
+	return min, max
 }

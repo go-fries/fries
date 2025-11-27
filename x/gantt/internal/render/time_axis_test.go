@@ -86,3 +86,55 @@ func TestWeekStartDefaultsAndCustom(t *testing.T) {
 		t.Fatalf("expected align to start of week (1st), got %d", aligned.Day())
 	}
 }
+
+func TestAutoTickIntervalRules(t *testing.T) {
+	base := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	cases := []struct {
+		span     time.Duration
+		timeMode bool
+		wantMin  int
+		wantDay  int
+	}{
+		{2 * time.Hour, true, 5, 0},
+		{10 * time.Hour, true, 60, 0},
+		{5 * 24 * time.Hour, true, 60, 0},
+		{40 * 24 * time.Hour, true, 7 * 24 * 60, 0},
+		{400 * 24 * time.Hour, true, 30 * 24 * 60, 0},
+		{10 * 24 * time.Hour, false, 0, 1},
+		{50 * 24 * time.Hour, false, 0, 7},
+		{800 * 24 * time.Hour, false, 0, 30},
+	}
+	for _, c := range cases {
+		min := base
+		max := base.Add(c.span)
+		minTick, dayTick := autoTickInterval(min, max, c.timeMode)
+		if minTick != c.wantMin || dayTick != c.wantDay {
+			t.Fatalf("span %v timeMode=%v got min %d day %d, want %d %d", c.span, c.timeMode, minTick, dayTick, c.wantMin, c.wantDay)
+		}
+	}
+}
+
+func TestNormalizeMinuteTicksDensity(t *testing.T) {
+	// 23 天跨度，分钟模式应提升到较大的间隔避免过密
+	totalMinutes := 23 * 24 * 60
+	tick, label := normalizeMinuteTicks(totalMinutes, 60, false)
+	if totalMinutes/tick > 120 {
+		t.Fatalf("ticks too dense: %d ticks for %d minutes", totalMinutes/tick, totalMinutes)
+	}
+	if totalMinutes/label > 60 {
+		t.Fatalf("labels too dense: %d labels for %d minutes", totalMinutes/label, totalMinutes)
+	}
+	if tick < 60 {
+		t.Fatalf("expected tick >= 60 minutes for long span, got %d", tick)
+	}
+
+	// 短 2 小时内仍保持小刻度
+	totalMinutes = 120
+	tick, label = normalizeMinuteTicks(totalMinutes, 5, false)
+	if tick != 5 {
+		t.Fatalf("expected 5-minute ticks for short span, got %d", tick)
+	}
+	if label != 5 {
+		t.Fatalf("expected label step 5 for short span, got %d", label)
+	}
+}
