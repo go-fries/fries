@@ -283,6 +283,7 @@ func applyCalendar(start time.Time, dur DurationSpec, cal Calendar) (time.Time, 
 
 	remaining := durationToDuration(dur)
 	current := start
+	timeBased := dur.Unit == DurationMinute || (dur.Unit == DurationHour && dur.Value < 24)
 
 	// 跳过起始日若为排除日
 	for shouldSkipDay(current, cal) {
@@ -298,8 +299,12 @@ func applyCalendar(start time.Time, dur DurationSpec, cal Calendar) (time.Time, 
 		endOfDay := startOfNextDay(current)
 		span := endOfDay.Sub(current)
 		if remaining <= span {
-			// 将结束定位在当前工作区间内，保持当日（减去最小单位）
-			current = current.Add(remaining - time.Nanosecond)
+			// 将结束定位在当前工作区间内
+			if timeBased {
+				current = current.Add(remaining)
+			} else {
+				current = current.Add(remaining - time.Nanosecond)
+			}
 			remaining = 0
 			break
 		}

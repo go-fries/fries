@@ -413,14 +413,11 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 	}
 	// 若提供开始和结束日期，转换为持续时间
 	if task.HasStart && task.HasEnd {
-		diff := int(task.End.Sub(task.Start).Hours() / 24)
-		if diff < 0 {
-			diff = -diff
+		spanDays := int(task.End.Sub(task.Start).Hours()/24) + 1 // inclusive of end date
+		if spanDays <= 0 {
+			spanDays = 1
 		}
-		if diff == 0 {
-			diff = 1
-		}
-		task.Duration = DurationSpec{Value: diff, Unit: DurationDay}
+		task.Duration = DurationSpec{Value: spanDays, Unit: DurationDay}
 		task.DurationExplicit = true
 	}
 
@@ -542,14 +539,29 @@ func convertDayjsLayout(format string) string {
 
 func looksLikeDuration(val string) bool {
 	lower := strings.ToLower(strings.TrimSpace(val))
-	if len(lower) == 0 {
+	if len(lower) < 2 {
 		return false
 	}
-	unit := lower[len(lower)-1]
-	if strings.HasSuffix(lower, "mo") {
-		return true
+	// 必须以数字开头，且仅允许数字后跟单位
+	if lower[0] < '0' || lower[0] > '9' {
+		return false
 	}
-	return unit == 'h' || unit == 'd' || unit == 'w' || unit == 'm'
+	// quick reject if any space inside
+	if strings.ContainsAny(lower, " \t") {
+		return false
+	}
+	if strings.HasSuffix(lower, "mo") {
+		_, err := strconv.Atoi(strings.TrimSuffix(lower, "mo"))
+		return err == nil
+	}
+	unit := lower[len(lower)-1]
+	switch unit {
+	case 'h', 'd', 'w', 'm':
+		_, err := strconv.Atoi(strings.TrimSuffix(lower, string(unit)))
+		return err == nil
+	default:
+		return false
+	}
 }
 
 func parseDurationSpec(val string) DurationSpec {
