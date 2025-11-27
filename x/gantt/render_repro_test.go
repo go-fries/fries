@@ -438,3 +438,132 @@ gantt
 		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
 	}
 }
+
+func TestRender_ManualCase_VertMarkers(t *testing.T) {
+	src := `
+gantt
+    dateFormat HH:mm
+    axisFormat %H:%M
+    Initial vert : vert, v1, 17:30, 2m
+    Task A : 3m
+    Task B : 8m
+    Final vert : vert, v2, 17:58, 4m
+`
+	out := filepath.Join(os.TempDir(), "gantt_vert_axis.png")
+	res, err := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if err != nil {
+		t.Fatalf("render vert case failed: %v", err)
+	}
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	if info, err := os.Stat(out); err != nil || info.Size() == 0 {
+		t.Fatalf("output file missing or empty: %v", err)
+	}
+	t.Logf("rendered vert case to %s", out)
+
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse vert case: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule vert case: %v", err)
+	}
+	type span struct {
+		start string
+		end   string
+	}
+	expect := map[string]span{
+		"Task A": {"17:33", "17:36"},
+		"Task B": {"17:36", "17:44"},
+	}
+	checked := 0
+	for _, sec := range model.Sections {
+		for _, task := range sec.Tasks {
+			exp, ok := expect[task.Name]
+			if !ok {
+				continue
+			}
+			checked++
+			start := task.Start.Format("15:04")
+			end := task.End.Format("15:04")
+			if start != exp.start || end != exp.end {
+				t.Fatalf("task %s start/end mismatch: got %s -> %s, want %s -> %s", task.Name, start, end, exp.start, exp.end)
+			}
+		}
+	}
+	if checked != len(expect) {
+		t.Fatalf("expected to check %d tasks, checked %d", len(expect), checked)
+	}
+	if len(model.Verticals) != 2 {
+		t.Fatalf("expected 2 vertical markers, got %d", len(model.Verticals))
+	}
+	v1 := model.Verticals[0]
+	v2 := model.Verticals[1]
+	if v1.Start.Format("15:04") != "17:30" || v2.Start.Format("15:04") != "17:58" {
+		t.Fatalf("vertical markers start mismatch: v1 %s v2 %s", v1.Start.Format("15:04"), v2.Start.Format("15:04"))
+	}
+}
+
+func TestRender_ManualCase_CustomWeekendExclude(t *testing.T) {
+	src := `
+gantt
+    title A Gantt Diagram Excluding Fri - Sat weekends
+    dateFormat YYYY-MM-DD
+    excludes weekends
+    weekend friday
+    section Section
+        A task          :a1, 2024-01-01, 30d
+        Another task    :after a1, 20d
+`
+	out := filepath.Join(os.TempDir(), "gantt_weekend_custom.png")
+	res, err := Render(t.Context(), Input{
+		Source:     src,
+		OutputPath: out,
+	})
+	if err != nil {
+		t.Fatalf("render custom weekend failed: %v", err)
+	}
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	if info, err := os.Stat(out); err != nil || info.Size() == 0 {
+		t.Fatalf("output file missing or empty: %v", err)
+	}
+	t.Logf("rendered custom weekend case to %s", out)
+
+	model, err := parser.Parse(src)
+	if err != nil {
+		t.Fatalf("parse custom weekend: %v", err)
+	}
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		t.Fatalf("schedule custom weekend: %v", err)
+	}
+
+	var a1, a2 *parser.Task
+	for si := range model.Sections {
+		for ti := range model.Sections[si].Tasks {
+			task := &model.Sections[si].Tasks[ti]
+			if task.ID == "a1" {
+				a1 = task
+			}
+			if task.Name == "Another task" {
+				a2 = task
+			}
+		}
+	}
+	if a1 == nil || a2 == nil {
+		t.Fatalf("tasks not found: a1=%v a2=%v", a1 != nil, a2 != nil)
+	}
+	if a1.End.Format("2006-01-02") != "2024-02-11" {
+		t.Fatalf("a1 end mismatch: %s", a1.End.Format("2006-01-02"))
+	}
+	if a2.Start.Format("2006-01-02") != "2024-02-12" {
+		t.Fatalf("a2 start mismatch: %s", a2.Start.Format("2006-01-02"))
+	}
+}
