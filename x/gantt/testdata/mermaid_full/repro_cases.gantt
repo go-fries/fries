@@ -1,0 +1,8 @@
+gantt
+title Repro baseline
+dateFormat YYYY-MM-DD
+todayMarker off
+timezone UTC
+section Repro
+Task UTC :r1, 2025-02-01, 2d
+Task After :r2, after r1, 1d

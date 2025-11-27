@@ -1,0 +1,9 @@
+gantt
+title Invalid cases
+dateFormat YYYY-MM-DD
+section 开发
+Unknown directive
+Task MissingStart :task1, , 2d
+Loop A :a, after b, 1d
+Loop B :b, after a, 1d
+Bad Date :c, 2025-13-01, 1d

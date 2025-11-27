@@ -21,6 +21,10 @@
 go get github.com/go-fries/fries/v3
 ```
 
+## Modules Snapshot
+
+- `x/gantt/v3`: 渲染 mermaid Gantt（依赖/状态/里程碑/进度/日历排除、todayMarker/时区可控），示例见 `x/gantt/examples/full_mermaid.gantt` 与 `x/gantt/examples/basic/`.
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.

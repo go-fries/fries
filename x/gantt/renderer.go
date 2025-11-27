@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-fries/fries/x/gantt/v3/internal/parser"
 	"github.com/go-fries/fries/x/gantt/v3/internal/render"
@@ -41,6 +42,24 @@ func (rendererImpl) Render(ctx context.Context, in Input) (RenderResult, error) 
 	if err != nil {
 		return RenderResult{}, err
 	}
+	if in.Timezone != "" {
+		model.Calendar.Timezone = in.Timezone
+	}
+	if in.DisableTodayMarker {
+		model.Today.Enabled = false
+	}
+	if in.Today != "" {
+		if t, err := time.Parse(parserDateLayout(model.DateFormat), in.Today); err == nil {
+			model.Today.Enabled = true
+			model.Today.HasDate = true
+			model.Today.Date = t
+		}
+	}
+
+	model, err = parser.ResolveSchedule(model)
+	if err != nil {
+		return RenderResult{}, err
+	}
 
 	theme := MergeTheme(DefaultTheme(), in.Theme)
 	colors := render.ThemeFromHex(
@@ -60,6 +79,8 @@ func (rendererImpl) Render(ctx context.Context, in Input) (RenderResult, error) 
 		Scale:    in.Scale,
 		Theme:    colors,
 		FontPath: in.FontPath,
+		Calendar: model.Calendar,
+		Today:    model.Today,
 	}
 
 	imgBytes, err := render.RenderModel(ctx, model, opt)
@@ -87,3 +108,10 @@ func (rendererImpl) Render(ctx context.Context, in Input) (RenderResult, error) 
 var (
 	ErrInvalidInput = errors.New("invalid input")
 )
+
+func parserDateLayout(layout string) string {
+	if layout == "" {
+		return "2006-01-02"
+	}
+	return layout
+}

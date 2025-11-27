@@ -41,7 +41,7 @@ section 测试
 	if err != nil {
 		t.Fatalf("parse failed: %v", err)
 	}
-	if !m.ExcludeWeekends {
+	if !m.Calendar.ExcludeWeekend {
 		t.Fatalf("expected ExcludeWeekends true")
 	}
 	if len(m.Sections) != 2 {
@@ -49,5 +49,30 @@ section 测试
 	}
 	if m.Sections[0].Tasks[0].Section != "开发" {
 		t.Fatalf("section name mismatch: %s", m.Sections[0].Tasks[0].Section)
+	}
+}
+
+func TestSchedule_ExcludeWeekends_CustomWeekend(t *testing.T) {
+	src := `gantt
+dateFormat YYYY-MM-DD
+excludes weekends
+weekend friday
+section Section
+    A task :a1, 2024-01-01, 30d
+`
+	m, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	m, err = ResolveSchedule(m)
+	if err != nil {
+		t.Fatalf("schedule failed: %v", err)
+	}
+	if len(m.Sections) == 0 || len(m.Sections[0].Tasks) == 0 {
+		t.Fatalf("no tasks")
+	}
+	task := m.Sections[0].Tasks[0]
+	if got := task.End.Format("2006-01-02"); got != "2024-02-11" {
+		t.Fatalf("expected end 2024-02-11, got %s", got)
 	}
 }

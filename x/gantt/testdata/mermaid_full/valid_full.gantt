@@ -1,0 +1,14 @@
+gantt
+title Full Mermaid Coverage
+dateFormat YYYY-MM-DD
+todayMarker off
+excludes weekends 2025-01-10
+includes 2025-01-11
+section 开发
+Task A :crit, done, a1, 2025-01-06, 2d
+Task B :active, a2, after a1, 3d
+Task C :milestone, m1, after a2, 0d
+section 测试
+Task D :after m1, 12h
+Task E :after a2, 1w
+Task F :40%, f1, 2025-01-15, 1mo

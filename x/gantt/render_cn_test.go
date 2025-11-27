@@ -9,25 +9,32 @@ import (
 func TestRender_ChineseText(t *testing.T) {
 	mermaid := `
 gantt
-    title Gantt任务预览
-    dateFormat YYYY-MM-DD
-    excludes weekends
-    section 研发
-    任务1 :A同学, 2025-11-24, 2d
-    任务2 :B同学, 2025-11-20, 2d
-    section 测试
-    测试任务1 :C同学, 2025-11-28, 2d
+    dateFormat HH:mm
+    axisFormat %H:%M
+    Initial vert : vert, v1, 17:30, 2m
+    Task A : 3m
+    Task B : 8m
+    Final vert : vert, v2, 17:58, 4m
+
 `
-	out := filepath.Join(os.TempDir(), "gantt.png")
+	out := filepath.Join("/tmp", "gantt.png")
+	t.Logf("writing %s", out)
 	in := Input{
 		Source:     mermaid,
 		OutputPath: out,
-		Scale:      1,
-		// FontPath 可留空使用默认字体，确保不 panic
 	}
-	_, err := Render(t.Context(), in)
+	res, err := Render(t.Context(), in)
 	if err != nil {
 		t.Fatalf("render chinese failed: %v", err)
 	}
-	_ = os.Remove(out)
+	if res.OutputPath == "" {
+		t.Fatalf("expected output path")
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatalf("output not found: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatalf("output file is empty")
+	}
 }

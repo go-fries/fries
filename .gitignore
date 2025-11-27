@@ -19,3 +19,7 @@ _backup
 _example
 .todo
 .tools
+.codex
+.specify/
+specs
+AGENTS.md
