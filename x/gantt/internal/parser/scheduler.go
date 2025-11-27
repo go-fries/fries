@@ -242,7 +242,14 @@ func baselineStart(m Model, loc *time.Location) time.Time {
 	}
 	for _, v := range m.Verticals {
 		if v.HasStart {
-			add(v.Start)
+			end := v.Start.In(loc)
+			if v.Duration.Value > 0 {
+				end = end.Add(durationToDuration(v.Duration))
+				if v.Duration.Unit == DurationMinute || v.Duration.Unit == DurationHour {
+					end = end.Add(time.Minute)
+				}
+			}
+			add(end)
 		}
 	}
 	if min.IsZero() {

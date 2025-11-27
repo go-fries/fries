@@ -133,6 +133,21 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 
 	timeMode := hasTimeGranularity(m)
 
+	// 是否存在命名的 section
+	hasSectionHeader := false
+	for _, sec := range m.Sections {
+		if strings.TrimSpace(sec.Name) != "" {
+			hasSectionHeader = true
+			break
+		}
+	}
+	if !hasSectionHeader {
+		leftMargin = int(20 * scale) // 无 section 时尽量贴近轴
+		if leftMargin < 12 {
+			leftMargin = 12
+		}
+	}
+
 	// 计算时间范围与时间轴宽度
 	minStart, maxEnd := timelineBounds(m)
 	minStart, maxEnd = normalizeSpan(minStart, maxEnd)
@@ -240,11 +255,21 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	// 自适应高度：未指定时按内容计算
 	height := opt.Height
 	if height <= 0 {
-		contentHeight := topMargin + axisHeight + int(float64(contentPaddingPx)*scale)
+		if !hasSectionHeader {
+			topMargin = int(float64(axisHeightPx) * scale)
+		}
+		contentHeight := topMargin + axisHeight
+		if hasSectionHeader {
+			contentHeight += int(float64(contentPaddingPx) * scale)
+		}
 		for _, sec := range m.Sections {
-			contentHeight += rowHeight / halfDivisor
+			if hasSectionHeader {
+				contentHeight += rowHeight / halfDivisor
+			}
 			contentHeight += len(sec.Tasks) * rowHeight
-			contentHeight += secGap
+			if hasSectionHeader {
+				contentHeight += secGap
+			}
 		}
 		contentHeight += bottomMargin
 		height = contentHeight
@@ -262,7 +287,10 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	}
 
 	// 预计算 section 布局
-	startY := topMargin + axisHeight + int(float64(contentPaddingPx)*scale)
+	startY := topMargin + axisHeight
+	if hasSectionHeader {
+		startY += int(float64(contentPaddingPx) * scale)
+	}
 	type secInfo struct {
 		section parser.Section
 		start   int
@@ -272,16 +300,23 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	y := startY
 	for _, sec := range m.Sections {
 		secStart := y
-		y += rowHeight / halfDivisor
+		if hasSectionHeader {
+			y += rowHeight / halfDivisor
+		}
 		y += len(sec.Tasks) * rowHeight
 		secEnd := y
-		y += secGap
+		if hasSectionHeader {
+			y += secGap
+		}
 		infos = append(infos, secInfo{section: sec, start: secStart, end: secEnd})
 	}
 	contentBottom := y
 
 	// 画 section 背景
 	for idx, info := range infos {
+		if !hasSectionHeader {
+			break
+		}
 		secColor := sectionBgColor(opt.Theme.Background, idx)
 		fillRect(img, image.Rect(0, info.start, w, info.end+secGap), secColor)
 	}
