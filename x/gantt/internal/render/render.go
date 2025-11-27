@@ -83,6 +83,7 @@ type ThemeColors struct {
 	Emphasis   color.Color
 	Milestone  color.Color
 	TodayLine  color.Color
+	Vertical   color.Color
 }
 
 // RenderModel 绘制解析后的模型为 PNG 字节。
@@ -801,7 +802,7 @@ func drawVerticalMarkers(img *image.RGBA, xStart, yStart, endY int, spanStart, s
 			x = xStart + offset*dayWidth
 		}
 		for yy := yStart; yy < endY; yy++ {
-			img.Set(x, yy, theme.TodayLine)
+			img.Set(x, yy, theme.Vertical)
 		}
 	}
 }
@@ -1018,6 +1019,7 @@ func ThemeFromHex(bg, grid, taskFill, taskBorder, taskText, text, milestone, tod
 		Emphasis:   mustColor(text, color.RGBA{0x11, 0x11, 0x11, 0xff}),
 		Milestone:  mustColor(milestone, color.RGBA{0xe6, 0x7e, 0x22, 0xff}),
 		TodayLine:  mustColor(todayLine, color.RGBA{0xd0, 0x02, 0x1b, 0xff}),
+		Vertical:   mustColor(taskBorder, color.RGBA{0x00, 0x7a, 0xcc, 0xff}),
 	}
 }
 

@@ -11,6 +11,7 @@ type Theme struct {
 	Text       string
 	Milestone  string
 	TodayLine  string
+	Vertical   string
 }
 
 func DefaultTheme() Theme {
@@ -24,6 +25,7 @@ func DefaultTheme() Theme {
 		Text:       "#333333",
 		Milestone:  "#e67e22",
 		TodayLine:  "#d0021b",
+		Vertical:   "#007acc",
 	}
 }
 
@@ -38,6 +40,7 @@ func DarkTheme() Theme {
 		Text:       "#f5f5f7",
 		Milestone:  "#f1c40f",
 		TodayLine:  "#e74c3c",
+		Vertical:   "#29b6f6",
 	}
 }
 
@@ -70,6 +73,9 @@ func MergeTheme(base, override Theme) Theme {
 	}
 	if override.TodayLine != "" {
 		out.TodayLine = override.TodayLine
+	}
+	if override.Vertical != "" {
+		out.Vertical = override.Vertical
 	}
 	return out
 }
