@@ -1,17 +1,17 @@
 package gantt
 
-// Theme 定义渲染主题颜色。
+// Theme 定义渲染主题颜色，字段使用十六进制字符串（如 "#ffffff"）。
 type Theme struct {
-	Name       string
-	Background string
-	Grid       string
-	TaskFill   string
-	TaskBorder string
-	TaskText   string
-	Text       string
-	Milestone  string
-	TodayLine  string
-	Vertical   string
+	Name       string // 主题名称，便于区分或日志
+	Background string // 画布背景色
+	Grid       string // 坐标轴与网格线颜色
+	TaskFill   string // 任务条填充色
+	TaskBorder string // 任务条边框色
+	TaskText   string // 任务条内部文字颜色
+	Text       string // 轴刻度、标题等通用文字颜色
+	Milestone  string // 里程碑标记颜色
+	TodayLine  string // 今日基准线颜色
+	Vertical   string // 垂直标记（vert）颜色
 }
 
 func DefaultTheme() Theme {

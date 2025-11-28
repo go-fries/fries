@@ -1,13 +1,26 @@
 gantt
-title Mermaid Gantt Full Syntax
-dateFormat YYYY-MM-DD
-todayMarker off
-excludes weekends
-section 开发
-Task A :crit, done, a1, 2025-01-06, 2d
-Task B :active, a2, after a1, 3d
-Task C :milestone, m1, after a2, 0d
-section 测试
-Task D :after m1, 12h
-Task E :after a2, 1w
-Task F :40%, f1, 2025-01-15, 1mo
+  title Full Mermaid-like Gantt Syntax
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+  timezone Asia/Shanghai
+  todayMarker 2025-01-12
+  tickInterval 1week
+  weekday monday
+  excludes weekends 2025-01-15
+  includes 2025-01-11
+  weekend friday
+
+  section Development
+  Parser ready            :crit, done, p1, 2025-01-06, 2d
+  Renderer implementation :active, r1, after p1, 3d
+  Vertical marker         :vert, v1, 2025-01-09, 0d
+  Review & fixes          :after r1, 2d
+
+  section QA
+  Regression              :40%, q1, after r1, 1w
+  Hardening               :h1, after q1, 3d
+  Timeboxed check         :after h1, 12h
+
+  section Release
+  Freeze                  :milestone, m2, after r1, 0d
+  Launch                  :milestone, m1, after q1 h1, 0d
