@@ -299,7 +299,6 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		}
 		infos = append(infos, secInfo{section: sec, start: secStart, end: secEnd})
 	}
-	contentBottom := y
 
 	// 画 section 背景
 	for idx, info := range infos {
@@ -309,6 +308,8 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		secColor := sectionBgColor(opt.Theme.Background, idx)
 		fillRect(img, image.Rect(0, info.start, w, info.end+secGap), secColor)
 	}
+	// 统一时间轴填充高度：从刻度线开始直至画布底部，确保背景覆盖完整内容区域和底部留白。
+	timelineEnd := h
 
 	// 当前日期位置（按当天百分比放置，超出范围则夹紧到起/止边界）
 	todayTime := today.Date
@@ -357,7 +358,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	}
 
 	if timeMode {
-		drawTimelineMinutes(img, leftMargin, topMargin, gridWidth, axisHeight, minSpan, maxSpan, m.AxisFormat, opt.Theme, calendar, contentBottom, tickMinutes, weekendFill)
+		drawTimelineMinutes(img, leftMargin, topMargin, gridWidth, axisHeight, minSpan, maxSpan, m.AxisFormat, opt.Theme, calendar, timelineEnd, tickMinutes, weekendFill)
 	} else {
 		totalDays := calendarSpanDays(minStart, maxEnd)
 		if totalDays <= 0 {
@@ -372,14 +373,14 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		} else {
 			weekStart = nil
 		}
-		drawTimeline(img, leftMargin, topMargin, totalDays, axisHeight, dayWidth, minStart, m.AxisFormat, opt.Theme, calendar, contentBottom, hasToday, todayX, tickDays, weekStart, weekendFill)
+		drawTimeline(img, leftMargin, topMargin, totalDays, axisHeight, dayWidth, minStart, m.AxisFormat, opt.Theme, calendar, timelineEnd, hasToday, todayX, tickDays, weekStart, weekendFill)
 	}
 
 	// 垂直标记（不占用行）
 	if timeMode {
-		drawVerticalMarkers(img, leftMargin, topMargin, contentBottom, minSpan, maxSpan, gridWidth, dayWidth, timeMode, opt.Theme, m.Verticals)
+		drawVerticalMarkers(img, leftMargin, topMargin, timelineEnd, minSpan, maxSpan, gridWidth, dayWidth, timeMode, opt.Theme, m.Verticals)
 	} else {
-		drawVerticalMarkers(img, leftMargin, topMargin, contentBottom, minStart, maxEnd, gridWidth, dayWidth, timeMode, opt.Theme, m.Verticals)
+		drawVerticalMarkers(img, leftMargin, topMargin, timelineEnd, minStart, maxEnd, gridWidth, dayWidth, timeMode, opt.Theme, m.Verticals)
 	}
 
 	// 绘制 section 标题与任务
@@ -864,6 +865,7 @@ func drawVerticalMarkers(img *image.RGBA, xStart, yStart, endY int, spanStart, s
 
 func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth int, minStart time.Time, axisFormat string, theme ThemeColors, calendar parser.Calendar, endY int, hasToday bool, todayX int, forcedTickDays int, weekStart *time.Weekday, weekendFill color.Color) {
 	width := dayWidth * days
+	lineY := yStart + axisHeight/halfDivisor
 
 	tickEvery := 1
 	if forcedTickDays > 0 {
@@ -891,7 +893,7 @@ func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth in
 		x := xStart + i*dayWidth
 		dayDate := minStart.Add(time.Duration(i) * time.Duration(hoursPerDay) * time.Hour)
 		if isExcludedDay(dayDate, calendar) {
-			fillRect(img, image.Rect(x, yStart, x+dayWidth, endY), weekendFill)
+			fillRect(img, image.Rect(x, lineY, x+dayWidth, endY), weekendFill)
 		}
 		if i%tickEvery == 0 {
 			for yy := yStart; yy < endY; yy++ {
@@ -905,9 +907,8 @@ func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth in
 	}
 
 	// 水平基准线
-	y := yStart + axisHeight/halfDivisor
 	for x := xStart; x < xStart+width; x++ {
-		img.Set(x, y, theme.Grid)
+		img.Set(x, lineY, theme.Grid)
 	}
 
 	// 刻度文本

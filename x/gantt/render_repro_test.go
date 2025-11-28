@@ -294,6 +294,10 @@ func minMax(m parser.Model) (time.Time, time.Time) {
 func TestRender_ManualCase_UntilAndAfter(t *testing.T) {
 	src := `
 gantt
+	title test-title
+    dateFormat YYYY-MM-DD
+    excludes weekends
+
     apple :a, 2017-07-20, 1w
     banana :crit, b, 2017-07-23, 1d
     cherry :active, c, after b a, 1d
