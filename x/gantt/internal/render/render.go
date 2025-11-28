@@ -278,8 +278,8 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		drawBoldText(img, opt.Theme.Emphasis, w/halfDivisor, topMargin/halfDivisor, m.Title, opt.FontPath, int(float64(titleFontSize)*scale))
 	}
 
-	// 预计算 section 布局
-	startY := topMargin + axisHeight
+	// 预计算 section 布局：紧贴轴线（取轴中线作为起点）
+	startY := topMargin + axisHeight/halfDivisor
 	type secInfo struct {
 		section parser.Section
 		start   int
