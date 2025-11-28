@@ -255,21 +255,13 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	// 自适应高度：未指定时按内容计算
 	height := opt.Height
 	if height <= 0 {
-		if !hasSectionHeader {
-			topMargin = int(float64(axisHeightPx) * scale)
-		}
 		contentHeight := topMargin + axisHeight
 		if hasSectionHeader {
-			contentHeight += int(float64(contentPaddingPx) * scale)
+			contentHeight += rowHeight / halfDivisor
 		}
 		for _, sec := range m.Sections {
-			if hasSectionHeader {
-				contentHeight += rowHeight / halfDivisor
-			}
 			contentHeight += len(sec.Tasks) * rowHeight
-			if hasSectionHeader {
-				contentHeight += secGap
-			}
+			contentHeight += secGap
 		}
 		contentHeight += bottomMargin
 		height = contentHeight
@@ -288,9 +280,6 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 
 	// 预计算 section 布局
 	startY := topMargin + axisHeight
-	if hasSectionHeader {
-		startY += int(float64(contentPaddingPx) * scale)
-	}
 	type secInfo struct {
 		section parser.Section
 		start   int
@@ -835,7 +824,8 @@ func drawTimelineMinutes(img *image.RGBA, xStart, yStart, width, axisHeight int,
 	for i := labelOffset; i <= totalMinutes; i += step {
 		x := xStart + int(float64(i)*pixelsPerMinute)
 		date := minStart.Add(time.Duration(i) * time.Minute).Format(format)
-		drawTextWithFace(img, theme.Text, x+tickLabelOffsetPx, yStart+axisHeight-tickLabelOffsetPx, face, date)
+		labelY := yStart + axisHeight/halfDivisor - tickLabelOffsetPx
+		drawTextWithFace(img, theme.Text, x+tickLabelOffsetPx, labelY, face, date)
 	}
 }
 
@@ -938,7 +928,8 @@ func drawTimeline(img *image.RGBA, xStart, yStart, days, axisHeight, dayWidth in
 		if offsetDays >= 0 {
 			x := xStart + offsetDays*dayWidth
 			date := cur.Format(format)
-			drawTextWithFace(img, theme.Text, x+tickLabelOffsetPx, yStart+axisHeight-tickLabelOffsetPx, face, date)
+			labelY := yStart + axisHeight/halfDivisor - tickLabelOffsetPx
+			drawTextWithFace(img, theme.Text, x+tickLabelOffsetPx, labelY, face, date)
 		}
 		if offsetDays >= days {
 			break
