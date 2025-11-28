@@ -201,6 +201,7 @@ func TestRender_ManualCase_Case2WeekendExcludes(t *testing.T) {
 		t.Fatalf("expected auto day tick 1 for case2, got min %d day %d", autoMin, autoDay)
 	}
 
+	const lastSection = "Last section"
 	expect := map[string]struct {
 		start string
 		end   string
@@ -236,13 +237,13 @@ func TestRender_ManualCase_Case2WeekendExcludes(t *testing.T) {
 		for _, task := range sec.Tasks {
 			key := task.Name
 			// disambiguate duplicates by suffixing section for last section tasks
-			if task.Name == "Describe gantt syntax" && sec.Name == "Last section" {
+			if task.Name == "Describe gantt syntax" && sec.Name == lastSection {
 				key = "Describe gantt syntax Last section"
 			}
-			if task.Name == "Add gantt diagram to demo page" && sec.Name == "Last section" {
+			if task.Name == "Add gantt diagram to demo page" && sec.Name == lastSection {
 				key = "Add gantt diagram to demo page Last"
 			}
-			if task.Name == "Add another diagram to demo page" && sec.Name == "Last section" {
+			if task.Name == "Add another diagram to demo page" && sec.Name == lastSection {
 				key = "Add another diagram to demo page Last"
 			}
 			exp, ok := expect[key]

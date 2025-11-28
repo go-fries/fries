@@ -6,7 +6,15 @@ import (
 	"time"
 )
 
+const (
+	hoursPerDay   = 24
+	daysPerWeek   = 7
+	hoursPerWeek  = daysPerWeek * hoursPerDay
+	hoursPerMonth = 30 * hoursPerDay
+)
+
 // ResolveSchedule 解析依赖并计算起止时间与持续天数。
+// nolint:gocyclo // 核心逻辑复杂，计划按 refactor-design 拆分
 func ResolveSchedule(m Model) (Model, error) {
 	taskMap := make(map[string]*Task)
 	for si := range m.Sections {
@@ -110,14 +118,14 @@ func ResolveSchedule(m Model) (Model, error) {
 			}
 			switch dep.Type {
 			case DepAfter:
-				afterStart := target.End
 				if isTimeTask || target.HasTime || target.Duration.Unit == DurationMinute || target.Duration.Unit == DurationHour {
-					afterStart = target.End.Add(time.Nanosecond)
+					if candidate := target.End.Add(time.Nanosecond); candidate.After(maxAfter) {
+						maxAfter = candidate
+					}
 				} else {
-					afterStart = startOfNextDay(target.End)
-				}
-				if afterStart.After(maxAfter) {
-					maxAfter = afterStart
+					if candidate := startOfNextDay(target.End); candidate.After(maxAfter) {
+						maxAfter = candidate
+					}
 				}
 			case DepBefore:
 				// 结束不晚于目标开始；选取更靠后的可行起点以贴近约束
@@ -144,7 +152,7 @@ func ResolveSchedule(m Model) (Model, error) {
 			}
 			// 结束在依赖开始日的前一日
 			customEnd := time.Date(minBefore.Year(), minBefore.Month(), minBefore.Day(), 0, 0, 0, 0, minBefore.Location()).Add(-time.Nanosecond)
-			span := int(customEnd.Sub(start).Hours()/24) + 1
+			span := int(customEnd.Sub(start).Hours()/hoursPerDay) + 1
 			if span <= 0 {
 				span = 1
 			}
@@ -192,7 +200,7 @@ func ResolveSchedule(m Model) (Model, error) {
 		end, days := applyCalendar(start, t.Duration, m.Calendar)
 		// 对周/月等单位使用天数期望，避免包容端偏差
 		if origDur.Unit == DurationWeek && origDur.Value > 0 {
-			days = origDur.Value * 7
+			days = origDur.Value * daysPerWeek
 			end = start.Add(durationToDuration(DurationSpec{Value: days, Unit: DurationDay}) - time.Nanosecond)
 		}
 		t.Start = start
@@ -215,17 +223,6 @@ func ResolveSchedule(m Model) (Model, error) {
 	}
 
 	return m, nil
-}
-
-func today(cal Calendar) time.Time {
-	loc := time.UTC
-	if cal.Timezone != "" {
-		if tz, err := time.LoadLocation(cal.Timezone); err == nil {
-			loc = tz
-		}
-	}
-	now := time.Now().In(loc)
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 }
 
 func baselineStart(m Model, loc *time.Location) time.Time {
@@ -272,13 +269,13 @@ func durationToDuration(d DurationSpec) time.Duration {
 	case DurationHour:
 		return time.Duration(d.Value) * time.Hour
 	case DurationWeek:
-		return time.Duration(d.Value*7*24) * time.Hour
+		return time.Duration(d.Value*hoursPerWeek) * time.Hour
 	case DurationMonth:
-		return time.Duration(d.Value*30*24) * time.Hour
+		return time.Duration(d.Value*hoursPerMonth) * time.Hour
 	case DurationDay:
 		fallthrough
 	default:
-		return time.Duration(d.Value*24) * time.Hour
+		return time.Duration(d.Value*hoursPerDay) * time.Hour
 	}
 }
 
@@ -296,7 +293,7 @@ func applyCalendar(start time.Time, dur DurationSpec, cal Calendar) (time.Time, 
 
 	remaining := durationToDuration(dur)
 	current := start
-	timeBased := dur.Unit == DurationMinute || (dur.Unit == DurationHour && dur.Value < 24)
+	timeBased := dur.Unit == DurationMinute || (dur.Unit == DurationHour && dur.Value < hoursPerDay)
 
 	// 跳过起始日若为排除日
 	for shouldSkipDay(current, cal) {
@@ -318,7 +315,6 @@ func applyCalendar(start time.Time, dur DurationSpec, cal Calendar) (time.Time, 
 			} else {
 				current = current.Add(remaining - time.Nanosecond)
 			}
-			remaining = 0
 			break
 		}
 		remaining -= span
@@ -328,7 +324,7 @@ func applyCalendar(start time.Time, dur DurationSpec, cal Calendar) (time.Time, 
 	end := current
 	startDay := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
 	endDay := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, end.Location())
-	days := int(endDay.Sub(startDay).Hours()/24) + 1
+	days := int(endDay.Sub(startDay).Hours()/hoursPerDay) + 1
 	if days <= 0 {
 		days = 1
 	}

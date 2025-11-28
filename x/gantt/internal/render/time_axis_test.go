@@ -60,13 +60,14 @@ func TestTimelineMinutesRangeAndOrder(t *testing.T) {
 
 func TestWeekStartDefaultsAndCustom(t *testing.T) {
 	var weekStart *time.Weekday
-	tick := parser.TickInterval{Value: 1, Unit: "week", Valid: true}
+	const tickUnitWeek = "week"
+	tick := parser.TickInterval{Value: 1, Unit: tickUnitWeek, Valid: true}
 
 	if weekStart != nil {
 		t.Fatalf("expected nil start initially")
 	}
 
-	if tick.Valid && tick.Unit == "week" {
+	if tick.Valid && tick.Unit == tickUnitWeek {
 		if weekStart == nil {
 			ws := time.Sunday
 			weekStart = &ws

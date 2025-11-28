@@ -20,45 +20,68 @@ import (
 )
 
 const (
-	defaultScale          = 1.0
-	leftMarginPx          = 220
-	topMarginPx           = 60
-	rowHeightPx           = 36
-	barHeightPx           = 18
-	axisHeightPx          = 30
-	sectionGapPx          = 6
-	bottomMarginPx        = 60
-	minDayWidthPx         = 28
-	maxDayWidthPx         = 64
-	rightMarginPx         = 100
-	autoMinDayWidthPx     = 40
-	contentPaddingPx      = 10
-	minGridWidthPx        = 1200
-	halfDivisor           = 2
-	thirdDivisor          = 3
-	doubleMultiplier      = 2
-	hoursPerDay           = 24
-	secondsPerHour        = 3600
-	titleFontSize         = 18
-	sectionFontSize       = 14
-	taskFontSize          = 13
-	axisFontSize          = 12
-	minTickWidthPx        = 32.0
-	longRangeDayThreshold = 30
-	minTickStep           = 7
-	tickLabelOffsetPx     = 4
-	sectionShadeStep      = 0.04
-	weekendBrightenFactor = 1.08
-	maxColorValue         = 255.0
-	opaqueAlpha           = 0xff
-	labelPaddingPx        = 6
-	hexShortLength        = 6
-	hexLongLength         = 8
+	defaultScale               = 1.0
+	leftMarginPx               = 220
+	topMarginPx                = 60
+	rowHeightPx                = 36
+	barHeightPx                = 18
+	axisHeightPx               = 30
+	sectionGapPx               = 6
+	bottomMarginPx             = 60
+	minDayWidthPx              = 28
+	maxDayWidthPx              = 64
+	rightMarginPx              = 100
+	autoMinDayWidthPx          = 40
+	contentPaddingPx           = 10
+	minGridWidthPx             = 1200
+	halfDivisor                = 2
+	thirdDivisor               = 3
+	doubleMultiplier           = 2
+	hoursPerDay                = 24
+	secondsPerHour             = 3600
+	titleFontSize              = 18
+	sectionFontSize            = 14
+	taskFontSize               = 13
+	axisFontSize               = 12
+	minTickWidthPx             = 32.0
+	longRangeDayThreshold      = 30
+	minTickStep                = 7
+	tickLabelOffsetPx          = 4
+	sectionShadeStep           = 0.04
+	weekendBrightenFactor      = 1.08
+	maxColorValue              = 255.0
+	opaqueAlpha                = 0xff
+	labelPaddingPx             = 6
+	hexShortLength             = 6
+	hexLongLength              = 8
+	defaultLeftMarginNoSection = 20
+	minLeftMarginNoSection     = 12
+	spanPadDivisor             = 20
+	minPadMinutes              = 30
+	minPadHours                = 24
+	timeModeSpanHoursThreshold = 48
+	minTaskWidthPx             = 4
+	progressPercentDivisor     = 100.0
+	hoursThresholdTwo          = 2
+	minuteTickFive             = 5
+	hoursThresholdFortyEight   = 48
+	minuteTickSixty            = 60
+	daysThresholdThirtyOne     = 31
+	daysThresholdYear          = 365
+	daysThresholdThirty        = 30
+	dayTickSeven               = 7
+	dayTickThirty              = 30
+	barSizeMin                 = 6
+	weekTickMinutes            = 7 * 24 * 60
+	monthTickMinutes           = 30 * 24 * 60
+	weekendDarkenFactor        = 0.9
 )
 
 const (
+	tickUnitWeek     = "week"
 	secondsPerDay    = hoursPerDay * secondsPerHour
 	floatHoursPerDay = float64(hoursPerDay)
+	progressDivisor  = 100.0
 )
 
 // Options 控制绘制。
@@ -87,6 +110,7 @@ type ThemeColors struct {
 }
 
 // RenderModel 绘制解析后的模型为 PNG 字节。
+// nolint:gocyclo // 渲染流程较长，后续按 refactor-design 拆分
 func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error) {
 	scale := opt.Scale
 	if scale <= 0 {
@@ -142,9 +166,9 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		}
 	}
 	if !hasSectionHeader {
-		leftMargin = int(20 * scale) // 无 section 时尽量贴近轴
-		if leftMargin < 12 {
-			leftMargin = 12
+		leftMargin = int(defaultLeftMarginNoSection * scale) // 无 section 时尽量贴近轴
+		if leftMargin < minLeftMarginNoSection {
+			leftMargin = minLeftMarginNoSection
 		}
 	}
 
@@ -156,14 +180,14 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	if span > 0 {
 		var pad time.Duration
 		if timeMode {
-			pad = span / 20 // 5%
-			if pad < 30*time.Minute {
-				pad = 30 * time.Minute
+			pad = span / spanPadDivisor // 5%
+			if pad < minPadMinutes*time.Minute {
+				pad = minPadMinutes * time.Minute
 			}
 		} else {
-			pad = span / 20
-			if pad < 24*time.Hour {
-				pad = 24 * time.Hour
+			pad = span / spanPadDivisor
+			if pad < minPadHours*time.Hour {
+				pad = minPadHours * time.Hour
 			}
 		}
 		maxEnd = maxEnd.Add(pad)
@@ -172,7 +196,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	// 若包含小时/分钟但跨度超过 48 小时，则强制退回日级刻度以避免分钟轴过密
 	if timeMode {
 		spanHours := maxEnd.Sub(minStart).Hours()
-		if spanHours > 48 {
+		if spanHours > timeModeSpanHoursThreshold {
 			timeMode = false
 		}
 	}
@@ -196,10 +220,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	}
 
 	if timeMode {
-		totalMinutes := int(maxSpan.Sub(minSpan).Minutes()) + 1
-		if totalMinutes <= 0 {
-			totalMinutes = 1
-		}
+		// total span handled via gridWidth; totalMinutes used later per-task
 		if width > 0 {
 			gridWidth = width - leftMargin - rightMargin
 			if gridWidth < minGridWidthPx {
@@ -354,7 +375,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 	weekendFill := weekendColor(opt.Theme.Background)
 	if !hasSectionHeader {
 		// 无 section 背景时，排除日统一用稍暗底色，含 weekend 与 excludes
-		weekendFill = darkenColor(opt.Theme.Background, 0.9)
+		weekendFill = darkenColor(opt.Theme.Background, weekendDarkenFactor)
 	}
 
 	if timeMode {
@@ -365,7 +386,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 			totalDays = 1
 		}
 		weekStart := m.WeekStart
-		if m.Tick.Valid && m.Tick.Unit == "week" {
+		if m.Tick.Valid && m.Tick.Unit == tickUnitWeek {
 			if weekStart == nil {
 				ws := time.Sunday
 				weekStart = &ws
@@ -390,7 +411,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 		y += rowHeight / halfDivisor
 		for _, task := range sec.Tasks {
 			x := leftMargin
-			widthPx := dayWidth
+			var widthPx int
 			if timeMode {
 				totalMinutes := maxSpan.Sub(minSpan).Minutes()
 				if totalMinutes <= 0 {
@@ -406,8 +427,8 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 					durationMinutes = 1
 				}
 				widthPx = int(float64(gridWidth) * (durationMinutes / totalMinutes))
-				if widthPx < 4 {
-					widthPx = 4
+				if widthPx < minTaskWidthPx {
+					widthPx = minTaskWidthPx
 				}
 			} else {
 				if !task.Start.IsZero() {
@@ -445,7 +466,7 @@ func RenderModel(_ context.Context, m parser.Model, opt Options) ([]byte, error)
 			drawBorder(img, rect, border)
 
 			if task.Progress > 0 {
-				progressWidth := int(float64(rect.Dx()) * float64(task.Progress) / 100.0)
+				progressWidth := int(float64(rect.Dx()) * float64(task.Progress) / progressDivisor)
 				if progressWidth > 0 {
 					progRect := image.Rect(rect.Min.X, rect.Min.Y, rect.Min.X+progressWidth, rect.Max.Y)
 					draw.Draw(img, progRect, &image.Uniform{opt.Theme.Milestone}, image.Point{}, draw.Over)
@@ -585,26 +606,26 @@ func autoTickInterval(min, max time.Time, timeMode bool) (tickMinutes int, tickD
 
 	if timeMode {
 		switch {
-		case hours <= 2:
-			return 5, 0 // 分钟刻度
-		case hours <= 48:
-			return 60, 0 // 小时刻度
-		case days <= 31:
-			return 60, 0 // 小时刻度
-		case days <= 365:
-			return 7 * 24 * 60, 0 // 周刻度
+		case hours <= hoursThresholdTwo:
+			return minuteTickFive, 0 // 分钟刻度
+		case hours <= hoursThresholdFortyEight:
+			return minuteTickSixty, 0 // 小时刻度
+		case days <= daysThresholdThirtyOne:
+			return minuteTickSixty, 0 // 小时刻度
+		case days <= daysThresholdYear:
+			return weekTickMinutes, 0 // 周刻度
 		default:
-			return 30 * 24 * 60, 0 // 月刻度（按 30 天）
+			return monthTickMinutes, 0 // 月刻度（按 30 天）
 		}
 	}
 
 	switch {
-	case days <= 30:
+	case days <= daysThresholdThirty:
 		return 0, 1 // 日
-	case days <= 365:
-		return 0, 7 // 周
+	case days <= daysThresholdYear:
+		return 0, dayTickSeven // 周
 	default:
-		return 0, 30 // 月
+		return 0, dayTickThirty // 月
 	}
 }
 
@@ -724,8 +745,8 @@ func statusColors(theme ThemeColors, status parser.TaskStatus) (color.Color, col
 
 func drawMilestone(img *image.RGBA, c color.Color, x, y, dayWidth, barHeight int) {
 	size := barHeight
-	if size < 6 {
-		size = 6
+	if size < barSizeMin {
+		size = barSizeMin
 	}
 	centerX := x + dayWidth/halfDivisor
 	centerY := y + barHeight/halfDivisor

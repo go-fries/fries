@@ -11,12 +11,25 @@ import (
 )
 
 const (
-	minTaskParts = 2
+	minTaskParts          = 2
+	minDirectiveParts     = 2
+	minAxisFields         = 2
+	tickIntervalPartCount = 3
+	taskSplitParts        = 2
+	minLowerLen           = 2
+	maxProgressPercent    = 100
+	hoursPerDayInt        = 24
+	minPartsForLayout     = 2
+	minFieldsForTimezone  = 2
+	minMatchesForDate     = 3
+	minDurationParts      = 2
+	percentDivisor        = 100.0
 )
 
 var tickIntervalRe = regexp.MustCompile(`^([1-9][0-9]*)(millisecond|second|minute|hour|day|week|month)$`)
 
 // Parse 从字符串解析 Gantt。
+// nolint:gocyclo // 复杂度较高，后续按 refactor-design.md 拆分
 func Parse(src string) (Model, error) {
 	if strings.TrimSpace(src) == "" {
 		return Model{}, fmt.Errorf("source is empty")
@@ -55,7 +68,7 @@ func Parse(src string) (Model, error) {
 			continue
 		case strings.HasPrefix(lower, "axisformat"), strings.HasPrefix(lower, "tickformat"):
 			parts := strings.Fields(line)
-			if len(parts) >= 2 {
+			if len(parts) >= minAxisFields {
 				model.AxisFormat = convertStrftimeLayout(strings.TrimSpace(parts[1]))
 			}
 			continue
@@ -70,7 +83,7 @@ func Parse(src string) (Model, error) {
 			continue
 		case strings.HasPrefix(lower, "timezone"):
 			fields := strings.Fields(line)
-			if len(fields) >= 2 {
+			if len(fields) >= minAxisFields {
 				model.Calendar.Timezone = strings.TrimSpace(fields[1])
 			}
 			continue
@@ -227,13 +240,15 @@ func defaultWeekend() []time.Weekday {
 	return []time.Weekday{time.Saturday, time.Sunday}
 }
 
+const defaultDateLayout = "2006-01-02"
+
 func parseTickInterval(expr string, model *Model) {
 	fields := strings.Fields(expr)
 	if len(fields) == 0 {
 		return
 	}
 	matches := tickIntervalRe.FindStringSubmatch(fields[0])
-	if len(matches) != 3 {
+	if len(matches) != tickIntervalPartCount {
 		return
 	}
 	val, err := strconv.Atoi(matches[1])
@@ -255,7 +270,7 @@ func parseWeekday(expr string, model *Model) {
 
 func convertStrftimeLayout(format string) string {
 	if strings.TrimSpace(format) == "" {
-		return "2006-01-02"
+		return defaultDateLayout
 	}
 	var b strings.Builder
 	for i := 0; i < len(format); i++ {
@@ -313,8 +328,34 @@ func convertStrftimeLayout(format string) string {
 	return b.String()
 }
 
+// nolint:gocyclo // 复杂度较高，后续按 refactor-design.md 拆分
 func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar) (Task, error) {
-	parts := strings.SplitN(line, ":", 2)
+	parseDeps := func(field string, typ DependencyType) []Dependency {
+		depStr := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(field, "after"), "before"))
+		depStr = strings.TrimSpace(strings.TrimPrefix(depStr, "until"))
+		var deps []Dependency
+		for _, tok := range strings.Fields(depStr) {
+			deps = append(deps, Dependency{Type: typ, Target: tok})
+		}
+		return deps
+	}
+
+	addDate := func(task *Task, val string, isStart bool) {
+		if t, err := parseDate(val, layout, cal.Timezone); err == nil {
+			if isStart && !task.HasStart {
+				task.Start = t
+				task.HasStart = true
+				task.StartExpr = val
+				task.HasTime = hasClock(val)
+			} else if !isStart && !task.HasEnd {
+				task.End = t
+				task.HasEnd = true
+				task.EndExpr = val
+			}
+		}
+	}
+
+	parts := strings.SplitN(line, ":", taskSplitParts)
 	if len(parts) < minTaskParts {
 		return Task{}, newParseError(lineNo, 1, fmt.Sprintf("invalid task line: %s", line))
 	}
@@ -337,6 +378,7 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 
 	fields := strings.Split(parts[1], ",")
 	dateCount := 0
+	var deps []Dependency
 	for _, raw := range fields {
 		field := strings.TrimSpace(raw)
 		if field == "" {
@@ -357,16 +399,10 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 			task.IsVertical = true
 			task.IsMilestone = false
 		case strings.HasPrefix(lower, "after"):
-			depStr := strings.TrimSpace(strings.TrimPrefix(field, "after"))
-			for _, tok := range strings.Fields(depStr) {
-				task.Dependencies = append(task.Dependencies, Dependency{Type: DepAfter, Target: tok})
-			}
+			deps = append(deps, parseDeps(field, DepAfter)...)
 			task.StartExpr = strings.TrimSpace(field)
 		case strings.HasPrefix(lower, "before"), strings.HasPrefix(lower, "until"):
-			depStr := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(field, "before"), "until"))
-			for _, tok := range strings.Fields(depStr) {
-				task.Dependencies = append(task.Dependencies, Dependency{Type: DepBefore, Target: tok})
-			}
+			deps = append(deps, parseDeps(field, DepBefore)...)
 		case strings.Contains(field, "%"):
 			if p := parseProgress(field); p >= 0 {
 				task.Progress = p
@@ -377,18 +413,9 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 		case isDate(field, layout):
 			dateCount++
 			if !task.HasStart {
-				if t, err := parseDate(field, layout, cal.Timezone); err == nil {
-					task.Start = t
-					task.HasStart = true
-					task.StartExpr = field
-					task.HasTime = hasClock(field)
-				}
+				addDate(&task, field, true)
 			} else if !task.HasEnd {
-				if t, err := parseDate(field, layout, cal.Timezone); err == nil {
-					task.End = t
-					task.HasEnd = true
-					task.EndExpr = field
-				}
+				addDate(&task, field, false)
 			}
 		default:
 			if task.ID == "" && isIdentifierCandidate(field) {
@@ -424,7 +451,7 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 	}
 	// 若提供开始和结束日期，转换为持续时间
 	if task.HasStart && task.HasEnd {
-		spanDays := int(task.End.Sub(task.Start).Hours()/24) + 1 // inclusive of end date
+		spanDays := int(task.End.Sub(task.Start).Hours()/hoursPerDayInt) + 1 // inclusive of end date
 		if spanDays <= 0 {
 			spanDays = 1
 		}
@@ -440,6 +467,7 @@ func parseTaskLine(line string, lineNo int, section, layout string, cal Calendar
 			task.Start = t
 		}
 	}
+	task.Dependencies = deps
 	return task, nil
 }
 
@@ -550,7 +578,7 @@ func convertDayjsLayout(format string) string {
 
 func looksLikeDuration(val string) bool {
 	lower := strings.ToLower(strings.TrimSpace(val))
-	if len(lower) < 2 {
+	if len(lower) < minLowerLen {
 		return false
 	}
 	// 必须以数字开头，且仅允许数字后跟单位
@@ -620,8 +648,8 @@ func parseProgress(val string) int {
 	if p < 0 {
 		p = 0
 	}
-	if p > 100 {
-		p = 100
+	if p > maxProgressPercent {
+		p = maxProgressPercent
 	}
 	return p
 }
