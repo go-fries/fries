@@ -16,7 +16,7 @@ require (
 	github.com/go-fries/fries/codec/v3 v3.11.0
 	github.com/go-fries/fries/locker/redis/v3 v3.11.0
 	github.com/go-fries/fries/locker/v3 v3.11.0
-	github.com/redis/go-redis/v9 v9.17.1
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/stretchr/testify v1.11.1
 )
 
