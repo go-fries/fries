@@ -13,7 +13,7 @@ require (
 	github.com/go-fries/fries/codec/v3 v3.11.0
 	github.com/go-fries/fries/mysql/canal/v3 v3.11.0
 	github.com/go-mysql-org/go-mysql v1.13.0
-	github.com/redis/go-redis/v9 v9.17.0
+	github.com/redis/go-redis/v9 v9.17.1
 	github.com/stretchr/testify v1.11.1
 )
 
