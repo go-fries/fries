@@ -6,6 +6,7 @@ ROOT_GO_MOD_DIRS := $(filter-out $(TOOLS_MOD_DIR), $(ALL_GO_MOD_DIRS))
 ALL_COVERAGE_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | grep -E -v '^./example|^$(TOOLS_MOD_DIR)' | sort)
 
 GO = go
+GIT = git
 TIMEOUT = 60
 
 # Tools
@@ -45,9 +46,7 @@ tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(C
 	@echo "✅ Tools are ready"
 
 # Build
-
 .PHONY: build
-
 build: $(ROOT_GO_MOD_DIRS:%=build/%)
 build/%: DIR=$*
 build/%:
@@ -56,7 +55,6 @@ build/%:
 		&& $(GO) build ./...
 
 # Tests
-
 TEST_TARGETS := test-default test-short test-verbose test-race test-concurrent-safe
 .PHONY: $(TEST_TARGETS) test
 test-default test-race: ARGS=-race
@@ -107,11 +105,11 @@ go-mod-tidy/%:
 		&& cd $(DIR) \
 		&& $(GO) mod tidy -compat=1.22.0
 
-.PHONY: lint-modules
-lint-modules: go-mod-tidy
-
 .PHONY: lint
-lint: lint-modules golangci-lint
+lint: go-mod-tidy golangci-lint
+lint/%: DIR=$*
+lint/%: go-mod-tidy/% golangci-lint/%
+	@echo "linted $(DIR)"
 
 .PHONY: clean
 clean:
@@ -194,5 +192,9 @@ add-tags: verify-mods
 	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
 	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
 
-# push-tags
+.PHONY: push-tags
 # git tag -l | grep 'v3.0.0-rc.3$' | xargs -P 4 -I {} git push origin {}
+push-tags:
+	@[ "${TAG}" ] || ( echo ">> env var TAG is not set"; exit 1 )
+	@echo "Pushing tag ${TAG} to origin" \
+		&& $(GIT) tag -l | grep '${TAG}$$' | xargs -P 4 -I {} $(GIT) push origin {}
