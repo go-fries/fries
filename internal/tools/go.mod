@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/bufbuild/buf v1.61.0
-	github.com/golangci/golangci-lint/v2 v2.6.2
+	github.com/golangci/golangci-lint/v2 v2.7.1
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/crosslink v0.29.0
 	go.opentelemetry.io/build-tools/multimod v0.29.0
@@ -251,7 +251,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
-	github.com/stbenjam/no-sprintf-host-port v0.2.0 // indirect
+	github.com/stbenjam/no-sprintf-host-port v0.3.1 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
