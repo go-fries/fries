@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/flc1125/go-cron/v4 v4.7.1
-	github.com/go-kratos/kratos/v2 v2.9.1
+	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/stretchr/testify v1.11.1
 )
 
