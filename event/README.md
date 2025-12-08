@@ -1,11 +1,11 @@
-# Event Dispatcher
+# Event Component
 
-The `Dispatcher` is a simple event dispatcher that allows you to dispatch events to registered listeners.
+A strongly-typed event dispatcher with middleware support, allowing you to decouple application logic through event listeners.
 
 ## Installation
 
 ```bash
-github.com/go-fries/fries/event/v3
+go get github.com/go-fries/fries/event/v3
 ```
 
 ## Usage
@@ -21,34 +21,6 @@ import (
 	"github.com/go-fries/fries/event/v3"
 )
 
-func Example() {
-	dispatcher := event.NewDispatcher()
-
-	// Use middleware
-	dispatcher.Use(
-		recovery.New(),
-	)
-
-	dispatcher.RegisterListeners(
-		event.AdaptListener(event.ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
-			fmt.Println("this is user func listener, the name is", event.Name)
-			return nil
-		})),
-		event.AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
-			fmt.Println("this is user func listener, the name is", event.Name)
-			return nil
-		}),
-		event.AdaptListener(&UserListener{}),
-	)
-
-	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "zhangsan"}); err != nil {
-		fmt.Println(err)
-	}
-
-	// Wait for all listeners to finish processing
-	dispatcher.Wait()
-}
-
 type UserEvent struct {
 	Name string
 }
@@ -56,7 +28,36 @@ type UserEvent struct {
 type UserListener struct{}
 
 func (u *UserListener) Handle(_ context.Context, event *UserEvent) error {
-	fmt.Println("this is user struct listener, the name is", event.Name)
+	fmt.Printf("Struct Listener: %s\n", event.Name)
 	return nil
+}
+
+func main() {
+	// Create dispatcher
+	dispatcher := event.NewDispatcher()
+
+	// Use middleware (e.g., panic recovery)
+	dispatcher.Use(
+		recovery.New(),
+	)
+
+	// Register listeners
+	dispatcher.RegisterListeners(
+		// Functional listener
+		event.AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
+			fmt.Printf("Func Listener: %s\n", event.Name)
+			return nil
+		}),
+		// Struct listener
+		event.AdaptListener(&UserListener{}),
+	)
+
+	// Dispatch event
+	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "ZhangSan"}); err != nil {
+		fmt.Println(err)
+	}
+
+	// Wait for async listeners (if any)
+	dispatcher.Wait()
 }
 ```
