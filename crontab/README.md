@@ -1,6 +1,14 @@
 # Crontab
 
-## Example
+A Cron job scheduler integration for [Kratos](https://github.com/go-kratos/kratos).
+
+## Installation
+
+```bash
+go get github.com/go-fries/fries/crontab/v3
+```
+
+## Usage
 
 ```go
 package main
@@ -16,7 +24,7 @@ import (
 func main() {
 	c := cron.New(
 		cron.WithSeconds(),
-		cron.WithMiddleware( /*...*/ ),
+		// cron.WithMiddleware( ... ),
 	)
 
 	_, _ = c.AddFunc("* * * * * *", func(context.Context) error {
