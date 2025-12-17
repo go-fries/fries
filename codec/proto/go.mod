@@ -7,7 +7,7 @@ replace github.com/go-fries/fries/codec/v3 => ../
 require (
 	github.com/go-fries/fries/codec/v3 v3.11.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
