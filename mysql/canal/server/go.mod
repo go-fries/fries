@@ -11,7 +11,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/go-playground/form/v4 v4.3.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
