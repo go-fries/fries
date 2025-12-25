@@ -17,10 +17,10 @@ Go Fries Components is a multi-module Go component library providing 79+ reusabl
 ### Essential Commands
 
 ```bash
-# Install development tools (30-60s, use 120s timeout)
+# Install development tools (30-60s first time, 7-10s cached)
 make tools
 
-# Build all modules (1-2 minutes, use 180s timeout)
+# Build all modules (80-120s, use 180s timeout)
 make build
 
 # Lint all modules (6-8 minutes, use 600s timeout)
