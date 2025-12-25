@@ -10,6 +10,7 @@ import (
 type Job struct {
 	id          string        // unique job identifier
 	payload     any           // job payload (serialized by codec)
+	payloadType string        // payload type name (for serialization)
 	queue       string        // queue name
 	priority    int           // priority (higher is more important, default 0)
 	delay       time.Duration // delay before execution
@@ -97,6 +98,11 @@ func (j *Job) ID() string {
 // Payload returns the job's payload
 func (j *Job) Payload() any {
 	return j.payload
+}
+
+// PayloadType returns the payload type name
+func (j *Job) PayloadType() string {
+	return j.payloadType
 }
 
 // Queue returns the queue name
