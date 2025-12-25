@@ -5,21 +5,21 @@ import "context"
 // Driver defines the queue driver interface (implemented by channel/redis/amqp etc.)
 type Driver interface {
 	// Push pushes a job to the queue (immediately available or delayed based on job.AvailableAt)
-	Push(ctx context.Context, job *Job) error
+	Push(ctx context.Context, job Job) error
 
 	// Pop retrieves a job from the queue
 	// - Blocks until a job is available or context is cancelled
 	// - Returns jobs sorted by priority (higher priority first)
 	// - Only returns jobs where availableAt <= now
-	Pop(ctx context.Context, queues ...string) (*Job, error)
+	Pop(ctx context.Context, queues ...string) (Job, error)
 
 	// Ack acknowledges job completion, removes it from the queue
-	Ack(ctx context.Context, job *Job) error
+	Ack(ctx context.Context, job Job) error
 
 	// Fail marks a job as failed
 	// - If attempts < maxAttempts, re-queue with delay (retry)
 	// - If attempts >= maxAttempts, move to dead letter queue
-	Fail(ctx context.Context, job *Job, err error) error
+	Fail(ctx context.Context, job Job, err error) error
 
 	// Size returns the number of pending jobs in the queue
 	Size(ctx context.Context, queue string) (int64, error)
@@ -56,8 +56,8 @@ type Retryable interface {
 // Inspectable is an optional interface for drivers that support queue inspection (for debugging)
 type Inspectable interface {
 	// Peek returns jobs from the queue without removing them
-	Peek(ctx context.Context, queue string, limit int) ([]*Job, error)
+	Peek(ctx context.Context, queue string, limit int) ([]Job, error)
 
 	// PeekDead returns jobs from the dead letter queue without removing them
-	PeekDead(ctx context.Context, queue string, limit int) ([]*Job, error)
+	PeekDead(ctx context.Context, queue string, limit int) ([]Job, error)
 }

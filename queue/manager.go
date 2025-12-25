@@ -34,7 +34,7 @@ func NewManager(driver Driver, opts ...ManagerOption) *Manager {
 }
 
 // Push pushes a job to the queue
-func (m *Manager) Push(ctx context.Context, job *Job) error {
+func (m *Manager) Push(ctx context.Context, job Job) error {
 	return m.driver.Push(ctx, job)
 }
 
@@ -46,7 +46,7 @@ func (m *Manager) PushOn(ctx context.Context, queue string, payload any, opts ..
 }
 
 // Later pushes a job with a delay
-func (m *Manager) Later(ctx context.Context, delay time.Duration, job *Job) error {
+func (m *Manager) Later(ctx context.Context, delay time.Duration, job Job) error {
 	job.SetAvailableAt(time.Now().Add(delay))
 	return m.driver.Push(ctx, job)
 }

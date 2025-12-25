@@ -38,7 +38,7 @@ func TestJobAs(t *testing.T) {
 	// Create a job with NewJobFor
 	original := NewJobFor(testEmailPayload{To: "test@example.com"})
 
-	// Convert from *Job to *JobFor[T]
+	// Convert from Job to *JobFor[T]
 	converted, err := JobAs[testEmailPayload](original.Job())
 	require.NoError(t, err)
 
@@ -99,9 +99,9 @@ func TestMustJobAs_Panic(t *testing.T) {
 
 func TestHandlerFuncFor(t *testing.T) {
 	var capturedPayload testEmailPayload
-	var capturedJob *Job
+	var capturedJob Job
 
-	handler := HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job *Job) error {
+	handler := HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job Job) error {
 		capturedPayload = payload
 		capturedJob = job
 		return nil
@@ -119,7 +119,7 @@ func TestHandlerFuncFor(t *testing.T) {
 }
 
 func TestHandlerFuncFor_TypeMismatch(t *testing.T) {
-	handler := HandlerFuncFor[testSMSPayload](func(ctx context.Context, payload testSMSPayload, job *Job) error {
+	handler := HandlerFuncFor[testSMSPayload](func(ctx context.Context, payload testSMSPayload, job Job) error {
 		return nil
 	})
 
@@ -136,11 +136,11 @@ func TestMultiHandler(t *testing.T) {
 	var emailHandled, smsHandled bool
 
 	multiHandler := NewMultiHandler(
-		HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job *Job) error {
+		HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job Job) error {
 			emailHandled = true
 			return nil
 		}),
-		HandlerFuncFor[testSMSPayload](func(ctx context.Context, payload testSMSPayload, job *Job) error {
+		HandlerFuncFor[testSMSPayload](func(ctx context.Context, payload testSMSPayload, job Job) error {
 			smsHandled = true
 			return nil
 		}),
@@ -166,7 +166,7 @@ func TestMultiHandler(t *testing.T) {
 
 func TestMultiHandler_NoMatch(t *testing.T) {
 	multiHandler := NewMultiHandler(
-		HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job *Job) error {
+		HandlerFuncFor[testEmailPayload](func(ctx context.Context, payload testEmailPayload, job Job) error {
 			return nil
 		}),
 	)

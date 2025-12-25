@@ -12,50 +12,53 @@ var ErrPayloadTypeMismatch = errors.New("queue: payload type mismatch")
 
 // JobFor is a type-safe wrapper around Job
 type JobFor[T any] struct {
-	job *Job
+	job Job
 }
 
 // NewJobFor creates a new type-safe job with the given payload
 func NewJobFor[T any](payload T, opts ...JobOption) *JobFor[T] {
-	job := NewJob(payload, opts...)
-	job.payloadType = typeNameOf[T]()
-	return &JobFor[T]{job: job}
+	j := NewJob(payload, opts...)
+	// Set payloadType on the underlying job
+	if jImpl, ok := j.(*job); ok {
+		jImpl.payloadType = typeNameOf[T]()
+	}
+	return &JobFor[T]{job: j}
 }
 
-// JobAs converts a *Job to *JobFor[T], returns error if type mismatch
-func JobAs[T any](job *Job) (*JobFor[T], error) {
+// JobAs converts a Job to *JobFor[T], returns error if type mismatch
+func JobAs[T any](j Job) (*JobFor[T], error) {
 	expectedType := typeNameOf[T]()
 
 	// If payloadType is set, check it matches
-	if job.payloadType != "" && job.payloadType != expectedType {
-		return nil, fmt.Errorf("%w: expected %s, got %s", ErrPayloadTypeMismatch, expectedType, job.payloadType)
+	if j.PayloadType() != "" && j.PayloadType() != expectedType {
+		return nil, fmt.Errorf("%w: expected %s, got %s", ErrPayloadTypeMismatch, expectedType, j.PayloadType())
 	}
 
 	// Try type assertion
-	if _, ok := job.payload.(T); !ok {
+	if _, ok := j.Payload().(T); !ok {
 		return nil, fmt.Errorf("%w: cannot convert payload to %s", ErrPayloadTypeMismatch, expectedType)
 	}
 
-	return &JobFor[T]{job: job}, nil
+	return &JobFor[T]{job: j}, nil
 }
 
-// MustJobAs converts a *Job to *JobFor[T], panics if type mismatch
-func MustJobAs[T any](job *Job) *JobFor[T] {
-	jobFor, err := JobAs[T](job)
+// MustJobAs converts a Job to *JobFor[T], panics if type mismatch
+func MustJobAs[T any](j Job) *JobFor[T] {
+	jobFor, err := JobAs[T](j)
 	if err != nil {
 		panic(err)
 	}
 	return jobFor
 }
 
-// Job returns the underlying *Job
-func (j *JobFor[T]) Job() *Job {
+// Job returns the underlying Job
+func (j *JobFor[T]) Job() Job {
 	return j.job
 }
 
 // Payload returns the typed payload
 func (j *JobFor[T]) Payload() (T, error) {
-	payload, ok := j.job.payload.(T)
+	payload, ok := j.job.Payload().(T)
 	if !ok {
 		var zero T
 		return zero, fmt.Errorf("%w: cannot convert payload to %s", ErrPayloadTypeMismatch, typeNameOf[T]())

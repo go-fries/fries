@@ -79,7 +79,7 @@ func (d *Driver) Stop(ctx context.Context) error {
 }
 
 // Push pushes a job to the queue
-func (d *Driver) Push(ctx context.Context, job *queue.Job) error {
+func (d *Driver) Push(ctx context.Context, job queue.Job) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -95,7 +95,7 @@ func (d *Driver) Push(ctx context.Context, job *queue.Job) error {
 }
 
 // Pop retrieves a job from the queue (blocking)
-func (d *Driver) Pop(ctx context.Context, queues ...string) (*queue.Job, error) {
+func (d *Driver) Pop(ctx context.Context, queues ...string) (queue.Job, error) {
 	if len(queues) == 0 {
 		queues = []string{"default"}
 	}
@@ -119,14 +119,14 @@ func (d *Driver) Pop(ctx context.Context, queues ...string) (*queue.Job, error) 
 }
 
 // tryPop attempts to pop a ready job from any of the specified queues
-func (d *Driver) tryPop(queues []string) *queue.Job {
+func (d *Driver) tryPop(queues []string) queue.Job {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	now := time.Now()
 
 	// Try each queue in order, looking for the highest priority ready job
-	var bestJob *queue.Job
+	var bestJob queue.Job
 	var bestQueue *priorityQueue
 
 	for _, queueName := range queues {
@@ -157,13 +157,13 @@ func (d *Driver) tryPop(queues []string) *queue.Job {
 }
 
 // Ack acknowledges job completion
-func (d *Driver) Ack(_ context.Context, _ *queue.Job) error {
+func (d *Driver) Ack(_ context.Context, _ queue.Job) error {
 	// For in-memory driver, job is already removed during Pop
 	return nil
 }
 
 // Fail marks a job as failed
-func (d *Driver) Fail(ctx context.Context, job *queue.Job, err error) error {
+func (d *Driver) Fail(ctx context.Context, job queue.Job, err error) error {
 	job.IncrAttempts()
 	job.SetFailed(err)
 
@@ -180,7 +180,7 @@ func (d *Driver) Fail(ctx context.Context, job *queue.Job, err error) error {
 }
 
 // moveToDead moves a job to the dead letter queue
-func (d *Driver) moveToDead(job *queue.Job) error {
+func (d *Driver) moveToDead(job queue.Job) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -251,7 +251,7 @@ func (d *Driver) Retry(ctx context.Context, queueName string, jobID string) erro
 	// Find and remove the job from dead queue
 	for i := 0; i < pq.Len(); i++ {
 		if pq.items[i].ID() == jobID {
-			job := heap.Remove(pq, i).(*queue.Job)
+			job := heap.Remove(pq, i).(queue.Job)
 
 			// Reset attempts and re-queue
 			mainQueue := d.getOrCreateQueue(queueName)
@@ -281,7 +281,7 @@ func (d *Driver) RetryAll(_ context.Context, queueName string) (int64, error) {
 	now := time.Now()
 
 	for pq.Len() > 0 {
-		job := heap.Pop(pq).(*queue.Job)
+		job := heap.Pop(pq).(queue.Job)
 		job.SetAvailableAt(now)
 		heap.Push(mainQueue, job)
 	}
@@ -294,7 +294,7 @@ func (d *Driver) RetryAll(_ context.Context, queueName string) (int64, error) {
 }
 
 // Peek returns jobs from the queue without removing them
-func (d *Driver) Peek(_ context.Context, queueName string, limit int) ([]*queue.Job, error) {
+func (d *Driver) Peek(_ context.Context, queueName string, limit int) ([]queue.Job, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -303,7 +303,7 @@ func (d *Driver) Peek(_ context.Context, queueName string, limit int) ([]*queue.
 		return nil, nil
 	}
 
-	jobs := make([]*queue.Job, 0, min(limit, pq.Len()))
+	jobs := make([]queue.Job, 0, min(limit, pq.Len()))
 	for i := 0; i < limit && i < pq.Len(); i++ {
 		jobs = append(jobs, pq.items[i])
 	}
@@ -312,7 +312,7 @@ func (d *Driver) Peek(_ context.Context, queueName string, limit int) ([]*queue.
 }
 
 // PeekDead returns jobs from the dead letter queue without removing them
-func (d *Driver) PeekDead(_ context.Context, queueName string, limit int) ([]*queue.Job, error) {
+func (d *Driver) PeekDead(_ context.Context, queueName string, limit int) ([]queue.Job, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -321,7 +321,7 @@ func (d *Driver) PeekDead(_ context.Context, queueName string, limit int) ([]*qu
 		return nil, nil
 	}
 
-	jobs := make([]*queue.Job, 0, min(limit, pq.Len()))
+	jobs := make([]queue.Job, 0, min(limit, pq.Len()))
 	for i := 0; i < limit && i < pq.Len(); i++ {
 		jobs = append(jobs, pq.items[i])
 	}
@@ -342,7 +342,7 @@ func (d *Driver) notify() {
 func (d *Driver) getOrCreateQueue(name string) *priorityQueue {
 	pq, exists := d.queues[name]
 	if !exists {
-		pq = &priorityQueue{items: make([]*queue.Job, 0)}
+		pq = &priorityQueue{items: make([]queue.Job, 0)}
 		heap.Init(pq)
 		d.queues[name] = pq
 	}
@@ -353,7 +353,7 @@ func (d *Driver) getOrCreateQueue(name string) *priorityQueue {
 func (d *Driver) getOrCreateDeadQueue(name string) *priorityQueue {
 	pq, exists := d.dead[name]
 	if !exists {
-		pq = &priorityQueue{items: make([]*queue.Job, 0)}
+		pq = &priorityQueue{items: make([]queue.Job, 0)}
 		heap.Init(pq)
 		d.dead[name] = pq
 	}
@@ -397,7 +397,7 @@ func (d *Driver) checkDelayedJobs() {
 
 // priorityQueue implements heap.Interface for priority-based job ordering
 type priorityQueue struct {
-	items []*queue.Job
+	items []queue.Job
 }
 
 func (pq *priorityQueue) Len() int { return len(pq.items) }
@@ -416,7 +416,7 @@ func (pq *priorityQueue) Swap(i, j int) {
 }
 
 func (pq *priorityQueue) Push(x any) {
-	pq.items = append(pq.items, x.(*queue.Job))
+	pq.items = append(pq.items, x.(queue.Job))
 }
 
 func (pq *priorityQueue) Pop() any {
@@ -428,7 +428,7 @@ func (pq *priorityQueue) Pop() any {
 }
 
 // Peek returns the top item without removing it
-func (pq *priorityQueue) Peek() *queue.Job {
+func (pq *priorityQueue) Peek() queue.Job {
 	if len(pq.items) == 0 {
 		return nil
 	}

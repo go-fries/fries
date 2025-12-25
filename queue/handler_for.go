@@ -7,15 +7,15 @@ import (
 
 // HandlerFor is a type-safe handler interface
 type HandlerFor[T any] interface {
-	Handle(ctx context.Context, payload T, job *Job) error
+	Handle(ctx context.Context, payload T, job Job) error
 }
 
 // HandlerFuncFor is a function adapter that implements Handler interface
 // It automatically converts the payload to type T before calling the handler
-type HandlerFuncFor[T any] func(ctx context.Context, payload T, job *Job) error
+type HandlerFuncFor[T any] func(ctx context.Context, payload T, job Job) error
 
 // Handle implements Handler interface, allowing direct use with Manager.Register
-func (f HandlerFuncFor[T]) Handle(ctx context.Context, job *Job) error {
+func (f HandlerFuncFor[T]) Handle(ctx context.Context, job Job) error {
 	jobFor, err := JobAs[T](job)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ var _ Handler = HandlerFuncFor[any](nil)
 type MultiHandler []Handler
 
 // Handle tries each handler until one succeeds (returns nil or non-type-mismatch error)
-func (m MultiHandler) Handle(ctx context.Context, job *Job) error {
+func (m MultiHandler) Handle(ctx context.Context, job Job) error {
 	var lastErr error
 
 	for _, h := range m {

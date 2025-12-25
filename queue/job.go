@@ -6,8 +6,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// Job represents a queue task
-type Job struct {
+// Job defines the interface for a queue job
+type Job interface {
+	// Read-only accessors
+	ID() string
+	Payload() any
+	PayloadType() string
+	Queue() string
+	Priority() int
+	Delay() time.Duration
+	MaxAttempts() int
+	Attempts() int
+	AvailableAt() time.Time
+	CreatedAt() time.Time
+	FailedAt() *time.Time
+	LastError() string
+
+	// Mutable methods (for driver use)
+	IncrAttempts()
+	SetAvailableAt(t time.Time)
+	SetFailed(err error)
+}
+
+// job is the default implementation of Job interface
+type job struct {
 	id          string        // unique job identifier
 	payload     any           // job payload (serialized by codec)
 	payloadType string        // payload type name (for serialization)
@@ -22,10 +44,13 @@ type Job struct {
 	lastError   string        // last error message
 }
 
+// Ensure job implements Job interface
+var _ Job = (*job)(nil)
+
 // NewJob creates a new job with the given payload and options
-func NewJob(payload any, opts ...JobOption) *Job {
+func NewJob(payload any, opts ...JobOption) Job {
 	now := time.Now()
-	job := &Job{
+	j := &job{
 		id:          uuid.New().String(),
 		payload:     payload,
 		queue:       "default",
@@ -38,51 +63,51 @@ func NewJob(payload any, opts ...JobOption) *Job {
 	}
 
 	for _, opt := range opts {
-		opt(job)
+		opt(j)
 	}
 
 	// Apply delay to availableAt if set
-	if job.delay > 0 {
-		job.availableAt = job.createdAt.Add(job.delay)
+	if j.delay > 0 {
+		j.availableAt = j.createdAt.Add(j.delay)
 	}
 
-	return job
+	return j
 }
 
-// JobOption configures a Job
-type JobOption func(*Job)
+// JobOption configures a job
+type JobOption func(*job)
 
 // WithJobID sets a custom job ID
 func WithJobID(id string) JobOption {
-	return func(j *Job) {
+	return func(j *job) {
 		j.id = id
 	}
 }
 
 // WithQueue sets the queue name
 func WithQueue(name string) JobOption {
-	return func(j *Job) {
+	return func(j *job) {
 		j.queue = name
 	}
 }
 
 // WithPriority sets the job priority (higher values = higher priority)
 func WithPriority(p int) JobOption {
-	return func(j *Job) {
+	return func(j *job) {
 		j.priority = p
 	}
 }
 
 // WithDelay sets the delay before the job becomes available
 func WithDelay(d time.Duration) JobOption {
-	return func(j *Job) {
+	return func(j *job) {
 		j.delay = d
 	}
 }
 
 // WithMaxAttempts sets the maximum number of retry attempts
 func WithMaxAttempts(n int) JobOption {
-	return func(j *Job) {
+	return func(j *job) {
 		if n < 1 {
 			n = 1
 		}
@@ -91,77 +116,77 @@ func WithMaxAttempts(n int) JobOption {
 }
 
 // ID returns the job's unique identifier
-func (j *Job) ID() string {
+func (j *job) ID() string {
 	return j.id
 }
 
 // Payload returns the job's payload
-func (j *Job) Payload() any {
+func (j *job) Payload() any {
 	return j.payload
 }
 
 // PayloadType returns the payload type name
-func (j *Job) PayloadType() string {
+func (j *job) PayloadType() string {
 	return j.payloadType
 }
 
 // Queue returns the queue name
-func (j *Job) Queue() string {
+func (j *job) Queue() string {
 	return j.queue
 }
 
 // Priority returns the job's priority
-func (j *Job) Priority() int {
+func (j *job) Priority() int {
 	return j.priority
 }
 
 // Delay returns the job's delay duration
-func (j *Job) Delay() time.Duration {
+func (j *job) Delay() time.Duration {
 	return j.delay
 }
 
 // MaxAttempts returns the maximum number of retry attempts
-func (j *Job) MaxAttempts() int {
+func (j *job) MaxAttempts() int {
 	return j.maxAttempts
 }
 
 // Attempts returns the current attempt count
-func (j *Job) Attempts() int {
+func (j *job) Attempts() int {
 	return j.attempts
 }
 
 // AvailableAt returns when the job becomes available
-func (j *Job) AvailableAt() time.Time {
+func (j *job) AvailableAt() time.Time {
 	return j.availableAt
 }
 
 // CreatedAt returns the job creation time
-func (j *Job) CreatedAt() time.Time {
+func (j *job) CreatedAt() time.Time {
 	return j.createdAt
 }
 
 // FailedAt returns the last failure time (nil if never failed)
-func (j *Job) FailedAt() *time.Time {
+func (j *job) FailedAt() *time.Time {
 	return j.failedAt
 }
 
 // LastError returns the last error message
-func (j *Job) LastError() string {
+func (j *job) LastError() string {
 	return j.lastError
 }
 
 // IncrAttempts increments the attempt count (for driver use)
-func (j *Job) IncrAttempts() {
+func (j *job) IncrAttempts() {
 	j.attempts++
 }
 
 // SetAvailableAt sets when the job becomes available (for driver use)
-func (j *Job) SetAvailableAt(t time.Time) {
+func (j *job) SetAvailableAt(t time.Time) {
 	j.availableAt = t
 }
 
 // SetFailed marks the job as failed with the given error (for driver use)
-func (j *Job) SetFailed(err error) {
+func (j *job) SetFailed(err error) {
 	now := time.Now()
 	j.failedAt = &now
 	if err != nil {
