@@ -27,7 +27,7 @@ require (
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/pingcap/errors v0.11.5-0.20251231075859-d18e03b1da26 // indirect
 	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
-	github.com/pingcap/log v1.1.1-0.20250917021125-19901e015dc9 // indirect
+	github.com/pingcap/log v1.1.1-0.20251231064424-c412c24f73b2 // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260101060517-cb5f86216077 // indirect
 	github.com/redis/go-redis/v9 v9.17.2 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
