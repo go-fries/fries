@@ -31,7 +31,7 @@ require (
 	cel.dev/expr v0.25.1 // indirect
 	codeberg.org/chavacava/garif v0.2.0 // indirect
 	connectrpc.com/connect v1.19.1 // indirect
-	connectrpc.com/otelconnect v0.8.0 // indirect
+	connectrpc.com/otelconnect v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	dev.gaijin.team/go/exhaustruct/v4 v4.0.0 // indirect
 	dev.gaijin.team/go/golib v0.8.0 // indirect
