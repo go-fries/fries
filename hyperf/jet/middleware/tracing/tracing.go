@@ -64,7 +64,12 @@ func New(opts ...Option) jet.Middleware {
 			)
 			defer span.End()
 
-			attrs := []attribute.KeyValue{
+			formatterAttrs := formatterAttributes(ctx)
+			transportAttrs := transportAttributes(ctx)
+			totalCapacity := 2 + len(formatterAttrs) + len(transportAttrs) + len(o.attrs)
+
+			attrs := make([]attribute.KeyValue, 0, totalCapacity)
+			attrs = append(attrs,
 				semconv.RPCService(service),
 				semconv.RPCMethod(method),
 				// semconv.RPCJsonrpcErrorCode(0),     // todo
@@ -74,9 +79,9 @@ func New(opts ...Option) jet.Middleware {
 				// semconv.ServerPort(0),              // todo
 				// semconv.NetworkPeerAddress(""),     // todo
 				// semconv.NetworkPeerPort(0),         // todo
-			}
-			attrs = append(attrs, formatterAttributes(ctx)...)
-			attrs = append(attrs, transportAttributes(ctx)...)
+			)
+			attrs = append(attrs, formatterAttrs...)
+			attrs = append(attrs, transportAttrs...)
 			attrs = append(attrs, o.attrs...)
 
 			span.SetAttributes(attrs...)
