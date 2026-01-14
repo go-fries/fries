@@ -154,7 +154,12 @@ func Reverse[S ~[]E, E any](s S) S {
 //
 //	Concat([]int{1, 2}, []int{3, 4}, []int{5, 6}) // []int{1, 2, 3, 4, 5, 6}
 func Concat[S ~[]E, E any](slices ...S) S {
-	var result S
+	var totalLen int
+	for _, slice := range slices {
+		totalLen += len(slice)
+	}
+
+	result := make(S, 0, totalLen)
 	for _, slice := range slices {
 		result = append(result, slice...)
 	}

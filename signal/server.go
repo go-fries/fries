@@ -119,7 +119,7 @@ func (s *Server) uniqueSignals(signals []os.Signal) []os.Signal {
 	for _, sig := range signals {
 		m[sig] = struct{}{}
 	}
-	signals = make([]os.Signal, 0)
+	signals = make([]os.Signal, 0, len(m))
 	for sig := range m {
 		signals = append(signals, sig)
 	}
