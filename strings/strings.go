@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -14,10 +15,9 @@ import (
 const (
 	// randomLetters is the letters used in Random.
 	randomLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-	// uuidPattern is the pattern used in IsUuid.
-	uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 )
+
+var uuidRegex = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 // Is returns true if the value matches the pattern.
 // The pattern can contain the wildcard character *.
@@ -84,13 +84,11 @@ func SHA1(s string) string {
 //
 //	Reverse("abc") // "cba"
 func Reverse(s string) string {
-	var reversed string
-
-	for _, v := range s {
-		reversed = string(v) + reversed
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
 	}
-
-	return reversed
+	return string(runes)
 }
 
 // Replace replaces all occurrences of one substring with another.
@@ -143,14 +141,12 @@ func Random(length int) string {
 //	Len("abc") // 3
 //	Len("张三李四") // 4
 func Len(s string) int {
-	return len([]rune(s))
+	return utf8.RuneCountInString(s)
 }
 
 // IsUUID returns true if the string is a valid UUID.
 func IsUUID(str string) bool {
-	match, err := regexp.MatchString(uuidPattern, str)
-
-	return err == nil && match
+	return uuidRegex.MatchString(str)
 }
 
 // UUID generate uuid string
