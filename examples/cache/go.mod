@@ -14,7 +14,7 @@ replace (
 require (
 	github.com/go-fries/fries/cache/redis/v3 v3.12.0
 	github.com/go-fries/fries/cache/v3 v3.12.0
-	github.com/redis/go-redis/v9 v9.17.2
+	github.com/redis/go-redis/v9 v9.17.3
 )
 
 require (
