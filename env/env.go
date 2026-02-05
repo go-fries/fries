@@ -1,5 +1,7 @@
 package env
 
+import "slices"
+
 type Env string
 
 var (
@@ -14,13 +16,7 @@ func (e Env) String() string {
 }
 
 func (e Env) Is(envs ...Env) bool {
-	for _, env := range envs {
-		if e == env {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(envs, e)
 }
 
 var currentEnv = Prod

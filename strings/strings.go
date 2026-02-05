@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -47,13 +48,7 @@ func Is(pattern, value string) bool {
 //
 //	InSlice([]string{"1", "2"}, "1") // true
 func InSlice(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(slice, s)
 }
 
 // MD5 returns the md5 hash of a string.
@@ -165,11 +160,11 @@ func After(subject, search string) string {
 	if search == "" {
 		return subject
 	}
-	index := strings.Index(subject, search)
-	if index == -1 {
+	_, after, ok := strings.Cut(subject, search)
+	if !ok {
 		return subject
 	}
-	return subject[index+len(search):]
+	return after
 }
 
 // Before Get the portion of a string before the first occurrence of a given value.
@@ -183,11 +178,11 @@ func Before(subject, search string) string {
 	if search == "" {
 		return subject
 	}
-	index := strings.Index(subject, search)
-	if index == -1 {
+	before, _, ok := strings.Cut(subject, search)
+	if !ok {
 		return subject
 	}
-	return subject[:index]
+	return before
 }
 
 // SubstrCount Returns the number of substring occurrences.
@@ -203,10 +198,7 @@ func SubstrCount(haystack, needle string, offset int, lengths ...int) int {
 
 	var end int
 	if len(lengths) > 0 {
-		end = offset + lengths[0]
-		if end > len(haystack) {
-			end = len(haystack)
-		}
+		end = min(offset+lengths[0], len(haystack))
 	} else {
 		end = len(haystack)
 	}

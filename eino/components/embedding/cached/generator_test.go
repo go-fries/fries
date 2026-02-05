@@ -79,7 +79,7 @@ func TestGenerator_HashGenerator_Concurrent(t *testing.T) {
 	results := make(chan string, 100)
 
 	// Start multiple goroutines to test concurrent generation
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(i int) {
 			key := generator.Generate(ctx, fmt.Sprintf("%d", i), GeneratorOptions{})
 			results <- key
@@ -88,7 +88,7 @@ func TestGenerator_HashGenerator_Concurrent(t *testing.T) {
 
 	// Collect results and ensure uniqueness
 	keys := make(map[string]struct{})
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		key := <-results
 		_, exists := keys[key]
 		assert.False(t, exists, "Duplicate key found: %s", key)

@@ -35,7 +35,7 @@ func TestLocker_Try(t *testing.T) {
 	ch := make(chan struct{}, 2)
 	wg := sync.WaitGroup{}
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -67,7 +67,7 @@ func TestLocker_Until(t *testing.T) {
 	wg := sync.WaitGroup{}
 	start := time.Now()
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -94,7 +94,7 @@ func TestLocker_Until_Timeout(t *testing.T) {
 	ch := make(chan struct{}, 2)
 	wg := sync.WaitGroup{}
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -173,7 +173,7 @@ func TestLocker_Multi(t *testing.T) {
 	wg := sync.WaitGroup{}
 	ii := int64(0)
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -143,7 +143,7 @@ func TestRedis_Lock(t *testing.T) {
 	var wg sync.WaitGroup
 	var s int64
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

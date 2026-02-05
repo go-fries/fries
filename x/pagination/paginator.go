@@ -57,10 +57,7 @@ func (p *Paginator) setPrePage() {
 }
 
 func (p *Paginator) setLastPage() {
-	p.lastPage = (p.total + p.prePage - 1) / p.prePage
-	if p.lastPage < 1 {
-		p.lastPage = 1
-	}
+	p.lastPage = max((p.total+p.prePage-1)/p.prePage, 1)
 }
 
 func (p *Paginator) setPage() {

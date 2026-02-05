@@ -22,7 +22,7 @@ func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
 		sleep = sleeps[0]
 	}
 
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		if err = fn(); err == nil {
 			return nil
 		}
@@ -98,7 +98,7 @@ func Timeout(fn func() error, timeout time.Duration) error {
 //	Repeat(func() error { fmt.Println("hello"); return nil }, 3) => prints hello 3 times and returns nil
 //	Repeat(func() error { return fmt.Errorf("error") }, 3) => returns error
 func Repeat(fn func() error, times int) error {
-	for i := 0; i < times; i++ {
+	for range times {
 		if err := fn(); err != nil {
 			return err
 		}
