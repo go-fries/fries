@@ -3,7 +3,7 @@ module github.com/go-fries/fries/internal/tools/v3
 go 1.24.0
 
 require (
-	github.com/bufbuild/buf v1.64.0
+	github.com/bufbuild/buf v1.65.0
 	github.com/golangci/golangci-lint/v2 v2.8.0
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/crosslink v0.29.0
@@ -69,7 +69,7 @@ require (
 	github.com/bombsimon/wsl/v5 v5.6.0 // indirect
 	github.com/breml/bidichk v0.3.3 // indirect
 	github.com/breml/errchkjson v0.4.1 // indirect
-	github.com/bufbuild/protocompile v0.14.2-0.20260121154354-91940cd2bca3 // indirect
+	github.com/bufbuild/protocompile v0.14.2-0.20260130195850-5c64bed4577e // indirect
 	github.com/bufbuild/protoplugin v0.0.0-20250218205857-750e09ce93e1 // indirect
 	github.com/butuzov/ireturn v0.4.0 // indirect
 	github.com/butuzov/mirror v1.3.0 // indirect
