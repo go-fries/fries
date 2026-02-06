@@ -8,8 +8,8 @@ require (
 	github.com/go-fries/fries/foundation/v3 v3.12.0
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/contrib/instrumentation/host v0.64.0
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.64.0
+	go.opentelemetry.io/contrib/instrumentation/host v0.65.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.65.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.16.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.16.0
