@@ -2,6 +2,7 @@ package slices
 
 import (
 	"math/rand"
+	"slices"
 
 	"github.com/go-fries/fries/constraints/v3"
 )
@@ -187,12 +188,7 @@ func IsNotEmpty[S ~[]E, E any](s S) bool {
 //	Contains([]int{1, 2, 3}, 2) // true
 //	Contains([]string{"a", "b", "c"}, "d") // false
 func Contains[S ~[]E, E comparable](s S, e E) bool {
-	for _, item := range s {
-		if item == e {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, e)
 }
 
 // IndexOf returns the index of the first occurrence of the given item in a given slice, or -1 if the item is not found.
@@ -382,10 +378,7 @@ func PartitionN[S ~[]E, E any](s S, fn func(E, int) bool) (yes, no S) {
 func Chunk[S ~[]E, E any](s S, size int) (result []S) {
 	length := len(s)
 	for i := 0; i < length; i += size {
-		end := i + size
-		if end > length {
-			end = length
-		}
+		end := min(i+size, length)
 		result = append(result, s[i:end])
 	}
 	return result

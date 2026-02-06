@@ -13,6 +13,7 @@ linters:
     - goconst
     - mnd
     - misspell
+    - modernize
     - gocyclo
     - gocritic
     - ineffassign
@@ -48,6 +49,9 @@ linters:
     usetesting:
       context-background: true
       context-todo: true
+    modernize:
+      disable:
+        - omitzero
 
 formatters:
   enable:

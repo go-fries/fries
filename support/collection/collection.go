@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/davecgh/go-spew/spew"
@@ -97,12 +98,7 @@ func (c *Collection[T]) Index(fn func(T, int) bool) (int, bool) {
 }
 
 func (c *Collection[T]) Contains(item T) bool {
-	for _, i := range c.items {
-		if i == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.items, item)
 }
 
 func (c *Collection[T]) Has(item T) bool {

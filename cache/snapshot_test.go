@@ -18,7 +18,7 @@ func TestSnapshot(t *testing.T) {
 		total atomic.Int32
 	)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := snap.Lookup("key", func() *snapshotValue {
 			total.Add(1)
 			return &snapshotValue{value: "value"}
@@ -41,7 +41,7 @@ func TestSnapshot_Reset(t *testing.T) {
 		total atomic.Int32
 	)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := snap.Lookup("key", func() *snapshotValue {
 			total.Add(1)
 			return &snapshotValue{value: "value"}
@@ -53,7 +53,7 @@ func TestSnapshot_Reset(t *testing.T) {
 
 	snap.Reset()
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := snap.Lookup("key", func() *snapshotValue {
 			total.Add(1)
 			return &snapshotValue{value: "new_value"}
@@ -96,7 +96,7 @@ func TestSnapshotWithErr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for i := 0; i < 100; i++ {
+			for range 100 {
 				value, err := snap.Lookup(tt.name, tt.fn)
 				assert.Equal(t, tt.wantErr, err)
 				assert.Equal(t, tt.wantValue, value)
@@ -113,7 +113,7 @@ func TestSnapshotWithErr_Reset(t *testing.T) {
 		total atomic.Int32
 	)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
 			total.Add(1)
 			return &snapshotValue{value: "value"}, nil
@@ -126,7 +126,7 @@ func TestSnapshotWithErr_Reset(t *testing.T) {
 
 	snap.Reset()
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
 			total.Add(1)
 			return &snapshotValue{value: "new_value"}, nil
@@ -176,7 +176,7 @@ func TestSnapshotWithExpireAndErr_Reset(t *testing.T) {
 		total atomic.Int32
 	)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
 			total.Add(1)
 			return &snapshotValue{value: "value"}, nil
@@ -189,7 +189,7 @@ func TestSnapshotWithExpireAndErr_Reset(t *testing.T) {
 
 	snap.Reset()
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
 			total.Add(1)
 			return &snapshotValue{value: "new_value"}, nil

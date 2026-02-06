@@ -179,7 +179,7 @@ func TestDispatcher(t *testing.T) {
 		parallel := 3
 		d := NewDispatcher(WithoutError(), WithParallel(parallel))
 		startedCount := runtime.NumGoroutine()
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			d.RegisterListeners(
 				AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 					<-time.After(200 * time.Millisecond)

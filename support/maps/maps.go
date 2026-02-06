@@ -2,6 +2,7 @@ package maps
 
 import (
 	"fmt"
+	"maps"
 )
 
 type M map[string]any
@@ -15,17 +16,13 @@ func (m M) All() map[string]any {
 }
 
 func (m M) Merge(n M) M {
-	for k, v := range n {
-		m[k] = v
-	}
+	maps.Copy(m, n)
 	return m
 }
 
 func (m M) Clone() M {
 	n := make(M, len(m))
-	for k, v := range m {
-		n[k] = v
-	}
+	maps.Copy(n, m)
 	return n
 }
 

@@ -22,7 +22,7 @@ func TestPolicy_RoundRobinPolicy(t *testing.T) {
 	p2 := StrictRoundRobinPolicy()
 	drivers := []dialect.Driver{driver1, driver2, driver3}
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		assert.Same(t, drivers[(i+1)%len(drivers)], p1.Resolve(drivers))
 		assert.Same(t, drivers[(i+1)%len(drivers)], p2.Resolve(drivers))
 	}
@@ -32,7 +32,7 @@ func TestPolicy_RandomPolicy(t *testing.T) {
 	p := RandomPolicy()
 	drivers := []dialect.Driver{driver1, driver2, driver3}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		assert.Contains(t, drivers, p.Resolve(drivers))
 	}
 }

@@ -52,8 +52,8 @@ func (m *Message) ReadBinary(ctx context.Context, encoder binding.BinaryWriter) 
 	}
 
 	for k, v := range m.delivery.Headers {
-		if strings.HasPrefix(k, prefix) {
-			attribute := m.version.Attribute(strings.TrimPrefix(k, prefix))
+		if after, ok := strings.CutPrefix(k, prefix); ok {
+			attribute := m.version.Attribute(after)
 			if attribute != nil {
 				if err := encoder.SetAttribute(attribute, v); err != nil {
 					return err

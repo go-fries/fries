@@ -111,6 +111,13 @@ lint/%: DIR=$*
 lint/%: go-mod-tidy/% golangci-lint/%
 	@echo "linted $(DIR)"
 
+.PHONY: lint-fix
+lint-fix: go-mod-tidy golangci-lint-fix
+lint-fix/%: DIR=$*
+lint-fix/%: go-mod-tidy/% golangci-lint-fix/%
+	@echo "lint-fixed $(DIR)"
+
+
 .PHONY: clean
 clean:
 	rm -rf $(TOOLS)
