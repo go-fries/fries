@@ -12,7 +12,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.18.3 // indirect
+	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/pingcap/errors v0.11.5-0.20251231075859-d18e03b1da26 // indirect
 	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
 	github.com/pingcap/log v1.1.1-0.20251231064424-c412c24f73b2 // indirect
