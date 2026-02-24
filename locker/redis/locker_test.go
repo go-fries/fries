@@ -36,14 +36,12 @@ func TestLocker_Try(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	for range 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			errs <- l.Try(ctx, func() {
 				ch <- struct{}{}
 				time.Sleep(time.Millisecond * 10)
 			})
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -68,14 +66,12 @@ func TestLocker_Until(t *testing.T) {
 	start := time.Now()
 
 	for range 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			assert.NoError(t, l.Until(ctx, time.Second, func() {
 				ch <- struct{}{}
 				time.Sleep(time.Millisecond * 10)
 			}))
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -95,14 +91,12 @@ func TestLocker_Until_Timeout(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	for range 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			errs <- l.Until(ctx, time.Millisecond*100, func() {
 				ch <- struct{}{}
 				time.Sleep(time.Millisecond * 200)
 			})
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -174,9 +168,7 @@ func TestLocker_Multi(t *testing.T) {
 	ii := int64(0)
 
 	for range 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if atomic.AddInt64(&ii, 1) == 2 {
 				time.Sleep(time.Millisecond * 105)
 			}
@@ -184,7 +176,7 @@ func TestLocker_Multi(t *testing.T) {
 				ch <- struct{}{}
 				time.Sleep(time.Millisecond * 200)
 			}))
-		}()
+		})
 	}
 
 	wg.Wait()
