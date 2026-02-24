@@ -8,28 +8,19 @@ on:
     branches:
       - 3.x
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Go mod cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-mod
-
-      - name: Tools cache
-        uses: actions/cache@v5
-        env:
-          cache-name: go-tools-cache
-        with:
-          path: .tools
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('./internal/tools/**') }}
 
       - name: GolangCI-Lint cache
         uses: actions/cache@v5
@@ -40,9 +31,19 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: stable
-          check-latest: true
-          cache: false
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: |  
+            **/go.sum
+
+      - name: Tools cache
+        uses: actions/cache@v5
+        with:
+          path: .tools
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.mod', 'internal/tools/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
 
       - name: Run lint
         run: make lint
