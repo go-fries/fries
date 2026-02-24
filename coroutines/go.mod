@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/coroutines/v3
 
-go 1.24.0
+go 1.25.0
 
 replace (
 	github.com/go-fries/fries/constraints/v3 => ./../constraints

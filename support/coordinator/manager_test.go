@@ -47,15 +47,12 @@ func TestManager(t *testing.T) {
 	assert.NotSame(t, c1, c3)
 
 	// Close foo coordinators
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		if <-c3.Done(); true {
 			ch <- struct{}{}
 			return
 		}
-	}()
+	})
 	assert.Equal(t, 2, len(ch))
 	Close("foo")
 	wg.Wait()

@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/chi/v3
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/go-chi/chi/v5 v5.2.5

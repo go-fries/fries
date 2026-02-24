@@ -144,9 +144,7 @@ func TestRedis_Lock(t *testing.T) {
 	var s int64
 
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			err := r.Lock("test", 5*time.Second).Try(t.Context(), func() {
 				time.Sleep(time.Second)
 			})
@@ -155,7 +153,7 @@ func TestRedis_Lock(t *testing.T) {
 			} else {
 				atomic.AddInt64(&s, 1)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	assert.True(t, s > 0)

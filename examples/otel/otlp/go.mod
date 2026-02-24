@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/examples/otel/otlp/v3
 
-go 1.24.0
+go 1.25.0
 
 replace (
 	github.com/go-fries/fries/foundation/v3 => ../../../foundation

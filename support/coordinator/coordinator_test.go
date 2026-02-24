@@ -10,11 +10,7 @@ func TestCoordinator(t *testing.T) {
 	c := NewCoordinator()
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		timer := time.NewTimer(1 * time.Second)
 		defer timer.Stop()
 
@@ -27,7 +23,7 @@ func TestCoordinator(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	c.Close()
 	wg.Wait()
@@ -37,11 +33,7 @@ func TestCoordinator2(t *testing.T) {
 	c := NewCoordinator()
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		timer := time.NewTimer(1 * time.Second)
 		defer timer.Stop()
 
@@ -54,7 +46,7 @@ func TestCoordinator2(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(2 * time.Second)
 
