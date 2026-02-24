@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/x/prints/v3
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/cheggaaa/pb/v3 v3.1.7
