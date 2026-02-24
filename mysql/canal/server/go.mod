@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.1 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/go-playground/form/v4 v4.3.0 // indirect
