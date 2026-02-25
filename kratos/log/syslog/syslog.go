@@ -1,6 +1,6 @@
 //go:build !windows && !plan9
 
-package syslog
+package syslog //nolint:revive
 
 import (
 	"bytes"

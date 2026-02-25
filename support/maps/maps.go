@@ -1,4 +1,4 @@
-package maps
+package maps //nolint:revive
 
 import (
 	"fmt"
