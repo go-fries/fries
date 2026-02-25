@@ -1,4 +1,4 @@
-package signal
+package signal //nolint:revive
 
 import (
 	"context"

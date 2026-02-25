@@ -1,4 +1,4 @@
-package strings
+package strings //nolint:revive
 
 import (
 	"testing"

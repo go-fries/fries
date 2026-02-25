@@ -1,4 +1,4 @@
-package signal
+package signal //nolint:revive
 
 import (
 	"bytes"
@@ -44,7 +44,7 @@ func newServer() *Server {
 		WithRecovery(func(err any, signal os.Signal, handler Handler) {
 			mu.Lock()
 			defer mu.Unlock()
-			buffer.WriteString(fmt.Sprintf("signal: %s, handler: %T, err: %v\n", signal, handler, err))
+			fmt.Fprintf(&buffer, "signal: %s, handler: %T, err: %v\n", signal, handler, err)
 		}),
 	)
 
@@ -62,7 +62,7 @@ func (h *exampleHandler) Listen() []os.Signal {
 func (h *exampleHandler) Handle(sig os.Signal) {
 	mu.Lock()
 	defer mu.Unlock()
-	buffer.WriteString(fmt.Sprintf("exampleHandler signal: %s\n", sig))
+	fmt.Fprintf(&buffer, "exampleHandler signal: %s\n", sig)
 }
 
 type example2Handler struct{}

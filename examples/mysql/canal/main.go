@@ -20,8 +20,8 @@ var _ canal.RowListener = (*Listener)(nil)
 func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 	defer l.sb.Reset()
 
-	l.sb.WriteString(fmt.Sprintf("Table: %s.%s\n", event.RowsEvent.Table.Schema, event.RowsEvent.Table.Name))
-	l.sb.WriteString(fmt.Sprintf("Action: %s\n", event.RowsEvent.Action))
+	fmt.Fprintf(&l.sb, "Table: %s.%s\n", event.RowsEvent.Table.Schema, event.RowsEvent.Table.Name)
+	fmt.Fprintf(&l.sb, "Action: %s\n", event.RowsEvent.Action)
 	for i, row := range event.RowsEvent.Rows {
 		maps := make(map[string]any, len(row))
 		for j, col := range event.RowsEvent.Table.Columns {
@@ -31,10 +31,10 @@ func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 		if err != nil {
 			return err
 		}
-		l.sb.WriteString(fmt.Sprintf("\t\tRow %d: %s\n", i+1, string(bytes)))
+		fmt.Fprintf(&l.sb, "\t\tRow %d: %s\n", i+1, string(bytes))
 	}
-	l.sb.WriteString(fmt.Sprintf("Time: %s\n", time.Unix(int64(event.RowsEvent.Header.Timestamp), 0).Format(time.DateTime)))
-	l.sb.WriteString(fmt.Sprintf("Binlog position: %d, EventType: %s\n", event.RowsEvent.Header.LogPos, event.RowsEvent.Header.EventType))
+	fmt.Fprintf(&l.sb, "Time: %s\n", time.Unix(int64(event.RowsEvent.Header.Timestamp), 0).Format(time.DateTime))
+	fmt.Fprintf(&l.sb, "Binlog position: %d, EventType: %s\n", event.RowsEvent.Header.LogPos, event.RowsEvent.Header.EventType)
 	l.sb.WriteString("------------------------------------------------------------------------------------\n")
 	fmt.Println(l.sb.String())
 	return nil
