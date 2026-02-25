@@ -105,6 +105,14 @@ go-mod-tidy/%:
 		&& cd $(DIR) \
 		&& $(GO) mod tidy -compat=1.22.0
 
+.PHONY: go-fix
+go-fix: $(ROOT_GO_MOD_DIRS:%=go-fix/%)
+go-fix/%: DIR=$*
+go-fix/%:
+	@echo 'go fix $(DIR)' \
+		&& cd $(DIR) \
+		&& $(GO) fix ./...
+
 .PHONY: lint
 lint: go-mod-tidy golangci-lint
 lint/%: DIR=$*

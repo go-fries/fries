@@ -66,7 +66,7 @@ func (t *utilMockStore) Put(_ context.Context, key string, value any, ttl time.D
 func setPointerValue(dest any, value any) error {
 	v := reflect.ValueOf(dest)
 
-	if v.Kind() != reflect.Ptr {
+	if v.Kind() != reflect.Pointer {
 		return fmt.Errorf("dest must be a pointer type")
 	}
 	elem := v.Elem()
