@@ -3,7 +3,7 @@ module github.com/go-fries/fries/mysql/canal/v3
 go 1.25.0
 
 require (
-	github.com/go-mysql-org/go-mysql v1.13.0
+	github.com/go-mysql-org/go-mysql v1.14.0
 	golang.org/x/sync v0.19.0
 )
 
