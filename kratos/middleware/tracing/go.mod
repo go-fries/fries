@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/go-kratos/kratos/v2 v2.9.2
 	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/sdk v1.40.0
+	go.opentelemetry.io/otel/sdk v1.42.0
 	go.opentelemetry.io/otel/trace v1.42.0
 	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.11
