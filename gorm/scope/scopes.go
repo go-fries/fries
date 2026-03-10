@@ -7,7 +7,7 @@ import (
 type Scopes []func(*gorm.DB) *gorm.DB
 
 func (s Scopes) Add(scopes ...func(*gorm.DB) *gorm.DB) Scopes {
-	ns := make(Scopes, len(s))
+	ns := make(Scopes, len(s), len(s)+len(scopes))
 	copy(ns, s)
 	return append(ns, scopes...)
 }
