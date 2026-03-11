@@ -25,8 +25,8 @@ github.com/klauspost/compress v1.18.4 h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE
 github.com/klauspost/compress v1.18.4/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/klauspost/cpuid/v2 v2.0.9 h1:lgaqFMSdTdQYdZ04uHyN2d/eKdOMyi2YLSvlQIBFYa4=
 github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
-github.com/pingcap/errors v0.11.5-0.20251231075859-d18e03b1da26 h1:0YsD/8Tws3oVaZySmcPiBIk/tUouG5Guhy8qDkzJPAQ=
-github.com/pingcap/errors v0.11.5-0.20251231075859-d18e03b1da26/go.mod h1:ktAJCA9lxrHHjVyVl2pKJFvzBnq2eZbb+CUOjBRPlXo=
+github.com/pingcap/errors v0.11.5-0.20260310054046-9c8b3586e4b2 h1:cLgCk5mwDG9lDH+dPK8TmEliTjyGJwwKN0qevWAl8IY=
+github.com/pingcap/errors v0.11.5-0.20260310054046-9c8b3586e4b2/go.mod h1:ktAJCA9lxrHHjVyVl2pKJFvzBnq2eZbb+CUOjBRPlXo=
 github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 h1:+ercixPi76glOzYNrJPnQuYA610M5rvx/5eKx207eBE=
 github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837/go.mod h1:jimwlLpI/XtwQdlZML15HS+j4rirvwZM0GLY07wwgOo=
 github.com/pingcap/log v1.1.1-0.20260227082333-572e590d08f1 h1:A2bEfgSb7hLwR9mxDszgGKweF+xY9YoTDG+8RjdFjDE=
