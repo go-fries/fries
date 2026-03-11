@@ -237,7 +237,7 @@ require (
 	github.com/sashamelentyev/usestdlibvars v1.29.0 // indirect
 	github.com/securego/gosec/v2 v2.24.8-0.20260309165252-619ce2117e08 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/segmentio/encoding v0.5.3 // indirect
+	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/sivchari/containedctx v1.0.3 // indirect
