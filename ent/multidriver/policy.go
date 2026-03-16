@@ -26,9 +26,9 @@ func RoundRobinPolicy() Policy {
 }
 
 func StrictRoundRobinPolicy() Policy {
-	var i int64
+	var i atomic.Int64
 	return PolicyFunc(func(drivers []dialect.Driver) dialect.Driver {
-		return drivers[int(atomic.AddInt64(&i, 1))%len(drivers)]
+		return drivers[int(i.Add(1))%len(drivers)]
 	})
 }
 

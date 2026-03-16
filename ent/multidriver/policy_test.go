@@ -41,12 +41,12 @@ func BenchmarkPolicy_StrictRoundRobinPolicy(b *testing.B) {
 	p := StrictRoundRobinPolicy()
 	drivers := []dialect.Driver{driver1, driver2, driver3}
 
-	var i int64
+	var i atomic.Int64
 	var mu sync.Mutex
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			mu.Lock()
-			assert.Same(b, drivers[int(atomic.AddInt64(&i, 1))%len(drivers)], p.Resolve(drivers))
+			assert.Same(b, drivers[int(i.Add(1))%len(drivers)], p.Resolve(drivers))
 			mu.Unlock()
 		}
 	})
