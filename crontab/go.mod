@@ -3,7 +3,7 @@ module github.com/go-fries/fries/crontab/v3
 go 1.25.0
 
 require (
-	github.com/flc1125/go-cron/v4 v4.8.0
+	github.com/flc1125/go-cron/v4 v4.8.1
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/stretchr/testify v1.11.1
 )
