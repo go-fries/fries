@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/cheggaaa/pb/v3 v3.1.7
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/term v0.41.0
 )
