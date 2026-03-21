@@ -16,108 +16,154 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-func TestNewClientReturnsErrorWithoutTransport(t *testing.T) {
-	client, err := NewClient(nil)
+func TestNewClient(t *testing.T) {
+	t.Run("returns error without transport", func(t *testing.T) {
+		client, err := NewClient(nil)
 
-	require.Nil(t, client)
-	require.ErrorIs(t, err, ErrTransportRequired)
+		require.Nil(t, client)
+		require.ErrorIs(t, err, ErrTransportRequired)
+	})
 }
 
-func TestClientShutdownShutsDownManagedProviders(t *testing.T) {
+func TestClientLifecycle(t *testing.T) {
+	t.Run("shutdown managed providers", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		traceExporter := &testTraceExporter{}
+		metricExporter := &testMetricExporter{}
+		logExporter := &testLogExporter{}
+
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  traceExporter,
+				metricExporter: metricExporter,
+				logExporter:    logExporter,
+			},
+			WithHooks(noopHook{}),
+		)
+
+		ctx := t.Context()
+
+		require.NoError(t, client.Configure(ctx))
+		require.NotNil(t, client.tracerProvider)
+		require.NotNil(t, client.meterProvider)
+		require.NotNil(t, client.loggerProvider)
+
+		require.NoError(t, client.Shutdown(ctx))
+
+		assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
+	})
+
+	t.Run("configure twice", func(t *testing.T) {
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(noopHook{}),
+		)
+
+		require.NoError(t, client.Configure(t.Context()))
+		require.ErrorIs(t, client.Configure(t.Context()), ErrClientConfigured)
+	})
+
+	t.Run("configure after shutdown", func(t *testing.T) {
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(noopHook{}),
+		)
+
+		require.NoError(t, client.Shutdown(t.Context()))
+		require.ErrorIs(t, client.Configure(t.Context()), ErrClientShutdown)
+	})
+
+	t.Run("shutdown is idempotent", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		traceExporter := &testTraceExporter{}
+		metricExporter := &testMetricExporter{}
+		logExporter := &testLogExporter{}
+
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  traceExporter,
+				metricExporter: metricExporter,
+				logExporter:    logExporter,
+			},
+			WithHooks(noopHook{}),
+		)
+
+		require.NoError(t, client.Configure(t.Context()))
+		require.NoError(t, client.Shutdown(t.Context()))
+		require.NoError(t, client.Shutdown(t.Context()))
+
+		assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
+	})
+}
+
+func TestClientHooks(t *testing.T) {
+	t.Run("with hooks appends to defaults", func(t *testing.T) {
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(noopHook{}),
+		)
+
+		require.Len(t, client.hooks, len(DefaultHooks())+1)
+		assert.IsType(t, RuntimeMetricsHook{}, client.hooks[0])
+		assert.IsType(t, HostMetricsHook{}, client.hooks[1])
+		assert.IsType(t, noopHook{}, client.hooks[2])
+	})
+
+	t.Run("default hooks returns copy", func(t *testing.T) {
+		hooks := DefaultHooks()
+		require.Len(t, hooks, 2)
+
+		hooks[0] = noopHook{}
+
+		otherHooks := DefaultHooks()
+		require.Len(t, otherHooks, 2)
+		assert.IsType(t, RuntimeMetricsHook{}, otherHooks[0])
+		assert.IsType(t, HostMetricsHook{}, otherHooks[1])
+	})
+}
+
+func newTestClient(t *testing.T, transport Transport, opts ...Option) *Client {
+	t.Helper()
+
+	clientOpts := append([]Option{WithResource(sdkresource.Empty())}, opts...)
+	client, err := NewClient(transport, clientOpts...)
+	require.NoError(t, err)
+
+	return client
+}
+
+func saveGlobalProviders(t *testing.T) func() {
+	t.Helper()
+
 	oldTracerProvider := otel.GetTracerProvider()
 	oldMeterProvider := otel.GetMeterProvider()
 	oldLoggerProvider := logglobal.GetLoggerProvider()
 
-	t.Cleanup(func() {
+	return func() {
 		otel.SetTracerProvider(oldTracerProvider)
 		otel.SetMeterProvider(oldMeterProvider)
 		logglobal.SetLoggerProvider(oldLoggerProvider)
-	})
-
-	traceExporter := &testTraceExporter{}
-	metricExporter := &testMetricExporter{}
-	logExporter := &testLogExporter{}
-
-	client, err := NewClient(
-		&testTransport{
-			traceExporter:  traceExporter,
-			metricExporter: metricExporter,
-			logExporter:    logExporter,
-		},
-		WithResource(sdkresource.Empty()),
-		WithHooks(noopHook{}),
-	)
-	require.NoError(t, err)
-
-	ctx := t.Context()
-
-	require.NoError(t, client.Configure(ctx))
-	require.NotNil(t, client.tracerProvider)
-	require.NotNil(t, client.meterProvider)
-	require.NotNil(t, client.loggerProvider)
-
-	require.NoError(t, client.Shutdown(ctx))
-
-	assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
-	assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
-	assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
-}
-
-func TestClientConfigureReturnsErrorWhenCalledTwice(t *testing.T) {
-	client, err := NewClient(
-		&testTransport{
-			traceExporter:  &testTraceExporter{},
-			metricExporter: &testMetricExporter{},
-			logExporter:    &testLogExporter{},
-		},
-		WithResource(sdkresource.Empty()),
-		WithHooks(noopHook{}),
-	)
-	require.NoError(t, err)
-
-	require.NoError(t, client.Configure(t.Context()))
-	require.ErrorIs(t, client.Configure(t.Context()), ErrClientConfigured)
-}
-
-func TestClientConfigureReturnsErrorAfterShutdown(t *testing.T) {
-	client, err := NewClient(
-		&testTransport{
-			traceExporter:  &testTraceExporter{},
-			metricExporter: &testMetricExporter{},
-			logExporter:    &testLogExporter{},
-		},
-		WithResource(sdkresource.Empty()),
-		WithHooks(noopHook{}),
-	)
-	require.NoError(t, err)
-
-	require.NoError(t, client.Shutdown(t.Context()))
-	require.ErrorIs(t, client.Configure(t.Context()), ErrClientShutdown)
-}
-
-func TestClientShutdownIsIdempotent(t *testing.T) {
-	traceExporter := &testTraceExporter{}
-	metricExporter := &testMetricExporter{}
-	logExporter := &testLogExporter{}
-
-	client, err := NewClient(
-		&testTransport{
-			traceExporter:  traceExporter,
-			metricExporter: metricExporter,
-			logExporter:    logExporter,
-		},
-		WithResource(sdkresource.Empty()),
-		WithHooks(noopHook{}),
-	)
-	require.NoError(t, err)
-
-	require.NoError(t, client.Configure(t.Context()))
-	require.NoError(t, client.Shutdown(t.Context()))
-	require.NoError(t, client.Shutdown(t.Context()))
-
-	assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
-	assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
-	assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
+	}
 }
 
 type noopHook struct{}
