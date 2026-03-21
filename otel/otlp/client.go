@@ -117,7 +117,7 @@ func NewClient(transport Transport, opts ...Option) (*Client, error) {
 
 	c := &Client{
 		transport: transport,
-		hooks:     DefaultHooks,
+		hooks:     DefaultHooks(),
 	}
 	for _, opt := range opts {
 		opt(c)
