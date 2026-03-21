@@ -16,6 +16,13 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+func TestNewClientReturnsErrorWithoutTransport(t *testing.T) {
+	client, err := NewClient(nil)
+
+	require.Nil(t, client)
+	require.ErrorIs(t, err, ErrTransportRequired)
+}
+
 func TestClientShutdownShutsDownManagedProviders(t *testing.T) {
 	oldTracerProvider := otel.GetTracerProvider()
 	oldMeterProvider := otel.GetMeterProvider()
@@ -31,15 +38,16 @@ func TestClientShutdownShutsDownManagedProviders(t *testing.T) {
 	metricExporter := &testMetricExporter{}
 	logExporter := &testLogExporter{}
 
-	client := NewClient(
-		WithTransport(&testTransport{
+	client, err := NewClient(
+		&testTransport{
 			traceExporter:  traceExporter,
 			metricExporter: metricExporter,
 			logExporter:    logExporter,
-		}),
+		},
 		WithResource(sdkresource.Empty()),
 		WithHook(noopHook{}),
 	)
+	require.NoError(t, err)
 
 	ctx := t.Context()
 

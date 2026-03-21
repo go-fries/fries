@@ -29,15 +29,18 @@ func main() {
 	)
 
 	// client
-	client := otlp.NewClient(
+	client, err := otlp.NewClient(
+		transport,
 		otlp.WithServiceName("service-name"),
 		otlp.WithDeploymentEnvironmentName("production"),
 		otlp.WithAttributes(
 			attribute.String("key", "value"),
 			// ...
 		),
-		otlp.WithTransport(transport),
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	if err := client.Configure(ctx); err != nil {
 		panic(err)

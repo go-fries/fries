@@ -21,6 +21,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var ErrTransportRequired = errors.New("otlp transport is required")
+
 type Client struct {
 	// otlp transport
 	transport Transport
@@ -45,12 +47,6 @@ type Client struct {
 }
 
 type Option func(*Client)
-
-func WithTransport(transport Transport) Option {
-	return func(c *Client) {
-		c.transport = transport
-	}
-}
 
 func WithResource(resource *sdkresource.Resource) Option {
 	return func(c *Client) {
@@ -94,11 +90,6 @@ func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
 	}
 }
 
-// Deprecated: WithDeploymentEnvironment is deprecated, use [WithDeploymentEnvironmentName] instead.
-func WithDeploymentEnvironment(deploymentEnvironment string) Option {
-	return WithDeploymentEnvironmentName(deploymentEnvironment)
-}
-
 func WithAttributes(attributes ...attribute.KeyValue) Option {
 	return func(c *Client) {
 		c.attributes = append(c.attributes, attributes...)
@@ -119,14 +110,19 @@ func WithHook(hooks ...Hook) Option {
 	}
 }
 
-func NewClient(opts ...Option) *Client {
+func NewClient(transport Transport, opts ...Option) (*Client, error) {
+	if transport == nil {
+		return nil, ErrTransportRequired
+	}
+
 	c := &Client{
-		hooks: DefaultHooks,
+		transport: transport,
+		hooks:     DefaultHooks,
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
-	return c
+	return c, nil
 }
 
 func (c *Client) Configure(ctx context.Context) error {
