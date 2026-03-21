@@ -229,6 +229,7 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 		sdktrace.WithSampler(c.traceSampler),
 	)
 
+	c.tracerProvider = tp
 	otel.SetTracerProvider(tp)
 
 	return nil
@@ -252,6 +253,7 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 		sdkmetric.WithResource(c.resource),
 	)
 
+	c.meterProvider = mp
 	otel.SetMeterProvider(mp)
 
 	return nil
@@ -280,6 +282,7 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 		sdklog.WithResource(c.resource),
 	)
 
+	c.loggerProvider = lp
 	logglobal.SetLoggerProvider(lp)
 	return nil
 }
