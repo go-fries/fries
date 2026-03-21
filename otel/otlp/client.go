@@ -22,9 +22,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var ErrTransportRequired = errors.New("otlp transport is required")
-var ErrClientConfigured = errors.New("otlp client has already been configured")
-var ErrClientShutdown = errors.New("otlp client has been shut down")
+var (
+	ErrTransportRequired = errors.New("otlp transport is required")
+	ErrClientConfigured  = errors.New("otlp client has already been configured")
+	ErrClientShutdown    = errors.New("otlp client has been shut down")
+)
 
 type Client struct {
 	mu sync.Mutex

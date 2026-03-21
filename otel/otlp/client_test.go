@@ -176,11 +176,12 @@ func TestClientOptions(t *testing.T) {
 			propagation.TraceContext{},
 			propagation.Baggage{},
 		)
+		ctx := t.Context()
 
 		t.Cleanup(func() {
-			require.NoError(t, tracerProvider.Shutdown(context.Background()))
-			require.NoError(t, meterProvider.Shutdown(context.Background()))
-			require.NoError(t, loggerProvider.Shutdown(context.Background()))
+			require.NoError(t, tracerProvider.Shutdown(ctx))
+			require.NoError(t, meterProvider.Shutdown(ctx))
+			require.NoError(t, loggerProvider.Shutdown(ctx))
 		})
 
 		client := newTestClient(t,
@@ -195,7 +196,7 @@ func TestClientOptions(t *testing.T) {
 			WithPropagator(propagator),
 		)
 
-		require.NoError(t, client.Configure(t.Context()))
+		require.NoError(t, client.Configure(ctx))
 
 		assert.Same(t, tracerProvider, client.tracerProvider)
 		assert.Same(t, meterProvider, client.meterProvider)
