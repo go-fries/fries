@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	logglobal "go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -139,6 +141,132 @@ func TestClientHooks(t *testing.T) {
 		require.Len(t, otherHooks, 2)
 		assert.IsType(t, RuntimeMetricsHook{}, otherHooks[0])
 		assert.IsType(t, HostMetricsHook{}, otherHooks[1])
+	})
+}
+
+func TestClientOptions(t *testing.T) {
+	t.Run("resource and attributes", func(t *testing.T) {
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithServiceName("service-name"),
+			WithDeploymentEnvironmentName("production"),
+			WithAttributes(attribute.String("key", "value")),
+		)
+
+		require.NoError(t, client.configureResource(t.Context()))
+		require.NotNil(t, client.resource)
+
+		assert.Equal(t, "service-name", client.serviceName)
+		assert.Equal(t, "production", client.deploymentEnvironmentName)
+		assert.Len(t, client.attributes, 1)
+	})
+
+	t.Run("custom providers and propagator", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		tracerProvider := sdktrace.NewTracerProvider()
+		meterProvider := sdkmetric.NewMeterProvider()
+		loggerProvider := sdklog.NewLoggerProvider()
+		propagator := propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		)
+
+		t.Cleanup(func() {
+			require.NoError(t, tracerProvider.Shutdown(context.Background()))
+			require.NoError(t, meterProvider.Shutdown(context.Background()))
+			require.NoError(t, loggerProvider.Shutdown(context.Background()))
+		})
+
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithTracerProvider(tracerProvider),
+			WithMeterProvider(meterProvider),
+			WithLoggerProvider(loggerProvider),
+			WithPropagator(propagator),
+		)
+
+		require.NoError(t, client.Configure(t.Context()))
+
+		assert.Same(t, tracerProvider, client.tracerProvider)
+		assert.Same(t, meterProvider, client.meterProvider)
+		assert.Same(t, loggerProvider, client.loggerProvider)
+		assert.NotNil(t, client.propagator)
+		assert.IsType(t, tracerProvider, otel.GetTracerProvider())
+		assert.IsType(t, meterProvider, otel.GetMeterProvider())
+		assert.IsType(t, loggerProvider, logglobal.GetLoggerProvider())
+	})
+
+	t.Run("trace sampler", func(t *testing.T) {
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithTraceSampler(sdktrace.NeverSample()),
+		)
+
+		assert.NotNil(t, client.traceSampler)
+	})
+}
+
+func TestProvider(t *testing.T) {
+	t.Run("bootstrap configures client", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(noopHook{}),
+		)
+
+		provider := NewProvider(client)
+		ctx, err := provider.Bootstrap(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, t.Context(), ctx)
+		assert.True(t, client.configured)
+	})
+
+	t.Run("terminate shuts down client", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		traceExporter := &testTraceExporter{}
+		metricExporter := &testMetricExporter{}
+		logExporter := &testLogExporter{}
+
+		client := newTestClient(t,
+			&testTransport{
+				traceExporter:  traceExporter,
+				metricExporter: metricExporter,
+				logExporter:    logExporter,
+			},
+			WithHooks(noopHook{}),
+		)
+		require.NoError(t, client.Configure(t.Context()))
+
+		provider := NewProvider(client)
+		ctx, err := provider.Terminate(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, t.Context(), ctx)
+		assert.True(t, client.shutdown)
+		assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
+		assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
 	})
 }
 
