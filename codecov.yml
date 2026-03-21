@@ -50,7 +50,6 @@ fixes:
   - github.com/go-fries/fries/examples/cache/v3::examples/cache/
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v3::examples/cloudevents/amqp091/
   - github.com/go-fries/fries/examples/mysql/canal/v3::examples/mysql/canal/
-  - github.com/go-fries/fries/examples/otel/otlp/v3::examples/otel/otlp/
   - github.com/go-fries/fries/filesystem/v3::filesystem/
   - github.com/go-fries/fries/filesystem/local/v3::filesystem/local/
   - github.com/go-fries/fries/filesystem/oss/v3::filesystem/oss/
