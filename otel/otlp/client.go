@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"sync"
 	"time"
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
@@ -22,8 +23,12 @@ import (
 )
 
 var ErrTransportRequired = errors.New("otlp transport is required")
+var ErrClientConfigured = errors.New("otlp client has already been configured")
+var ErrClientShutdown = errors.New("otlp client has been shut down")
 
 type Client struct {
+	mu sync.Mutex
+
 	// otlp transport
 	transport Transport
 
@@ -44,6 +49,9 @@ type Client struct {
 
 	// hooks
 	hooks []Hook
+
+	configured bool
+	shutdown   bool
 }
 
 type Option func(*Client)
@@ -102,7 +110,7 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	}
 }
 
-func WithHook(hooks ...Hook) Option {
+func WithHooks(hooks ...Hook) Option {
 	return func(c *Client) {
 		if len(hooks) > 0 {
 			c.hooks = hooks
@@ -126,6 +134,17 @@ func NewClient(transport Transport, opts ...Option) (*Client, error) {
 }
 
 func (c *Client) Configure(ctx context.Context) error {
+	c.mu.Lock()
+	switch {
+	case c.shutdown:
+		c.mu.Unlock()
+		return ErrClientShutdown
+	case c.configured:
+		c.mu.Unlock()
+		return ErrClientConfigured
+	}
+	c.mu.Unlock()
+
 	// resource
 	if err := c.configureResource(ctx); err != nil {
 		return err
@@ -153,6 +172,14 @@ func (c *Client) Configure(ctx context.Context) error {
 	if err := c.runConfiguredHooks(ctx); err != nil {
 		return err
 	}
+
+	c.mu.Lock()
+	if c.shutdown {
+		c.mu.Unlock()
+		return ErrClientShutdown
+	}
+	c.configured = true
+	c.mu.Unlock()
 
 	kratoslog.Info("OTLP client configured")
 
@@ -284,6 +311,14 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 }
 
 func (c *Client) Shutdown(ctx context.Context) (err error) {
+	c.mu.Lock()
+	if c.shutdown {
+		c.mu.Unlock()
+		return nil
+	}
+	c.shutdown = true
+	c.mu.Unlock()
+
 	kratoslog.Infof("OTLP client is shutting down")
 
 	for _, provider := range []any{
@@ -304,10 +339,6 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 	}
 
 	return err
-}
-
-func (c *Client) RegisterResource(resource *sdkresource.Resource) {
-	c.resource = resource
 }
 
 func (c *Client) runConfiguredHooks(ctx context.Context) error {

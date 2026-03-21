@@ -45,7 +45,7 @@ func TestClientShutdownShutsDownManagedProviders(t *testing.T) {
 			logExporter:    logExporter,
 		},
 		WithResource(sdkresource.Empty()),
-		WithHook(noopHook{}),
+		WithHooks(noopHook{}),
 	)
 	require.NoError(t, err)
 
@@ -57,6 +57,63 @@ func TestClientShutdownShutsDownManagedProviders(t *testing.T) {
 	require.NotNil(t, client.loggerProvider)
 
 	require.NoError(t, client.Shutdown(ctx))
+
+	assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
+	assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
+	assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
+}
+
+func TestClientConfigureReturnsErrorWhenCalledTwice(t *testing.T) {
+	client, err := NewClient(
+		&testTransport{
+			traceExporter:  &testTraceExporter{},
+			metricExporter: &testMetricExporter{},
+			logExporter:    &testLogExporter{},
+		},
+		WithResource(sdkresource.Empty()),
+		WithHooks(noopHook{}),
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, client.Configure(t.Context()))
+	require.ErrorIs(t, client.Configure(t.Context()), ErrClientConfigured)
+}
+
+func TestClientConfigureReturnsErrorAfterShutdown(t *testing.T) {
+	client, err := NewClient(
+		&testTransport{
+			traceExporter:  &testTraceExporter{},
+			metricExporter: &testMetricExporter{},
+			logExporter:    &testLogExporter{},
+		},
+		WithResource(sdkresource.Empty()),
+		WithHooks(noopHook{}),
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, client.Shutdown(t.Context()))
+	require.ErrorIs(t, client.Configure(t.Context()), ErrClientShutdown)
+}
+
+func TestClientShutdownIsIdempotent(t *testing.T) {
+	traceExporter := &testTraceExporter{}
+	metricExporter := &testMetricExporter{}
+	logExporter := &testLogExporter{}
+
+	client, err := NewClient(
+		&testTransport{
+			traceExporter:  traceExporter,
+			metricExporter: metricExporter,
+			logExporter:    logExporter,
+		},
+		WithResource(sdkresource.Empty()),
+		WithHooks(noopHook{}),
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, client.Configure(t.Context()))
+	require.NoError(t, client.Shutdown(t.Context()))
+	require.NoError(t, client.Shutdown(t.Context()))
 
 	assert.Equal(t, int32(1), traceExporter.shutdownCount.Load())
 	assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
