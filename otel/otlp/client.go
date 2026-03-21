@@ -39,7 +39,7 @@ type Client struct {
 	deploymentEnvironmentName string
 	attributes                []attribute.KeyValue
 
-	// trance options
+	// trace options
 	traceSampler sdktrace.Sampler // default is always on
 
 	// hooks
@@ -284,7 +284,7 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 }
 
 func (c *Client) Shutdown(ctx context.Context) (err error) {
-	kratoslog.Infof("OTLP client shutdowning")
+	kratoslog.Infof("OTLP client is shutting down")
 
 	for _, provider := range []any{
 		c.tracerProvider,
