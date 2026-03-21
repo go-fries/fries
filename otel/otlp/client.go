@@ -113,7 +113,7 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 func WithHooks(hooks ...Hook) Option {
 	return func(c *Client) {
 		if len(hooks) > 0 {
-			c.hooks = hooks
+			c.hooks = append(c.hooks, hooks...)
 		}
 	}
 }
