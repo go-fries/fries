@@ -7,10 +7,14 @@ import (
 	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
-// DefaultHooks are the hooks that are enabled by default.
-var DefaultHooks = []Hook{
-	&RuntimeMetricsHook{},
-	&HostMetricsHook{},
+var defaultHooks = []Hook{
+	RuntimeMetricsHook{},
+	HostMetricsHook{},
+}
+
+// DefaultHooks returns the hooks that are enabled by default.
+func DefaultHooks() []Hook {
+	return append([]Hook(nil), defaultHooks...)
 }
 
 type Hook interface {
@@ -21,13 +25,13 @@ type Hook interface {
 // RuntimeMetricsHook is a hook that starts the runtime metrics collection.
 type RuntimeMetricsHook struct{}
 
-func (r *RuntimeMetricsHook) Configured(context.Context, *Client) error {
+func (RuntimeMetricsHook) Configured(context.Context, *Client) error {
 	return runtimemetrics.Start()
 }
 
 // HostMetricsHook is a hook that starts the host metrics collection.
 type HostMetricsHook struct{}
 
-func (h *HostMetricsHook) Configured(context.Context, *Client) error {
+func (HostMetricsHook) Configured(context.Context, *Client) error {
 	return hostmetrics.Start()
 }

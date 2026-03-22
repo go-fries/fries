@@ -1,4 +1,4 @@
-package main
+package otlp_test
 
 import (
 	"context"
@@ -7,24 +7,24 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-func main() {
+func ExampleNewClient() {
 	ctx := context.TODO()
 
-	// transport
 	transport := otlp.NewGRPCTransport("localhost:4317",
 		otlp.WithGRPCTransportInsecure(true),
 	)
 
-	// client
-	client := otlp.NewClient(
+	client, err := otlp.NewClient(
+		transport,
 		otlp.WithServiceName("service-name"),
 		otlp.WithDeploymentEnvironmentName("production"),
 		otlp.WithAttributes(
 			attribute.String("key", "value"),
-			// ...
 		),
-		otlp.WithTransport(transport),
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	if err := client.Configure(ctx); err != nil {
 		panic(err)

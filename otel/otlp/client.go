@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"sync"
 	"time"
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
@@ -21,7 +22,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var (
+	ErrTransportRequired = errors.New("otlp transport is required")
+	ErrClientConfigured  = errors.New("otlp client has already been configured")
+	ErrClientShutdown    = errors.New("otlp client has been shut down")
+)
+
 type Client struct {
+	mu sync.Mutex
+
 	// otlp transport
 	transport Transport
 
@@ -37,20 +46,17 @@ type Client struct {
 	deploymentEnvironmentName string
 	attributes                []attribute.KeyValue
 
-	// trance options
+	// trace options
 	traceSampler sdktrace.Sampler // default is always on
 
 	// hooks
 	hooks []Hook
+
+	configured bool
+	shutdown   bool
 }
 
 type Option func(*Client)
-
-func WithTransport(transport Transport) Option {
-	return func(c *Client) {
-		c.transport = transport
-	}
-}
 
 func WithResource(resource *sdkresource.Resource) Option {
 	return func(c *Client) {
@@ -94,11 +100,6 @@ func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
 	}
 }
 
-// Deprecated: WithDeploymentEnvironment is deprecated, use [WithDeploymentEnvironmentName] instead.
-func WithDeploymentEnvironment(deploymentEnvironment string) Option {
-	return WithDeploymentEnvironmentName(deploymentEnvironment)
-}
-
 func WithAttributes(attributes ...attribute.KeyValue) Option {
 	return func(c *Client) {
 		c.attributes = append(c.attributes, attributes...)
@@ -111,25 +112,41 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	}
 }
 
-func WithHook(hooks ...Hook) Option {
+func WithHooks(hooks ...Hook) Option {
 	return func(c *Client) {
 		if len(hooks) > 0 {
-			c.hooks = hooks
+			c.hooks = append(c.hooks, hooks...)
 		}
 	}
 }
 
-func NewClient(opts ...Option) *Client {
+func NewClient(transport Transport, opts ...Option) (*Client, error) {
+	if transport == nil {
+		return nil, ErrTransportRequired
+	}
+
 	c := &Client{
-		hooks: DefaultHooks,
+		transport: transport,
+		hooks:     DefaultHooks(),
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
-	return c
+	return c, nil
 }
 
 func (c *Client) Configure(ctx context.Context) error {
+	c.mu.Lock()
+	switch {
+	case c.shutdown:
+		c.mu.Unlock()
+		return ErrClientShutdown
+	case c.configured:
+		c.mu.Unlock()
+		return ErrClientConfigured
+	}
+	c.mu.Unlock()
+
 	// resource
 	if err := c.configureResource(ctx); err != nil {
 		return err
@@ -157,6 +174,14 @@ func (c *Client) Configure(ctx context.Context) error {
 	if err := c.runConfiguredHooks(ctx); err != nil {
 		return err
 	}
+
+	c.mu.Lock()
+	if c.shutdown {
+		c.mu.Unlock()
+		return ErrClientShutdown
+	}
+	c.configured = true
+	c.mu.Unlock()
 
 	kratoslog.Info("OTLP client configured")
 
@@ -229,6 +254,7 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 		sdktrace.WithSampler(c.traceSampler),
 	)
 
+	c.tracerProvider = tp
 	otel.SetTracerProvider(tp)
 
 	return nil
@@ -252,6 +278,7 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 		sdkmetric.WithResource(c.resource),
 	)
 
+	c.meterProvider = mp
 	otel.SetMeterProvider(mp)
 
 	return nil
@@ -280,12 +307,21 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 		sdklog.WithResource(c.resource),
 	)
 
+	c.loggerProvider = lp
 	logglobal.SetLoggerProvider(lp)
 	return nil
 }
 
 func (c *Client) Shutdown(ctx context.Context) (err error) {
-	kratoslog.Infof("OTLP client shutdowning")
+	c.mu.Lock()
+	if c.shutdown {
+		c.mu.Unlock()
+		return nil
+	}
+	c.shutdown = true
+	c.mu.Unlock()
+
+	kratoslog.Infof("OTLP client is shutting down")
 
 	for _, provider := range []any{
 		c.tracerProvider,
@@ -305,10 +341,6 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 	}
 
 	return err
-}
-
-func (c *Client) RegisterResource(resource *sdkresource.Resource) {
-	c.resource = resource
 }
 
 func (c *Client) runConfiguredHooks(ctx context.Context) error {

@@ -1,51 +1,149 @@
 package otlp
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
-func TestGRPCTransport(t *testing.T) {
-	endpoint := "localhost:4317"
-	transport := NewGRPCTransport(endpoint, WithGRPCTransportInsecure(true))
+func TestTransport(t *testing.T) {
+	tests := []struct {
+		name      string
+		endpoint  string
+		insecure  bool
+		newTarget func() transportTarget
+	}{
+		{
+			name:     "grpc",
+			endpoint: "localhost:4317",
+			insecure: true,
+			newTarget: func() transportTarget {
+				transport := NewGRPCTransport("localhost:4317", WithGRPCTransportInsecure(true))
+				return transportTarget{
+					endpoint: transport.endpoint,
+					insecure: transport.insecure,
+					trace: func(ctx context.Context) (any, error) {
+						return transport.GetTraceSpanExporter(ctx)
+					},
+					metric: func(ctx context.Context) (any, error) {
+						return transport.GetMetricExporter(ctx)
+					},
+					log: func(ctx context.Context) (any, error) {
+						return transport.GetLogExporter(ctx)
+					},
+				}
+			},
+		},
+		{
+			name:     "http",
+			endpoint: "localhost:4318",
+			insecure: true,
+			newTarget: func() transportTarget {
+				transport := NewHTTPTransport("localhost:4318", WithHTTPTransportInsecure(true))
+				return transportTarget{
+					endpoint: transport.endpoint,
+					insecure: transport.insecure,
+					trace: func(ctx context.Context) (any, error) {
+						return transport.GetTraceSpanExporter(ctx)
+					},
+					metric: func(ctx context.Context) (any, error) {
+						return transport.GetMetricExporter(ctx)
+					},
+					log: func(ctx context.Context) (any, error) {
+						return transport.GetLogExporter(ctx)
+					},
+				}
+			},
+		},
+	}
 
-	assert.Equal(t, endpoint, transport.endpoint)
-	assert.True(t, transport.insecure)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			target := tt.newTarget()
 
-	ctx := t.Context()
+			assert.Equal(t, tt.endpoint, target.endpoint)
+			assert.Equal(t, tt.insecure, target.insecure)
 
-	traceExporter, err := transport.GetTraceSpanExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, traceExporter)
+			t.Run("trace exporter", func(t *testing.T) {
+				exporter, err := target.trace(t.Context())
+				require.NoError(t, err)
+				assert.NotNil(t, exporter)
+			})
 
-	metricExporter, err := transport.GetMetricExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, metricExporter)
+			t.Run("metric exporter", func(t *testing.T) {
+				exporter, err := target.metric(t.Context())
+				require.NoError(t, err)
+				assert.NotNil(t, exporter)
+			})
 
-	logExporter, err := transport.GetLogExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, logExporter)
+			t.Run("log exporter", func(t *testing.T) {
+				exporter, err := target.log(t.Context())
+				require.NoError(t, err)
+				assert.NotNil(t, exporter)
+			})
+		})
+	}
 }
 
-func TestHTTPTransport(t *testing.T) {
-	endpoint := "localhost:4318"
-	transport := NewHTTPTransport(endpoint, WithHTTPTransportInsecure(true))
+func TestTransportOptions(t *testing.T) {
+	t.Run("grpc headers", func(t *testing.T) {
+		headers := map[string]string{"authorization": "Bearer token"}
+		transport := NewGRPCTransport("localhost:4317", WithGRPCTransportHeaders(headers))
 
-	assert.Equal(t, endpoint, transport.endpoint)
-	assert.True(t, transport.insecure)
+		assert.Equal(t, headers, transport.headers)
+	})
 
-	ctx := t.Context()
+	t.Run("http headers", func(t *testing.T) {
+		headers := map[string]string{"authorization": "Bearer token"}
+		transport := NewHTTPTransport("localhost:4318", WithHTTPTransportHeaders(headers))
 
-	traceExporter, err := transport.GetTraceSpanExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, traceExporter)
+		assert.Equal(t, headers, transport.headers)
+	})
+}
 
-	metricExporter, err := transport.GetMetricExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, metricExporter)
+func TestMetricTemporalitySelector(t *testing.T) {
+	tests := []struct {
+		name string
+		kind metric.InstrumentKind
+		want metricdata.Temporality
+	}{
+		{
+			name: "counter uses delta",
+			kind: metric.InstrumentKindCounter,
+			want: metricdata.DeltaTemporality,
+		},
+		{
+			name: "observable counter uses delta",
+			kind: metric.InstrumentKindObservableCounter,
+			want: metricdata.DeltaTemporality,
+		},
+		{
+			name: "histogram uses delta",
+			kind: metric.InstrumentKindHistogram,
+			want: metricdata.DeltaTemporality,
+		},
+		{
+			name: "up down counter uses cumulative",
+			kind: metric.InstrumentKindUpDownCounter,
+			want: metricdata.CumulativeTemporality,
+		},
+	}
 
-	logExporter, err := transport.GetLogExporter(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, logExporter)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, metricTemporalitySelector(tt.kind))
+		})
+	}
+}
+
+type transportTarget struct {
+	endpoint string
+	insecure bool
+	trace    func(ctx context.Context) (any, error)
+	metric   func(ctx context.Context) (any, error)
+	log      func(ctx context.Context) (any, error)
 }
