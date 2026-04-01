@@ -18,6 +18,7 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-fries/fries/codec/json/v3 v3.12.0 // indirect
 	github.com/go-fries/fries/codec/v3 v3.12.0 // indirect
@@ -28,7 +29,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20260310054046-9c8b3586e4b2 // indirect
 	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
 	github.com/pingcap/log v1.1.1-0.20260227082333-572e590d08f1 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20260306201359-999e8f4ce9ba // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20260331182218-500f1607530b // indirect
 	github.com/redis/go-redis/v9 v9.18.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
