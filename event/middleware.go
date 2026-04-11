@@ -1,6 +1,9 @@
 package event
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 type Handler func(ctx context.Context, event any) error
 
@@ -8,8 +11,8 @@ type Middleware func(Handler) Handler
 
 func Chain(mws ...Middleware) Middleware {
 	return func(h Handler) Handler {
-		for i := len(mws) - 1; i >= 0; i-- {
-			h = mws[i](h)
+		for _, mw := range slices.Backward(mws) {
+			h = mw(h)
 		}
 		return h
 	}

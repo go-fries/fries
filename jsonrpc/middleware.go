@@ -1,6 +1,9 @@
 package jsonrpc //nolint:revive
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 // Handler is the type for JSON-RPC request handlers.
 type Handler func(ctx context.Context, namespace string, req *Request) (*Response, error)
@@ -15,8 +18,8 @@ type Middleware func(next Handler) Handler
 //	mw1(mw2(mw3(final)))
 func chain(middlewares ...Middleware) Middleware {
 	return func(final Handler) Handler {
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			final = middlewares[i](final)
+		for _, mw := range slices.Backward(middlewares) {
+			final = mw(final)
 		}
 		return final
 	}

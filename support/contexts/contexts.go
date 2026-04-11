@@ -2,6 +2,7 @@ package contexts
 
 import (
 	"context"
+	"slices"
 )
 
 type Handler func(ctx context.Context) (context.Context, error)
@@ -25,9 +26,9 @@ func Pipe(ctx context.Context, fns ...Handler) (context.Context, error) {
 // Chain is a reverse Pipe.
 func Chain(ctx context.Context, fns ...Handler) (context.Context, error) {
 	var err error
-	for i := len(fns) - 1; i >= 0; i-- {
-		if fns[i] != nil {
-			if ctx, err = fns[i](ctx); err != nil {
+	for _, fn := range slices.Backward(fns) {
+		if fn != nil {
+			if ctx, err = fn(ctx); err != nil {
 				return ctx, err
 			}
 		}
