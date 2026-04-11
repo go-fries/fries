@@ -3,6 +3,7 @@ package support
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -161,9 +162,9 @@ func PipeWithErr[T any](fns ...func(T) (T, error)) func(T) (T, error) {
 //	Chain(m1, m2, m3)(value) => m1(m2(m3(value)))
 func Chain[T any](fns ...func(T) T) func(T) T {
 	return func(v T) T {
-		for i := len(fns) - 1; i >= 0; i-- {
-			if fns[i] != nil {
-				v = fns[i](v)
+		for _, fn := range slices.Backward(fns) {
+			if fn != nil {
+				v = fn(v)
 			}
 		}
 		return v
@@ -176,9 +177,9 @@ func Chain[T any](fns ...func(T) T) func(T) T {
 func ChainWithErr[T any](fns ...func(T) (T, error)) func(T) (T, error) {
 	var err error
 	return func(v T) (T, error) {
-		for i := len(fns) - 1; i >= 0; i-- {
-			if fns[i] != nil {
-				if v, err = fns[i](v); err != nil {
+		for _, fn := range slices.Backward(fns) {
+			if fn != nil {
+				if v, err = fn(v); err != nil {
 					return v, err
 				}
 			}

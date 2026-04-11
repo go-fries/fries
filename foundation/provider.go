@@ -1,6 +1,9 @@
 package foundation
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 type Provider interface {
 	Bootstrap(context.Context) (context.Context, error)
@@ -28,8 +31,8 @@ func (c Chain) Bootstrap(ctx context.Context) (context.Context, error) {
 
 func (c Chain) Terminate(ctx context.Context) (context.Context, error) {
 	var err error
-	for i := len(c) - 1; i >= 0; i-- {
-		ctx, err = c[i].Terminate(ctx)
+	for _, provider := range slices.Backward(c) {
+		ctx, err = provider.Terminate(ctx)
 		if err != nil {
 			return ctx, err
 		}

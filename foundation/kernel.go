@@ -2,6 +2,7 @@ package foundation
 
 import (
 	"context"
+	"slices"
 	"time"
 )
 
@@ -95,8 +96,8 @@ func (k *Kernel) Run(ctx context.Context) (err error) {
 
 func (k *Kernel) terminate(ctx context.Context) (context.Context, error) {
 	var err error
-	for i := len(k.providers) - 1; i >= 0; i-- {
-		if ctx, err = k.providers[i].Terminate(ctx); err != nil {
+	for _, provider := range slices.Backward(k.providers) {
+		if ctx, err = provider.Terminate(ctx); err != nil {
 			return ctx, err
 		}
 	}
