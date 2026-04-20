@@ -100,7 +100,7 @@ require (
 	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/docker/cli v29.4.0+incompatible // indirect
 	github.com/docker/docker v28.5.2+incompatible // indirect
-	github.com/docker/docker-credential-helpers v0.9.5 // indirect
+	github.com/docker/docker-credential-helpers v0.9.6 // indirect
 	github.com/docker/go-connections v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
