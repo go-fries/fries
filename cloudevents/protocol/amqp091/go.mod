@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/rabbitmq/amqp091-go v1.10.0
+	github.com/rabbitmq/amqp091-go v1.11.0
 )
 
 require (
