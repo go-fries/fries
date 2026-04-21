@@ -6,8 +6,8 @@ require (
 	github.com/bufbuild/buf v1.65.0
 	github.com/golangci/golangci-lint/v2 v2.11.4
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/crosslink v0.29.0
-	go.opentelemetry.io/build-tools/multimod v0.29.0
+	go.opentelemetry.io/build-tools/crosslink v0.30.0
+	go.opentelemetry.io/build-tools/multimod v0.30.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 )
 
@@ -282,7 +282,7 @@ require (
 	go.lsp.dev/protocol v0.12.0 // indirect
 	go.lsp.dev/uri v0.3.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/build-tools v0.29.0 // indirect
+	go.opentelemetry.io/build-tools v0.30.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.43.0 // indirect
