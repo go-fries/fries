@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v3
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/bufbuild/buf v1.65.0
@@ -65,7 +65,7 @@ require (
 	github.com/bkielbasa/cyclop v1.2.3 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
 	github.com/bombsimon/wsl/v4 v4.7.0 // indirect
-	github.com/bombsimon/wsl/v5 v5.6.0 // indirect
+	github.com/bombsimon/wsl/v5 v5.7.0 // indirect
 	github.com/breml/bidichk v0.3.3 // indirect
 	github.com/breml/errchkjson v0.4.1 // indirect
 	github.com/bufbuild/protocompile v0.14.2-0.20260306221011-519528254156 // indirect
