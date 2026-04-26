@@ -133,30 +133,45 @@ func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
 }
 
 func (s *Store) Flush(ctx context.Context) (bool, error) {
-	client, ok := s.redis.(*redis.Client)
-	if !ok {
-		return false, ErrFlushUnsupported
-	}
+	flush := func(ctx context.Context, client *redis.Client) error {
+		// Prefix flushing is not atomic; return the first Redis error so callers do
+		// not mistake a partial flush for a complete one.
+		var cursor uint64
+		for {
+			keys, next, err := client.Scan(ctx, cursor, s.prefix+"*", flushScanCount).Result()
+			if err != nil {
+				return err
+			}
 
-	// Prefix flushing is not atomic; return the first Redis error so callers do
-	// not mistake a partial flush for a complete one.
-	var cursor uint64
-	for {
-		keys, next, err := client.Scan(ctx, cursor, s.prefix+"*", flushScanCount).Result()
-		if err != nil {
-			return false, err
-		}
+			if len(keys) > 0 {
+				if err := client.Del(ctx, keys...).Err(); err != nil {
+					return err
+				}
+			}
 
-		if len(keys) > 0 {
-			if err := client.Del(ctx, keys...).Err(); err != nil {
-				return false, err
+			cursor = next
+			if cursor == 0 {
+				break
 			}
 		}
 
-		cursor = next
-		if cursor == 0 {
-			break
-		}
+		return nil
+	}
+
+	var err error
+	switch client := s.redis.(type) {
+	case *redis.Client:
+		err = flush(ctx, client)
+	case *redis.ClusterClient:
+		err = client.ForEachMaster(ctx, flush)
+	case *redis.Ring:
+		err = client.ForEachShard(ctx, flush)
+	default:
+		return false, ErrFlushUnsupported
+	}
+
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil
