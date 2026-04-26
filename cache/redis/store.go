@@ -41,6 +41,13 @@ var (
 	_ cache.Addable = (*Store)(nil)
 )
 
+var (
+	ErrFlushWithoutPrefix = errors.New("cache/redis: flush requires a prefix")
+	ErrFlushUnsupported   = errors.New("cache/redis: prefix flush is not supported by this redis client")
+)
+
+const flushScanCount = 1000
+
 func New(redis redis.UniversalClient, opts ...Option) *Store {
 	story := &Store{
 		codec: json.Codec,
@@ -129,12 +136,37 @@ func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
 }
 
 func (s *Store) Flush(ctx context.Context) (bool, error) {
-	r := s.redis.FlushAll(ctx)
-	if r.Err() != nil {
-		return false, r.Err()
+	if s.prefix == "" {
+		return false, ErrFlushWithoutPrefix
 	}
 
-	return r.Val() == "OK", nil
+	client, ok := s.redis.(*redis.Client)
+	if !ok {
+		return false, ErrFlushUnsupported
+	}
+
+	// Prefix flushing is not atomic; return the first Redis error so callers do
+	// not mistake a partial flush for a complete one.
+	var cursor uint64
+	for {
+		keys, next, err := client.Scan(ctx, cursor, s.prefix+"*", flushScanCount).Result()
+		if err != nil {
+			return false, err
+		}
+
+		if len(keys) > 0 {
+			if err := client.Del(ctx, keys...).Err(); err != nil {
+				return false, err
+			}
+		}
+
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return true, nil
 }
 
 func (s *Store) GetPrefix() string {
