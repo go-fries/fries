@@ -161,12 +161,30 @@ func TestRedis_Flush(t *testing.T) {
 	assert.True(t, hasOtherKey)
 }
 
-func TestRedis_FlushRequiresPrefix(t *testing.T) {
-	store := New(createRedis(t))
+func TestRedis_FlushWithoutPrefix(t *testing.T) {
+	client := createRedis(t)
+	store := New(client)
+	prefixedStore := New(client, Prefix("cache:redis"))
 
-	ok, err := store.Flush(ctx)
-	assert.False(t, ok)
-	assert.ErrorIs(t, err, ErrFlushWithoutPrefix)
+	ok1, err := store.Put(ctx, "test:flush", "test", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, ok1)
+
+	ok2, err := prefixedStore.Put(ctx, "test:flush", "test", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, ok2)
+
+	okFlush, err := store.Flush(ctx)
+	assert.Nil(t, err)
+	assert.True(t, okFlush)
+
+	hasKey, err := store.Has(ctx, "test:flush")
+	assert.NoError(t, err)
+	assert.False(t, hasKey)
+
+	hasPrefixedKey, err := prefixedStore.Has(ctx, "test:flush")
+	assert.NoError(t, err)
+	assert.False(t, hasPrefixedKey)
 }
 
 func TestRedis_FlushUnsupportedClient(t *testing.T) {

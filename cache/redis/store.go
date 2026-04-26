@@ -41,10 +41,7 @@ var (
 	_ cache.Addable = (*Store)(nil)
 )
 
-var (
-	ErrFlushWithoutPrefix = errors.New("cache/redis: flush requires a prefix")
-	ErrFlushUnsupported   = errors.New("cache/redis: prefix flush is not supported by this redis client")
-)
+var ErrFlushUnsupported = errors.New("cache/redis: prefix flush is not supported by this redis client")
 
 const flushScanCount = 1000
 
@@ -136,10 +133,6 @@ func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
 }
 
 func (s *Store) Flush(ctx context.Context) (bool, error) {
-	if s.prefix == "" {
-		return false, ErrFlushWithoutPrefix
-	}
-
 	client, ok := s.redis.(*redis.Client)
 	if !ok {
 		return false, ErrFlushUnsupported
