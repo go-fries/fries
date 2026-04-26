@@ -93,7 +93,7 @@ func TestRedis_IncrAndDecr(t *testing.T) {
 
 func TestRedis_Forever(t *testing.T) {
 	client := createRedis(t)
-	store := New(createRedis(t), Prefix("cache:redis"))
+	store := New(client, Prefix("cache:redis"))
 
 	ok1, err := store.Forever(ctx, "test:forever", "test")
 	assert.Nil(t, err)
@@ -101,6 +101,22 @@ func TestRedis_Forever(t *testing.T) {
 
 	// ttl
 	ttl, err := client.TTL(ctx, "cache:redis:test:forever").Result()
+	assert.Nil(t, err)
+	assert.Equal(t, time.Duration(redis.KeepTTL), ttl)
+
+	ok2, err := store.Put(ctx, "test:forever:ttl", "test", time.Minute)
+	assert.Nil(t, err)
+	assert.True(t, ok2)
+
+	ttl, err = client.TTL(ctx, "cache:redis:test:forever:ttl").Result()
+	assert.Nil(t, err)
+	assert.True(t, ttl > 0)
+
+	ok3, err := store.Forever(ctx, "test:forever:ttl", "test")
+	assert.Nil(t, err)
+	assert.True(t, ok3)
+
+	ttl, err = client.TTL(ctx, "cache:redis:test:forever:ttl").Result()
 	assert.Nil(t, err)
 	assert.Equal(t, time.Duration(redis.KeepTTL), ttl)
 }
