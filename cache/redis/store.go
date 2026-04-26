@@ -134,8 +134,10 @@ func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
 
 func (s *Store) Flush(ctx context.Context) (bool, error) {
 	flush := func(ctx context.Context, client *redis.Client) error {
-		// Prefix flushing is not atomic; return the first Redis error so callers do
-		// not mistake a partial flush for a complete one.
+		// Prefix flushing uses SCAN followed by DEL, so it is non-atomic and
+		// best-effort only. Concurrent writes may add matching keys during or
+		// after scanning, and keys may expire between SCAN and DEL. A nil Redis
+		// error only means no command failed during this pass.
 		var cursor uint64
 		for {
 			keys, next, err := client.Scan(ctx, cursor, s.prefix+"*", flushScanCount).Result()
