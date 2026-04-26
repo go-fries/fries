@@ -41,6 +41,10 @@ var (
 	_ cache.Addable = (*Store)(nil)
 )
 
+var ErrFlushUnsupported = errors.New("cache/redis: prefix flush is not supported by this redis client")
+
+const flushScanCount = 1000
+
 func New(redis redis.UniversalClient, opts ...Option) *Store {
 	story := &Store{
 		codec: json.Codec,
@@ -129,12 +133,50 @@ func (s *Store) Forget(ctx context.Context, key string) (bool, error) {
 }
 
 func (s *Store) Flush(ctx context.Context) (bool, error) {
-	r := s.redis.FlushAll(ctx)
-	if r.Err() != nil {
-		return false, r.Err()
+	flush := func(ctx context.Context, client *redis.Client) error {
+		// Prefix flushing uses SCAN followed by DEL, so it is non-atomic and
+		// best-effort only. Concurrent writes may add matching keys during or
+		// after scanning, and keys may expire between SCAN and DEL. A nil Redis
+		// error only means no command failed during this pass.
+		var cursor uint64
+		for {
+			keys, next, err := client.Scan(ctx, cursor, s.prefix+"*", flushScanCount).Result()
+			if err != nil {
+				return err
+			}
+
+			if len(keys) > 0 {
+				if err := client.Del(ctx, keys...).Err(); err != nil {
+					return err
+				}
+			}
+
+			cursor = next
+			if cursor == 0 {
+				break
+			}
+		}
+
+		return nil
 	}
 
-	return r.Val() == "OK", nil
+	var err error
+	switch client := s.redis.(type) {
+	case *redis.Client:
+		err = flush(ctx, client)
+	case *redis.ClusterClient:
+		err = client.ForEachMaster(ctx, flush)
+	case *redis.Ring:
+		err = client.ForEachShard(ctx, flush)
+	default:
+		return false, ErrFlushUnsupported
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s *Store) GetPrefix() string {

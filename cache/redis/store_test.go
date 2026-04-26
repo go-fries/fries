@@ -128,19 +128,77 @@ func TestRedis_Forever(t *testing.T) {
 }
 
 func TestRedis_Flush(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis"))
+	client := createRedis(t)
+	store := New(client, Prefix("cache:redis"))
+	otherStore := New(client, Prefix("cache:other"))
 
 	ok1, err := store.Put(ctx, "test:flush", "test", time.Second)
 	assert.Nil(t, err)
 	assert.True(t, ok1)
 
-	ok2, err := store.Flush(ctx)
+	ok2, err := store.Put(ctx, "test:flush:another", "test", time.Second)
 	assert.Nil(t, err)
 	assert.True(t, ok2)
 
-	ok3, err := store.Has(ctx, "test:flush")
+	ok3, err := otherStore.Put(ctx, "test:flush", "test", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, ok3)
+
+	okFlush, err := store.Flush(ctx)
+	assert.Nil(t, err)
+	assert.True(t, okFlush)
+
+	hasKey, err := store.Has(ctx, "test:flush")
 	assert.NoError(t, err)
-	assert.False(t, ok3)
+	assert.False(t, hasKey)
+
+	hasAnotherKey, err := store.Has(ctx, "test:flush:another")
+	assert.NoError(t, err)
+	assert.False(t, hasAnotherKey)
+
+	hasOtherKey, err := otherStore.Has(ctx, "test:flush")
+	assert.NoError(t, err)
+	assert.True(t, hasOtherKey)
+}
+
+func TestRedis_FlushWithoutPrefix(t *testing.T) {
+	client := createRedis(t)
+	store := New(client)
+	prefixedStore := New(client, Prefix("cache:redis"))
+
+	ok1, err := store.Put(ctx, "test:flush", "test", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, ok1)
+
+	ok2, err := prefixedStore.Put(ctx, "test:flush", "test", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, ok2)
+
+	okFlush, err := store.Flush(ctx)
+	assert.Nil(t, err)
+	assert.True(t, okFlush)
+
+	hasKey, err := store.Has(ctx, "test:flush")
+	assert.NoError(t, err)
+	assert.False(t, hasKey)
+
+	hasPrefixedKey, err := prefixedStore.Has(ctx, "test:flush")
+	assert.NoError(t, err)
+	assert.False(t, hasPrefixedKey)
+}
+
+func TestRedis_FlushClusterClient(t *testing.T) {
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs: []string{":6379"},
+	})
+	t.Cleanup(func() {
+		assert.NoError(t, client.Close())
+	})
+	store := New(client, Prefix("cache:redis"))
+
+	ok, err := store.Flush(ctx)
+	assert.NotErrorIs(t, err, ErrFlushUnsupported)
+	assert.True(t, ok || err != nil)
 }
 
 func TestRedis_Add(t *testing.T) {
