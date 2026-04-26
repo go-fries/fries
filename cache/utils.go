@@ -13,9 +13,10 @@ func Get[T any](ctx context.Context, repository Repository, key string) (T, erro
 	return result, repository.Get(ctx, key, &result)
 }
 
-// Remember is a utility function that retrieves a value from the cache using the provided key.
-// If the value is not found, it calls the provided callback function to generate the value,
+// Remember retrieves a value from the cache using the provided key.
+// If the value is not found, it calls the callback, stores the result, and returns it.
 // If the value is found in the cache, it returns the cached value and a nil error.
+// Remember is not atomic; concurrent cache misses for the same key may call the callback more than once.
 func Remember[T any](ctx context.Context, repository Repository, key string, ttl time.Duration, callback func() (T, error)) (T, error) {
 	var result T
 	err := repository.Get(ctx, key, &result)
