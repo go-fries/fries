@@ -111,7 +111,7 @@ func (s *Store) Forever(ctx context.Context, key string, value any) (bool, error
 		return false, err
 	}
 
-	r := s.redis.Set(ctx, s.prefix+key, valued, redis.KeepTTL)
+	r := s.redis.Set(ctx, s.prefix+key, valued, 0)
 	if r.Err() != nil {
 		return false, r.Err()
 	}
