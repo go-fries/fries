@@ -19,3 +19,7 @@ _backup
 _example
 .todo
 .tools
+
+# Local task plans
+.docs/plans/**
+!.docs/plans/.gitkeep
