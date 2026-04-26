@@ -1,6 +1,6 @@
 # Cache Component
 
-A flexible caching library for Go applications, providing a unified API for various storage backends (like Redis) with support for serialization.
+A flexible caching library for Go applications, providing a unified API for various storage backends (like Redis) with support for serialization, atomic counters, and locking primitives.
 
 ## Installation
 
