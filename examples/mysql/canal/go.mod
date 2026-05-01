@@ -28,7 +28,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20260310054046-9c8b3586e4b2 // indirect
 	github.com/pingcap/failpoint v0.0.0-20260406204437-bbc9d102c19e // indirect
 	github.com/pingcap/log v1.1.1-0.20260227082333-572e590d08f1 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20260401125306-84124227a1f2 // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20260501060436-33ae9e3cb52f // indirect
 	github.com/redis/go-redis/v9 v9.19.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
