@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v3
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/bufbuild/buf v1.65.0
@@ -100,7 +100,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/denis-tingaikin/go-header v0.5.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/dlclark/regexp2 v1.12.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.0.0 // indirect
 	github.com/docker/cli v29.4.2+incompatible // indirect
 	github.com/docker/docker v28.5.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.6 // indirect
