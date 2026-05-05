@@ -7,11 +7,11 @@ import (
 	"github.com/go-fries/fries/hyperf/jet/v3"
 )
 
-var DefaultHandler = func(_ context.Context, service, method string, request any, err any) error {
+var DefaultHandler = func(_ context.Context, service, method string, request, err any) error {
 	return fmt.Errorf("service: %s, method: %s, request: %v, error: %v", service, method, request, err)
 }
 
-type HandlerFunc func(ctx context.Context, service, method string, request any, err any) error
+type HandlerFunc func(ctx context.Context, service, method string, request, err any) error
 
 type options struct {
 	handler HandlerFunc

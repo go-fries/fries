@@ -19,7 +19,7 @@ func TestProxy_Point(t *testing.T) {
 	assert.Equal(t, 0, proxy.value.Age)
 
 	mock2 := proxy.Tap(func(p *proxyMock) {
-		p.Name = "bar" // nolint:goconst
+		p.Name = "bar" //nolint:goconst
 		p.Age = 18
 	}).Value()
 	assert.Equal(t, "bar", proxy.value.Name)
@@ -28,7 +28,7 @@ func TestProxy_Point(t *testing.T) {
 	assert.Equal(t, mock, mock2)
 
 	mock3 := proxy.With(func(p *proxyMock) *proxyMock {
-		p.Name = "baz" // nolint:goconst
+		p.Name = "baz" //nolint:goconst
 		p.Age = 20
 		return p
 	}).Value()

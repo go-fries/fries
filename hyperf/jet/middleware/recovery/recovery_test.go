@@ -15,7 +15,7 @@ func TestRecovery(t *testing.T) {
 	testError := "error"
 
 	recovery := New(
-		Handler(func(_ context.Context, service string, method string, request any, err any) error {
+		Handler(func(_ context.Context, service, method string, request, err any) error {
 			assert.Equal(t, testService, service)
 			assert.Equal(t, testMethod, method)
 			assert.Equal(t, testRequest, request)

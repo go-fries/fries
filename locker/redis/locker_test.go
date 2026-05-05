@@ -26,7 +26,8 @@ func newRedis(t *testing.T) redis.UniversalClient {
 }
 
 func TestLocker_Try(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:try"),
 		WithTTL(time.Second*100),
 	)
@@ -57,7 +58,8 @@ func TestLocker_Try(t *testing.T) {
 }
 
 func TestLocker_Until(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:until"),
 	)
 
@@ -82,7 +84,8 @@ func TestLocker_Until(t *testing.T) {
 }
 
 func TestLocker_Until_Timeout(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:until:timeout"),
 	)
 
@@ -114,7 +117,8 @@ func TestLocker_Until_Timeout(t *testing.T) {
 }
 
 func TestLocker_GetAndReleaseAndLockedOwner(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:release"),
 	)
 
@@ -139,7 +143,8 @@ func TestLocker_GetAndReleaseAndLockedOwner(t *testing.T) {
 }
 
 func TestLocker_ForceRelease(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:force-release"),
 	)
 
@@ -158,7 +163,8 @@ func TestLocker_ForceRelease(t *testing.T) {
 // TestLocker_Multi tests the locker with multiple goroutines.
 // see: https://github.com/go-kratos-ecosystem/components/issues/326
 func TestLocker_Multi(t *testing.T) {
-	l := NewLocker(newRedis(t),
+	l := NewLocker(
+		newRedis(t),
 		WithName("kratos:locker:multi"),
 		WithTTL(time.Millisecond*100),
 	)

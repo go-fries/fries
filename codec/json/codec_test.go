@@ -1,4 +1,4 @@
-package json //nolint:revive
+package json
 
 import (
 	"encoding/json"

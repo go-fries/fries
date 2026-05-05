@@ -11,13 +11,13 @@ func TestCollection_Int(t *testing.T) {
 	c.Add(4)
 	assert.Equal(t, 4, c.Len())
 	assert.Equal(t, []int{1, 2, 3, 4}, c.Items())
-	c = c.Map(func(i int, _ int) int {
+	c = c.Map(func(i, _ int) int {
 		return i * 2
 	})
 	assert.Equal(t, []int{2, 4, 6, 8}, c.All())
 
 	// Filter/Where
-	c = c.Where(func(v int, _ int) bool {
+	c = c.Where(func(v, _ int) bool {
 		return v > 4
 	})
 	assert.Equal(t, []int{6, 8}, c.Items())
@@ -29,18 +29,18 @@ func TestCollection_Int(t *testing.T) {
 
 	// Each
 	var sum int
-	c.Each(func(v int, _ int) {
+	c.Each(func(v, _ int) {
 		sum += v
 	})
 	assert.Equal(t, 14, sum)
 
 	// Find
-	v, ok := c.Find(func(v int, _ int) bool {
+	v, ok := c.Find(func(v, _ int) bool {
 		return v == 6
 	})
 	assert.True(t, ok)
 	assert.Equal(t, 6, v)
-	v2, ok2 := c.Find(func(v int, _ int) bool {
+	v2, ok2 := c.Find(func(v, _ int) bool {
 		return v == 10
 	})
 	assert.False(t, ok2)
@@ -55,12 +55,12 @@ func TestCollection_Int(t *testing.T) {
 	assert.Equal(t, 0, v33)
 
 	// Index
-	v4, ok4 := c.Index(func(i int, _ int) bool {
+	v4, ok4 := c.Index(func(i, _ int) bool {
 		return i == 6
 	})
 	assert.True(t, ok4)
 	assert.Equal(t, 0, v4)
-	v5, ok5 := c.Index(func(i int, _ int) bool {
+	v5, ok5 := c.Index(func(i, _ int) bool {
 		return i == 10
 	})
 	assert.False(t, ok5)

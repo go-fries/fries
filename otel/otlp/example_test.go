@@ -10,7 +10,8 @@ import (
 func ExampleNewClient() {
 	ctx := context.TODO()
 
-	transport := otlp.NewGRPCTransport("localhost:4317",
+	transport := otlp.NewGRPCTransport(
+		"localhost:4317",
 		otlp.WithGRPCTransportInsecure(true),
 	)
 

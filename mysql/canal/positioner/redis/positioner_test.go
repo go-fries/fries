@@ -49,7 +49,8 @@ func TestPositioner(t *testing.T) {
 }
 
 func TestBufferedPositioner(t *testing.T) {
-	positioner := NewBufferedPositioner(createRedisClient(t),
+	positioner := NewBufferedPositioner(
+		createRedisClient(t),
 		WithPrefix("buffered:canal"), WithCodec(json.Codec),
 		WithFlushInterval(5*time.Second), WithBatchSize(100),
 	)
@@ -75,7 +76,8 @@ func TestBufferedPositioner(t *testing.T) {
 }
 
 func TestBufferedPositioner_Batching(t *testing.T) {
-	positioner := NewBufferedPositioner(createRedisClient(t),
+	positioner := NewBufferedPositioner(
+		createRedisClient(t),
 		WithPrefix("buffered:batch"),
 		WithBatchSize(3),
 	)
@@ -108,7 +110,8 @@ func TestBufferedPositioner_Batching(t *testing.T) {
 }
 
 func TestBufferedPositioner_FlushInterval(t *testing.T) {
-	positioner := NewBufferedPositioner(createRedisClient(t),
+	positioner := NewBufferedPositioner(
+		createRedisClient(t),
 		WithPrefix("buffered:interval"),
 		WithFlushInterval(500*time.Millisecond),
 		WithBatchSize(100), // Large batch size to ensure interval triggers first

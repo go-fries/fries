@@ -126,7 +126,7 @@ func TestPipe(t *testing.T) {
 	// pipe functions
 	pipe2 := Pipe(
 		func(foo *foo) *foo {
-			foo.Name = "bar" // nolint:goconst
+			foo.Name = "bar" //nolint:goconst
 			return foo
 		},
 		func(foo *foo) *foo {
@@ -186,10 +186,10 @@ func TestPipeWithErr(t *testing.T) {
 	// context
 	pipe3 := PipeWithErr(
 		func(ctx context.Context) (context.Context, error) {
-			return context.WithValue(ctx, "foo", "bar"), nil //nolint:revive,staticcheck
+			return context.WithValue(ctx, "foo", "bar"), nil //nolint:staticcheck
 		},
 		func(ctx context.Context) (context.Context, error) {
-			return context.WithValue(ctx, "bar", "baz"), nil //nolint:revive,staticcheck
+			return context.WithValue(ctx, "bar", "baz"), nil //nolint:staticcheck
 		},
 	)
 
@@ -201,7 +201,7 @@ func TestPipeWithErr(t *testing.T) {
 	// context with error
 	pipe4 := PipeWithErr(
 		func(ctx context.Context) (context.Context, error) {
-			return context.WithValue(ctx, "foo", "bar"), nil //nolint:revive,staticcheck
+			return context.WithValue(ctx, "foo", "bar"), nil //nolint:staticcheck
 		},
 		func(context.Context) (context.Context, error) {
 			return nil, assert.AnError

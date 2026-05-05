@@ -64,7 +64,7 @@ func (eh *eventHandler) OnRotate(header *replication.EventHeader, rotateEvent *r
 	})
 }
 
-func (eh *eventHandler) OnTableChanged(header *replication.EventHeader, schema string, table string) error {
+func (eh *eventHandler) OnTableChanged(header *replication.EventHeader, schema, table string) error {
 	return eh.dispatcher.DispatchTableChanged(eh.ctx, &TableChangedEvent{
 		Header: header,
 		Schema: schema,

@@ -24,7 +24,8 @@ func main() {
 	// }
 	// ...
 
-	embedder := cached.NewEmbedder(originalEmbedder,
+	embedder := cached.NewEmbedder(
+		originalEmbedder,
 		cached.WithCacher(cachedredis.NewCacher(rdb)),          // using Redis as the cache
 		cached.WithGenerator(cached.NewHashGenerator(md5.New)), // using md5 for generating unique keys
 	)

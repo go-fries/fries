@@ -15,7 +15,7 @@ package support
 //	var nilVal *foo
 //	If(nilVal != nil, nilVal.Name, "") // panic: runtime error: invalid memory address or nil pointer dereference
 //	If(nilVal != nil, Optional(nilVal).Name, "") // ""
-func If[T any](condition bool, trueVal T, falseVal T) T {
+func If[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
 		return trueVal
 	}
@@ -30,7 +30,7 @@ func If[T any](condition bool, trueVal T, falseVal T) T {
 //	}, func() string {
 //		return "bar"
 //	}) // "foo"
-func IfFunc[T any](condition bool, trueFunc func() T, falseFunc func() T) T {
+func IfFunc[T any](condition bool, trueFunc, falseFunc func() T) T {
 	if condition {
 		return trueFunc()
 	}
@@ -42,7 +42,7 @@ func IfFunc[T any](condition bool, trueFunc func() T, falseFunc func() T) T {
 //
 //	Unless(true, "foo", "bar") // "bar"
 //	Unless(false, "foo", "bar") // "foo"
-func Unless[T any](condition bool, falseVal T, trueVal T) T {
+func Unless[T any](condition bool, falseVal, trueVal T) T {
 	return If(condition, trueVal, falseVal)
 }
 

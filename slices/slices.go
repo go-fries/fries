@@ -1,4 +1,4 @@
-package slices //nolint:revive
+package slices
 
 import (
 	"math/rand"

@@ -8,7 +8,7 @@ import (
 var ErrKeyNotFound = errors.New("the key is not found")
 
 type Container interface {
-	Set(key any, value any)
+	Set(key, value any)
 	Get(key any) (any, error)
 }
 
@@ -23,7 +23,7 @@ func New() Container {
 	}
 }
 
-func (c *container) Set(key any, value any) {
+func (c *container) Set(key, value any) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

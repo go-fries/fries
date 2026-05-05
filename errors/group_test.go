@@ -1,4 +1,4 @@
-package errors //nolint:revive
+package errors
 
 import (
 	"errors"

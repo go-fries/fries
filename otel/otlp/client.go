@@ -203,7 +203,8 @@ func (c *Client) configureResource(ctx context.Context) error {
 		attrs = append(attrs, semconv.DeploymentEnvironmentName(c.deploymentEnvironmentName))
 	}
 
-	res, err := sdkresource.New(ctx,
+	res, err := sdkresource.New(
+		ctx,
 		sdkresource.WithHost(),
 		sdkresource.WithTelemetrySDK(),
 		sdkresource.WithContainer(),
@@ -244,11 +245,12 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 	queueSize := queueSize()
 
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(exporter,
+		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(
+			exporter,
 			sdktrace.WithMaxQueueSize(queueSize),
 			sdktrace.WithMaxExportBatchSize(queueSize),
-			sdktrace.WithBatchTimeout(10*time.Second),  // nolint:mnd
-			sdktrace.WithExportTimeout(10*time.Second), // nolint:mnd
+			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
+			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
 		)),
 		sdktrace.WithResource(c.resource),
 		sdktrace.WithSampler(c.traceSampler),
@@ -274,7 +276,8 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(
 			sdkmetric.NewPeriodicReader(exporter,
-				sdkmetric.WithInterval(15*time.Second))), // nolint:mnd
+				sdkmetric.WithInterval(15*time.Second)),
+		), //nolint:mnd
 		sdkmetric.WithResource(c.resource),
 	)
 
@@ -298,11 +301,12 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 	queueSize := queueSize()
 
 	lp := sdklog.NewLoggerProvider(
-		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter,
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(
+			exporter,
 			sdklog.WithMaxQueueSize(queueSize),
 			sdklog.WithExportMaxBatchSize(queueSize),
-			sdklog.WithExportInterval(10*time.Second), // nolint:mnd
-			sdklog.WithExportTimeout(10*time.Second),  // nolint:mnd
+			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
+			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
 		)),
 		sdklog.WithResource(c.resource),
 	)
@@ -353,10 +357,10 @@ func (c *Client) runConfiguredHooks(ctx context.Context) error {
 }
 
 func queueSize() int {
-	const _min = 1000  // nolint:mnd
-	const _max = 16000 // nolint:mnd
+	const _min = 1000  //nolint:mnd
+	const _max = 16000 //nolint:mnd
 
-	n := (runtime.GOMAXPROCS(0) / 2) * 1000 // nolint:mnd
+	n := (runtime.GOMAXPROCS(0) / 2) * 1000 //nolint:mnd
 	if n < _min {
 		return _min
 	}

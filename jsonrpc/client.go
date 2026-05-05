@@ -1,4 +1,4 @@
-package jsonrpc //nolint:revive
+package jsonrpc
 
 import (
 	"context"

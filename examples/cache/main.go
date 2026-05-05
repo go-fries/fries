@@ -23,7 +23,7 @@ func main() {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer rdb.Close() // nolint:errcheck
+	defer rdb.Close() //nolint:errcheck
 
 	// create a redis store
 	store := redisStore.New(rdb, redisStore.Prefix("example:cache"))

@@ -198,7 +198,8 @@ func (s *Store) Add(ctx context.Context, key string, value any, ttl time.Duratio
 }
 
 func (s *Store) Lock(key string, ttl time.Duration) locker.Locker {
-	return lockerredis.NewLocker(s.redis,
+	return lockerredis.NewLocker(
+		s.redis,
 		lockerredis.WithName(s.prefix+key),
 		lockerredis.WithTTL(ttl),
 	)

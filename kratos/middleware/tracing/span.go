@@ -31,7 +31,8 @@ func setClientSpan(ctx context.Context, span trace.Span, m any) {
 		switch tr.Kind() {
 		case transport.KindHTTP:
 			if ht, ok := tr.(http.Transporter); ok {
-				attrs = append(attrs,
+				attrs = append(
+					attrs,
 					semconv.HTTPRequestMethodKey.String(ht.Request().Method),
 					semconv.HTTPRoute(ht.PathTemplate()),
 					semconv.URLPath(ht.Request().URL.Path),
@@ -71,7 +72,8 @@ func setServerSpan(ctx context.Context, span trace.Span, m any) {
 		switch tr.Kind() {
 		case transport.KindHTTP:
 			if ht, ok := tr.(http.Transporter); ok {
-				attrs = append(attrs,
+				attrs = append(
+					attrs,
 					semconv.HTTPRequestMethodKey.String(ht.Request().Method),
 					semconv.HTTPRoute(ht.PathTemplate()),
 					semconv.URLPath(ht.Request().URL.Path),
@@ -131,7 +133,8 @@ func peerAttr(addr string) (attrs []attribute.KeyValue) {
 	if host == "" {
 		host = "127.0.0.1"
 	}
-	attrs = append(attrs,
+	attrs = append(
+		attrs,
 		semconv.NetworkPeerAddress(host),
 	)
 
@@ -139,7 +142,8 @@ func peerAttr(addr string) (attrs []attribute.KeyValue) {
 	if err != nil {
 		return attrs
 	}
-	attrs = append(attrs,
+	attrs = append(
+		attrs,
 		semconv.NetworkPeerPort(portInt),
 	)
 

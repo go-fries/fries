@@ -19,7 +19,8 @@ var _ kratoslog.Logger = (*Logger)(nil)
 func NewLogger(opts ...Option) *Logger {
 	o := newOptions(opts...)
 
-	logger := o.provider.Logger("otel-logger",
+	logger := o.provider.Logger(
+		"otel-logger",
 		log.WithInstrumentationVersion(fries.Version()),
 	)
 

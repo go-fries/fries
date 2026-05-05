@@ -1,4 +1,4 @@
-package bytes //nolint:revive
+package bytes
 
 import (
 	"fmt"

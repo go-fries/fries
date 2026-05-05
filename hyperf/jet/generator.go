@@ -17,13 +17,13 @@ import (
 var DefaultPathGenerator PathGenerator = NewGeneralPathGenerator()
 
 type PathGenerator interface {
-	Generate(service string, name string) string
+	Generate(service, name string) string
 }
 
 // PathGeneratorFunc generates the path of the service method
-type PathGeneratorFunc func(service string, name string) string
+type PathGeneratorFunc func(service, name string) string
 
-func (f PathGeneratorFunc) Generate(service string, name string) string {
+func (f PathGeneratorFunc) Generate(service, name string) string {
 	return f(service, name)
 }
 
@@ -39,7 +39,7 @@ var (
 	generalSpaceRegexp   = regexp.MustCompile(`\s+`)
 )
 
-func (g *GeneralPathGenerator) Generate(service string, name string) string {
+func (g *GeneralPathGenerator) Generate(service, name string) string {
 	servers := strings.Split(service, "\\")
 	path := generalServiceRegexp.ReplaceAllString(servers[len(servers)-1], "")
 
@@ -72,7 +72,7 @@ func (g *GeneralPathGenerator) ucwords(s string) string {
 }
 
 func (g *GeneralPathGenerator) prefixUpperDelimiter(s string) string {
-	rs := make([]rune, 0, len(s)*2) // nolint:mnd
+	rs := make([]rune, 0, len(s)*2) //nolint:mnd
 	for i, r := range s {
 		if i > 0 && unicode.IsUpper(r) {
 			rs = append(rs, '_')
@@ -89,7 +89,7 @@ func NewFullPathGenerator() *FullPathGenerator {
 	return &FullPathGenerator{}
 }
 
-func (f *FullPathGenerator) Generate(service string, name string) string {
+func (f *FullPathGenerator) Generate(service, name string) string {
 	path := strings.ReplaceAll(service, "\\", "/")
 	if len(path) > 0 && path[0] != '/' {
 		path = "/" + path

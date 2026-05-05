@@ -7,7 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-type Collection[T comparable] struct { //nolint:gofumpt
+type Collection[T comparable] struct {
 	items []T
 }
 
@@ -42,7 +42,7 @@ func (c *Collection[T]) Map(fn func(T, int) T) *Collection[T] {
 }
 
 func (c *Collection[T]) Filter(fn func(T, int) bool) *Collection[T] {
-	var items []T //nolint:prealloc
+	var items []T
 	for i, item := range c.items {
 		if fn(item, i) {
 			items = append(items, item)
@@ -130,7 +130,7 @@ func (c *Collection[T]) Last() (T, bool) {
 }
 
 func (c *Collection[T]) Unique() *Collection[T] {
-	var items []T //nolint:prealloc
+	var items []T
 	seen := make(map[T]struct{})
 	for _, item := range c.items {
 		if _, ok := seen[item]; ok {
@@ -143,7 +143,7 @@ func (c *Collection[T]) Unique() *Collection[T] {
 }
 
 func (c *Collection[T]) Reverse() *Collection[T] {
-	var items []T //nolint:prealloc
+	var items []T
 	for i := c.Len() - 1; i >= 0; i-- {
 		items = append(items, c.items[i])
 	}
