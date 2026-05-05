@@ -1,4 +1,4 @@
-package strings //nolint:revive
+package strings
 
 import (
 	"crypto/md5"

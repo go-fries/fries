@@ -63,7 +63,7 @@ func (t *utilMockStore) Put(_ context.Context, key string, value any, ttl time.D
 	return true, nil
 }
 
-func setPointerValue(dest any, value any) error {
+func setPointerValue(dest, value any) error {
 	v := reflect.ValueOf(dest)
 
 	if v.Kind() != reflect.Pointer {

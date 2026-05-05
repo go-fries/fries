@@ -1,4 +1,4 @@
-package md5 //nolint:revive
+package md5
 
 import (
 	"testing"

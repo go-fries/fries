@@ -50,7 +50,7 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("recovery with custom handler", func(t *testing.T) {
 		dispatcher := event.NewDispatcher()
-		dispatcher.Use(New(WithHandler(func(_ context.Context, event any, recovery any, stack []byte) {
+		dispatcher.Use(New(WithHandler(func(_ context.Context, event, recovery any, stack []byte) {
 			assert.Equal(t, "test", event.(userEvent).Name)
 			assert.Equal(t, "panic", recovery.(string))
 			assert.Contains(t, string(stack), "recovery_test.go")

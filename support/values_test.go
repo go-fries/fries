@@ -36,7 +36,7 @@ func TestTap_Int(t *testing.T) {
 	b := 10
 	assert.Equal(t, 10, b)
 	b = Tap(b, func(b int) { //nolint:staticcheck
-		b = 20 //nolint:ineffassign,staticcheck
+		b = 20 //nolint:staticcheck
 		_ = b
 	})
 	assert.Equal(t, 10, b)
@@ -435,7 +435,7 @@ func TestIsType(t *testing.T) {
 	assert.False(t, IsType[*foo](nil))
 
 	assert.True(t, IsType[testInterface](testStruct{}))
-	assert.True(t, IsType[any](testStruct{})) //nolint:revive
+	assert.True(t, IsType[any](testStruct{}))
 	assert.True(t, IsType[any](testStruct{}))
 
 	assert.True(t, IsType[error](errors.New("foo")))

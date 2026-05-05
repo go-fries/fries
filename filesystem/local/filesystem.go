@@ -68,7 +68,7 @@ func (s *Filesystem) Files(_ context.Context, path string) ([]string, error) {
 		return nil, err
 	}
 
-	var files []string //nolint:prealloc
+	var files []string
 	for _, file := range f {
 		if !file.IsDir() {
 			files = append(files, file.Name())
@@ -105,7 +105,7 @@ func (s *Filesystem) Directories(_ context.Context, path string) ([]string, erro
 		return nil, err
 	}
 
-	var dirs []string //nolint:prealloc
+	var dirs []string
 	for _, file := range f {
 		if !file.IsDir() {
 			continue

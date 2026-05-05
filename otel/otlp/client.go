@@ -249,8 +249,8 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 			exporter,
 			sdktrace.WithMaxQueueSize(queueSize),
 			sdktrace.WithMaxExportBatchSize(queueSize),
-			sdktrace.WithBatchTimeout(10*time.Second),  // nolint:mnd
-			sdktrace.WithExportTimeout(10*time.Second), // nolint:mnd
+			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
+			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
 		)),
 		sdktrace.WithResource(c.resource),
 		sdktrace.WithSampler(c.traceSampler),
@@ -277,7 +277,7 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 		sdkmetric.WithReader(
 			sdkmetric.NewPeriodicReader(exporter,
 				sdkmetric.WithInterval(15*time.Second)),
-		), // nolint:mnd
+		), //nolint:mnd
 		sdkmetric.WithResource(c.resource),
 	)
 
@@ -305,8 +305,8 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 			exporter,
 			sdklog.WithMaxQueueSize(queueSize),
 			sdklog.WithExportMaxBatchSize(queueSize),
-			sdklog.WithExportInterval(10*time.Second), // nolint:mnd
-			sdklog.WithExportTimeout(10*time.Second),  // nolint:mnd
+			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
+			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
 		)),
 		sdklog.WithResource(c.resource),
 	)
@@ -357,10 +357,10 @@ func (c *Client) runConfiguredHooks(ctx context.Context) error {
 }
 
 func queueSize() int {
-	const _min = 1000  // nolint:mnd
-	const _max = 16000 // nolint:mnd
+	const _min = 1000  //nolint:mnd
+	const _max = 16000 //nolint:mnd
 
-	n := (runtime.GOMAXPROCS(0) / 2) * 1000 // nolint:mnd
+	n := (runtime.GOMAXPROCS(0) / 2) * 1000 //nolint:mnd
 	if n < _min {
 		return _min
 	}

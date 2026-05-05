@@ -10,10 +10,10 @@ import (
 )
 
 // HandlerFunc defines a function to handle panic recovery
-type HandlerFunc func(ctx context.Context, event any, recovery any, stack []byte)
+type HandlerFunc func(ctx context.Context, event, recovery any, stack []byte)
 
 // DefaultHandler is the default panic recovery handler that logs the event and stack trace
-var DefaultHandler = func(_ context.Context, event any, recovery any, stack []byte) {
+var DefaultHandler = func(_ context.Context, event, recovery any, stack []byte) {
 	log.Printf("panic recovery event: %v\nrecovery: %v\nstack trace:\n%s", event, recovery, stack)
 }
 
@@ -47,7 +47,7 @@ func WithStackSize(size int) Option {
 func New(opts ...Option) event.Middleware {
 	o := &options{
 		handler:   DefaultHandler,
-		stackSize: 4 << 10, // nolint:mnd // 4KB default stack size
+		stackSize: 4 << 10, //nolint:mnd // 4KB default stack size
 	}
 	for _, opt := range opts {
 		opt(o)

@@ -1,4 +1,4 @@
-package debug //nolint:revive
+package debug
 
 import (
 	"io"

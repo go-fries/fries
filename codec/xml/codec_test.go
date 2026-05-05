@@ -1,4 +1,4 @@
-package xml //nolint:revive
+package xml
 
 import (
 	"testing"

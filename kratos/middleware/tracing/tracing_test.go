@@ -24,12 +24,12 @@ func (hc headerCarrier) Get(key string) string {
 }
 
 // Set stores the key-value pair.
-func (hc headerCarrier) Set(key string, value string) {
+func (hc headerCarrier) Set(key, value string) {
 	http.Header(hc).Set(key, value)
 }
 
 // Add value to the key-value pair.
-func (hc headerCarrier) Add(key string, value string) {
+func (hc headerCarrier) Add(key, value string) {
 	http.Header(hc).Add(key, value)
 }
 

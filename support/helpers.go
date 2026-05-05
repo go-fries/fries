@@ -195,7 +195,7 @@ func ChainWithErr[T any](fns ...func(T) (T, error)) func(T) (T, error) {
 //
 //	var bar struct {A string}
 //	Scan(struct{A string}{"foo"}, &bar) // bar == struct{A string}{"foo"}
-func Scan(src any, dest any) error {
+func Scan(src, dest any) error {
 	bytes, err := json.Marshal(src)
 	if err != nil {
 		return err
