@@ -184,7 +184,8 @@ func TestDispatcher(t *testing.T) {
 				AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
 					<-time.After(200 * time.Millisecond)
 					return nil
-				}))
+				}),
+			)
 		}
 		go func() {
 			<-time.After(300 * time.Millisecond)

@@ -101,6 +101,7 @@ func (NoopFilesystem) AllDirectories(context.Context, string) ([]string, error) 
 func (NoopFilesystem) MakeDirectory(context.Context, string) error              { return nil }
 func (NoopFilesystem) DeleteDirectory(context.Context, string) error            { return nil }
 func (NoopFilesystem) IsFile(context.Context, string) (bool, error)             { return false, nil }
+
 func (NoopFilesystem) IsDir(context.Context, string) (bool, error)              { return false, nil }
 func (NoopFilesystem) Size(context.Context, string) (int64, error)              { return 0, nil }
 func (NoopFilesystem) LastModified(context.Context, string) (*time.Time, error) { return nil, nil }

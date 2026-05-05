@@ -88,13 +88,15 @@ func TestTracer(t *testing.T) {
 
 	ctx, aboveSpan := cliTracer.Start(
 		transport.NewClientContext(t.Context(), ts),
-		ts.Operation(), ts.RequestHeader())
+		ts.Operation(), ts.RequestHeader(),
+	)
 	defer cliTracer.End(ctx, aboveSpan, nil, nil)
 
 	// server use Extract fetch traceInfo from carrier
 	svrTracer := NewTracer(trace.SpanKindServer,
 		WithPropagator(
-			propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})))
+			propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{}),
+		))
 	ts = &mockTransport{kind: transport.KindHTTP, header: carrier}
 
 	ctx, span := svrTracer.Start(transport.NewServerContext(ctx, ts), ts.Operation(), ts.RequestHeader())
@@ -131,7 +133,8 @@ func TestServer(t *testing.T) {
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(log.LevelInfo,
+		_ = log.WithContext(ctx, logger).Log(
+			log.LevelInfo,
 			"kind", "server",
 		)
 		childSpanID = SpanID()(ctx).(string)
@@ -203,7 +206,8 @@ func TestClient(t *testing.T) {
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(log.LevelInfo,
+		_ = log.WithContext(ctx, logger).Log(
+			log.LevelInfo,
 			"kind", "client",
 		)
 		childSpanID = SpanID()(ctx).(string)

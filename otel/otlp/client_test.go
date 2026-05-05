@@ -36,7 +36,8 @@ func TestClientLifecycle(t *testing.T) {
 		metricExporter := &testMetricExporter{}
 		logExporter := &testLogExporter{}
 
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  traceExporter,
 				metricExporter: metricExporter,
@@ -60,7 +61,8 @@ func TestClientLifecycle(t *testing.T) {
 	})
 
 	t.Run("configure twice", func(t *testing.T) {
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -74,7 +76,8 @@ func TestClientLifecycle(t *testing.T) {
 	})
 
 	t.Run("configure after shutdown", func(t *testing.T) {
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -95,7 +98,8 @@ func TestClientLifecycle(t *testing.T) {
 		metricExporter := &testMetricExporter{}
 		logExporter := &testLogExporter{}
 
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  traceExporter,
 				metricExporter: metricExporter,
@@ -116,7 +120,8 @@ func TestClientLifecycle(t *testing.T) {
 
 func TestClientHooks(t *testing.T) {
 	t.Run("with hooks appends to defaults", func(t *testing.T) {
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -146,7 +151,8 @@ func TestClientHooks(t *testing.T) {
 
 func TestClientOptions(t *testing.T) {
 	t.Run("resource and attributes", func(t *testing.T) {
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -184,7 +190,8 @@ func TestClientOptions(t *testing.T) {
 			require.NoError(t, loggerProvider.Shutdown(ctx))
 		})
 
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -208,7 +215,8 @@ func TestClientOptions(t *testing.T) {
 	})
 
 	t.Run("trace sampler", func(t *testing.T) {
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -226,7 +234,8 @@ func TestProvider(t *testing.T) {
 		restoreGlobals := saveGlobalProviders(t)
 		defer restoreGlobals()
 
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  &testTraceExporter{},
 				metricExporter: &testMetricExporter{},
@@ -250,7 +259,8 @@ func TestProvider(t *testing.T) {
 		metricExporter := &testMetricExporter{}
 		logExporter := &testLogExporter{}
 
-		client := newTestClient(t,
+		client := newTestClient(
+			t,
 			&testTransport{
 				traceExporter:  traceExporter,
 				metricExporter: metricExporter,

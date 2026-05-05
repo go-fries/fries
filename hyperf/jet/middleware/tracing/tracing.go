@@ -59,7 +59,8 @@ func New(opts ...Option) jet.Middleware {
 	tracer := o.tp.Tracer(instrumentation)
 	return func(next jet.Handler) jet.Handler {
 		return func(ctx context.Context, service, method string, request any) (response any, err error) {
-			ctx, span := tracer.Start(ctx, "jet."+service+"/"+method,
+			ctx, span := tracer.Start(
+				ctx, "jet."+service+"/"+method,
 				trace.WithSpanKind(trace.SpanKindClient),
 			)
 			defer span.End()
@@ -69,7 +70,8 @@ func New(opts ...Option) jet.Middleware {
 			totalCapacity := 2 + len(formatterAttrs) + len(transportAttrs) + len(o.attrs)
 
 			attrs := make([]attribute.KeyValue, 0, totalCapacity)
-			attrs = append(attrs,
+			attrs = append(
+				attrs,
 				semconv.RPCService(service),
 				semconv.RPCMethod(method),
 				// semconv.RPCJsonrpcErrorCode(0),     // todo

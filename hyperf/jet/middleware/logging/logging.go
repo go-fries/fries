@@ -35,7 +35,8 @@ func New(opts ...Option) jet.Middleware {
 					level = log.LevelError
 				}
 
-				_ = log.WithContext(ctx, o.logger).Log(level,
+				_ = log.WithContext(ctx, o.logger).Log(
+					level,
 					"kind", "jet",
 					"service", service,
 					"method", method,

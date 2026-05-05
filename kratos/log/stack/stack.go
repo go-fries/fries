@@ -8,7 +8,7 @@ import (
 
 type stackLogger []log.Logger
 
-var _ log.Logger = (stackLogger)(nil)
+var _ log.Logger = stackLogger(nil)
 
 func New(loggers ...log.Logger) log.Logger {
 	return stackLogger(loggers)

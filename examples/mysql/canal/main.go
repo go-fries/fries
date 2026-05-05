@@ -41,13 +41,14 @@ func (l *Listener) OnRow(_ context.Context, event *canal.RowEvent) error {
 }
 
 func main() {
-	c, err := canal.New(&canal.Config{
-		Addr:               "localhost:3306",
-		User:               "root",
-		Password:           "123456",
-		IncludeTablesRegex: []string{"test\\..*"},
-		ExcludeTablesRegex: []string{".*no.*"},
-	},
+	c, err := canal.New(
+		&canal.Config{
+			Addr:               "localhost:3306",
+			User:               "root",
+			Password:           "123456",
+			IncludeTablesRegex: []string{"test\\..*"},
+			ExcludeTablesRegex: []string{".*no.*"},
+		},
 		canal.WithPositioner(positionerredis.NewBufferedPositioner(nil)), // replace with your Redis client
 		canal.WithListeners(&Listener{}),
 	)

@@ -52,7 +52,8 @@ func (t *Tracer) Start(
 	if t.kind == trace.SpanKindServer {
 		ctx = t.opt.propagator.Extract(ctx, carrier)
 	}
-	ctx, span := t.tracer.Start(ctx,
+	ctx, span := t.tracer.Start(
+		ctx,
 		operation,
 		trace.WithSpanKind(t.kind),
 	)

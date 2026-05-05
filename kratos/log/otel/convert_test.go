@@ -189,7 +189,8 @@ func TestConvertValue(t *testing.T) {
 			name:  "nested_map",
 			value: map[string]map[string]int{"nested": {"one": 1}},
 			wantValue: log.MapValue(
-				log.Map("nested",
+				log.Map(
+					"nested",
 					log.Int64("one", 1),
 				),
 			),
