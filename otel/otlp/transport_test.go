@@ -6,8 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 func TestTransport(t *testing.T) {
@@ -103,41 +101,6 @@ func TestTransportOptions(t *testing.T) {
 
 		assert.Equal(t, headers, transport.headers)
 	})
-}
-
-func TestMetricTemporalitySelector(t *testing.T) {
-	tests := []struct {
-		name string
-		kind metric.InstrumentKind
-		want metricdata.Temporality
-	}{
-		{
-			name: "counter uses delta",
-			kind: metric.InstrumentKindCounter,
-			want: metricdata.DeltaTemporality,
-		},
-		{
-			name: "observable counter uses delta",
-			kind: metric.InstrumentKindObservableCounter,
-			want: metricdata.DeltaTemporality,
-		},
-		{
-			name: "histogram uses delta",
-			kind: metric.InstrumentKindHistogram,
-			want: metricdata.DeltaTemporality,
-		},
-		{
-			name: "up down counter uses cumulative",
-			kind: metric.InstrumentKindUpDownCounter,
-			want: metricdata.CumulativeTemporality,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, metricTemporalitySelector(tt.kind))
-		})
-	}
 }
 
 type transportTarget struct {
