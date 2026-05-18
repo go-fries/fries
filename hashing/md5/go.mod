@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/hashing/v3 => ../
 
 require (
-	github.com/go-fries/fries/hashing/v3 v3.12.0
+	github.com/go-fries/fries/hashing/v3 v3.13.0
 	github.com/stretchr/testify v1.11.1
 )
 
