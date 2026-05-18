@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -19,17 +18,6 @@ type Transport interface {
 	GetTraceSpanExporter(ctx context.Context) (trace.SpanExporter, error)
 	GetMetricExporter(ctx context.Context) (metric.Exporter, error)
 	GetLogExporter(ctx context.Context) (log.Exporter, error)
-}
-
-func metricTemporalitySelector(kind metric.InstrumentKind) metricdata.Temporality {
-	switch kind {
-	case metric.InstrumentKindCounter,
-		metric.InstrumentKindObservableCounter,
-		metric.InstrumentKindHistogram:
-		return metricdata.DeltaTemporality
-	default:
-		return metricdata.CumulativeTemporality
-	}
 }
 
 type GRPCTransport struct {
@@ -88,7 +76,6 @@ func (t *GRPCTransport) GetMetricExporter(ctx context.Context) (metric.Exporter,
 	opts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithEndpoint(t.endpoint),
 		otlpmetricgrpc.WithCompressor("gzip"),
-		otlpmetricgrpc.WithTemporalitySelector(metricTemporalitySelector),
 	}
 
 	if t.insecure {
@@ -175,7 +162,6 @@ func (t *HTTPTransport) GetMetricExporter(ctx context.Context) (metric.Exporter,
 	opts := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithEndpoint(t.endpoint),
 		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
-		otlpmetrichttp.WithTemporalitySelector(metricTemporalitySelector),
 	}
 
 	if t.insecure {
