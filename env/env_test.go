@@ -61,21 +61,15 @@ func TestConcurrentSafe(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 64 {
-		wg.Add(1)
-		go func(offset int) {
-			defer wg.Done()
-
+		wg.Go(func() {
 			for j := range 1000 {
-				SetEnv(envs[(offset+j)%len(envs)])
+				SetEnv(envs[(i+j)%len(envs)])
 			}
-		}(i)
+		})
 	}
 
 	for range 64 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			for range 1000 {
 				_ = GetEnv()
 				_ = Is(Dev, Prod, Debug, Stage, "online")
@@ -85,7 +79,7 @@ func TestConcurrentSafe(t *testing.T) {
 				_ = IsStage()
 				_ = IsUseString("dev", "prod", "debug", "stage", "online")
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

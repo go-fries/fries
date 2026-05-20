@@ -22,25 +22,18 @@ func (e Env) Is(envs ...Env) bool {
 	return slices.Contains(envs, e)
 }
 
-var (
-	defaultCurrentEnv = Prod
-	currentEnv        atomic.Pointer[Env]
-)
+var currentEnv atomic.Value
 
 func init() {
-	currentEnv.Store(&defaultCurrentEnv)
+	currentEnv.Store(Prod)
 }
 
 func SetEnv(env Env) {
-	currentEnv.Store(&env)
+	currentEnv.Store(env)
 }
 
 func GetEnv() Env {
-	if env := currentEnv.Load(); env != nil {
-		return *env
-	}
-
-	return Prod
+	return currentEnv.Load().(Env)
 }
 
 func Is(envs ...Env) bool {
