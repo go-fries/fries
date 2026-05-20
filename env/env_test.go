@@ -1,6 +1,7 @@
 package env
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,4 +50,37 @@ func TestCustom(t *testing.T) {
 
 	assert.True(t, Is("online"))
 	assert.False(t, Is("dev"))
+}
+
+func TestConcurrentSafe(t *testing.T) {
+	t.Cleanup(func() {
+		SetEnv(Prod)
+	})
+
+	envs := []Env{Dev, Prod, Debug, Stage, "online"}
+
+	var wg sync.WaitGroup
+	for i := range 64 {
+		wg.Go(func() {
+			for j := range 1000 {
+				SetEnv(envs[(i+j)%len(envs)])
+			}
+		})
+	}
+
+	for range 64 {
+		wg.Go(func() {
+			for range 1000 {
+				_ = GetEnv()
+				_ = Is(Dev, Prod, Debug, Stage, "online")
+				_ = IsDev()
+				_ = IsProd()
+				_ = IsDebug()
+				_ = IsStage()
+				_ = IsUseString("dev", "prod", "debug", "stage", "online")
+			}
+		})
+	}
+
+	wg.Wait()
 }

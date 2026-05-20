@@ -1,6 +1,9 @@
 package env
 
-import "slices"
+import (
+	"slices"
+	"sync/atomic"
+)
 
 type Env string
 
@@ -19,18 +22,22 @@ func (e Env) Is(envs ...Env) bool {
 	return slices.Contains(envs, e)
 }
 
-var currentEnv = Prod
+var currentEnv atomic.Value
+
+func init() {
+	currentEnv.Store(Prod)
+}
 
 func SetEnv(env Env) {
-	currentEnv = env
+	currentEnv.Store(env)
 }
 
 func GetEnv() Env {
-	return currentEnv
+	return currentEnv.Load().(Env)
 }
 
 func Is(envs ...Env) bool {
-	return currentEnv.Is(envs...)
+	return GetEnv().Is(envs...)
 }
 
 func IsDev() bool {
@@ -50,8 +57,9 @@ func IsStage() bool {
 }
 
 func IsUseString(envs ...string) bool {
+	envSnapshot := GetEnv()
 	for _, env := range envs {
-		if currentEnv == Env(env) {
+		if envSnapshot == Env(env) {
 			return true
 		}
 	}
