@@ -13,7 +13,7 @@ require (
 	github.com/cloudwego/eino v0.9.1
 	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 v3.13.0
 	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.13.0
-	github.com/redis/go-redis/v9 v9.19.0
+	github.com/redis/go-redis/v9 v9.20.0
 )
 
 require (
