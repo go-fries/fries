@@ -7,7 +7,7 @@ replace github.com/go-fries/fries/locker/v3 => ../
 require (
 	github.com/go-fries/fries/locker/v3 v3.13.0
 	github.com/google/uuid v1.6.0
-	github.com/redis/go-redis/v9 v9.19.0
+	github.com/redis/go-redis/v9 v9.20.0
 	github.com/stretchr/testify v1.11.1
 )
 
