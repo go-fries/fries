@@ -44,7 +44,7 @@ require (
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/arch v0.27.0 // indirect
-	golang.org/x/exp v0.0.0-20260527015227-08cc5374adb3 // indirect
+	golang.org/x/exp v0.0.0-20260528193900-50dc527dd6c7 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
