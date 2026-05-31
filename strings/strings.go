@@ -32,9 +32,10 @@ func Is(pattern, value string) bool {
 		return true
 	}
 
-	pattern = strings.ReplaceAll(pattern, "*", ".*")
+	pattern = regexp.QuoteMeta(pattern)
+	pattern = strings.ReplaceAll(pattern, `\*`, ".*")
 
-	match, err := regexp.Match(pattern, []byte(value))
+	match, err := regexp.MatchString("^"+pattern+"$", value)
 	if err != nil {
 		return false
 	}
