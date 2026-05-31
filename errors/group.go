@@ -38,8 +38,8 @@ func (g *Group) Error() string {
 }
 
 func (g *Group) Errors() []error {
-	if g.errors == nil {
-		return nil
+	if len(g.errors) == 0 {
+		return g.errors
 	}
 
 	errs := make([]error, len(g.errors))

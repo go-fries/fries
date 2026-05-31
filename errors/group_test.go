@@ -54,7 +54,11 @@ func TestGroup_ErrorsReturnsCopy(t *testing.T) {
 	var zero Group
 	assert.Nil(t, zero.Errors())
 
-	g := NewGroup().Add(err1, err2)
+	g := NewGroup()
+	assert.NotNil(t, g.Errors())
+	assert.Empty(t, g.Errors())
+
+	g.Add(err1, err2)
 
 	errs := g.Errors()
 	assert.Equal(t, []error{err1, err2}, errs)
