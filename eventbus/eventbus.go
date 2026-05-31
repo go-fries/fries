@@ -117,7 +117,9 @@ func (t *Event[T]) Listeners() []*Listener[T] {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	return t.listeners
+	listeners := make([]*Listener[T], len(t.listeners))
+	copy(listeners, t.listeners)
+	return listeners
 }
 
 func (t *Event[T]) ListenersCount() int {
