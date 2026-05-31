@@ -1,5 +1,11 @@
 # Signal Server
 
+## Installation
+
+```bash
+go get github.com/go-fries/fries/signal/v3
+```
+
 ## Example
 
 ```go
@@ -11,8 +17,8 @@ import (
 
 	"github.com/go-kratos/kratos/v2"
 
-	"github.com/go-kratos-ecosystem/components/v2/feature"
-	"github.com/go-kratos-ecosystem/components/v2/signal"
+	"github.com/go-fries/fries/contract/v3"
+	"github.com/go-fries/fries/signal/v3"
 )
 
 func main() {
@@ -45,8 +51,8 @@ func (h *exampleHandler) Handle(sig os.Signal) {
 	println("exampleHandler signal:", sig)
 }
 
-type example2Handler struct{
-	feature.AsyncFeature // async feature
+type example2Handler struct {
+	contract.AsyncFeature // async feature
 }
 
 func (h *example2Handler) Listen() []os.Signal {
@@ -73,3 +79,10 @@ exampleHandler signal: (0x104ff0240,0x1051875b8)
 exampleHandler signal: (0x104ff0240,0x1051875b0)
 ERROR msg=[Signal] handler panic (user defined signal 1): example2Handler panic
 ```
+
+## Behavior
+
+- `Start` blocks until the context is canceled or `Stop` is called.
+- `Stop` is idempotent and can be called more than once.
+- Handlers that implement `contract.Asyncable` and return `true` from `Async` run in their own goroutine.
+- `WithRecovery` handles panics raised by handlers. Use `signal.WithRecovery(signal.DefaultRecovery)` to log handler panics.

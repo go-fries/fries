@@ -10,10 +10,12 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+// DefaultRecovery logs panics raised by signal handlers.
 var DefaultRecovery = func(err any, sig os.Signal, _ Handler) {
 	log.Errorf("[Signal] handler panic (%s): %v", sig, err)
 }
 
+// Server routes operating system signals to registered handlers.
 type Server struct {
 	handlers []Handler
 	stopped  chan struct{}
@@ -22,14 +24,17 @@ type Server struct {
 	recovery func(any, os.Signal, Handler)
 }
 
+// Option configures a Server.
 type Option func(*Server)
 
+// AddHandler registers handlers when constructing a Server.
 func AddHandler(handler ...Handler) Option {
 	return func(s *Server) {
 		s.handlers = append(s.handlers, handler...)
 	}
 }
 
+// WithRecovery configures a panic recovery hook for handler execution.
 func WithRecovery(handler func(any, os.Signal, Handler)) Option {
 	return func(s *Server) {
 		if handler != nil {
@@ -38,6 +43,7 @@ func WithRecovery(handler func(any, os.Signal, Handler)) Option {
 	}
 }
 
+// NewServer creates a Server with the supplied options.
 func NewServer(opts ...Option) *Server {
 	server := &Server{
 		handlers: make([]Handler, 0),
@@ -51,6 +57,7 @@ func NewServer(opts ...Option) *Server {
 	return server
 }
 
+// Start subscribes to registered signals and blocks until the context is done or the server stops.
 func (s *Server) Start(ctx context.Context) error {
 	handlers, signals := buildHandlers(s.snapshotHandlers())
 
@@ -88,6 +95,7 @@ func (s *Server) serve(ctx context.Context, ch <-chan os.Signal, handlers map[os
 	}
 }
 
+// Register adds handlers to the Server.
 func (s *Server) Register(handlers ...Handler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -95,6 +103,7 @@ func (s *Server) Register(handlers ...Handler) {
 	s.handlers = append(s.handlers, handlers...)
 }
 
+// Stop stops the Server and unblocks Start.
 func (s *Server) Stop(context.Context) error {
 	s.stopOnce.Do(func() {
 		log.Infof("[Signal] server stopping")
