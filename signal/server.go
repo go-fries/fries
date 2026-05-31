@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"sync"
 
-	"github.com/go-fries/fries/contract/v3"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -70,11 +69,7 @@ func (s *Server) serve(ctx context.Context, ch <-chan os.Signal, handlers map[os
 		case sig := <-ch:
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
-					if async, ok := h.(contract.Asyncable); ok && async.Async() {
-						go s.handle(ctx, sig, h)
-					} else {
-						s.handle(ctx, sig, h)
-					}
+					s.handle(ctx, sig, h)
 				}
 			}
 		}

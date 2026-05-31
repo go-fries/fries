@@ -65,34 +65,6 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	assert.NoError(t, <-done)
 }
 
-func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
-	sig := syscall.SIGUSR1
-	handled := make(chan os.Signal, 1)
-	srv := NewServer()
-	handlers, _ := buildHandlers([]Handler{
-		asyncTestHandler{
-			testHandler: testHandler{
-				signals: []os.Signal{sig},
-				handle: func(_ context.Context, sig os.Signal) {
-					handled <- sig
-				},
-			},
-		},
-	})
-
-	ch := make(chan os.Signal, 1)
-	done := make(chan error, 1)
-	go func() {
-		done <- srv.serve(t.Context(), ch, handlers)
-	}()
-
-	ch <- sig
-	assert.Equal(t, sig, <-handled)
-
-	require.NoError(t, srv.Stop(t.Context()))
-	assert.NoError(t, <-done)
-}
-
 func TestServer_StopIsIdempotent(t *testing.T) {
 	srv := NewServer()
 
@@ -177,14 +149,6 @@ func (h testHandler) Handle(ctx context.Context, sig os.Signal) {
 	if h.handle != nil {
 		h.handle(ctx, sig)
 	}
-}
-
-type asyncTestHandler struct {
-	testHandler
-}
-
-func (h asyncTestHandler) Async() bool {
-	return true
 }
 
 type countingHandler struct {
