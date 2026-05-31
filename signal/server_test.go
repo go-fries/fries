@@ -33,9 +33,9 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	recoveredCtx := make(chan any, 1)
 
 	srv := NewServer(
-		WithRecovery(func(ctx context.Context, err any, _ os.Signal, _ Handler) {
+		WithRecovery(func(ctx context.Context, _ os.Signal, _ Handler, panicValue any) {
 			recoveredCtx <- ctx.Value(contextKey{})
-			recovered <- err
+			recovered <- panicValue
 		}),
 	)
 	handlers, signals := buildHandlers([]Handler{

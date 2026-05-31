@@ -38,4 +38,4 @@ func WithRecovery(handler RecoveryHandler) Option {
 }
 
 // RecoveryHandler handles panics raised by signal handlers.
-type RecoveryHandler func(context.Context, any, os.Signal, Handler)
+type RecoveryHandler func(context.Context, os.Signal, Handler, any)

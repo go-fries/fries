@@ -10,8 +10,8 @@ import (
 )
 
 // DefaultRecovery logs panics raised by signal handlers.
-var DefaultRecovery RecoveryHandler = func(_ context.Context, err any, sig os.Signal, _ Handler) {
-	log.Errorf("[Signal] handler panic (%s): %v", sig, err)
+var DefaultRecovery RecoveryHandler = func(ctx context.Context, sig os.Signal, _ Handler, recovered any) {
+	log.Context(ctx).Errorf("[Signal] handler panic (%s): %v", sig, recovered)
 }
 
 // Server routes operating system signals to registered handlers.
@@ -101,7 +101,7 @@ func (s *Server) handle(ctx context.Context, sig os.Signal, handler Handler) {
 	defer func() {
 		if s.recovery != nil {
 			if err := recover(); err != nil {
-				s.recovery(ctx, err, sig, handler)
+				s.recovery(ctx, sig, handler, err)
 			}
 		}
 	}()
