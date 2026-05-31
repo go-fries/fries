@@ -46,7 +46,7 @@ func NewServer(opts ...Option) *Server {
 func (s *Server) Start(ctx context.Context) error {
 	handlers, signals := buildHandlers(s.snapshotHandlers())
 
-	log.Infof("[Signal] server starting")
+	log.Context(ctx).Infof("[Signal] server starting")
 
 	if len(signals) == 0 {
 		return s.wait(ctx)
@@ -89,9 +89,9 @@ func (s *Server) Register(handlers ...Handler) {
 }
 
 // Stop stops the Server and unblocks Start.
-func (s *Server) Stop(context.Context) error {
+func (s *Server) Stop(ctx context.Context) error {
 	s.stopOnce.Do(func() {
-		log.Infof("[Signal] server stopping")
+		log.Context(ctx).Infof("[Signal] server stopping")
 		close(s.stopped)
 	})
 	return nil
