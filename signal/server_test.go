@@ -17,7 +17,7 @@ func TestServer_StartWithoutHandlersStops(t *testing.T) {
 	done := make(chan error, 1)
 
 	go func() {
-		done <- srv.Start(context.Background())
+		done <- srv.Start(t.Context())
 	}()
 
 	require.NoError(t, srv.Stop(t.Context()))
@@ -37,13 +37,13 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	handlers, signals := buildHandlers([]Handler{
 		testHandler{
 			signals: []os.Signal{sig},
-			handle: func(sig os.Signal) {
+			handle: func(_ context.Context, sig os.Signal) {
 				handled <- sig
 			},
 		},
 		testHandler{
 			signals: []os.Signal{sig},
-			handle: func(os.Signal) {
+			handle: func(context.Context, os.Signal) {
 				panic("handler panic")
 			},
 		},
@@ -54,7 +54,7 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	ch := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 	go func() {
-		done <- srv.serve(context.Background(), ch, handlers)
+		done <- srv.serve(t.Context(), ch, handlers)
 	}()
 
 	ch <- sig
@@ -73,7 +73,7 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 		asyncTestHandler{
 			testHandler: testHandler{
 				signals: []os.Signal{sig},
-				handle: func(sig os.Signal) {
+				handle: func(_ context.Context, sig os.Signal) {
 					handled <- sig
 				},
 			},
@@ -83,7 +83,7 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 	ch := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 	go func() {
-		done <- srv.serve(context.Background(), ch, handlers)
+		done <- srv.serve(t.Context(), ch, handlers)
 	}()
 
 	ch <- sig
@@ -118,7 +118,7 @@ func TestBuildHandlersCallsListenOnce(t *testing.T) {
 }
 
 func TestServer_StartReturnsContextError(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	assert.ErrorIs(t, NewServer().Start(ctx), context.Canceled)
@@ -136,18 +136,46 @@ func TestServer_SnapshotHandlers(t *testing.T) {
 	assert.Equal(t, []Handler{handler}, srv.snapshotHandlers())
 }
 
+func TestServer_ServePassesContextToHandlers(t *testing.T) {
+	sig := syscall.SIGUSR1
+	type contextKey struct{}
+	ctx := context.WithValue(t.Context(), contextKey{}, "context value")
+	handled := make(chan any, 1)
+	srv := NewServer()
+	handlers, _ := buildHandlers([]Handler{
+		testHandler{
+			signals: []os.Signal{sig},
+			handle: func(ctx context.Context, _ os.Signal) {
+				handled <- ctx.Value(contextKey{})
+			},
+		},
+	})
+
+	ch := make(chan os.Signal, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- srv.serve(ctx, ch, handlers)
+	}()
+
+	ch <- sig
+	assert.Equal(t, "context value", <-handled)
+
+	require.NoError(t, srv.Stop(t.Context()))
+	assert.NoError(t, <-done)
+}
+
 type testHandler struct {
 	signals []os.Signal
-	handle  func(os.Signal)
+	handle  func(context.Context, os.Signal)
 }
 
 func (h testHandler) Listen() []os.Signal {
 	return h.signals
 }
 
-func (h testHandler) Handle(sig os.Signal) {
+func (h testHandler) Handle(ctx context.Context, sig os.Signal) {
 	if h.handle != nil {
-		h.handle(sig)
+		h.handle(ctx, sig)
 	}
 }
 
@@ -169,14 +197,14 @@ func (h countingHandler) Listen() []os.Signal {
 	return h.signals
 }
 
-func (h countingHandler) Handle(os.Signal) {}
+func (h countingHandler) Handle(context.Context, os.Signal) {}
 
 func TestServer_StartStopsPromptly(t *testing.T) {
-	srv := NewServer(AddHandler(testHandler{signals: []os.Signal{syscall.SIGUSR1}}))
+	srv := NewServer(WithHandlers(testHandler{signals: []os.Signal{syscall.SIGUSR1}}))
 	done := make(chan error, 1)
 
 	go func() {
-		done <- srv.Start(context.Background())
+		done <- srv.Start(t.Context())
 	}()
 
 	require.NoError(t, srv.Stop(t.Context()))

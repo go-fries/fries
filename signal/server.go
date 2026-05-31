@@ -25,33 +25,51 @@ type Server struct {
 }
 
 // Option configures a Server.
-type Option func(*Server)
+type Option interface {
+	apply(*config)
+}
 
-// AddHandler registers handlers when constructing a Server.
-func AddHandler(handler ...Handler) Option {
-	return func(s *Server) {
-		s.handlers = append(s.handlers, handler...)
-	}
+type config struct {
+	handlers []Handler
+	recovery func(any, os.Signal, Handler)
+}
+
+type optionFunc func(*config)
+
+func (f optionFunc) apply(cfg *config) {
+	f(cfg)
+}
+
+// WithHandlers registers handlers when constructing a Server.
+func WithHandlers(handlers ...Handler) Option {
+	return optionFunc(func(cfg *config) {
+		cfg.handlers = append(cfg.handlers, handlers...)
+	})
 }
 
 // WithRecovery configures a panic recovery hook for handler execution.
 func WithRecovery(handler func(any, os.Signal, Handler)) Option {
-	return func(s *Server) {
+	return optionFunc(func(cfg *config) {
 		if handler != nil {
-			s.recovery = handler
+			cfg.recovery = handler
 		}
-	}
+	})
 }
 
 // NewServer creates a Server with the supplied options.
 func NewServer(opts ...Option) *Server {
-	server := &Server{
+	cfg := config{
 		handlers: make([]Handler, 0),
-		stopped:  make(chan struct{}),
 	}
 
 	for _, opt := range opts {
-		opt(server)
+		opt.apply(&cfg)
+	}
+
+	server := &Server{
+		handlers: cfg.handlers,
+		stopped:  make(chan struct{}),
+		recovery: cfg.recovery,
 	}
 
 	return server
@@ -85,9 +103,9 @@ func (s *Server) serve(ctx context.Context, ch <-chan os.Signal, handlers map[os
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
 					if async, ok := h.(contract.Asyncable); ok && async.Async() {
-						go s.handle(sig, h)
+						go s.handle(ctx, sig, h)
 					} else {
-						s.handle(sig, h)
+						s.handle(ctx, sig, h)
 					}
 				}
 			}
@@ -112,7 +130,7 @@ func (s *Server) Stop(context.Context) error {
 	return nil
 }
 
-func (s *Server) handle(sig os.Signal, handler Handler) {
+func (s *Server) handle(ctx context.Context, sig os.Signal, handler Handler) {
 	defer func() {
 		if s.recovery != nil {
 			if err := recover(); err != nil {
@@ -121,7 +139,7 @@ func (s *Server) handle(sig os.Signal, handler Handler) {
 		}
 	}()
 
-	handler.Handle(sig)
+	handler.Handle(ctx, sig)
 }
 
 func (s *Server) wait(ctx context.Context) error {

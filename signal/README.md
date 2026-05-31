@@ -12,6 +12,7 @@ go get github.com/go-fries/fries/signal/v3
 package main
 
 import (
+	"context"
 	"os"
 	"syscall"
 
@@ -33,10 +34,9 @@ func main() {
 
 func newSignalServer() *signal.Server {
 	srv := signal.NewServer(
+		signal.WithHandlers(&exampleHandler{}, &example2Handler{}),
 		signal.WithRecovery(signal.DefaultRecovery),
 	)
-
-	srv.Register(&exampleHandler{}, &example2Handler{})
 
 	return srv
 }
@@ -47,7 +47,7 @@ func (h *exampleHandler) Listen() []os.Signal {
 	return []os.Signal{syscall.SIGUSR1, syscall.SIGUSR2}
 }
 
-func (h *exampleHandler) Handle(sig os.Signal) {
+func (h *exampleHandler) Handle(ctx context.Context, sig os.Signal) {
 	println("exampleHandler signal:", sig)
 }
 
@@ -59,7 +59,7 @@ func (h *example2Handler) Listen() []os.Signal {
 	return []os.Signal{syscall.SIGUSR1}
 }
 
-func (h *example2Handler) Handle(os.Signal) {
+func (h *example2Handler) Handle(context.Context, os.Signal) {
 	panic("example2Handler panic")
 }
 ```
@@ -84,5 +84,6 @@ ERROR msg=[Signal] handler panic (user defined signal 1): example2Handler panic
 
 - `Start` blocks until the context is canceled or `Stop` is called.
 - `Stop` is idempotent and can be called more than once.
+- `WithHandlers` registers handlers during construction. `Register` can add handlers before `Start` builds its signal routes.
 - Handlers that implement `contract.Asyncable` and return `true` from `Async` run in their own goroutine.
 - `WithRecovery` handles panics raised by handlers. Use `signal.WithRecovery(signal.DefaultRecovery)` to log handler panics.

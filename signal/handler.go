@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"context"
 	"os"
 )
 
@@ -10,5 +11,5 @@ type Handler interface {
 	Listen() []os.Signal
 
 	// Handle processes a received signal.
-	Handle(os.Signal)
+	Handle(context.Context, os.Signal)
 }
