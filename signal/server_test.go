@@ -72,12 +72,10 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 	srv := NewServer()
 	handlers, _ := buildHandlers([]Handler{
 		asyncTestHandler{
-			testHandler: testHandler{
-				signals: []os.Signal{sig},
-				handle: func(_ context.Context, sig os.Signal) {
-					started <- sig
-					<-release
-				},
+			signals: []os.Signal{sig},
+			handle: func(_ context.Context, sig os.Signal) {
+				started <- sig
+				<-release
 			},
 		},
 	})
@@ -189,10 +187,20 @@ func (h testHandler) Handle(ctx context.Context, sig os.Signal) {
 }
 
 type asyncTestHandler struct {
-	testHandler
+	AsyncHandler
+	signals []os.Signal
+	handle  func(context.Context, os.Signal)
 }
 
-func (h asyncTestHandler) Async() {}
+func (h asyncTestHandler) Listen() []os.Signal {
+	return h.signals
+}
+
+func (h asyncTestHandler) Handle(ctx context.Context, sig os.Signal) {
+	if h.handle != nil {
+		h.handle(ctx, sig)
+	}
+}
 
 type countingHandler struct {
 	signals []os.Signal

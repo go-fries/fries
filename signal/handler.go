@@ -14,6 +14,8 @@ type Handler interface {
 	Handle(context.Context, os.Signal)
 }
 
-type asyncable interface {
-	Async()
+// AsyncHandler marks a Handler that should run asynchronously.
+type AsyncHandler interface {
+	Handler
+	async()
 }
