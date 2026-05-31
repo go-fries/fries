@@ -65,6 +65,43 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	assert.NoError(t, <-done)
 }
 
+func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
+	sig := syscall.SIGUSR1
+	started := make(chan os.Signal, 1)
+	release := make(chan struct{})
+	srv := NewServer()
+	handlers, _ := buildHandlers([]Handler{
+		asyncTestHandler{
+			testHandler: testHandler{
+				signals: []os.Signal{sig},
+				handle: func(_ context.Context, sig os.Signal) {
+					started <- sig
+					<-release
+				},
+			},
+		},
+	})
+
+	ch := make(chan os.Signal, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- srv.serve(t.Context(), ch, handlers)
+	}()
+
+	ch <- sig
+	assert.Equal(t, sig, <-started)
+
+	require.NoError(t, srv.Stop(t.Context()))
+	select {
+	case err := <-done:
+		assert.NoError(t, err)
+	case <-time.After(time.Second):
+		close(release)
+		t.Fatal("server did not stop while async handler was running")
+	}
+	close(release)
+}
+
 func TestServer_StopIsIdempotent(t *testing.T) {
 	srv := NewServer()
 
@@ -149,6 +186,14 @@ func (h testHandler) Handle(ctx context.Context, sig os.Signal) {
 	if h.handle != nil {
 		h.handle(ctx, sig)
 	}
+}
+
+type asyncTestHandler struct {
+	testHandler
+}
+
+func (h asyncTestHandler) Async() bool {
+	return true
 }
 
 type countingHandler struct {

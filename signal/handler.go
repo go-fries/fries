@@ -13,3 +13,7 @@ type Handler interface {
 	// Handle processes a received signal.
 	Handle(context.Context, os.Signal)
 }
+
+type asyncable interface {
+	Async() bool
+}
