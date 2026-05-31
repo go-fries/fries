@@ -22,7 +22,7 @@ func TestServer_StartWithoutHandlersStops(t *testing.T) {
 	}()
 
 	require.NoError(t, srv.Stop(t.Context()))
-	assert.NoError(t, <-done)
+	assert.NoError(t, receive(t, done))
 }
 
 func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
@@ -63,12 +63,12 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	}()
 
 	ch <- sig
-	assert.Equal(t, sig, <-handled)
-	assert.Equal(t, "recovery context", <-recoveredCtx)
-	assert.Equal(t, "handler panic", <-recovered)
+	assert.Equal(t, sig, receive(t, handled))
+	assert.Equal(t, "recovery context", receive(t, recoveredCtx))
+	assert.Equal(t, "handler panic", receive(t, recovered))
 
 	require.NoError(t, srv.Stop(t.Context()))
-	assert.NoError(t, <-done)
+	assert.NoError(t, receive(t, done))
 }
 
 func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
@@ -93,7 +93,7 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 	}()
 
 	ch <- sig
-	assert.Equal(t, sig, <-started)
+	assert.Equal(t, sig, receive(t, started))
 
 	require.NoError(t, srv.Stop(t.Context()))
 	select {
@@ -120,6 +120,13 @@ func TestNewServer_DefaultRecovery(t *testing.T) {
 	assert.Equal(t, reflect.ValueOf(defaultRecovery).Pointer(), reflect.ValueOf(NewServer(WithRecovery(nil)).recovery).Pointer())
 }
 
+func TestNewServer_SkipsNilOptions(t *testing.T) {
+	assert.NotPanics(t, func() {
+		srv := NewServer(nil)
+		assert.NotNil(t, srv.recovery)
+	})
+}
+
 func TestBuildHandlersCallsListenOnce(t *testing.T) {
 	var listenCalls atomic.Int32
 	handler := countingHandler{
@@ -133,6 +140,16 @@ func TestBuildHandlersCallsListenOnce(t *testing.T) {
 	assert.Equal(t, []os.Signal{syscall.SIGUSR1, syscall.SIGUSR2}, signals)
 	assert.Len(t, handlers[syscall.SIGUSR1], 1)
 	assert.Len(t, handlers[syscall.SIGUSR2], 1)
+}
+
+func TestBuildHandlersSkipsNilHandlers(t *testing.T) {
+	var nilHandler *testHandler
+	handler := testHandler{signals: []os.Signal{syscall.SIGUSR1}}
+
+	handlers, signals := buildHandlers([]Handler{nil, nilHandler, handler})
+
+	assert.Equal(t, []os.Signal{syscall.SIGUSR1}, signals)
+	assert.Equal(t, []Handler{handler}, handlers[syscall.SIGUSR1])
 }
 
 func TestServer_StartReturnsContextError(t *testing.T) {
@@ -176,10 +193,20 @@ func TestServer_ServePassesContextToHandlers(t *testing.T) {
 	}()
 
 	ch <- sig
-	assert.Equal(t, "context value", <-handled)
+	assert.Equal(t, "context value", receive(t, handled))
 
 	require.NoError(t, srv.Stop(t.Context()))
-	assert.NoError(t, <-done)
+	assert.NoError(t, receive(t, done))
+}
+
+func TestServer_RegisterSkipsNilHandlers(t *testing.T) {
+	var nilHandler *testHandler
+	handler := testHandler{signals: []os.Signal{syscall.SIGUSR1}}
+	srv := NewServer(WithHandlers(nil, nilHandler, handler))
+
+	srv.Register(nil, nilHandler)
+
+	assert.Equal(t, []Handler{handler}, srv.snapshotHandlers())
 }
 
 type testHandler struct {
@@ -240,5 +267,18 @@ func TestServer_StartStopsPromptly(t *testing.T) {
 		assert.NoError(t, err)
 	case <-time.After(time.Second):
 		t.Fatal("server did not stop")
+	}
+}
+
+func receive[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+
+	select {
+	case value := <-ch:
+		return value
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for channel receive")
+		var zero T
+		return zero
 	}
 }

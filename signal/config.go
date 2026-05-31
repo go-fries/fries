@@ -24,6 +24,9 @@ func newConfig(opts ...Option) config {
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		opt.apply(&cfg)
 	}
 
@@ -39,7 +42,7 @@ func (f optionFunc) apply(cfg *config) {
 // WithHandlers registers handlers when constructing a Server.
 func WithHandlers(handlers ...Handler) Option {
 	return optionFunc(func(cfg *config) {
-		cfg.handlers = append(cfg.handlers, handlers...)
+		cfg.handlers = appendHandlers(cfg.handlers, handlers...)
 	})
 }
 

@@ -15,7 +15,7 @@ type Handler interface {
 }
 
 // AsyncHandler marks a Handler that should run asynchronously.
+// External handlers opt in by embedding AsyncHandler.
 type AsyncHandler interface {
-	Handler
 	async()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -74,7 +75,7 @@ func (s *Server) Register(handlers ...Handler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.handlers = append(s.handlers, handlers...)
+	s.handlers = appendHandlers(s.handlers, handlers...)
 }
 
 // Stop stops the Server and unblocks Start.
@@ -122,6 +123,9 @@ func buildHandlers(handlers []Handler) (map[os.Signal][]Handler, []os.Signal) {
 	seen := make(map[os.Signal]struct{})
 
 	for _, h := range handlers {
+		if isNilHandler(h) {
+			continue
+		}
 		handlerSeen := make(map[os.Signal]struct{})
 		for _, sig := range h.Listen() {
 			if _, ok := handlerSeen[sig]; ok {
@@ -137,4 +141,29 @@ func buildHandlers(handlers []Handler) (map[os.Signal][]Handler, []os.Signal) {
 	}
 
 	return routed, signals
+}
+
+func appendHandlers(dst []Handler, handlers ...Handler) []Handler {
+	for _, h := range handlers {
+		if isNilHandler(h) {
+			continue
+		}
+		dst = append(dst, h)
+	}
+
+	return dst
+}
+
+func isNilHandler(handler Handler) bool {
+	if handler == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(handler)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
