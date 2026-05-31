@@ -4,87 +4,65 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"reflect"
+	"sync"
 
-	"github.com/go-fries/fries/contract/v3"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-var DefaultRecovery = func(err any, sig os.Signal, _ Handler) {
-	log.Errorf("[Signal] handler panic (%s): %v", sig, err)
-}
-
+// Server routes operating system signals to registered handlers.
 type Server struct {
 	handlers []Handler
-	stoped   chan struct{}
-	recovery func(any, os.Signal, Handler)
+	stopped  chan struct{}
+	stopOnce sync.Once
+	mu       sync.RWMutex
+	recovery RecoveryHandler
 }
 
-type Option func(*Server)
-
-func AddHandler(handler ...Handler) Option {
-	return func(s *Server) {
-		s.handlers = append(s.handlers, handler...)
-	}
-}
-
-func WithRecovery(handler func(any, os.Signal, Handler)) Option {
-	return func(s *Server) {
-		if handler != nil {
-			s.recovery = handler
-		}
-	}
-}
-
+// NewServer creates a Server with the supplied options.
 func NewServer(opts ...Option) *Server {
-	server := &Server{
-		handlers: make([]Handler, 0),
-		stoped:   make(chan struct{}),
-	}
+	cfg := newConfig(opts...)
 
-	for _, opt := range opts {
-		opt(server)
+	server := &Server{
+		handlers: cfg.handlers,
+		stopped:  make(chan struct{}),
+		recovery: cfg.recovery,
 	}
 
 	return server
 }
 
+// Start subscribes to registered signals and blocks until the context is done or the server stops.
 func (s *Server) Start(ctx context.Context) error {
-	var (
-		signals  = make([]os.Signal, 0)
-		handlers = make(map[os.Signal][]Handler)
-	)
+	handlers, signals := buildHandlers(s.snapshotHandlers())
 
-	for _, h := range s.handlers {
-		for _, sig := range h.Listen() {
-			if _, ok := handlers[sig]; !ok {
-				handlers[sig] = make([]Handler, 0)
-			}
-			handlers[sig] = append(handlers[sig], h)
-		}
-		signals = append(signals, h.Listen()...)
+	log.Context(ctx).Infof("[Signal] server starting")
+
+	if len(signals) == 0 {
+		return s.wait(ctx)
 	}
-
-	signals = s.uniqueSignals(signals)
 
 	ch := make(chan os.Signal, len(signals))
 	signal.Notify(ch, signals...)
+	defer signal.Stop(ch)
 
-	log.Infof("[Signal] server starting")
+	return s.serve(ctx, ch, handlers)
+}
 
+func (s *Server) serve(ctx context.Context, ch <-chan os.Signal, handlers map[os.Signal][]Handler) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-s.stoped:
+		case <-s.stopped:
 			return nil
 		case sig := <-ch:
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
-					// if Support asyncFeature
-					if async, ok := h.(contract.Asyncable); ok && async.Async() {
-						go s.handle(sig, h)
+					if _, ok := h.(AsyncHandler); ok {
+						go s.handle(ctx, sig, h)
 					} else {
-						s.handle(sig, h)
+						s.handle(ctx, sig, h)
 					}
 				}
 			}
@@ -92,36 +70,100 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 }
 
+// Register adds handlers to the Server.
 func (s *Server) Register(handlers ...Handler) {
-	s.handlers = append(s.handlers, handlers...)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.handlers = appendHandlers(s.handlers, handlers...)
 }
 
-func (s *Server) Stop(context.Context) error {
-	log.Infof("[Signal] server stopping")
-	close(s.stoped)
+// Stop stops the Server and unblocks Start.
+func (s *Server) Stop(ctx context.Context) error {
+	s.stopOnce.Do(func() {
+		log.Context(ctx).Infof("[Signal] server stopping")
+		close(s.stopped)
+	})
 	return nil
 }
 
-func (s *Server) handle(sig os.Signal, handler Handler) {
+func (s *Server) handle(ctx context.Context, sig os.Signal, handler Handler) {
 	defer func() {
 		if s.recovery != nil {
 			if err := recover(); err != nil {
-				s.recovery(err, sig, handler)
+				s.recovery(ctx, sig, handler, err)
 			}
 		}
 	}()
 
-	handler.Handle(sig)
+	handler.Handle(ctx, sig)
 }
 
-func (s *Server) uniqueSignals(signals []os.Signal) []os.Signal {
-	m := make(map[os.Signal]struct{})
-	for _, sig := range signals {
-		m[sig] = struct{}{}
+func (s *Server) wait(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.stopped:
+		return nil
 	}
-	signals = make([]os.Signal, 0, len(m))
-	for sig := range m {
-		signals = append(signals, sig)
+}
+
+func (s *Server) snapshotHandlers() []Handler {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	handlers := make([]Handler, len(s.handlers))
+	copy(handlers, s.handlers)
+	return handlers
+}
+
+func buildHandlers(handlers []Handler) (map[os.Signal][]Handler, []os.Signal) {
+	routed := make(map[os.Signal][]Handler)
+	signals := make([]os.Signal, 0)
+	seen := make(map[os.Signal]struct{})
+
+	for _, h := range handlers {
+		if isNilHandler(h) {
+			continue
+		}
+		handlerSeen := make(map[os.Signal]struct{})
+		for _, sig := range h.Listen() {
+			if _, ok := handlerSeen[sig]; ok {
+				continue
+			}
+			handlerSeen[sig] = struct{}{}
+			routed[sig] = append(routed[sig], h)
+			if _, ok := seen[sig]; !ok {
+				seen[sig] = struct{}{}
+				signals = append(signals, sig)
+			}
+		}
 	}
-	return signals
+
+	return routed, signals
+}
+
+func appendHandlers(dst []Handler, handlers ...Handler) []Handler {
+	for _, h := range handlers {
+		if isNilHandler(h) {
+			continue
+		}
+		dst = append(dst, h)
+	}
+
+	return dst
+}
+
+func isNilHandler(handler Handler) bool {
+	if handler == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(handler)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
