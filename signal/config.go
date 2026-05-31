@@ -1,6 +1,9 @@
 package signal
 
-import "os"
+import (
+	"context"
+	"os"
+)
 
 // Option configures a Server.
 type Option interface {
@@ -9,7 +12,7 @@ type Option interface {
 
 type config struct {
 	handlers []Handler
-	recovery func(any, os.Signal, Handler)
+	recovery RecoveryHandler
 }
 
 type optionFunc func(*config)
@@ -26,10 +29,13 @@ func WithHandlers(handlers ...Handler) Option {
 }
 
 // WithRecovery configures a panic recovery hook for handler execution.
-func WithRecovery(handler func(any, os.Signal, Handler)) Option {
+func WithRecovery(handler RecoveryHandler) Option {
 	return optionFunc(func(cfg *config) {
 		if handler != nil {
 			cfg.recovery = handler
 		}
 	})
 }
+
+// RecoveryHandler handles panics raised by signal handlers.
+type RecoveryHandler func(context.Context, any, os.Signal, Handler)

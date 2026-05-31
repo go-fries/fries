@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultRecovery logs panics raised by signal handlers.
-var DefaultRecovery = func(err any, sig os.Signal, _ Handler) {
+var DefaultRecovery RecoveryHandler = func(_ context.Context, err any, sig os.Signal, _ Handler) {
 	log.Errorf("[Signal] handler panic (%s): %v", sig, err)
 }
 
@@ -20,7 +20,7 @@ type Server struct {
 	stopped  chan struct{}
 	stopOnce sync.Once
 	mu       sync.RWMutex
-	recovery func(any, os.Signal, Handler)
+	recovery RecoveryHandler
 }
 
 // NewServer creates a Server with the supplied options.
@@ -101,7 +101,7 @@ func (s *Server) handle(ctx context.Context, sig os.Signal, handler Handler) {
 	defer func() {
 		if s.recovery != nil {
 			if err := recover(); err != nil {
-				s.recovery(err, sig, handler)
+				s.recovery(ctx, err, sig, handler)
 			}
 		}
 	}()

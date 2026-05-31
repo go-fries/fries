@@ -26,11 +26,15 @@ func TestServer_StartWithoutHandlersStops(t *testing.T) {
 
 func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	sig := syscall.SIGUSR1
+	type contextKey struct{}
+	ctx := context.WithValue(t.Context(), contextKey{}, "recovery context")
 	handled := make(chan os.Signal, 1)
 	recovered := make(chan any, 1)
+	recoveredCtx := make(chan any, 1)
 
 	srv := NewServer(
-		WithRecovery(func(err any, _ os.Signal, _ Handler) {
+		WithRecovery(func(ctx context.Context, err any, _ os.Signal, _ Handler) {
+			recoveredCtx <- ctx.Value(contextKey{})
 			recovered <- err
 		}),
 	)
@@ -54,11 +58,12 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	ch := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 	go func() {
-		done <- srv.serve(t.Context(), ch, handlers)
+		done <- srv.serve(ctx, ch, handlers)
 	}()
 
 	ch <- sig
 	assert.Equal(t, sig, <-handled)
+	assert.Equal(t, "recovery context", <-recoveredCtx)
 	assert.Equal(t, "handler panic", <-recovered)
 
 	require.NoError(t, srv.Stop(t.Context()))
