@@ -9,6 +9,7 @@ import (
 func TestIs(t *testing.T) {
 	assert.True(t, Is("abc", "abc"))
 	assert.False(t, Is("abcc", "abc"))
+	assert.False(t, Is("abc", "abcc"))
 	assert.True(t, Is("ab*", "abc"))
 	assert.True(t, Is("ab*", "ab"))
 	assert.True(t, Is("ab/*", "ab/cc"))
@@ -18,6 +19,8 @@ func TestIs(t *testing.T) {
 	assert.True(t, Is("ab/*", "ab/cc/dd"))
 	assert.True(t, Is("*dd/", "ab/cc/dd/"))
 	assert.False(t, Is("*dd/d", "dd/"))
+	assert.True(t, Is("v1.2.*", "v1.2.3"))
+	assert.False(t, Is("v1.2.*", "v1x2x3"))
 }
 
 func TestInSlice(t *testing.T) {
