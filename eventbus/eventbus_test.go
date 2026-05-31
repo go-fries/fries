@@ -58,6 +58,23 @@ func TestEventBus_Struct(t *testing.T) {
 	assert.ErrorIs(t, listener.Off(), ErrListenerNotFound)
 }
 
+func TestEventBus_ListenersReturnsCopy(t *testing.T) {
+	topic := NewEvent[int]()
+
+	first := topic.On(HandlerFunc[int](func(context.Context, int) error {
+		return nil
+	}))
+	second := topic.On(HandlerFunc[int](func(context.Context, int) error {
+		return nil
+	}))
+
+	listeners := topic.Listeners()
+	assert.Equal(t, []*Listener[int]{first, second}, listeners)
+
+	listeners[0] = nil
+	assert.Equal(t, []*Listener[int]{first, second}, topic.Listeners())
+}
+
 func TestEventBus_SkipErrors(t *testing.T) {
 	topic := NewEvent[int]()
 	ch := make(chan int, 1)

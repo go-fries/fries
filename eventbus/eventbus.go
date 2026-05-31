@@ -117,7 +117,7 @@ func (t *Event[T]) Listeners() []*Listener[T] {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	return t.listeners
+	return append([]*Listener[T](nil), t.listeners...)
 }
 
 func (t *Event[T]) ListenersCount() int {
