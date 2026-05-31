@@ -9,11 +9,6 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-// DefaultRecovery logs panics raised by signal handlers.
-var DefaultRecovery RecoveryHandler = func(ctx context.Context, sig os.Signal, _ Handler, recovered any) {
-	log.Context(ctx).Errorf("[Signal] handler panic (%s): %v", sig, recovered)
-}
-
 // Server routes operating system signals to registered handlers.
 type Server struct {
 	handlers []Handler
@@ -25,13 +20,7 @@ type Server struct {
 
 // NewServer creates a Server with the supplied options.
 func NewServer(opts ...Option) *Server {
-	cfg := config{
-		handlers: make([]Handler, 0),
-	}
-
-	for _, opt := range opts {
-		opt.apply(&cfg)
-	}
+	cfg := newConfig(opts...)
 
 	server := &Server{
 		handlers: cfg.handlers,

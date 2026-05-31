@@ -3,6 +3,7 @@ package signal
 import (
 	"context"
 	"os"
+	"reflect"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -112,6 +113,11 @@ func TestServer_StopIsIdempotent(t *testing.T) {
 		assert.NoError(t, srv.Stop(t.Context()))
 		assert.NoError(t, srv.Stop(t.Context()))
 	})
+}
+
+func TestNewServer_DefaultRecovery(t *testing.T) {
+	assert.NotNil(t, NewServer().recovery)
+	assert.Equal(t, reflect.ValueOf(defaultRecovery).Pointer(), reflect.ValueOf(NewServer(WithRecovery(nil)).recovery).Pointer())
 }
 
 func TestBuildHandlersCallsListenOnce(t *testing.T) {
