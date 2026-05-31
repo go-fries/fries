@@ -50,6 +50,22 @@ func TestGroup_First(t *testing.T) {
 	assert.Equal(t, err1, g.First())
 }
 
+func TestGroup_ErrorsReturnsCopy(t *testing.T) {
+	var zero Group
+	assert.Nil(t, zero.Errors())
+
+	g := NewGroup().Add(err1, err2)
+
+	errs := g.Errors()
+	assert.Equal(t, []error{err1, err2}, errs)
+
+	errs[0] = err3
+	assert.Equal(t, []error{err1, err2}, g.Errors())
+	assert.Equal(t, err1, g.First())
+	assert.True(t, g.Has(err1))
+	assert.False(t, g.Has(err3))
+}
+
 func TestGroup_IsNil(t *testing.T) {
 	g := NewGroup()
 	assert.True(t, g.IsNil())
