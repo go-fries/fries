@@ -52,9 +52,7 @@ func (h *exampleHandler) Handle(ctx context.Context, sig os.Signal) {
 
 type example2Handler struct{}
 
-func (h *example2Handler) Async() bool {
-	return true
-}
+func (h *example2Handler) Async() {}
 
 func (h *example2Handler) Listen() []os.Signal {
 	return []os.Signal{syscall.SIGUSR1}
@@ -86,5 +84,5 @@ ERROR msg=[Signal] handler panic (user defined signal 1): example2Handler panic
 - `Start` blocks until the context is canceled or `Stop` is called.
 - `Stop` is idempotent and can be called more than once.
 - `WithHandlers` registers handlers during construction. `Register` can add handlers before `Start` builds its signal routes.
-- Handlers that implement `Async() bool` and return `true` run in their own goroutine.
+- Handlers that implement `Async()` run in their own goroutine.
 - `WithRecovery` handles panics raised by handlers. Use `signal.WithRecovery(signal.DefaultRecovery)` to log handler panics.

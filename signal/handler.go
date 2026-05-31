@@ -15,5 +15,5 @@ type Handler interface {
 }
 
 type asyncable interface {
-	Async() bool
+	Async()
 }

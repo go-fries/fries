@@ -69,7 +69,7 @@ func (s *Server) serve(ctx context.Context, ch <-chan os.Signal, handlers map[os
 		case sig := <-ch:
 			if hs, ok := handlers[sig]; ok {
 				for _, h := range hs {
-					if async, ok := h.(asyncable); ok && async.Async() {
+					if _, ok := h.(asyncable); ok {
 						go s.handle(ctx, sig, h)
 					} else {
 						s.handle(ctx, sig, h)

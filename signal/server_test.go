@@ -192,9 +192,7 @@ type asyncTestHandler struct {
 	testHandler
 }
 
-func (h asyncTestHandler) Async() bool {
-	return true
-}
+func (h asyncTestHandler) Async() {}
 
 type countingHandler struct {
 	signals []os.Signal
