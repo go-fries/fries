@@ -61,6 +61,10 @@ func TestEventBus_Struct(t *testing.T) {
 func TestEventBus_ListenersReturnsCopy(t *testing.T) {
 	topic := NewEvent[int]()
 
+	listeners := topic.Listeners()
+	assert.NotNil(t, listeners)
+	assert.Empty(t, listeners)
+
 	first := topic.On(HandlerFunc[int](func(context.Context, int) error {
 		return nil
 	}))
@@ -68,11 +72,16 @@ func TestEventBus_ListenersReturnsCopy(t *testing.T) {
 		return nil
 	}))
 
-	listeners := topic.Listeners()
+	listeners = topic.Listeners()
 	assert.Equal(t, []*Listener[int]{first, second}, listeners)
 
 	listeners[0] = nil
 	assert.Equal(t, []*Listener[int]{first, second}, topic.Listeners())
+
+	topic.OffAll()
+	listeners = topic.Listeners()
+	assert.NotNil(t, listeners)
+	assert.Empty(t, listeners)
 }
 
 func TestEventBus_SkipErrors(t *testing.T) {
