@@ -38,7 +38,13 @@ func (g *Group) Error() string {
 }
 
 func (g *Group) Errors() []error {
-	return g.errors
+	if len(g.errors) == 0 {
+		return g.errors
+	}
+
+	errs := make([]error, len(g.errors))
+	copy(errs, g.errors)
+	return errs
 }
 
 func (g *Group) Len() int {
