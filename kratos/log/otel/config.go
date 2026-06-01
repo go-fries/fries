@@ -13,7 +13,7 @@ type config struct {
 	attributes []attribute.KeyValue
 }
 
-// Option configures a Logger.
+// Option configures a [Logger].
 type Option interface {
 	apply(*config)
 }
@@ -24,8 +24,8 @@ func (f optionFunc) apply(c *config) {
 	f(c)
 }
 
-// WithLoggerProvider sets the OpenTelemetry logger provider used to create the
-// underlying log.Logger.
+// WithLoggerProvider sets the [log.LoggerProvider] used to create the
+// underlying [log.Logger].
 func WithLoggerProvider(provider log.LoggerProvider) Option {
 	return optionFunc(func(c *config) {
 		c.provider = provider
@@ -48,8 +48,8 @@ func WithSchemaURL(schemaURL string) Option {
 	})
 }
 
-// WithAttributes adds instrumentation scope attributes reported to
-// OpenTelemetry.
+// WithAttributes adds instrumentation scope [attribute.KeyValue] attributes
+// reported to OpenTelemetry.
 func WithAttributes(attributes ...attribute.KeyValue) Option {
 	return optionFunc(func(c *config) {
 		c.attributes = append(c.attributes, attributes...)

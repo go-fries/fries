@@ -17,8 +17,7 @@ const scopeName = "github.com/go-fries/fries/kratos/log/otel/v3"
 
 var _ kratoslog.Logger = (*Logger)(nil)
 
-// NewLogger creates a Kratos logger that emits records through OpenTelemetry
-// Logs.
+// NewLogger creates a [Logger] that emits records through OpenTelemetry Logs.
 func NewLogger(opts ...Option) *Logger {
 	cfg := newConfig(opts...)
 
@@ -27,7 +26,7 @@ func NewLogger(opts ...Option) *Logger {
 	}
 }
 
-// Log emits a Kratos log entry as an OpenTelemetry log record.
+// Log emits a Kratos log entry as a [log.Record].
 func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
 	severity := convertLevel(level)
 	ctx := contextFromKVs(context.Background(), keyvals...)
