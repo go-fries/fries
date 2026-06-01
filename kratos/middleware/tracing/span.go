@@ -7,12 +7,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var spanAttributes = semconv.NewBuilder(serviceHeader)
+var spanAttributeBuilder = semconv.NewBuilder(serviceHeader)
 
 func setClientSpan(ctx context.Context, span trace.Span, m any) {
-	span.SetAttributes(spanAttributes.Client(ctx, m)...)
+	span.SetAttributes(spanAttributeBuilder.Client(ctx, m)...)
 }
 
 func setServerSpan(ctx context.Context, span trace.Span, m any) {
-	span.SetAttributes(spanAttributes.Server(ctx, m)...)
+	span.SetAttributes(spanAttributeBuilder.Server(ctx, m)...)
 }
