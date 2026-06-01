@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 	"google.golang.org/grpc/peer"
@@ -23,20 +25,14 @@ func TestClient_TagConn(t *testing.T) {
 	client := &ClientHandler{}
 	ctx := context.WithValue(t.Context(), testKey, 123)
 
-	if client.TagConn(ctx, nil).Value(testKey) != 123 {
-		t.Errorf(`The context value must be 123 for the "MY_KEY_TEST" key, %v given.`,
-			client.TagConn(ctx, nil).Value(testKey))
-	}
+	assert.Equal(t, 123, client.TagConn(ctx, nil).Value(testKey))
 }
 
 func TestClient_TagRPC(t *testing.T) {
 	client := &ClientHandler{}
 	ctx := context.WithValue(t.Context(), testKey, 123)
 
-	if client.TagRPC(ctx, nil).Value(testKey) != 123 {
-		t.Errorf(`The context value must be 123 for the "MY_KEY_TEST" key, %v given.`,
-			client.TagConn(ctx, nil).Value(testKey))
-	}
+	assert.Equal(t, 123, client.TagRPC(ctx, nil).Value(testKey))
 }
 
 type mockSpan struct {
@@ -60,7 +56,8 @@ func TestClient_HandleRPC(t *testing.T) {
 	client.HandleRPC(ctx, &rs)
 
 	// Handle context with the peerkey filled with a Peer instance
-	ip, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+	ip, err := net.ResolveIPAddr("ip", "1.1.1.1")
+	require.NoError(t, err)
 	ctx = peer.NewContext(ctx, &peer.Peer{
 		Addr: ip,
 	})

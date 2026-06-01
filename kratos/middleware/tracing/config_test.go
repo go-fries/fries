@@ -3,6 +3,8 @@ package tracing
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -11,23 +13,15 @@ import (
 func TestNewConfigDefaults(t *testing.T) {
 	cfg := newConfig()
 
-	if cfg.tracerProvider == nil {
-		t.Fatal("expected tracer provider")
-	}
-	if cfg.propagator == nil {
-		t.Fatal("expected propagator")
-	}
-	if cfg.version != Version() {
-		t.Fatalf("expected version %q, got %q", Version(), cfg.version)
-	}
+	assert.NotNil(t, cfg.tracerProvider)
+	assert.NotNil(t, cfg.propagator)
+	assert.Equal(t, Version(), cfg.version)
 }
 
 func TestNewConfigFallsBackToGlobalTracerProvider(t *testing.T) {
 	cfg := newConfig(WithTracerProvider(nil))
 
-	if cfg.tracerProvider == nil {
-		t.Fatal("expected tracer provider")
-	}
+	assert.NotNil(t, cfg.tracerProvider)
 }
 
 func TestConfigNewTracerUsesScopeOptions(t *testing.T) {
@@ -47,27 +41,17 @@ func TestConfigNewTracerUsesScopeOptions(t *testing.T) {
 	span.End()
 
 	ended := recorder.Ended()
-	if len(ended) != 1 {
-		t.Fatalf("expected 1 ended span, got %d", len(ended))
-	}
+	require.Len(t, ended, 1)
 
 	scope := ended[0].InstrumentationScope()
-	if scope.Name != scopeName {
-		t.Fatalf("expected scope name %q, got %q", scopeName, scope.Name)
-	}
-	if scope.Version != "1.2.3" {
-		t.Fatalf("expected scope version %q, got %q", "1.2.3", scope.Version)
-	}
-	if scope.SchemaURL != "https://example.com/schema" {
-		t.Fatalf("expected schema URL %q, got %q", "https://example.com/schema", scope.SchemaURL)
-	}
+	assert.Equal(t, scopeName, scope.Name)
+	assert.Equal(t, "1.2.3", scope.Version)
+	assert.Equal(t, "https://example.com/schema", scope.SchemaURL)
 
 	got, ok := scope.Attributes.Value(attribute.Key("component"))
-	if !ok || got.AsString() != "tracing" {
-		t.Fatalf("expected component attribute %q, got %q", "tracing", got.AsString())
-	}
+	require.True(t, ok)
+	assert.Equal(t, "tracing", got.AsString())
 	got, ok = scope.Attributes.Value(attribute.Key("layer"))
-	if !ok || got.AsString() != "kratos" {
-		t.Fatalf("expected layer attribute %q, got %q", "kratos", got.AsString())
-	}
+	require.True(t, ok)
+	assert.Equal(t, "kratos", got.AsString())
 }

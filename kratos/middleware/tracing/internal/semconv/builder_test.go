@@ -3,12 +3,13 @@ package semconv
 import (
 	"net"
 	"net/http"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"google.golang.org/grpc/peer"
@@ -70,7 +71,8 @@ func (tr *mockTransport) Request() *http.Request {
 func (tr *mockTransport) PathTemplate() string { return tr.route }
 
 func TestBuilderClientHTTP(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "https://api.example.com:443/v1/items/1", strings.NewReader("payload"))
+	req, err := http.NewRequest(http.MethodGet, "https://api.example.com:443/v1/items/1", strings.NewReader("payload"))
+	require.NoError(t, err)
 	req.RemoteAddr = "10.0.0.1:12345"
 	req.Header.Set("User-Agent", "go-test")
 	msg := &emptypb.Empty{}
@@ -95,14 +97,13 @@ func TestBuilderClientHTTP(t *testing.T) {
 		attribute.Key("send_msg.size").Int(proto.Size(msg)),
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Builder.Client() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestBuilderClientGRPC(t *testing.T) {
 	msg := &emptypb.Empty{}
-	ip, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+	ip, err := net.ResolveIPAddr("ip", "1.1.1.1")
+	require.NoError(t, err)
 	ctx := peer.NewContext(t.Context(), &peer.Peer{Addr: ip})
 	ctx = transport.NewClientContext(ctx, &mockTransport{
 		kind:      transport.KindGRPC,
@@ -119,13 +120,12 @@ func TestBuilderClientGRPC(t *testing.T) {
 		attribute.Key("send_msg.size").Int(proto.Size(msg)),
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Builder.Client() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestBuilderServerHTTP(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPost, "http://localhost/v1/items", strings.NewReader("payload"))
+	req, err := http.NewRequest(http.MethodPost, "http://localhost/v1/items", strings.NewReader("payload"))
+	require.NoError(t, err)
 	req.RemoteAddr = "192.168.0.10:54321"
 	req.Header.Set("User-Agent", "go-test")
 	msg := &emptypb.Empty{}
@@ -159,14 +159,13 @@ func TestBuilderServerHTTP(t *testing.T) {
 		otelsemconv.ServicePeerName("caller-service"),
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Builder.Server() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestBuilderServerGRPC(t *testing.T) {
 	msg := &emptypb.Empty{}
-	ip, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+	ip, err := net.ResolveIPAddr("ip", "1.1.1.1")
+	require.NoError(t, err)
 	ctx := peer.NewContext(t.Context(), &peer.Peer{Addr: ip})
 	ctx = transport.NewServerContext(ctx, &mockTransport{
 		kind:      transport.KindGRPC,
@@ -180,7 +179,5 @@ func TestBuilderServerGRPC(t *testing.T) {
 		attribute.Key("recv_msg.size").Int(proto.Size(msg)),
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Builder.Server() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }

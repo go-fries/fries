@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -13,16 +14,10 @@ import (
 func TestNewTracer(t *testing.T) {
 	tracer := newTracer(trace.SpanKindClient, WithTracerProvider(noop.NewTracerProvider()))
 
-	if tracer.kind != trace.SpanKindClient {
-		t.Errorf("The tracer kind must be equal to trace.SpanKindClient, %v given.", tracer.kind)
-	}
-
-	defer func() {
-		if recover() == nil {
-			t.Error("newTracer with an invalid SpanKindMustCrash must panic")
-		}
-	}()
-	_ = newTracer(666, WithTracerProvider(noop.NewTracerProvider()))
+	assert.Equal(t, trace.SpanKindClient, tracer.kind)
+	assert.Panics(t, func() {
+		_ = newTracer(666, WithTracerProvider(noop.NewTracerProvider()))
+	})
 }
 
 func TestTracer_End(t *testing.T) {

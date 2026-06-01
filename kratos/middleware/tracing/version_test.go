@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-fries/fries/kratos/middleware/tracing/v3"
+	"github.com/stretchr/testify/assert"
 )
 
 // regex taken from https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -15,7 +16,5 @@ var versionRegex = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)
 
 func TestVersionSemver(t *testing.T) {
 	v := tracing.Version()
-	if versionRegex.FindStringSubmatch(v) == nil {
-		t.Fatalf("version is not semver: %s", v)
-	}
+	assert.NotNil(t, versionRegex.FindStringSubmatch(v), "version is not semver: %s", v)
 }

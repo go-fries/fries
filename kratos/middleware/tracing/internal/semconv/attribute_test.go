@@ -1,10 +1,10 @@
 package semconv
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"google.golang.org/protobuf/proto"
@@ -41,9 +41,7 @@ func TestHTTPRequestMethod(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := HTTPRequestMethod(tt.method); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("HTTPRequestMethod() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, HTTPRequestMethod(tt.method))
 		})
 	}
 }
@@ -51,9 +49,7 @@ func TestHTTPRequestMethod(t *testing.T) {
 func TestHTTPRequestBodySize(t *testing.T) {
 	want := otelsemconv.HTTPRequestBodySize(7)
 
-	if got := HTTPRequestBodySize(7); !reflect.DeepEqual(got, want) {
-		t.Errorf("HTTPRequestBodySize() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, HTTPRequestBodySize(7))
 }
 
 func TestMethodAttributes(t *testing.T) {
@@ -101,9 +97,7 @@ func TestMethodAttributes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := methodAttributes(tt.fullMethod); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("methodAttributes() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, methodAttributes(tt.fullMethod))
 		})
 	}
 }
@@ -146,9 +140,7 @@ func TestPeer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Peer(tt.addr); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Peer() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, Peer(tt.addr))
 		})
 	}
 }
@@ -173,9 +165,7 @@ func TestRPCSystemName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := RPCSystemName(tt.kind); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RPCSystemName() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, RPCSystemName(tt.kind))
 		})
 	}
 }
@@ -186,9 +176,7 @@ func TestRPCErrorAttributes(t *testing.T) {
 		otelsemconv.ErrorTypeKey.String("500"),
 	}
 
-	if got := RPCErrorAttributes(500); !reflect.DeepEqual(got, want) {
-		t.Errorf("RPCErrorAttributes() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, RPCErrorAttributes(500))
 }
 
 func TestMessageSize(t *testing.T) {
@@ -224,9 +212,7 @@ func TestMessageSize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !reflect.DeepEqual(tt.got, tt.want) {
-				t.Errorf("message size attributes = %v, want %v", tt.got, tt.want)
-			}
+			assert.Equal(t, tt.want, tt.got)
 		})
 	}
 }
