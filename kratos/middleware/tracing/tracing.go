@@ -11,14 +11,14 @@ import (
 
 // Server returns a new server middleware for OpenTelemetry.
 func Server(opts ...Option) middleware.Middleware {
-	tracer := NewTracer(trace.SpanKindServer, opts...)
+	tracer := newTracer(trace.SpanKindServer, opts...)
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req any) (reply any, err error) {
 			if tr, ok := transport.FromServerContext(ctx); ok {
 				var span trace.Span
-				ctx, span = tracer.Start(ctx, tr.Operation(), tr.RequestHeader())
+				ctx, span = tracer.start(ctx, tr.Operation(), tr.RequestHeader())
 				setServerSpan(ctx, span, req)
-				defer func() { tracer.End(ctx, span, reply, err) }()
+				defer func() { tracer.end(ctx, span, reply, err) }()
 			}
 			return handler(ctx, req)
 		}
@@ -27,14 +27,14 @@ func Server(opts ...Option) middleware.Middleware {
 
 // Client returns a new client middleware for OpenTelemetry.
 func Client(opts ...Option) middleware.Middleware {
-	tracer := NewTracer(trace.SpanKindClient, opts...)
+	tracer := newTracer(trace.SpanKindClient, opts...)
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req any) (reply any, err error) {
 			if tr, ok := transport.FromClientContext(ctx); ok {
 				var span trace.Span
-				ctx, span = tracer.Start(ctx, tr.Operation(), tr.RequestHeader())
+				ctx, span = tracer.start(ctx, tr.Operation(), tr.RequestHeader())
 				setClientSpan(ctx, span, req)
-				defer func() { tracer.End(ctx, span, reply, err) }()
+				defer func() { tracer.end(ctx, span, reply, err) }()
 			}
 			return handler(ctx, req)
 		}

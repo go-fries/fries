@@ -76,7 +76,7 @@ func TestTracer(t *testing.T) {
 	tp := tracesdk.NewTracerProvider(tracesdk.WithSampler(tracesdk.TraceIDRatioBased(0)))
 
 	// caller use Inject
-	cliTracer := NewTracer(
+	cliTracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tp),
 		WithPropagator(
@@ -86,21 +86,21 @@ func TestTracer(t *testing.T) {
 
 	ts := &mockTransport{kind: transport.KindHTTP, header: carrier}
 
-	ctx, aboveSpan := cliTracer.Start(
+	ctx, aboveSpan := cliTracer.start(
 		transport.NewClientContext(t.Context(), ts),
 		ts.Operation(), ts.RequestHeader(),
 	)
-	defer cliTracer.End(ctx, aboveSpan, nil, nil)
+	defer cliTracer.end(ctx, aboveSpan, nil, nil)
 
 	// server use Extract fetch traceInfo from carrier
-	svrTracer := NewTracer(trace.SpanKindServer,
+	svrTracer := newTracer(trace.SpanKindServer,
 		WithPropagator(
 			propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{}),
 		))
 	ts = &mockTransport{kind: transport.KindHTTP, header: carrier}
 
-	ctx, span := svrTracer.Start(transport.NewServerContext(ctx, ts), ts.Operation(), ts.RequestHeader())
-	defer svrTracer.End(ctx, span, nil, nil)
+	ctx, span := svrTracer.start(transport.NewServerContext(ctx, ts), ts.Operation(), ts.RequestHeader())
+	defer svrTracer.end(ctx, span, nil, nil)
 
 	if aboveSpan.SpanContext().TraceID() != span.SpanContext().TraceID() {
 		t.Fatalf("TraceID failed to deliver")
@@ -119,7 +119,7 @@ func TestServer(t *testing.T) {
 		header:    headerCarrier{},
 	}
 
-	tracer := NewTracer(
+	tracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
@@ -143,7 +143,7 @@ func TestServer(t *testing.T) {
 	}
 
 	var ctx context.Context
-	ctx, span := tracer.Start(
+	ctx, span := tracer.start(
 		transport.NewServerContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),
@@ -192,7 +192,7 @@ func TestClient(t *testing.T) {
 		header:    headerCarrier{},
 	}
 
-	tracer := NewTracer(
+	tracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
@@ -216,7 +216,7 @@ func TestClient(t *testing.T) {
 	}
 
 	var ctx context.Context
-	ctx, span := tracer.Start(
+	ctx, span := tracer.start(
 		transport.NewClientContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),

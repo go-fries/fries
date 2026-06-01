@@ -14,15 +14,13 @@ import (
 
 const scopeName = "github.com/go-fries/fries/kratos/middleware/tracing/v3"
 
-// Tracer starts and ends OpenTelemetry spans for Kratos middleware.
-type Tracer struct {
+type tracer struct {
 	tracer     trace.Tracer
 	kind       trace.SpanKind
 	propagator propagation.TextMapPropagator
 }
 
-// NewTracer creates a [Tracer] for the given span kind.
-func NewTracer(kind trace.SpanKind, opts ...Option) *Tracer {
+func newTracer(kind trace.SpanKind, opts ...Option) *tracer {
 	cfg := newConfig(opts...)
 
 	switch kind {
@@ -32,16 +30,14 @@ func NewTracer(kind trace.SpanKind, opts ...Option) *Tracer {
 		panic(fmt.Sprintf("unsupported span kind: %v", kind))
 	}
 
-	return &Tracer{
+	return &tracer{
 		tracer:     cfg.newTracer(scopeName),
 		kind:       kind,
 		propagator: cfg.propagator,
 	}
 }
 
-// Start starts a tracing span and propagates context for the configured span
-// kind.
-func (t *Tracer) Start(
+func (t *tracer) start(
 	ctx context.Context, operation string, carrier propagation.TextMapCarrier,
 ) (context.Context, trace.Span) {
 	if t.kind == trace.SpanKindServer {
@@ -58,8 +54,7 @@ func (t *Tracer) Start(
 	return ctx, span
 }
 
-// End records the result on span and ends it.
-func (t *Tracer) End(_ context.Context, span trace.Span, m any, err error) {
+func (t *tracer) end(_ context.Context, span trace.Span, m any, err error) {
 	if err != nil {
 		span.RecordError(err)
 		if e := errors.FromError(err); e != nil {
