@@ -3,11 +3,14 @@ package tracing
 import (
 	"context"
 
+	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/trace"
 )
+
+var spanAttributeBuilder = semconv.NewBuilder(serviceHeader)
 
 // Server returns a new server middleware for OpenTelemetry.
 func Server(opts ...Option) middleware.Middleware {
@@ -17,7 +20,7 @@ func Server(opts ...Option) middleware.Middleware {
 			if tr, ok := transport.FromServerContext(ctx); ok {
 				var span trace.Span
 				ctx, span = tracer.start(ctx, tr.Operation(), tr.RequestHeader())
-				setServerSpan(ctx, span, req)
+				span.SetAttributes(spanAttributeBuilder.Server(ctx, req)...)
 				defer func() { tracer.end(ctx, span, reply, err) }()
 			}
 			return handler(ctx, req)
@@ -33,7 +36,7 @@ func Client(opts ...Option) middleware.Middleware {
 			if tr, ok := transport.FromClientContext(ctx); ok {
 				var span trace.Span
 				ctx, span = tracer.start(ctx, tr.Operation(), tr.RequestHeader())
-				setClientSpan(ctx, span, req)
+				span.SetAttributes(spanAttributeBuilder.Client(ctx, req)...)
 				defer func() { tracer.end(ctx, span, reply, err) }()
 			}
 			return handler(ctx, req)
