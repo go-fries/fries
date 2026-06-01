@@ -9,13 +9,13 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-// ClientHandler is a gRPC stats handler that adds peer attributes to client spans.
+// ClientHandler is a [stats.Handler] that adds peer attributes to client spans.
 type ClientHandler struct{}
 
-// HandleConn satisfies gRPC stats.Handler.
+// HandleConn satisfies [stats.Handler].
 func (c *ClientHandler) HandleConn(context.Context, stats.ConnStats) {}
 
-// TagConn exists to satisfy gRPC stats.Handler.
+// TagConn satisfies [stats.Handler].
 func (c *ClientHandler) TagConn(ctx context.Context, _ *stats.ConnTagInfo) context.Context {
 	return ctx
 }
@@ -35,7 +35,7 @@ func (c *ClientHandler) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 	}
 }
 
-// TagRPC implements per-RPC context management.
+// TagRPC implements per-RPC context management for [stats.Handler].
 func (c *ClientHandler) TagRPC(ctx context.Context, _ *stats.RPCTagInfo) context.Context {
 	return ctx
 }

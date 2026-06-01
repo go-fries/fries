@@ -10,12 +10,12 @@ import (
 
 const serviceHeader = "x-md-service-name"
 
-// Metadata propagates tracing-related Kratos metadata through text map carriers.
+// Metadata propagates tracing-related Kratos metadata through [propagation.TextMapCarrier] values.
 type Metadata struct{}
 
 var _ propagation.TextMapPropagator = Metadata{}
 
-// Inject writes the Kratos application name from ctx into the carrier.
+// Inject writes the Kratos application name from ctx into the [propagation.TextMapCarrier].
 func (b Metadata) Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
 	app, ok := kratos.FromContext(ctx)
 	if ok {
@@ -23,7 +23,7 @@ func (b Metadata) Inject(ctx context.Context, carrier propagation.TextMapCarrier
 	}
 }
 
-// Extract adds metadata from the carrier to parent and returns the resulting context.
+// Extract adds metadata from the [propagation.TextMapCarrier] to parent and returns the resulting context.
 func (b Metadata) Extract(parent context.Context, carrier propagation.TextMapCarrier) context.Context {
 	name := carrier.Get(serviceHeader)
 	if name == "" {

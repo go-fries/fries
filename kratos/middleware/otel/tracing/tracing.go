@@ -11,7 +11,7 @@ import (
 
 var spanAttributeBuilder = semconv.NewBuilder(serviceHeader)
 
-// Server returns a new server middleware for OpenTelemetry.
+// Server returns a new [middleware.Middleware] for server-side OpenTelemetry tracing.
 func Server(opts ...Option) middleware.Middleware {
 	t := newTracer(trace.SpanKindServer, opts...)
 	return func(handler middleware.Handler) middleware.Handler {
@@ -27,7 +27,7 @@ func Server(opts ...Option) middleware.Middleware {
 	}
 }
 
-// Client returns a new client middleware for OpenTelemetry.
+// Client returns a new [middleware.Middleware] for client-side OpenTelemetry tracing.
 func Client(opts ...Option) middleware.Middleware {
 	t := newTracer(trace.SpanKindClient, opts...)
 	return func(handler middleware.Handler) middleware.Handler {

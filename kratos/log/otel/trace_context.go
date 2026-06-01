@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// TraceID returns a log valuer for the current span trace ID.
+// TraceID returns a [log.Valuer] for the current span trace ID.
 func TraceID() log.Valuer {
 	return func(ctx context.Context) any {
 		if span := trace.SpanContextFromContext(ctx); span.HasTraceID() {
@@ -17,7 +17,7 @@ func TraceID() log.Valuer {
 	}
 }
 
-// SpanID returns a log valuer for the current span ID.
+// SpanID returns a [log.Valuer] for the current span ID.
 func SpanID() log.Valuer {
 	return func(ctx context.Context) any {
 		if span := trace.SpanContextFromContext(ctx); span.HasSpanID() {
