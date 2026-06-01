@@ -69,8 +69,7 @@ func (tr *mockTransport) Request() *http.Request {
 func (tr *mockTransport) PathTemplate() string { return tr.route }
 
 func TestBuilderClientHTTP(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "http://api.example.com/v1/items/1", nil)
-	req.Host = "api.example.com:443"
+	req, _ := http.NewRequest(http.MethodGet, "https://api.example.com:443/v1/items/1", nil)
 	req.RemoteAddr = "10.0.0.1:12345"
 	req.Header.Set("User-Agent", "go-test")
 	msg := &emptypb.Empty{}
@@ -85,14 +84,12 @@ func TestBuilderClientHTTP(t *testing.T) {
 	got := NewBuilder(serviceHeader).Client(ctx, msg)
 	want := []attribute.KeyValue{
 		otelsemconv.HTTPRequestMethodGet,
-		otelsemconv.HTTPRoute("/v1/items/{id}"),
-		otelsemconv.URLPath("/v1/items/1"),
-		otelsemconv.ClientAddress("10.0.0.1:12345"),
+		otelsemconv.URLFull("https://api.example.com:443/v1/items/1"),
+		otelsemconv.ServerAddress("api.example.com"),
+		otelsemconv.ServerPort(443),
 		otelsemconv.UserAgentOriginal("go-test"),
 		otelsemconv.RPCSystemNameKey.String(transport.KindHTTP.String()),
 		otelsemconv.RPCMethod("example.Service/Get"),
-		otelsemconv.NetworkPeerAddress("api.example.com"),
-		otelsemconv.NetworkPeerPort(443),
 		attribute.Key("send_msg.size").Int(proto.Size(msg)),
 	}
 
@@ -142,9 +139,12 @@ func TestBuilderServerHTTP(t *testing.T) {
 	got := NewBuilder(serviceHeader).Server(ctx, msg)
 	want := []attribute.KeyValue{
 		otelsemconv.HTTPRequestMethodPost,
-		otelsemconv.HTTPRoute("/v1/items"),
 		otelsemconv.URLPath("/v1/items"),
-		otelsemconv.ClientAddress("192.168.0.10:54321"),
+		otelsemconv.URLScheme("http"),
+		otelsemconv.HTTPRoute("/v1/items"),
+		otelsemconv.ServerAddress("localhost"),
+		otelsemconv.ServerPort(80),
+		otelsemconv.ClientAddress("192.168.0.10"),
 		otelsemconv.UserAgentOriginal("go-test"),
 		otelsemconv.RPCSystemNameKey.String(transport.KindHTTP.String()),
 		otelsemconv.RPCMethod("example.Service/Create"),

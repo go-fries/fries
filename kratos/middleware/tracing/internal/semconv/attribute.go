@@ -12,6 +12,14 @@ func ClientAddress(address string) attribute.KeyValue {
 	return otelsemconv.ClientAddress(address)
 }
 
+func ServerAddress(address string) attribute.KeyValue {
+	return otelsemconv.ServerAddress(address)
+}
+
+func ServerPort(port int) attribute.KeyValue {
+	return otelsemconv.ServerPort(port)
+}
+
 func HTTPRequestMethod(method string) attribute.KeyValue {
 	switch method {
 	case http.MethodConnect:
@@ -76,6 +84,18 @@ func ServicePeerName(name string) attribute.KeyValue {
 
 func URLPath(path string) attribute.KeyValue {
 	return otelsemconv.URLPath(path)
+}
+
+func URLFull(full string) attribute.KeyValue {
+	return otelsemconv.URLFull(full)
+}
+
+func URLQuery(query string) attribute.KeyValue {
+	return otelsemconv.URLQuery(query)
+}
+
+func URLScheme(scheme string) attribute.KeyValue {
+	return otelsemconv.URLScheme(scheme)
 }
 
 func UserAgentOriginal(userAgent string) attribute.KeyValue {

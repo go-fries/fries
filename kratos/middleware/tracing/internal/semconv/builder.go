@@ -3,6 +3,7 @@ package semconv
 import (
 	"context"
 	"net"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -35,8 +36,7 @@ func (b Builder) Client(ctx context.Context, m any) []attribute.KeyValue {
 		switch tr.Kind() {
 		case transport.KindHTTP:
 			if ht, ok := tr.(khttp.Transporter); ok {
-				attrs = append(attrs, httpTransporter(ht)...)
-				remote = ht.Request().Host
+				attrs = append(attrs, httpClientTransporter(ht)...)
 			}
 		case transport.KindGRPC:
 			remote, _ = parseTarget(tr.Endpoint())
@@ -65,7 +65,7 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 		switch tr.Kind() {
 		case transport.KindHTTP:
 			if ht, ok := tr.(khttp.Transporter); ok {
-				attrs = append(attrs, httpTransporter(ht)...)
+				attrs = append(attrs, httpServerTransporter(ht)...)
 				remote = ht.Request().RemoteAddr
 			}
 		case transport.KindGRPC:
@@ -86,14 +86,52 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 	return attrs
 }
 
-func httpTransporter(ht khttp.Transporter) []attribute.KeyValue {
-	return []attribute.KeyValue{
+func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
+	req := ht.Request()
+	attrs := []attribute.KeyValue{
 		HTTPRequestMethod(ht.Request().Method),
-		HTTPRoute(ht.PathTemplate()),
-		URLPath(ht.Request().URL.Path),
-		ClientAddress(ht.Request().RemoteAddr),
-		UserAgentOriginal(ht.Request().UserAgent()),
 	}
+	if req.URL != nil && req.URL.String() != "" {
+		attrs = append(attrs, URLFull(req.URL.String()))
+	}
+	if address, port, ok := serverAddress(req); ok {
+		attrs = append(attrs, ServerAddress(address))
+		if port > 0 {
+			attrs = append(attrs, ServerPort(port))
+		}
+	}
+	if userAgent := req.UserAgent(); userAgent != "" {
+		attrs = append(attrs, UserAgentOriginal(userAgent))
+	}
+	return attrs
+}
+
+func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
+	req := ht.Request()
+	attrs := []attribute.KeyValue{
+		HTTPRequestMethod(req.Method),
+		URLPath(req.URL.Path),
+		URLScheme(requestScheme(req)),
+	}
+	if query := req.URL.RawQuery; query != "" {
+		attrs = append(attrs, URLQuery(query))
+	}
+	if route := ht.PathTemplate(); route != "" {
+		attrs = append(attrs, HTTPRoute(route))
+	}
+	if address, port, ok := serverAddress(req); ok {
+		attrs = append(attrs, ServerAddress(address))
+		if port > 0 {
+			attrs = append(attrs, ServerPort(port))
+		}
+	}
+	if address, ok := remoteAddress(req.RemoteAddr); ok {
+		attrs = append(attrs, ClientAddress(address))
+	}
+	if userAgent := req.UserAgent(); userAgent != "" {
+		attrs = append(attrs, UserAgentOriginal(userAgent))
+	}
+	return attrs
 }
 
 func messageSize(key string, m any) []attribute.KeyValue {
@@ -148,6 +186,63 @@ func Peer(addr string) (attrs []attribute.KeyValue) {
 	)
 
 	return attrs
+}
+
+func requestScheme(req *http.Request) string {
+	if req.URL != nil && req.URL.Scheme != "" {
+		return req.URL.Scheme
+	}
+	if req.TLS != nil {
+		return "https"
+	}
+	return "http"
+}
+
+func serverAddress(req *http.Request) (string, int, bool) {
+	if req.URL != nil && req.URL.Host != "" {
+		return splitHostPort(req.URL.Host, defaultPort(req.URL.Scheme))
+	}
+	if req.Host != "" {
+		return splitHostPort(req.Host, defaultPort(requestScheme(req)))
+	}
+	return "", 0, false
+}
+
+func remoteAddress(addr string) (string, bool) {
+	host, _, err := net.SplitHostPort(addr)
+	if err == nil {
+		return host, host != ""
+	}
+	if addr == "" {
+		return "", false
+	}
+	return addr, true
+}
+
+func splitHostPort(addr string, fallbackPort int) (string, int, bool) {
+	host, port, err := net.SplitHostPort(addr)
+	if err == nil {
+		portInt, err := strconv.Atoi(port)
+		if err != nil {
+			return host, 0, host != ""
+		}
+		return host, portInt, host != ""
+	}
+	if host := strings.Trim(addr, "[]"); host != "" {
+		return host, fallbackPort, true
+	}
+	return "", 0, false
+}
+
+func defaultPort(scheme string) int {
+	switch scheme {
+	case "http":
+		return 80
+	case "https":
+		return 443
+	default:
+		return 0
+	}
 }
 
 func parseTarget(endpoint string) (address string, err error) {
