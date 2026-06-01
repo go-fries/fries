@@ -153,67 +153,6 @@ func TestPeer(t *testing.T) {
 	}
 }
 
-func TestParseTarget(t *testing.T) {
-	tests := []struct {
-		name        string
-		endpoint    string
-		wantAddress string
-		wantErr     bool
-	}{
-		{
-			name:        "http",
-			endpoint:    "http://foo.bar:8080",
-			wantAddress: "http://foo.bar:8080",
-		},
-		{
-			name:        "http",
-			endpoint:    "http://127.0.0.1:8080",
-			wantAddress: "http://127.0.0.1:8080",
-		},
-		{
-			name:        "without protocol",
-			endpoint:    "foo.bar:8080",
-			wantAddress: "foo.bar:8080",
-		},
-		{
-			name:        "grpc",
-			endpoint:    "grpc://foo.bar",
-			wantAddress: "grpc://foo.bar",
-		},
-		{
-			name:        "with path",
-			endpoint:    "/foo",
-			wantAddress: "foo",
-		},
-		{
-			name:        "with path",
-			endpoint:    "http://127.0.0.1/hello",
-			wantAddress: "hello",
-		},
-		{
-			name:     "empty",
-			endpoint: "%%",
-			wantErr:  true,
-		},
-		{
-			name:     "invalid path",
-			endpoint: "//%2F/#%2Fanother",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotAddress, err := parseTarget(tt.endpoint)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseTarget() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotAddress != tt.wantAddress {
-				t.Errorf("parseTarget() = %v, want %v", gotAddress, tt.wantAddress)
-			}
-		})
-	}
-}
-
 func TestRPCSystemName(t *testing.T) {
 	tests := []struct {
 		name string

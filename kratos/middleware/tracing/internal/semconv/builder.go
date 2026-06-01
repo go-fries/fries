@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -91,7 +90,7 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	req := ht.Request()
 	attrs := []attribute.KeyValue{
-		HTTPRequestMethod(ht.Request().Method),
+		HTTPRequestMethod(req.Method),
 	}
 	if req.URL != nil && req.URL.String() != "" {
 		attrs = append(attrs, URLFull(req.URL.String()))
@@ -145,7 +144,7 @@ func httpRequestBodySize(req *http.Request) []attribute.KeyValue {
 	return []attribute.KeyValue{HTTPRequestBodySize(int(req.ContentLength))}
 }
 
-// methodAttributes returns attributes about the gRPC full method.
+// methodAttributes returns attributes about the RPC method operation.
 func methodAttributes(fullMethod string) []attribute.KeyValue {
 	name := strings.TrimLeft(fullMethod, "/")
 	parts := strings.SplitN(name, "/", 2) //nolint:mnd
@@ -263,19 +262,4 @@ func defaultPort(scheme string) int {
 	default:
 		return 0
 	}
-}
-
-func parseTarget(endpoint string) (address string, err error) {
-	var u *url.URL
-	u, err = url.Parse(endpoint)
-	if err != nil {
-		if u, err = url.Parse("http://" + endpoint); err != nil {
-			return "", err
-		}
-		return u.Host, nil
-	}
-	if len(u.Path) > 1 {
-		return u.Path[1:], nil
-	}
-	return endpoint, nil
 }
