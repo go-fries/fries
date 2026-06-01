@@ -49,14 +49,13 @@ func (l *recordingLogger) Enabled(ctx context.Context, param log.EnabledParamete
 	return l.enabled
 }
 
-func TestNewLoggerUsesScopeNameAndVersion(t *testing.T) {
+func TestNewLogger(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 
 	logger := NewLogger(WithLoggerProvider(provider))
 
 	require.NotNil(t, logger)
 	assert.Equal(t, scopeName, provider.name)
-	assert.Equal(t, Version(), provider.config.InstrumentationVersion())
 }
 
 func TestLoggerLogEmitsRecord(t *testing.T) {

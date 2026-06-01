@@ -29,6 +29,13 @@ func newConfig(opts ...Option) *config {
 	return cfg
 }
 
+func (c *config) newLogger(name string) log.Logger {
+	return c.provider.Logger(
+		name,
+		log.WithInstrumentationVersion(Version()),
+	)
+}
+
 func WithLoggerProvider(provider log.LoggerProvider) Option {
 	return optionFunc(func(c *config) {
 		c.provider = provider

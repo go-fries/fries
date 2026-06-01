@@ -22,3 +22,14 @@ func TestWithLoggerProvider(t *testing.T) {
 
 	assert.Same(t, provider, cfg.provider)
 }
+
+func TestConfigNewLogger(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	cfg := newConfig(WithLoggerProvider(provider))
+
+	logger := cfg.newLogger(scopeName)
+
+	require.NotNil(t, logger)
+	assert.Equal(t, scopeName, provider.name)
+	assert.Equal(t, Version(), provider.config.InstrumentationVersion())
+}

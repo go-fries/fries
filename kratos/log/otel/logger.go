@@ -20,13 +20,8 @@ var _ kratoslog.Logger = (*Logger)(nil)
 func NewLogger(opts ...Option) *Logger {
 	cfg := newConfig(opts...)
 
-	logger := cfg.provider.Logger(
-		scopeName,
-		log.WithInstrumentationVersion(Version()),
-	)
-
 	return &Logger{
-		logger: logger,
+		logger: cfg.newLogger(scopeName),
 	}
 }
 
