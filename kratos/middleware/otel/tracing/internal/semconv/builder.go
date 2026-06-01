@@ -115,7 +115,8 @@ func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
 
 func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	req := ht.Request()
-	attrs := append(httpRequestMethodAttributes(req.Method),
+	attrs := append(
+		httpRequestMethodAttributes(req.Method),
 		URLPath(req.URL.Path),
 		URLScheme(requestScheme(req)),
 	)
