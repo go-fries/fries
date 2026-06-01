@@ -100,6 +100,21 @@ func TestBuilderClientHTTP(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+func TestBuilderClientHTTPUnknownMethod(t *testing.T) {
+	req, err := http.NewRequest("CUSTOM", "https://api.example.com/v1/items/1", nil)
+	require.NoError(t, err)
+
+	ctx := transport.NewClientContext(t.Context(), &mockTransport{
+		kind:      transport.KindHTTP,
+		operation: "/example.Service/Get",
+		request:   req,
+	})
+
+	got := NewBuilder(serviceHeader).Client(ctx, nil)
+	assert.Contains(t, got, otelsemconv.HTTPRequestMethodOther)
+	assert.Contains(t, got, otelsemconv.HTTPRequestMethodOriginal("CUSTOM"))
+}
+
 func TestBuilderClientGRPC(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -202,6 +217,17 @@ func TestBuilderServerHTTP(t *testing.T) {
 	}
 
 	assert.Equal(t, want, got)
+}
+
+func TestBuilderServerSkipsEmptyServicePeerName(t *testing.T) {
+	ctx := metadata.NewServerContext(t.Context(), metadata.New(map[string][]string{}))
+	ctx = transport.NewServerContext(ctx, &mockTransport{
+		kind:      transport.KindGRPC,
+		operation: "/example.Service/Get",
+	})
+
+	got := NewBuilder(serviceHeader).Server(ctx, nil)
+	assert.NotContains(t, got, otelsemconv.ServicePeerName(""))
 }
 
 func TestBuilderServerGRPC(t *testing.T) {

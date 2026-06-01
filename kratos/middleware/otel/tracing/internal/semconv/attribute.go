@@ -52,7 +52,39 @@ func HTTPRequestMethod(method string) attribute.KeyValue {
 	case "_OTHER":
 		return otelsemconv.HTTPRequestMethodOther
 	default:
-		return otelsemconv.HTTPRequestMethodKey.String(method)
+		return otelsemconv.HTTPRequestMethodOther
+	}
+}
+
+// HTTPRequestMethodOriginal returns the original HTTP request method attribute.
+func HTTPRequestMethodOriginal(method string) attribute.KeyValue {
+	return otelsemconv.HTTPRequestMethodOriginal(method)
+}
+
+func httpRequestMethodAttributes(method string) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{HTTPRequestMethod(method)}
+	if !isKnownHTTPRequestMethod(method) && method != "" {
+		attrs = append(attrs, HTTPRequestMethodOriginal(method))
+	}
+	return attrs
+}
+
+func isKnownHTTPRequestMethod(method string) bool {
+	switch method {
+	case http.MethodConnect,
+		http.MethodDelete,
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodOptions,
+		http.MethodPatch,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodTrace,
+		"QUERY",
+		"_OTHER":
+		return true
+	default:
+		return false
 	}
 }
 

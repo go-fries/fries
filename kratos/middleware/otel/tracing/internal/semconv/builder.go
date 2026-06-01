@@ -86,7 +86,9 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 	attrs = append(attrs, Peer(remote)...)
 	attrs = append(attrs, RecvMessageSize(m)...)
 	if md, ok := metadata.FromServerContext(ctx); ok {
-		attrs = append(attrs, ServicePeerName(md.Get(b.serviceHeader)))
+		if service := md.Get(b.serviceHeader); service != "" {
+			attrs = append(attrs, ServicePeerName(service))
+		}
 	}
 
 	return attrs
@@ -94,9 +96,7 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 
 func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	req := ht.Request()
-	attrs := []attribute.KeyValue{
-		HTTPRequestMethod(req.Method),
-	}
+	attrs := httpRequestMethodAttributes(req.Method)
 	if req.URL != nil && req.URL.String() != "" {
 		attrs = append(attrs, URLFull(req.URL.String()))
 	}
@@ -115,11 +115,10 @@ func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
 
 func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	req := ht.Request()
-	attrs := []attribute.KeyValue{
-		HTTPRequestMethod(req.Method),
+	attrs := append(httpRequestMethodAttributes(req.Method),
 		URLPath(req.URL.Path),
 		URLScheme(requestScheme(req)),
-	}
+	)
 	if query := req.URL.RawQuery; query != "" {
 		attrs = append(attrs, URLQuery(query))
 	}

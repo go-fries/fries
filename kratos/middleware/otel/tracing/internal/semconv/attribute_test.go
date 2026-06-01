@@ -35,13 +35,43 @@ func TestHTTPRequestMethod(t *testing.T) {
 		{
 			name:   "unknown method",
 			method: "CUSTOM",
-			want:   otelsemconv.HTTPRequestMethodKey.String("CUSTOM"),
+			want:   otelsemconv.HTTPRequestMethodOther,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, HTTPRequestMethod(tt.method))
+		})
+	}
+}
+
+func TestHTTPRequestMethodAttributes(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		want   []attribute.KeyValue
+	}{
+		{
+			name:   "known method",
+			method: "GET",
+			want: []attribute.KeyValue{
+				otelsemconv.HTTPRequestMethodGet,
+			},
+		},
+		{
+			name:   "unknown method",
+			method: "CUSTOM",
+			want: []attribute.KeyValue{
+				otelsemconv.HTTPRequestMethodOther,
+				otelsemconv.HTTPRequestMethodOriginal("CUSTOM"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, httpRequestMethodAttributes(tt.method))
 		})
 	}
 }

@@ -31,6 +31,13 @@ func TestWithPropagatorNilKeepsDefault(t *testing.T) {
 	assert.Contains(t, cfg.propagator.Fields(), serviceHeader)
 }
 
+func TestWithEmptyVersionAndSchemaURLKeepDefaults(t *testing.T) {
+	cfg := newConfig(WithVersion(""), WithSchemaURL(""))
+
+	assert.Equal(t, Version(), cfg.version)
+	assert.Empty(t, cfg.schemaURL)
+}
+
 func TestConfigNewTracerUsesScopeOptions(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
