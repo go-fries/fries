@@ -13,8 +13,7 @@ import (
 type ClientHandler struct{}
 
 // HandleConn satisfies gRPC stats.Handler.
-func (c *ClientHandler) HandleConn(_ context.Context, _ stats.ConnStats) {
-}
+func (c *ClientHandler) HandleConn(context.Context, stats.ConnStats) {}
 
 // TagConn exists to satisfy gRPC stats.Handler.
 func (c *ClientHandler) TagConn(ctx context.Context, _ *stats.ConnTagInfo) context.Context {
