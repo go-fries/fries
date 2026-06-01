@@ -11,7 +11,7 @@ import (
 	"github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"go.opentelemetry.io/otel/trace/noop"
 	"google.golang.org/grpc/peer"
 )
@@ -28,8 +28,7 @@ func Test_parseFullMethod(t *testing.T) {
 			fullMethod: "/foo.bar/hello",
 			want:       "foo.bar/hello",
 			wantAttr: []attribute.KeyValue{
-				semconv.RPCServiceKey.String("foo.bar"),
-				semconv.RPCMethodKey.String("hello"),
+				semconv.RPCMethod("foo.bar/hello"),
 			},
 		},
 		{
@@ -37,8 +36,7 @@ func Test_parseFullMethod(t *testing.T) {
 			fullMethod: "/foo.bar/hello/world",
 			want:       "foo.bar/hello/world",
 			wantAttr: []attribute.KeyValue{
-				semconv.RPCServiceKey.String("foo.bar"),
-				semconv.RPCMethodKey.String("hello/world"),
+				semconv.RPCMethod("foo.bar/hello/world"),
 			},
 		},
 		{
