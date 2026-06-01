@@ -23,7 +23,7 @@ func (b Metadata) Inject(ctx context.Context, carrier propagation.TextMapCarrier
 	}
 }
 
-// Extract returns a copy of parent with the metadata from the carrier added.
+// Extract adds metadata from the carrier to parent and returns the resulting context.
 func (b Metadata) Extract(parent context.Context, carrier propagation.TextMapCarrier) context.Context {
 	name := carrier.Get(serviceHeader)
 	if name == "" {

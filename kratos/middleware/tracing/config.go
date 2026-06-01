@@ -30,7 +30,9 @@ func (f optionFunc) apply(c *config) {
 // inject trace context.
 func WithPropagator(propagator propagation.TextMapPropagator) Option {
 	return optionFunc(func(c *config) {
-		c.propagator = propagator
+		if propagator != nil {
+			c.propagator = propagator
+		}
 	})
 }
 
@@ -38,7 +40,9 @@ func WithPropagator(propagator propagation.TextMapPropagator) Option {
 // underlying [trace.Tracer].
 func WithTracerProvider(provider trace.TracerProvider) Option {
 	return optionFunc(func(c *config) {
-		c.tracerProvider = provider
+		if provider != nil {
+			c.tracerProvider = provider
+		}
 	})
 }
 
@@ -46,7 +50,9 @@ func WithTracerProvider(provider trace.TracerProvider) Option {
 // OpenTelemetry.
 func WithVersion(version string) Option {
 	return optionFunc(func(c *config) {
-		c.version = version
+		if version != "" {
+			c.version = version
+		}
 	})
 }
 
@@ -54,7 +60,9 @@ func WithVersion(version string) Option {
 // by the instrumentation scope.
 func WithSchemaURL(schemaURL string) Option {
 	return optionFunc(func(c *config) {
-		c.schemaURL = schemaURL
+		if schemaURL != "" {
+			c.schemaURL = schemaURL
+		}
 	})
 }
 

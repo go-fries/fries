@@ -24,6 +24,13 @@ func TestNewConfigFallsBackToGlobalTracerProvider(t *testing.T) {
 	assert.NotNil(t, cfg.tracerProvider)
 }
 
+func TestWithPropagatorNilKeepsDefault(t *testing.T) {
+	cfg := newConfig(WithPropagator(nil))
+
+	assert.NotNil(t, cfg.propagator)
+	assert.Contains(t, cfg.propagator.Fields(), serviceHeader)
+}
+
 func TestConfigNewTracerUsesScopeOptions(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))

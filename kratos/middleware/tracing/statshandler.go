@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
 	"go.opentelemetry.io/otel/trace"
@@ -15,7 +14,6 @@ type ClientHandler struct{}
 
 // HandleConn exists to satisfy gRPC stats.Handler.
 func (c *ClientHandler) HandleConn(_ context.Context, _ stats.ConnStats) {
-	fmt.Println("Handle connection.")
 }
 
 // TagConn exists to satisfy gRPC stats.Handler.
