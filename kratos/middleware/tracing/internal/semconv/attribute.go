@@ -2,10 +2,12 @@ package semconv
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
+	"google.golang.org/protobuf/proto"
 )
 
 func ClientAddress(address string) attribute.KeyValue {
@@ -69,6 +71,10 @@ func RPCMethodOriginal(method string) attribute.KeyValue {
 	return otelsemconv.RPCMethodOriginal(method)
 }
 
+func RPCStatusCode(code int32) attribute.KeyValue {
+	return attribute.Key("rpc.status_code").Int64(int64(code))
+}
+
 func RPCSystemName(kind transport.Kind) attribute.KeyValue {
 	switch kind {
 	case transport.KindGRPC:
@@ -100,4 +106,35 @@ func URLScheme(scheme string) attribute.KeyValue {
 
 func UserAgentOriginal(userAgent string) attribute.KeyValue {
 	return otelsemconv.UserAgentOriginal(userAgent)
+}
+
+func SendMessageSize(m any) []attribute.KeyValue {
+	return messageSize("send_msg.size", m)
+}
+
+func RecvMessageSize(m any) []attribute.KeyValue {
+	return messageSize("recv_msg.size", m)
+}
+
+func messageSize(key string, m any) []attribute.KeyValue {
+	if p, ok := m.(proto.Message); ok {
+		if isNilProtoMessage(p) {
+			return nil
+		}
+		return []attribute.KeyValue{attribute.Key(key).Int(proto.Size(p))}
+	}
+	return nil
+}
+
+func isNilProtoMessage(m proto.Message) bool {
+	if m == nil {
+		return true
+	}
+	v := reflect.ValueOf(m)
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return v.IsNil()
+	default:
+		return false
+	}
 }

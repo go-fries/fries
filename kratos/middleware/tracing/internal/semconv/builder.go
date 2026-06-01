@@ -13,7 +13,6 @@ import (
 	khttp "github.com/go-kratos/kratos/v2/transport/http"
 	"go.opentelemetry.io/otel/attribute"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/protobuf/proto"
 )
 
 type Builder struct {
@@ -51,7 +50,7 @@ func (b Builder) Client(ctx context.Context, m any) []attribute.KeyValue {
 	if remote != "" {
 		attrs = append(attrs, Peer(remote)...)
 	}
-	attrs = append(attrs, messageSize("send_msg.size", m)...)
+	attrs = append(attrs, SendMessageSize(m)...)
 
 	return attrs
 }
@@ -81,7 +80,7 @@ func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 
 	attrs = append(attrs, methodAttributes(operation)...)
 	attrs = append(attrs, Peer(remote)...)
-	attrs = append(attrs, messageSize("recv_msg.size", m)...)
+	attrs = append(attrs, RecvMessageSize(m)...)
 	if md, ok := metadata.FromServerContext(ctx); ok {
 		attrs = append(attrs, ServicePeerName(md.Get(b.serviceHeader)))
 	}
@@ -135,13 +134,6 @@ func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
 		attrs = append(attrs, UserAgentOriginal(userAgent))
 	}
 	return attrs
-}
-
-func messageSize(key string, m any) []attribute.KeyValue {
-	if p, ok := m.(proto.Message); ok {
-		return []attribute.KeyValue{attribute.Key(key).Int(proto.Size(p))}
-	}
-	return nil
 }
 
 // methodAttributes returns attributes about the gRPC full method.

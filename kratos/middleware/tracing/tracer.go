@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
 	"github.com/go-kratos/kratos/v2/errors"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/protobuf/proto"
 )
 
 const scopeName = "github.com/go-fries/fries/kratos/middleware/tracing/v3"
@@ -58,19 +57,17 @@ func (t *tracer) end(_ context.Context, span trace.Span, m any, err error) {
 	if err != nil {
 		span.RecordError(err)
 		if e := errors.FromError(err); e != nil {
-			span.SetAttributes(attribute.Key("rpc.status_code").Int64(int64(e.Code)))
+			span.SetAttributes(semconv.RPCStatusCode(e.Code))
 		}
 		span.SetStatus(codes.Error, err.Error())
 	} else {
 		span.SetStatus(codes.Ok, "OK")
 	}
 
-	if p, ok := m.(proto.Message); ok {
-		if t.kind == trace.SpanKindServer {
-			span.SetAttributes(attribute.Key("send_msg.size").Int(proto.Size(p)))
-		} else {
-			span.SetAttributes(attribute.Key("recv_msg.size").Int(proto.Size(p)))
-		}
+	if t.kind == trace.SpanKindServer {
+		span.SetAttributes(semconv.SendMessageSize(m)...)
+	} else {
+		span.SetAttributes(semconv.RecvMessageSize(m)...)
 	}
 	span.End()
 }

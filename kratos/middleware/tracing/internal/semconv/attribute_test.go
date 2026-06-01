@@ -7,6 +7,8 @@ import (
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestHTTPRequestMethod(t *testing.T) {
@@ -226,6 +228,54 @@ func TestRPCSystemName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := RPCSystemName(tt.kind); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RPCSystemName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRPCStatusCode(t *testing.T) {
+	want := attribute.Key("rpc.status_code").Int64(500)
+
+	if got := RPCStatusCode(500); !reflect.DeepEqual(got, want) {
+		t.Errorf("RPCStatusCode() = %v, want %v", got, want)
+	}
+}
+
+func TestMessageSize(t *testing.T) {
+	msg := wrapperspb.String("hello")
+	var nilMsg *wrapperspb.StringValue
+
+	tests := []struct {
+		name string
+		got  []attribute.KeyValue
+		want []attribute.KeyValue
+	}{
+		{
+			name: "send message size",
+			got:  SendMessageSize(msg),
+			want: []attribute.KeyValue{attribute.Key("send_msg.size").Int(proto.Size(msg))},
+		},
+		{
+			name: "recv message size",
+			got:  RecvMessageSize(msg),
+			want: []attribute.KeyValue{attribute.Key("recv_msg.size").Int(proto.Size(msg))},
+		},
+		{
+			name: "non protobuf message",
+			got:  SendMessageSize("not-proto"),
+			want: []attribute.KeyValue(nil),
+		},
+		{
+			name: "nil protobuf message",
+			got:  SendMessageSize(nilMsg),
+			want: []attribute.KeyValue(nil),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !reflect.DeepEqual(tt.got, tt.want) {
+				t.Errorf("message size attributes = %v, want %v", tt.got, tt.want)
 			}
 		})
 	}
