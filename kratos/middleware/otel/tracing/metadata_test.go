@@ -2,11 +2,12 @@ package tracing
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/metadata"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -37,9 +38,7 @@ func TestMetadata_Inject(t *testing.T) {
 			ctx := kratos.NewContext(t.Context(), a)
 			m := new(Metadata)
 			m.Inject(ctx, tt.args.carrier)
-			if res := tt.args.carrier.Get(serviceHeader); tt.want != res {
-				t.Errorf("Get(serviceHeader) :%s want: %s", res, tt.want)
-			}
+			assert.Equal(t, tt.want, tt.args.carrier.Get(serviceHeader))
 		})
 	}
 }
@@ -89,18 +88,14 @@ func TestMetadata_Extract(t *testing.T) {
 				if tt.crash {
 					return
 				}
-				t.Errorf("expect %v, got %v", true, ok)
+				require.True(t, ok)
 			}
-			if !reflect.DeepEqual(md.Get(serviceHeader), tt.want) {
-				t.Errorf("expect %v, got %v", tt.want, md.Get(serviceHeader))
-			}
+			assert.Equal(t, tt.want, md.Get(serviceHeader))
 		})
 	}
 }
 
 func TestFields(t *testing.T) {
 	b := Metadata{}
-	if !reflect.DeepEqual(b.Fields(), []string{"x-md-service-name"}) {
-		t.Errorf("expect %v, got %v", []string{"x-md-service-name"}, b.Fields())
-	}
+	assert.Equal(t, []string{"x-md-service-name"}, b.Fields())
 }

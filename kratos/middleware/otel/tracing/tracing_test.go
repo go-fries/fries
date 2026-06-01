@@ -3,12 +3,11 @@ package tracing
 import (
 	"context"
 	"net/http"
-	"os"
-	"reflect"
 	"testing"
 
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/propagation"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -71,12 +70,24 @@ func (tr *mockTransport) Request() *http.Request {
 }
 func (tr *mockTransport) PathTemplate() string { return "" }
 
+func traceIDs(ctx context.Context) (string, string) {
+	spanContext := trace.SpanContextFromContext(ctx)
+	var spanID, traceID string
+	if spanContext.HasSpanID() {
+		spanID = spanContext.SpanID().String()
+	}
+	if spanContext.HasTraceID() {
+		traceID = spanContext.TraceID().String()
+	}
+	return spanID, traceID
+}
+
 func TestTracer(t *testing.T) {
 	carrier := headerCarrier{}
 	tp := tracesdk.NewTracerProvider(tracesdk.WithSampler(tracesdk.TraceIDRatioBased(0)))
 
 	// caller use Inject
-	cliTracer := NewTracer(
+	cliTracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tp),
 		WithPropagator(
@@ -86,29 +97,27 @@ func TestTracer(t *testing.T) {
 
 	ts := &mockTransport{kind: transport.KindHTTP, header: carrier}
 
-	ctx, aboveSpan := cliTracer.Start(
+	ctx, aboveSpan := cliTracer.start(
 		transport.NewClientContext(t.Context(), ts),
 		ts.Operation(), ts.RequestHeader(),
 	)
-	defer cliTracer.End(ctx, aboveSpan, nil, nil)
+	defer cliTracer.end(ctx, aboveSpan, nil, nil)
 
 	// server use Extract fetch traceInfo from carrier
-	svrTracer := NewTracer(trace.SpanKindServer,
+	svrTracer := newTracer(trace.SpanKindServer,
 		WithPropagator(
 			propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{}),
 		))
 	ts = &mockTransport{kind: transport.KindHTTP, header: carrier}
 
-	ctx, span := svrTracer.Start(transport.NewServerContext(ctx, ts), ts.Operation(), ts.RequestHeader())
-	defer svrTracer.End(ctx, span, nil, nil)
+	ctx, span := svrTracer.start(transport.NewServerContext(ctx, ts), ts.Operation(), ts.RequestHeader())
+	defer svrTracer.end(ctx, span, nil, nil)
 
-	if aboveSpan.SpanContext().TraceID() != span.SpanContext().TraceID() {
-		t.Fatalf("TraceID failed to deliver")
-	}
+	assert.Equal(t, aboveSpan.SpanContext().TraceID(), span.SpanContext().TraceID())
 
-	if v, ok := transport.FromClientContext(ctx); !ok || len(v.RequestHeader().Keys()) == 0 {
-		t.Fatalf("traceHeader failed to deliver")
-	}
+	v, ok := transport.FromClientContext(ctx)
+	require.True(t, ok)
+	assert.NotEmpty(t, v.RequestHeader().Keys())
 }
 
 func TestServer(t *testing.T) {
@@ -119,31 +128,22 @@ func TestServer(t *testing.T) {
 		header:    headerCarrier{},
 	}
 
-	tracer := NewTracer(
+	tracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
-
-	logger := log.NewStdLogger(os.Stdout)
-	logger = log.With(logger, "span_id", SpanID())
-	logger = log.With(logger, "trace_id", TraceID())
 
 	var (
 		childSpanID  string
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(
-			log.LevelInfo,
-			"kind", "server",
-		)
-		childSpanID = SpanID()(ctx).(string)
-		childTraceID = TraceID()(ctx).(string)
+		childSpanID, childTraceID = traceIDs(ctx)
 		return req.(string) + "https://go-kratos.dev", nil
 	}
 
 	var ctx context.Context
-	ctx, span := tracer.Start(
+	ctx, span := tracer.start(
 		transport.NewServerContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),
@@ -155,33 +155,18 @@ func TestServer(t *testing.T) {
 	)(next)(ctx, "test server: ")
 
 	span.End()
-	if err != nil {
-		t.Errorf("expected nil, got %v", err)
-	}
-	if childSpanID == "" {
-		t.Errorf("expected empty, got %v", childSpanID)
-	}
-	if reflect.DeepEqual(span.SpanContext().SpanID().String(), childSpanID) {
-		t.Errorf("span.SpanContext().SpanID().String()(%v)  is not equal to childSpanID(%v)",
-			span.SpanContext().SpanID().String(), childSpanID)
-	}
-	if !reflect.DeepEqual(span.SpanContext().TraceID().String(), childTraceID) {
-		t.Errorf("expected %v, got %v", childTraceID, span.SpanContext().TraceID().String())
-	}
+	assert.NoError(t, err)
+	assert.NotEmpty(t, childSpanID)
+	assert.NotEqual(t, span.SpanContext().SpanID().String(), childSpanID)
+	assert.Equal(t, span.SpanContext().TraceID().String(), childTraceID)
 
 	_, err = Server(
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 		WithPropagator(propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})),
 	)(next)(t.Context(), "test server: ")
-	if err != nil {
-		t.Errorf("expected error, got nil")
-	}
-	if childSpanID != "" {
-		t.Errorf("expected empty, got %v", childSpanID)
-	}
-	if childTraceID != "" {
-		t.Errorf("expected empty, got %v", childTraceID)
-	}
+	assert.NoError(t, err)
+	assert.Empty(t, childSpanID)
+	assert.Empty(t, childTraceID)
 }
 
 func TestClient(t *testing.T) {
@@ -192,31 +177,22 @@ func TestClient(t *testing.T) {
 		header:    headerCarrier{},
 	}
 
-	tracer := NewTracer(
+	tracer := newTracer(
 		trace.SpanKindClient,
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
-
-	logger := log.NewStdLogger(os.Stdout)
-	logger = log.With(logger, "span_id", SpanID())
-	logger = log.With(logger, "trace_id", TraceID())
 
 	var (
 		childSpanID  string
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(
-			log.LevelInfo,
-			"kind", "client",
-		)
-		childSpanID = SpanID()(ctx).(string)
-		childTraceID = TraceID()(ctx).(string)
+		childSpanID, childTraceID = traceIDs(ctx)
 		return req.(string) + "https://go-kratos.dev", nil
 	}
 
 	var ctx context.Context
-	ctx, span := tracer.Start(
+	ctx, span := tracer.start(
 		transport.NewClientContext(t.Context(), tr),
 		tr.Operation(),
 		tr.RequestHeader(),
@@ -228,17 +204,8 @@ func TestClient(t *testing.T) {
 	)(next)(ctx, "test client: ")
 
 	span.End()
-	if err != nil {
-		t.Errorf("expected nil, got %v", err)
-	}
-	if childSpanID == "" {
-		t.Errorf("expected empty, got %v", childSpanID)
-	}
-	if reflect.DeepEqual(span.SpanContext().SpanID().String(), childSpanID) {
-		t.Errorf("span.SpanContext().SpanID().String()(%v)  is not equal to childSpanID(%v)",
-			span.SpanContext().SpanID().String(), childSpanID)
-	}
-	if !reflect.DeepEqual(span.SpanContext().TraceID().String(), childTraceID) {
-		t.Errorf("expected %v, got %v", childTraceID, span.SpanContext().TraceID().String())
-	}
+	assert.NoError(t, err)
+	assert.NotEmpty(t, childSpanID)
+	assert.NotEqual(t, span.SpanContext().SpanID().String(), childSpanID)
+	assert.Equal(t, span.SpanContext().TraceID().String(), childTraceID)
 }

@@ -26,6 +26,10 @@ func main() {
 		otelkratos.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
 		otelkratos.WithAttributes(attribute.String("service.name", "example")),
 	)
+	logger = kratoslog.With(logger,
+		"trace_id", otelkratos.TraceID(),
+		"span_id", otelkratos.SpanID(),
+	)
 
 	helper := kratoslog.NewHelper(logger)
 	helper.Infow("msg", "server started")
@@ -38,6 +42,9 @@ func main() {
 - `WithVersion` sets the instrumentation scope version. The default is `otel.Version()`.
 - `WithSchemaURL` sets the OpenTelemetry schema URL.
 - `WithAttributes` adds instrumentation scope attributes.
+
+`TraceID` and `SpanID` return Kratos log valuers that read the active
+OpenTelemetry span from the log context.
 
 The instrumentation scope name is fixed to the module import path:
 

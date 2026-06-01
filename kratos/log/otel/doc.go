@@ -15,6 +15,10 @@
 //		otelkratos.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
 //		otelkratos.WithAttributes(attribute.String("service.name", "example")),
 //	)
+//	logger = kratoslog.With(logger,
+//		"trace_id", otelkratos.TraceID(),
+//		"span_id", otelkratos.SpanID(),
+//	)
 //
 //	helper := kratoslog.NewHelper(logger)
 //	helper.Infow("msg", "server started")
