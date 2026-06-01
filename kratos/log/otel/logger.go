@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-fries/fries/v3"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel/log"
 )
@@ -21,7 +20,7 @@ func NewLogger(opts ...Option) *Logger {
 
 	logger := o.provider.Logger(
 		"otel-logger",
-		log.WithInstrumentationVersion(fries.Version()),
+		log.WithInstrumentationVersion(Version()),
 	)
 
 	return &Logger{
