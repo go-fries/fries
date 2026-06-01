@@ -31,12 +31,18 @@ func NewLogger(opts ...Option) *Logger {
 }
 
 func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
+	severity := convertLevel(level)
+	ctx := contextFromKVs(context.Background(), keyvals...)
+	if !l.logger.Enabled(ctx, log.EnabledParameters{Severity: severity}) {
+		return nil
+	}
+
 	var record log.Record
 	record.SetTimestamp(time.Now())
-	record.SetSeverity(convertLevel(level))
+	record.SetSeverity(severity)
 	record.SetSeverityText(level.String())
 
-	ctx, body, kvs := convertKVs(context.Background(), keyvals...)
+	ctx, body, kvs := convertKVs(ctx, keyvals...)
 	if body != "" {
 		record.SetBody(log.StringValue(body))
 	}
@@ -45,6 +51,15 @@ func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
 
 	l.logger.Emit(ctx, record)
 	return nil
+}
+
+func contextFromKVs(ctx context.Context, keyvals ...any) context.Context {
+	for i := 1; i < len(keyvals); i += 2 {
+		if vCtx, ok := keyvals[i].(context.Context); ok {
+			ctx = vCtx
+		}
+	}
+	return ctx
 }
 
 func convertLevel(level kratoslog.Level) log.Severity {
