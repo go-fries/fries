@@ -11,9 +11,7 @@ import (
 )
 
 func TestNewTracer(t *testing.T) {
-	tracer := NewTracer(trace.SpanKindClient, func(o *options) {
-		o.tracerProvider = noop.NewTracerProvider()
-	})
+	tracer := NewTracer(trace.SpanKindClient, WithTracerProvider(noop.NewTracerProvider()))
 
 	if tracer.kind != trace.SpanKindClient {
 		t.Errorf("The tracer kind must be equal to trace.SpanKindClient, %v given.", tracer.kind)
@@ -24,15 +22,11 @@ func TestNewTracer(t *testing.T) {
 			t.Error("The NewTracer with an invalid SpanKindMustCrash must panic")
 		}
 	}()
-	_ = NewTracer(666, func(o *options) {
-		o.tracerProvider = noop.NewTracerProvider()
-	})
+	_ = NewTracer(666, WithTracerProvider(noop.NewTracerProvider()))
 }
 
 func TestTracer_End(t *testing.T) {
-	tracer := NewTracer(trace.SpanKindClient, func(o *options) {
-		o.tracerProvider = noop.NewTracerProvider()
-	})
+	tracer := NewTracer(trace.SpanKindClient, WithTracerProvider(noop.NewTracerProvider()))
 	ctx, span := noop.NewTracerProvider().Tracer("noop").Start(t.Context(), "noopSpan")
 
 	// Handle with error case
@@ -44,12 +38,8 @@ func TestTracer_End(t *testing.T) {
 	m := &tracingpb.HelloRequest{}
 
 	// Handle the trace KindServer
-	tracer = NewTracer(trace.SpanKindServer, func(o *options) {
-		o.tracerProvider = noop.NewTracerProvider()
-	})
+	tracer = NewTracer(trace.SpanKindServer, WithTracerProvider(noop.NewTracerProvider()))
 	tracer.End(ctx, span, m, nil)
-	tracer = NewTracer(trace.SpanKindClient, func(o *options) {
-		o.tracerProvider = noop.NewTracerProvider()
-	})
+	tracer = NewTracer(trace.SpanKindClient, WithTracerProvider(noop.NewTracerProvider()))
 	tracer.End(ctx, span, m, nil)
 }

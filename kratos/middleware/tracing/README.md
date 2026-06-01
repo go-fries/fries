@@ -1,28 +1,42 @@
 # Tracing Middleware
 
-The tracing middleware provides a way to trace the execution of a request through the application. It is based on the [OpenTelemetry](http://opentelemetry.io/) standard and can be used with any tracer that implements this standard.
+The tracing middleware traces Kratos client and server requests with [OpenTelemetry](https://opentelemetry.io/).
 
 The package is forked from [tracing](https://github.com/go-kratos/kratos/tree/8b8dc4b0f8bebb76939780f59734c20c265669c5/middleware/tracing) and optimized on this basis. Thanks to the original author for his contribution.
 
-## Usage Example
+## Installation
+
+```bash
+go get github.com/go-fries/fries/kratos/middleware/tracing/v3
+```
+
+## Usage
 
 ```go
 package main
 
 import (
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/transport/http"
-
-	"github.com/go-kratos-ecosystem/components/v2/middleware/tracing"
+	"github.com/go-fries/fries/kratos/middleware/tracing/v3"
 )
 
 func main() {
+	tracerProvider := otel.GetTracerProvider()
+
 	app := kratos.New(
 		kratos.Name("tracing"),
 		kratos.Server(
 			http.NewServer(
 				http.Address(":8001"),
-				http.Middleware(tracing.Server()),
+				http.Middleware(tracing.Server(
+					tracing.WithTracerProvider(tracerProvider),
+					tracing.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
+					tracing.WithAttributes(attribute.String("component", "kratos")),
+				)),
 			),
 		),
 	)
@@ -32,6 +46,10 @@ func main() {
 	}
 }
 ```
+
+The instrumentation scope name is fixed to this package path. Use
+`WithVersion`, `WithSchemaURL`, and `WithAttributes` to configure the
+OpenTelemetry instrumentation scope metadata.
 
 ## License
 
