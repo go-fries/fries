@@ -55,7 +55,7 @@ This is a multi-module repository with the following organization:
 
 ### Middleware
 - `kratos/middleware/cors/` - CORS middleware
-- `kratos/middleware/tracing/` - Tracing middleware
+- `kratos/middleware/otel/tracing/` - Tracing middleware
 - `hyperf/jet/middleware/` - Various Jet middleware (logging, retry, timeout, etc.)
 
 ### Databases & Storage

@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 
-	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
+	"github.com/go-fries/fries/kratos/middleware/otel/tracing/v3/internal/semconv"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"

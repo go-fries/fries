@@ -73,7 +73,7 @@ fixes:
   - github.com/go-fries/fries/kratos/middleware/cors/v3::kratos/middleware/cors/
   - github.com/go-fries/fries/kratos/middleware/protovalidate/v3::kratos/middleware/protovalidate/
   - github.com/go-fries/fries/kratos/middleware/slowlog/v3::kratos/middleware/slowlog/
-  - github.com/go-fries/fries/kratos/middleware/tracing/v3::kratos/middleware/tracing/
+  - github.com/go-fries/fries/kratos/middleware/otel/tracing/v3::kratos/middleware/otel/tracing/
   - github.com/go-fries/fries/locker/v3::locker/
   - github.com/go-fries/fries/locker/redis/v3::locker/redis/
   - github.com/go-fries/fries/mysql/canal/v3::mysql/canal/

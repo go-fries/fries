@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 
-	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
+	"github.com/go-fries/fries/kratos/middleware/otel/tracing/v3/internal/semconv"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
