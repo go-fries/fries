@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
@@ -33,7 +34,7 @@ func (c *ClientHandler) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 	}
 	span := trace.SpanFromContext(ctx)
 	if span.SpanContext().IsValid() {
-		span.SetAttributes(peerAttr(p.Addr.String())...)
+		span.SetAttributes(semconv.Peer(p.Addr.String())...)
 	}
 }
 
