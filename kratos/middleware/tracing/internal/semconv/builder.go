@@ -149,19 +149,23 @@ func methodAttributes(fullMethod string) []attribute.KeyValue {
 	name := strings.TrimLeft(fullMethod, "/")
 	parts := strings.SplitN(name, "/", 2) //nolint:mnd
 	if len(parts) != 2 {                  //nolint:mnd
-		// Invalid format, does not follow `/package.service/method`.
-		return []attribute.KeyValue{RPCOperation(fullMethod)}
+		if fullMethod == "" {
+			return nil
+		}
+		return []attribute.KeyValue{
+			RPCMethod("_OTHER"),
+			RPCMethodOriginal(fullMethod),
+		}
 	}
 
-	var attrs []attribute.KeyValue
-	if service := parts[0]; service != "" {
-		if method := parts[1]; method != "" {
-			attrs = append(attrs, RPCMethod(service+"/"+method))
+	if parts[0] == "" || parts[1] == "" {
+		return []attribute.KeyValue{
+			RPCMethod("_OTHER"),
+			RPCMethodOriginal(fullMethod),
 		}
-	} else if method := parts[1]; method != "" {
-		attrs = append(attrs, RPCMethod(method))
 	}
-	return attrs
+
+	return []attribute.KeyValue{RPCMethod(parts[0] + "/" + parts[1])}
 }
 
 // Peer returns attributes about the peer address.

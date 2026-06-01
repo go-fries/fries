@@ -69,7 +69,23 @@ func TestMethodAttributes(t *testing.T) {
 		{
 			name:       "/hello",
 			fullMethod: "/hello",
-			want:       []attribute.KeyValue{attribute.Key("rpc.operation").String("/hello")},
+			want: []attribute.KeyValue{
+				otelsemconv.RPCMethod("_OTHER"),
+				otelsemconv.RPCMethodOriginal("/hello"),
+			},
+		},
+		{
+			name:       "empty",
+			fullMethod: "",
+			want:       []attribute.KeyValue(nil),
+		},
+		{
+			name:       "missing method",
+			fullMethod: "/foo.bar/",
+			want: []attribute.KeyValue{
+				otelsemconv.RPCMethod("_OTHER"),
+				otelsemconv.RPCMethodOriginal("/foo.bar/"),
+			},
 		},
 	}
 

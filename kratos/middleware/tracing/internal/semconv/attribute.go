@@ -65,8 +65,8 @@ func RPCMethod(method string) attribute.KeyValue {
 	return otelsemconv.RPCMethod(method)
 }
 
-func RPCOperation(operation string) attribute.KeyValue {
-	return attribute.Key("rpc.operation").String(operation)
+func RPCMethodOriginal(method string) attribute.KeyValue {
+	return otelsemconv.RPCMethodOriginal(method)
 }
 
 func RPCSystemName(kind transport.Kind) attribute.KeyValue {
