@@ -5,32 +5,32 @@ import (
 	"go.opentelemetry.io/otel/log/global"
 )
 
-type options struct {
+type config struct {
 	provider log.LoggerProvider
 }
 
 type Option interface {
-	apply(*options)
+	apply(*config)
 }
 
-type optionFunc func(*options)
+type optionFunc func(*config)
 
-func (f optionFunc) apply(o *options) {
-	f(o)
+func (f optionFunc) apply(c *config) {
+	f(c)
 }
 
-func newOptions(opts ...Option) *options {
-	o := &options{
+func newConfig(opts ...Option) *config {
+	cfg := &config{
 		provider: global.GetLoggerProvider(),
 	}
 	for _, opt := range opts {
-		opt.apply(o)
+		opt.apply(cfg)
 	}
-	return o
+	return cfg
 }
 
 func WithLoggerProvider(provider log.LoggerProvider) Option {
-	return optionFunc(func(o *options) {
-		o.provider = provider
+	return optionFunc(func(c *config) {
+		c.provider = provider
 	})
 }

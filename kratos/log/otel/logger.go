@@ -13,15 +13,15 @@ type Logger struct {
 	logger log.Logger
 }
 
-const instrumentationName = "github.com/go-fries/fries/kratos/log/otel/v3"
+const scopeName = "github.com/go-fries/fries/kratos/log/otel/v3"
 
 var _ kratoslog.Logger = (*Logger)(nil)
 
 func NewLogger(opts ...Option) *Logger {
-	o := newOptions(opts...)
+	cfg := newConfig(opts...)
 
-	logger := o.provider.Logger(
-		instrumentationName,
+	logger := cfg.provider.Logger(
+		scopeName,
 		log.WithInstrumentationVersion(Version()),
 	)
 
