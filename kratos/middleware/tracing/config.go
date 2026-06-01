@@ -27,7 +27,7 @@ func (f optionFunc) apply(c *config) {
 }
 
 // WithPropagator sets the [propagation.TextMapPropagator] used to extract and
-// inject trace context.
+// inject trace context. A nil propagator leaves the default propagator unchanged.
 func WithPropagator(propagator propagation.TextMapPropagator) Option {
 	return optionFunc(func(c *config) {
 		if propagator != nil {
@@ -37,7 +37,7 @@ func WithPropagator(propagator propagation.TextMapPropagator) Option {
 }
 
 // WithTracerProvider sets the [trace.TracerProvider] used to create the
-// underlying [trace.Tracer].
+// underlying [trace.Tracer]. A nil provider falls back to the global provider.
 func WithTracerProvider(provider trace.TracerProvider) Option {
 	return optionFunc(func(c *config) {
 		if provider != nil {

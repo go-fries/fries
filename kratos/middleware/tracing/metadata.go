@@ -15,7 +15,7 @@ type Metadata struct{}
 
 var _ propagation.TextMapPropagator = Metadata{}
 
-// Inject sets metadata key-values from ctx into the carrier.
+// Inject writes the Kratos application name from ctx into the carrier.
 func (b Metadata) Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
 	app, ok := kratos.FromContext(ctx)
 	if ok {

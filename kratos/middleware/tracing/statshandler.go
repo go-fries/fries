@@ -9,10 +9,10 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-// ClientHandler is tracing ClientHandler
+// ClientHandler is a gRPC stats handler that adds peer attributes to client spans.
 type ClientHandler struct{}
 
-// HandleConn exists to satisfy gRPC stats.Handler.
+// HandleConn satisfies gRPC stats.Handler.
 func (c *ClientHandler) HandleConn(_ context.Context, _ stats.ConnStats) {
 }
 

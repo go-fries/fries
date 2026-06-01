@@ -15,14 +15,17 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
+// Builder builds OpenTelemetry semantic-convention attributes for Kratos transports.
 type Builder struct {
 	serviceHeader string
 }
 
+// NewBuilder returns a Builder that reads peer service metadata from serviceHeader.
 func NewBuilder(serviceHeader string) Builder {
 	return Builder{serviceHeader: serviceHeader}
 }
 
+// Client returns attributes for a client span.
 func (b Builder) Client(ctx context.Context, m any) []attribute.KeyValue {
 	var (
 		attrs     []attribute.KeyValue
@@ -55,6 +58,7 @@ func (b Builder) Client(ctx context.Context, m any) []attribute.KeyValue {
 	return attrs
 }
 
+// Server returns attributes for a server span.
 func (b Builder) Server(ctx context.Context, m any) []attribute.KeyValue {
 	var (
 		attrs     []attribute.KeyValue
