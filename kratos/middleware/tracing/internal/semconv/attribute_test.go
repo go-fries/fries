@@ -233,11 +233,14 @@ func TestRPCSystemName(t *testing.T) {
 	}
 }
 
-func TestRPCStatusCode(t *testing.T) {
-	want := attribute.Key("rpc.status_code").Int64(500)
+func TestRPCErrorAttributes(t *testing.T) {
+	want := []attribute.KeyValue{
+		otelsemconv.RPCResponseStatusCode("500"),
+		otelsemconv.ErrorTypeKey.String("500"),
+	}
 
-	if got := RPCStatusCode(500); !reflect.DeepEqual(got, want) {
-		t.Errorf("RPCStatusCode() = %v, want %v", got, want)
+	if got := RPCErrorAttributes(500); !reflect.DeepEqual(got, want) {
+		t.Errorf("RPCErrorAttributes() = %v, want %v", got, want)
 	}
 }
 

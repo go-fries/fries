@@ -57,7 +57,7 @@ func (t *tracer) end(_ context.Context, span trace.Span, m any, err error) {
 	if err != nil {
 		span.RecordError(err)
 		if e := errors.FromError(err); e != nil {
-			span.SetAttributes(semconv.RPCStatusCode(e.Code))
+			span.SetAttributes(semconv.RPCErrorAttributes(e.Code)...)
 		}
 		span.SetStatus(codes.Error, err.Error())
 	} else {

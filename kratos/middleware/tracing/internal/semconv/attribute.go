@@ -3,6 +3,7 @@ package semconv
 import (
 	"net/http"
 	"reflect"
+	"strconv"
 
 	"github.com/go-kratos/kratos/v2/transport"
 	"go.opentelemetry.io/otel/attribute"
@@ -71,8 +72,12 @@ func RPCMethodOriginal(method string) attribute.KeyValue {
 	return otelsemconv.RPCMethodOriginal(method)
 }
 
-func RPCStatusCode(code int32) attribute.KeyValue {
-	return attribute.Key("rpc.status_code").Int64(int64(code))
+func RPCErrorAttributes(code int32) []attribute.KeyValue {
+	statusCode := strconv.FormatInt(int64(code), 10)
+	return []attribute.KeyValue{
+		otelsemconv.RPCResponseStatusCode(statusCode),
+		otelsemconv.ErrorTypeKey.String(statusCode),
+	}
 }
 
 func RPCSystemName(kind transport.Kind) attribute.KeyValue {
