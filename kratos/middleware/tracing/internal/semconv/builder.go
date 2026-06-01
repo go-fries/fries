@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -196,6 +197,7 @@ func Peer(addr string) (attrs []attribute.KeyValue) {
 }
 
 func serverTarget(target string) []attribute.KeyValue {
+	target = normalizeTarget(target)
 	address, port, ok := splitHostPort(target, 0)
 	if !ok {
 		return nil
@@ -205,6 +207,26 @@ func serverTarget(target string) []attribute.KeyValue {
 		attrs = append(attrs, ServerPort(port))
 	}
 	return attrs
+}
+
+func normalizeTarget(target string) string {
+	if !strings.Contains(target, "://") {
+		return target
+	}
+	u, err := url.Parse(target)
+	if err != nil {
+		return target
+	}
+	if path := strings.TrimLeft(u.Path, "/"); path != "" {
+		return path
+	}
+	if u.Host != "" {
+		return u.Host
+	}
+	if opaque := strings.TrimLeft(u.Opaque, "/"); opaque != "" {
+		return opaque
+	}
+	return target
 }
 
 func requestScheme(req *http.Request) string {

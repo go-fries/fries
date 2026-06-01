@@ -101,26 +101,68 @@ func TestBuilderClientHTTP(t *testing.T) {
 }
 
 func TestBuilderClientGRPC(t *testing.T) {
-	msg := &emptypb.Empty{}
-	ip, err := net.ResolveIPAddr("ip", "1.1.1.1")
-	require.NoError(t, err)
-	ctx := peer.NewContext(t.Context(), &peer.Peer{Addr: ip})
-	ctx = transport.NewClientContext(ctx, &mockTransport{
-		kind:      transport.KindGRPC,
-		endpoint:  "example.com:9000",
-		operation: "/example.Service/Get",
-	})
-
-	got := NewBuilder(serviceHeader).Client(ctx, msg)
-	want := []attribute.KeyValue{
-		otelsemconv.ServerAddress("example.com"),
-		otelsemconv.ServerPort(9000),
-		otelsemconv.RPCSystemNameGRPC,
-		otelsemconv.RPCMethod("example.Service/Get"),
-		attribute.Key("send_msg.size").Int(proto.Size(msg)),
+	tests := []struct {
+		name       string
+		endpoint   string
+		serverAttr []attribute.KeyValue
+	}{
+		{
+			name:     "bare host port",
+			endpoint: "example.com:9000",
+			serverAttr: []attribute.KeyValue{
+				otelsemconv.ServerAddress("example.com"),
+				otelsemconv.ServerPort(9000),
+			},
+		},
+		{
+			name:     "dns target",
+			endpoint: "dns:///example.com:9000",
+			serverAttr: []attribute.KeyValue{
+				otelsemconv.ServerAddress("example.com"),
+				otelsemconv.ServerPort(9000),
+			},
+		},
+		{
+			name:     "discovery target",
+			endpoint: "discovery:///user-service",
+			serverAttr: []attribute.KeyValue{
+				otelsemconv.ServerAddress("user-service"),
+			},
+		},
+		{
+			name:     "target with authority",
+			endpoint: "dns://resolver.example.com/example.com:9000",
+			serverAttr: []attribute.KeyValue{
+				otelsemconv.ServerAddress("example.com"),
+				otelsemconv.ServerPort(9000),
+			},
+		},
 	}
 
-	assert.Equal(t, want, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &emptypb.Empty{}
+			ip, err := net.ResolveIPAddr("ip", "1.1.1.1")
+			require.NoError(t, err)
+			ctx := peer.NewContext(t.Context(), &peer.Peer{Addr: ip})
+			ctx = transport.NewClientContext(ctx, &mockTransport{
+				kind:      transport.KindGRPC,
+				endpoint:  tt.endpoint,
+				operation: "/example.Service/Get",
+			})
+
+			got := NewBuilder(serviceHeader).Client(ctx, msg)
+			want := append([]attribute.KeyValue{}, tt.serverAttr...)
+			want = append(
+				want,
+				otelsemconv.RPCSystemNameGRPC,
+				otelsemconv.RPCMethod("example.Service/Get"),
+				attribute.Key("send_msg.size").Int(proto.Size(msg)),
+			)
+
+			assert.Equal(t, want, got)
+		})
+	}
 }
 
 func TestBuilderServerHTTP(t *testing.T) {
