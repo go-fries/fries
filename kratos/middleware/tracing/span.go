@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-fries/fries/kratos/middleware/tracing/v3/internal/semconv"
 	"github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/transport"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	khttp "github.com/go-kratos/kratos/v2/transport/http"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
@@ -28,10 +28,10 @@ func setClientSpan(ctx context.Context, span trace.Span, m any) {
 		operation = tr.Operation()
 		switch tr.Kind() {
 		case transport.KindHTTP:
-			if ht, ok := tr.(http.Transporter); ok {
+			if ht, ok := tr.(khttp.Transporter); ok {
 				attrs = append(
 					attrs,
-					semconv.HTTPRequestMethodKey.String(ht.Request().Method),
+					semconv.HTTPRequestMethod(ht.Request().Method),
 					semconv.HTTPRoute(ht.PathTemplate()),
 					semconv.URLPath(ht.Request().URL.Path),
 					semconv.ClientAddress(ht.Request().RemoteAddr),
@@ -42,7 +42,7 @@ func setClientSpan(ctx context.Context, span trace.Span, m any) {
 		case transport.KindGRPC:
 			remote, _ = parseTarget(tr.Endpoint())
 		}
-		attrs = append(attrs, rpcSystemName(tr.Kind()))
+		attrs = append(attrs, semconv.RPCSystemName(tr.Kind()))
 	}
 	_, mAttrs := parseFullMethod(operation)
 	attrs = append(attrs, mAttrs...)
@@ -67,10 +67,10 @@ func setServerSpan(ctx context.Context, span trace.Span, m any) {
 		operation = tr.Operation()
 		switch tr.Kind() {
 		case transport.KindHTTP:
-			if ht, ok := tr.(http.Transporter); ok {
+			if ht, ok := tr.(khttp.Transporter); ok {
 				attrs = append(
 					attrs,
-					semconv.HTTPRequestMethodKey.String(ht.Request().Method),
+					semconv.HTTPRequestMethod(ht.Request().Method),
 					semconv.HTTPRoute(ht.PathTemplate()),
 					semconv.URLPath(ht.Request().URL.Path),
 					semconv.ClientAddress(ht.Request().RemoteAddr),
@@ -83,7 +83,7 @@ func setServerSpan(ctx context.Context, span trace.Span, m any) {
 				remote = p.Addr.String()
 			}
 		}
-		attrs = append(attrs, rpcSystemName(tr.Kind()))
+		attrs = append(attrs, semconv.RPCSystemName(tr.Kind()))
 	}
 	_, mAttrs := parseFullMethod(operation)
 	attrs = append(attrs, mAttrs...)
@@ -98,15 +98,6 @@ func setServerSpan(ctx context.Context, span trace.Span, m any) {
 	span.SetAttributes(attrs...)
 }
 
-func rpcSystemName(kind transport.Kind) attribute.KeyValue {
-	switch kind {
-	case transport.KindGRPC:
-		return semconv.RPCSystemNameGRPC
-	default:
-		return semconv.RPCSystemNameKey.String(kind.String())
-	}
-}
-
 // parseFullMethod returns a span name following the OpenTelemetry semantic
 // conventions as well as all applicable span attribute.KeyValue attributes based
 // on a gRPC's FullMethod.
@@ -115,7 +106,7 @@ func parseFullMethod(fullMethod string) (string, []attribute.KeyValue) {
 	parts := strings.SplitN(name, "/", 2) //nolint:mnd
 	if len(parts) != 2 {                  //nolint:mnd
 		// Invalid format, does not follow `/package.service/method`.
-		return name, []attribute.KeyValue{attribute.Key("rpc.operation").String(fullMethod)}
+		return name, []attribute.KeyValue{semconv.RPCOperation(fullMethod)}
 	}
 
 	var attrs []attribute.KeyValue
