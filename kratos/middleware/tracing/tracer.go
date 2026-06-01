@@ -16,9 +16,9 @@ const scopeName = "github.com/go-fries/fries/kratos/middleware/tracing/v3"
 
 // Tracer starts and ends OpenTelemetry spans for Kratos middleware.
 type Tracer struct {
-	tracer trace.Tracer
-	kind   trace.SpanKind
-	config *config
+	tracer     trace.Tracer
+	kind       trace.SpanKind
+	propagator propagation.TextMapPropagator
 }
 
 // NewTracer creates a [Tracer] for the given span kind.
@@ -32,7 +32,11 @@ func NewTracer(kind trace.SpanKind, opts ...Option) *Tracer {
 		panic(fmt.Sprintf("unsupported span kind: %v", kind))
 	}
 
-	return &Tracer{tracer: cfg.newTracer(scopeName), kind: kind, config: cfg}
+	return &Tracer{
+		tracer:     cfg.newTracer(scopeName),
+		kind:       kind,
+		propagator: cfg.propagator,
+	}
 }
 
 // Start starts a tracing span and propagates context for the configured span
@@ -41,7 +45,7 @@ func (t *Tracer) Start(
 	ctx context.Context, operation string, carrier propagation.TextMapCarrier,
 ) (context.Context, trace.Span) {
 	if t.kind == trace.SpanKindServer {
-		ctx = t.config.propagator.Extract(ctx, carrier)
+		ctx = t.propagator.Extract(ctx, carrier)
 	}
 	ctx, span := t.tracer.Start(
 		ctx,
@@ -49,7 +53,7 @@ func (t *Tracer) Start(
 		trace.WithSpanKind(t.kind),
 	)
 	if t.kind == trace.SpanKindClient {
-		t.config.propagator.Inject(ctx, carrier)
+		t.propagator.Inject(ctx, carrier)
 	}
 	return ctx, span
 }
