@@ -39,7 +39,10 @@ func (b Builder) Client(ctx context.Context, m any) []attribute.KeyValue {
 				attrs = append(attrs, httpClientTransporter(ht)...)
 			}
 		case transport.KindGRPC:
-			remote, _ = parseTarget(tr.Endpoint())
+			attrs = append(attrs, serverTarget(tr.Endpoint())...)
+			if p, ok := peer.FromContext(ctx); ok {
+				remote = p.Addr.String()
+			}
 		}
 		attrs = append(attrs, RPCSystemName(tr.Kind()))
 	}
@@ -185,6 +188,18 @@ func Peer(addr string) (attrs []attribute.KeyValue) {
 		NetworkPeerPort(portInt),
 	)
 
+	return attrs
+}
+
+func serverTarget(target string) []attribute.KeyValue {
+	address, port, ok := splitHostPort(target, 0)
+	if !ok {
+		return nil
+	}
+	attrs := []attribute.KeyValue{ServerAddress(address)}
+	if port > 0 {
+		attrs = append(attrs, ServerPort(port))
+	}
 	return attrs
 }
 

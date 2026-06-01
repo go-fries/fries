@@ -100,7 +100,9 @@ func TestBuilderClientHTTP(t *testing.T) {
 
 func TestBuilderClientGRPC(t *testing.T) {
 	msg := &emptypb.Empty{}
-	ctx := transport.NewClientContext(t.Context(), &mockTransport{
+	ip, _ := net.ResolveIPAddr("ip", "1.1.1.1")
+	ctx := peer.NewContext(t.Context(), &peer.Peer{Addr: ip})
+	ctx = transport.NewClientContext(ctx, &mockTransport{
 		kind:      transport.KindGRPC,
 		endpoint:  "example.com:9000",
 		operation: "/example.Service/Get",
@@ -108,10 +110,10 @@ func TestBuilderClientGRPC(t *testing.T) {
 
 	got := NewBuilder(serviceHeader).Client(ctx, msg)
 	want := []attribute.KeyValue{
+		otelsemconv.ServerAddress("example.com"),
+		otelsemconv.ServerPort(9000),
 		otelsemconv.RPCSystemNameGRPC,
 		otelsemconv.RPCMethod("example.Service/Get"),
-		otelsemconv.NetworkPeerAddress("example.com"),
-		otelsemconv.NetworkPeerPort(9000),
 		attribute.Key("send_msg.size").Int(proto.Size(msg)),
 	}
 
