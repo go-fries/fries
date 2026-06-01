@@ -3,10 +3,8 @@ package tracing
 import (
 	"context"
 	"net/http"
-	"os"
 	"testing"
 
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,6 +70,18 @@ func (tr *mockTransport) Request() *http.Request {
 }
 func (tr *mockTransport) PathTemplate() string { return "" }
 
+func traceIDs(ctx context.Context) (string, string) {
+	spanContext := trace.SpanContextFromContext(ctx)
+	var spanID, traceID string
+	if spanContext.HasSpanID() {
+		spanID = spanContext.SpanID().String()
+	}
+	if spanContext.HasTraceID() {
+		traceID = spanContext.TraceID().String()
+	}
+	return spanID, traceID
+}
+
 func TestTracer(t *testing.T) {
 	carrier := headerCarrier{}
 	tp := tracesdk.NewTracerProvider(tracesdk.WithSampler(tracesdk.TraceIDRatioBased(0)))
@@ -123,21 +133,12 @@ func TestServer(t *testing.T) {
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
 
-	logger := log.NewStdLogger(os.Stdout)
-	logger = log.With(logger, "span_id", SpanID())
-	logger = log.With(logger, "trace_id", TraceID())
-
 	var (
 		childSpanID  string
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(
-			log.LevelInfo,
-			"kind", "server",
-		)
-		childSpanID = SpanID()(ctx).(string)
-		childTraceID = TraceID()(ctx).(string)
+		childSpanID, childTraceID = traceIDs(ctx)
 		return req.(string) + "https://go-kratos.dev", nil
 	}
 
@@ -181,21 +182,12 @@ func TestClient(t *testing.T) {
 		WithTracerProvider(tracesdk.NewTracerProvider()),
 	)
 
-	logger := log.NewStdLogger(os.Stdout)
-	logger = log.With(logger, "span_id", SpanID())
-	logger = log.With(logger, "trace_id", TraceID())
-
 	var (
 		childSpanID  string
 		childTraceID string
 	)
 	next := func(ctx context.Context, req any) (any, error) {
-		_ = log.WithContext(ctx, logger).Log(
-			log.LevelInfo,
-			"kind", "client",
-		)
-		childSpanID = SpanID()(ctx).(string)
-		childTraceID = TraceID()(ctx).(string)
+		childSpanID, childTraceID = traceIDs(ctx)
 		return req.(string) + "https://go-kratos.dev", nil
 	}
 
