@@ -10,7 +10,7 @@ import (
 
 const serviceHeader = "x-md-service-name"
 
-// Metadata is tracing metadata propagator
+// Metadata propagates tracing-related Kratos metadata through text map carriers.
 type Metadata struct{}
 
 var _ propagation.TextMapPropagator = Metadata{}
@@ -38,7 +38,7 @@ func (b Metadata) Extract(parent context.Context, carrier propagation.TextMapCar
 	return metadata.NewServerContext(parent, md)
 }
 
-// Fields returns the keys who's values are set with Inject.
+// Fields returns the keys whose values are set with Inject.
 func (b Metadata) Fields() []string {
 	return []string{serviceHeader}
 }

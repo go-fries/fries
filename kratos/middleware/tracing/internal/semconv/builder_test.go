@@ -102,14 +102,14 @@ func TestBuilderClientHTTP(t *testing.T) {
 
 func TestBuilderClientGRPC(t *testing.T) {
 	tests := []struct {
-		name       string
-		endpoint   string
-		serverAttr []attribute.KeyValue
+		name        string
+		endpoint    string
+		serverAttrs []attribute.KeyValue
 	}{
 		{
 			name:     "bare host port",
 			endpoint: "example.com:9000",
-			serverAttr: []attribute.KeyValue{
+			serverAttrs: []attribute.KeyValue{
 				otelsemconv.ServerAddress("example.com"),
 				otelsemconv.ServerPort(9000),
 			},
@@ -117,7 +117,7 @@ func TestBuilderClientGRPC(t *testing.T) {
 		{
 			name:     "dns target",
 			endpoint: "dns:///example.com:9000",
-			serverAttr: []attribute.KeyValue{
+			serverAttrs: []attribute.KeyValue{
 				otelsemconv.ServerAddress("example.com"),
 				otelsemconv.ServerPort(9000),
 			},
@@ -125,14 +125,14 @@ func TestBuilderClientGRPC(t *testing.T) {
 		{
 			name:     "discovery target",
 			endpoint: "discovery:///user-service",
-			serverAttr: []attribute.KeyValue{
+			serverAttrs: []attribute.KeyValue{
 				otelsemconv.ServerAddress("user-service"),
 			},
 		},
 		{
 			name:     "target with authority",
 			endpoint: "dns://resolver.example.com/example.com:9000",
-			serverAttr: []attribute.KeyValue{
+			serverAttrs: []attribute.KeyValue{
 				otelsemconv.ServerAddress("example.com"),
 				otelsemconv.ServerPort(9000),
 			},
@@ -152,7 +152,7 @@ func TestBuilderClientGRPC(t *testing.T) {
 			})
 
 			got := NewBuilder(serviceHeader).Client(ctx, msg)
-			want := append([]attribute.KeyValue{}, tt.serverAttr...)
+			want := append([]attribute.KeyValue{}, tt.serverAttrs...)
 			want = append(
 				want,
 				otelsemconv.RPCSystemNameGRPC,
