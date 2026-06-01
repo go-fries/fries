@@ -37,6 +37,8 @@ type recordingLogger struct {
 	enabledParam log.EnabledParameters
 }
 
+type contextKey struct{}
+
 func (l *recordingLogger) Emit(ctx context.Context, record log.Record) {
 	l.ctx = ctx
 	l.record = record.Clone()
@@ -63,7 +65,7 @@ func TestLoggerLogEmitsRecord(t *testing.T) {
 	logger := NewLogger(WithLoggerProvider(provider))
 	provider.logger.enabled = true
 
-	ctx := context.WithValue(t.Context(), struct{}{}, "value")
+	ctx := context.WithValue(t.Context(), contextKey{}, "value")
 	err := logger.Log(
 		kratoslog.LevelInfo,
 		kratoslog.DefaultMessageKey, "hello",
@@ -97,7 +99,7 @@ func TestLoggerLogSkipsEmitWhenDisabled(t *testing.T) {
 	logger := NewLogger(WithLoggerProvider(provider))
 	provider.logger.enabled = false
 
-	ctx := context.WithValue(t.Context(), struct{}{}, "value")
+	ctx := context.WithValue(t.Context(), contextKey{}, "value")
 	err := logger.Log(
 		kratoslog.LevelError,
 		kratoslog.DefaultMessageKey, "ignored",
