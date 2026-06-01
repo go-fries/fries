@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-fries/fries/v3"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel/log"
 )
@@ -14,28 +13,33 @@ type Logger struct {
 	logger log.Logger
 }
 
+const scopeName = "github.com/go-fries/fries/kratos/log/otel/v3"
+
 var _ kratoslog.Logger = (*Logger)(nil)
 
+// NewLogger creates a [Logger] that emits records through OpenTelemetry Logs.
 func NewLogger(opts ...Option) *Logger {
-	o := newOptions(opts...)
-
-	logger := o.provider.Logger(
-		"otel-logger",
-		log.WithInstrumentationVersion(fries.Version()),
-	)
+	cfg := newConfig(opts...)
 
 	return &Logger{
-		logger: logger,
+		logger: cfg.newLogger(scopeName),
 	}
 }
 
+// Log emits a Kratos log entry as a [log.Record].
 func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
+	severity := convertLevel(level)
+	ctx := contextFromKVs(context.Background(), keyvals...)
+	if !l.logger.Enabled(ctx, log.EnabledParameters{Severity: severity}) {
+		return nil
+	}
+
 	var record log.Record
 	record.SetTimestamp(time.Now())
-	record.SetSeverity(convertLevel(level))
+	record.SetSeverity(severity)
 	record.SetSeverityText(level.String())
 
-	ctx, body, kvs := convertKVs(context.Background(), keyvals...)
+	ctx, body, kvs := convertKVs(ctx, keyvals...)
 	if body != "" {
 		record.SetBody(log.StringValue(body))
 	}
@@ -44,6 +48,15 @@ func (l *Logger) Log(level kratoslog.Level, keyvals ...any) error {
 
 	l.logger.Emit(ctx, record)
 	return nil
+}
+
+func contextFromKVs(ctx context.Context, keyvals ...any) context.Context {
+	for i := 1; i < len(keyvals); i += 2 {
+		if vCtx, ok := keyvals[i].(context.Context); ok {
+			ctx = vCtx
+		}
+	}
+	return ctx
 }
 
 func convertLevel(level kratoslog.Level) log.Severity {
