@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/metadata"
@@ -69,7 +70,7 @@ func (tr *mockTransport) Request() *http.Request {
 func (tr *mockTransport) PathTemplate() string { return tr.route }
 
 func TestBuilderClientHTTP(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "https://api.example.com:443/v1/items/1", nil)
+	req, _ := http.NewRequest(http.MethodGet, "https://api.example.com:443/v1/items/1", strings.NewReader("payload"))
 	req.RemoteAddr = "10.0.0.1:12345"
 	req.Header.Set("User-Agent", "go-test")
 	msg := &emptypb.Empty{}
@@ -85,6 +86,7 @@ func TestBuilderClientHTTP(t *testing.T) {
 	want := []attribute.KeyValue{
 		otelsemconv.HTTPRequestMethodGet,
 		otelsemconv.URLFull("https://api.example.com:443/v1/items/1"),
+		otelsemconv.HTTPRequestBodySize(7),
 		otelsemconv.ServerAddress("api.example.com"),
 		otelsemconv.ServerPort(443),
 		otelsemconv.UserAgentOriginal("go-test"),
@@ -123,7 +125,7 @@ func TestBuilderClientGRPC(t *testing.T) {
 }
 
 func TestBuilderServerHTTP(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPost, "http://localhost/v1/items", nil)
+	req, _ := http.NewRequest(http.MethodPost, "http://localhost/v1/items", strings.NewReader("payload"))
 	req.RemoteAddr = "192.168.0.10:54321"
 	req.Header.Set("User-Agent", "go-test")
 	msg := &emptypb.Empty{}
@@ -143,6 +145,7 @@ func TestBuilderServerHTTP(t *testing.T) {
 		otelsemconv.HTTPRequestMethodPost,
 		otelsemconv.URLPath("/v1/items"),
 		otelsemconv.URLScheme("http"),
+		otelsemconv.HTTPRequestBodySize(7),
 		otelsemconv.HTTPRoute("/v1/items"),
 		otelsemconv.ServerAddress("localhost"),
 		otelsemconv.ServerPort(80),

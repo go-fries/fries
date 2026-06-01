@@ -96,6 +96,7 @@ func httpClientTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	if req.URL != nil && req.URL.String() != "" {
 		attrs = append(attrs, URLFull(req.URL.String()))
 	}
+	attrs = append(attrs, httpRequestBodySize(req)...)
 	if address, port, ok := serverAddress(req); ok {
 		attrs = append(attrs, ServerAddress(address))
 		if port > 0 {
@@ -118,6 +119,7 @@ func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
 	if query := req.URL.RawQuery; query != "" {
 		attrs = append(attrs, URLQuery(query))
 	}
+	attrs = append(attrs, httpRequestBodySize(req)...)
 	if route := ht.PathTemplate(); route != "" {
 		attrs = append(attrs, HTTPRoute(route))
 	}
@@ -134,6 +136,13 @@ func httpServerTransporter(ht khttp.Transporter) []attribute.KeyValue {
 		attrs = append(attrs, UserAgentOriginal(userAgent))
 	}
 	return attrs
+}
+
+func httpRequestBodySize(req *http.Request) []attribute.KeyValue {
+	if req.ContentLength < 0 {
+		return nil
+	}
+	return []attribute.KeyValue{HTTPRequestBodySize(int(req.ContentLength))}
 }
 
 // methodAttributes returns attributes about the gRPC full method.

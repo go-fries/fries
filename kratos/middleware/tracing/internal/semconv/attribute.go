@@ -52,6 +52,10 @@ func HTTPRequestMethod(method string) attribute.KeyValue {
 	}
 }
 
+func HTTPRequestBodySize(size int) attribute.KeyValue {
+	return otelsemconv.HTTPRequestBodySize(size)
+}
+
 func HTTPRoute(route string) attribute.KeyValue {
 	return otelsemconv.HTTPRoute(route)
 }

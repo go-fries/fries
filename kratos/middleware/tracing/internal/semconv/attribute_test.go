@@ -48,6 +48,14 @@ func TestHTTPRequestMethod(t *testing.T) {
 	}
 }
 
+func TestHTTPRequestBodySize(t *testing.T) {
+	want := otelsemconv.HTTPRequestBodySize(7)
+
+	if got := HTTPRequestBodySize(7); !reflect.DeepEqual(got, want) {
+		t.Errorf("HTTPRequestBodySize() = %v, want %v", got, want)
+	}
+}
+
 func TestMethodAttributes(t *testing.T) {
 	tests := []struct {
 		name       string
