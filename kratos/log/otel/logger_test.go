@@ -63,7 +63,7 @@ func TestLoggerLogEmitsRecord(t *testing.T) {
 	logger := NewLogger(WithLoggerProvider(provider))
 	provider.logger.enabled = true
 
-	ctx := context.WithValue(context.Background(), struct{}{}, "value")
+	ctx := context.WithValue(t.Context(), struct{}{}, "value")
 	err := logger.Log(
 		kratoslog.LevelInfo,
 		kratoslog.DefaultMessageKey, "hello",
@@ -97,7 +97,7 @@ func TestLoggerLogSkipsEmitWhenDisabled(t *testing.T) {
 	logger := NewLogger(WithLoggerProvider(provider))
 	provider.logger.enabled = false
 
-	ctx := context.WithValue(context.Background(), struct{}{}, "value")
+	ctx := context.WithValue(t.Context(), struct{}{}, "value")
 	err := logger.Log(
 		kratoslog.LevelError,
 		kratoslog.DefaultMessageKey, "ignored",
