@@ -2,11 +2,15 @@ package otlp
 
 import (
 	"context"
+	"runtime"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
@@ -172,10 +176,110 @@ func (c *config) newResource(ctx context.Context) (*sdkresource.Resource, error)
 	)
 }
 
+func (c *config) newTextMapPropagator() propagation.TextMapPropagator {
+	if c.propagator != nil {
+		return c.propagator
+	}
+
+	return propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+}
+
+func (c *config) newTracerProvider(ctx context.Context) (trace.TracerProvider, error) {
+	if c.tracerProvider != nil {
+		return c.tracerProvider, nil
+	}
+	if c.traceTransport == nil {
+		return nil, ErrTraceTransportRequired
+	}
+
+	exporter, err := c.traceTransport.GetTraceSpanExporter(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	queueSize := queueSize()
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(
+			exporter,
+			sdktrace.WithMaxQueueSize(queueSize),
+			sdktrace.WithMaxExportBatchSize(queueSize),
+			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
+			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
+		)),
+		sdktrace.WithResource(c.resource),
+		sdktrace.WithSampler(c.traceSampler),
+	), nil
+}
+
+func (c *config) newMeterProvider(ctx context.Context) (metric.MeterProvider, error) {
+	if c.meterProvider != nil {
+		return c.meterProvider, nil
+	}
+	if c.metricTransport == nil {
+		return nil, ErrMetricTransportRequired
+	}
+
+	exporter, err := c.metricTransport.GetMetricExporter(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(
+			sdkmetric.NewPeriodicReader(exporter,
+				sdkmetric.WithInterval(15*time.Second)),
+		), //nolint:mnd
+		sdkmetric.WithResource(c.resource),
+	), nil
+}
+
+func (c *config) newLoggerProvider(ctx context.Context) (log.LoggerProvider, error) {
+	if c.loggerProvider != nil {
+		return c.loggerProvider, nil
+	}
+	if c.logTransport == nil {
+		return nil, ErrLogTransportRequired
+	}
+
+	exporter, err := c.logTransport.GetLogExporter(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	queueSize := queueSize()
+	return sdklog.NewLoggerProvider(
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(
+			exporter,
+			sdklog.WithMaxQueueSize(queueSize),
+			sdklog.WithExportMaxBatchSize(queueSize),
+			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
+			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
+		)),
+		sdklog.WithResource(c.resource),
+	), nil
+}
+
 func combineSignals(signals ...Signal) Signal {
 	var enabled Signal
 	for _, signal := range signals {
 		enabled |= signal & allSignals
 	}
 	return enabled
+}
+
+func queueSize() int {
+	const _min = 1000  //nolint:mnd
+	const _max = 16000 //nolint:mnd
+
+	n := (runtime.GOMAXPROCS(0) / 2) * 1000 //nolint:mnd
+	if n < _min {
+		return _min
+	}
+	if n > _max {
+		return _max
+	}
+	return n
 }

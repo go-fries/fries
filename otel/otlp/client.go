@@ -3,17 +3,11 @@ package otlp
 import (
 	"context"
 	"errors"
-	"runtime"
 	"sync"
-	"time"
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel"
 	logglobal "go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/propagation"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 var (
@@ -156,111 +150,41 @@ func (c *Client) configureResource(ctx context.Context) error {
 }
 
 func (c *Client) configureTextMapPropagator() {
-	if c.config.propagator != nil {
-		otel.SetTextMapPropagator(c.config.propagator)
-		return
-	}
-
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+	otel.SetTextMapPropagator(c.config.newTextMapPropagator())
 }
 
 func (c *Client) configureTraceProvider(ctx context.Context) error {
-	if c.config.tracerProvider != nil {
-		otel.SetTracerProvider(c.config.tracerProvider)
-		return nil
-	}
-
-	if c.config.traceTransport == nil {
-		return ErrTraceTransportRequired
-	}
-
-	exporter, err := c.config.traceTransport.GetTraceSpanExporter(ctx)
+	provider, err := c.config.newTracerProvider(ctx)
 	if err != nil {
 		return err
 	}
 
-	queueSize := queueSize()
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(
-			exporter,
-			sdktrace.WithMaxQueueSize(queueSize),
-			sdktrace.WithMaxExportBatchSize(queueSize),
-			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
-			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
-		)),
-		sdktrace.WithResource(c.config.resource),
-		sdktrace.WithSampler(c.config.traceSampler),
-	)
-
-	c.config.tracerProvider = tp
-	otel.SetTracerProvider(tp)
+	c.config.tracerProvider = provider
+	otel.SetTracerProvider(provider)
 
 	return nil
 }
 
 func (c *Client) configureMeterProvider(ctx context.Context) error {
-	if c.config.meterProvider != nil {
-		otel.SetMeterProvider(c.config.meterProvider)
-		return nil
-	}
-
-	if c.config.metricTransport == nil {
-		return ErrMetricTransportRequired
-	}
-
-	exporter, err := c.config.metricTransport.GetMetricExporter(ctx)
+	provider, err := c.config.newMeterProvider(ctx)
 	if err != nil {
 		return err
 	}
 
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(
-			sdkmetric.NewPeriodicReader(exporter,
-				sdkmetric.WithInterval(15*time.Second)),
-		), //nolint:mnd
-		sdkmetric.WithResource(c.config.resource),
-	)
-
-	c.config.meterProvider = mp
-	otel.SetMeterProvider(mp)
+	c.config.meterProvider = provider
+	otel.SetMeterProvider(provider)
 
 	return nil
 }
 
 func (c *Client) configureLoggerProvider(ctx context.Context) error {
-	if c.config.loggerProvider != nil {
-		logglobal.SetLoggerProvider(c.config.loggerProvider)
-		return nil
-	}
-
-	if c.config.logTransport == nil {
-		return ErrLogTransportRequired
-	}
-
-	exporter, err := c.config.logTransport.GetLogExporter(ctx)
+	provider, err := c.config.newLoggerProvider(ctx)
 	if err != nil {
 		return err
 	}
 
-	queueSize := queueSize()
-
-	lp := sdklog.NewLoggerProvider(
-		sdklog.WithProcessor(sdklog.NewBatchProcessor(
-			exporter,
-			sdklog.WithMaxQueueSize(queueSize),
-			sdklog.WithExportMaxBatchSize(queueSize),
-			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
-			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
-		)),
-		sdklog.WithResource(c.config.resource),
-	)
-
-	c.config.loggerProvider = lp
-	logglobal.SetLoggerProvider(lp)
+	c.config.loggerProvider = provider
+	logglobal.SetLoggerProvider(provider)
 	return nil
 }
 
@@ -302,18 +226,4 @@ func (c *Client) runConfiguredHooks(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func queueSize() int {
-	const _min = 1000  //nolint:mnd
-	const _max = 16000 //nolint:mnd
-
-	n := (runtime.GOMAXPROCS(0) / 2) * 1000 //nolint:mnd
-	if n < _min {
-		return _min
-	}
-	if n > _max {
-		return _max
-	}
-	return n
 }
