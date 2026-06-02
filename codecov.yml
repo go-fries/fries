@@ -81,7 +81,6 @@ fixes:
   - github.com/go-fries/fries/mysql/canal/server/v3::mysql/canal/server/
   - github.com/go-fries/fries/otel/otlp/v3::otel/otlp/
   - github.com/go-fries/fries/recovery/v3::recovery/
-  - github.com/go-fries/fries/redis/v3::redis/
   - github.com/go-fries/fries/signal/v3::signal/
   - github.com/go-fries/fries/support/v3::support/
   - github.com/go-fries/fries/timezone/v3::timezone/

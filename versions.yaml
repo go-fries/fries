@@ -113,9 +113,6 @@ module-sets:
       # Recovery
       - github.com/go-fries/fries/recovery/v3
 
-      # Redis
-      - github.com/go-fries/fries/redis/v3
-
       # Signal
       - github.com/go-fries/fries/signal/v3
 
