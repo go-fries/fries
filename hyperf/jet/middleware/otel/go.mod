@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3
+module github.com/go-fries/fries/hyperf/jet/middleware/otel/v3
 
 go 1.25.0
 
