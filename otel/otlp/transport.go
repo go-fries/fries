@@ -14,10 +14,26 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
-type Transport interface {
+// TraceTransport creates an OTLP trace span exporter.
+type TraceTransport interface {
 	GetTraceSpanExporter(ctx context.Context) (trace.SpanExporter, error)
+}
+
+// MetricTransport creates an OTLP metric exporter.
+type MetricTransport interface {
 	GetMetricExporter(ctx context.Context) (metric.Exporter, error)
+}
+
+// LogTransport creates an OTLP log exporter.
+type LogTransport interface {
 	GetLogExporter(ctx context.Context) (log.Exporter, error)
+}
+
+// Transport creates OTLP exporters for all supported OpenTelemetry signals.
+type Transport interface {
+	TraceTransport
+	MetricTransport
+	LogTransport
 }
 
 type GRPCTransport struct {
@@ -26,7 +42,12 @@ type GRPCTransport struct {
 	headers  map[string]string
 }
 
-var _ Transport = (*GRPCTransport)(nil)
+var (
+	_ Transport       = (*GRPCTransport)(nil)
+	_ TraceTransport  = (*GRPCTransport)(nil)
+	_ MetricTransport = (*GRPCTransport)(nil)
+	_ LogTransport    = (*GRPCTransport)(nil)
+)
 
 type GRPCTransportOption func(*GRPCTransport)
 
@@ -112,7 +133,12 @@ type HTTPTransport struct {
 	headers  map[string]string
 }
 
-var _ Transport = (*HTTPTransport)(nil)
+var (
+	_ Transport       = (*HTTPTransport)(nil)
+	_ TraceTransport  = (*HTTPTransport)(nil)
+	_ MetricTransport = (*HTTPTransport)(nil)
+	_ LogTransport    = (*HTTPTransport)(nil)
+)
 
 type HTTPTransportOption func(*HTTPTransport)
 
