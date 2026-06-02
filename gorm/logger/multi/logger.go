@@ -67,6 +67,16 @@ func (l *Logger) Error(ctx context.Context, msg string, data ...any) {
 
 // Trace dispatches a SQL trace log call to each underlying logger.
 func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+	fc = safeTraceFunc(fc)
+
+	switch len(l.loggers) {
+	case 0:
+		return
+	case 1:
+		l.loggers[0].Trace(ctx, begin, fc, err)
+		return
+	}
+
 	cached := cacheTraceFunc(fc)
 	for _, item := range l.loggers {
 		item.Trace(ctx, begin, cached, err)
@@ -84,6 +94,16 @@ func (l *Logger) ParamsFilter(ctx context.Context, sql string, params ...any) (s
 		nextSQL, nextParams = filter.ParamsFilter(ctx, nextSQL, nextParams...)
 	}
 	return nextSQL, nextParams
+}
+
+func safeTraceFunc(fc func() (sql string, rowsAffected int64)) func() (sql string, rowsAffected int64) {
+	if fc != nil {
+		return fc
+	}
+
+	return func() (string, int64) {
+		return "", 0
+	}
 }
 
 func cacheTraceFunc(fc func() (sql string, rowsAffected int64)) func() (sql string, rowsAffected int64) {

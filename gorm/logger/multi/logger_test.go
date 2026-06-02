@@ -157,6 +157,50 @@ func TestTraceDispatchesAndCachesTraceCallback(t *testing.T) {
 	}
 }
 
+func TestTraceReturnsWithoutCallbackWhenNoLoggers(t *testing.T) {
+	l := New()
+
+	var calls int
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
+		calls++
+		return "select * from users", 1
+	}, nil)
+
+	assert.Zero(t, calls)
+}
+
+func TestTraceDispatchesSingleLoggerWithoutExtraCallbackCalls(t *testing.T) {
+	item := &recordingLogger{}
+	l := New(item)
+
+	var calls int
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
+		calls++
+		return "select * from users", 1
+	}, nil)
+
+	assert.Equal(t, 1, calls)
+	assert.Len(t, item.traces, 1)
+	assert.Equal(t, "select * from users", item.traces[0].sql)
+	assert.Equal(t, int64(1), item.traces[0].rowsAffected)
+}
+
+func TestTraceHandlesNilCallback(t *testing.T) {
+	first := &recordingLogger{}
+	second := &recordingLogger{}
+	l := New(first, second)
+
+	assert.NotPanics(t, func() {
+		l.Trace(t.Context(), time.Now(), nil, nil)
+	})
+
+	for _, item := range []*recordingLogger{first, second} {
+		assert.Len(t, item.traces, 1)
+		assert.Empty(t, item.traces[0].sql)
+		assert.Zero(t, item.traces[0].rowsAffected)
+	}
+}
+
 func TestParamsFilterAppliesUnderlyingFiltersInOrder(t *testing.T) {
 	ctx := t.Context()
 	first := &recordingLogger{
