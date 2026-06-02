@@ -17,6 +17,32 @@
 - Protobuf contracts live in `contract/`, with root Buf configuration in
   `buf.yaml` and `buf.gen.yaml`.
 - Developer tools are pinned under `internal/tools/` and built into `.tools/`.
+- Integration packages are normally placed under the framework or component they
+  adapt. For example, Kratos integrations live under `kratos/`, Hyperf Jet
+  integrations live under `hyperf/jet/`, and GORM integrations live under
+  `gorm/`.
+
+## Public Module Conventions
+
+- New releasable modules should be added to `versions.yaml` and should have a
+  matching Codecov path rewrite in `codecov.yml`.
+- Public modules should include package documentation in `doc.go`, user-facing
+  usage notes in `README.md` when the module is intended for direct use, and Go
+  doc comments for exported identifiers.
+- Versioned component modules commonly expose a module-local `Version()` helper
+  returning the current repository release version. Use that pattern when adding
+  modules that report instrumentation or component version metadata.
+
+## OpenTelemetry Conventions
+
+- OpenTelemetry integration package names should be short and match the final
+  path segment, such as `otel` for modules whose import path ends in `/otel/v3`.
+- Instrumentation scope names should remain stable and match the full module
+  import path. Scope versions should come from the module's `Version()` helper
+  unless the caller explicitly overrides them.
+- Prefer official OpenTelemetry semantic convention constants and helper
+  functions before introducing raw or package-specific attribute names. Use
+  package-specific attributes only when no suitable semantic convention exists.
 
 ## Validation Habits
 
@@ -28,6 +54,10 @@
   `make lint/cache`, and `make lint-fix/cache`.
 - Run `make lint` before submitting broader changes because it runs `go mod tidy`
   across modules and then `golangci-lint`.
+- In restricted local environments, Go and golangci-lint cache writes may need
+  explicit writable cache directories. Prefer setting `GOCACHE` and
+  `GOLANGCI_LINT_CACHE` to environment-appropriate temporary directories rather
+  than relying on user-level cache paths.
 
 ## Local Planning Conventions
 
@@ -43,13 +73,3 @@
   individual plan markdown files are local-only and ignored.
 - `.docs/memories/` is tracked and should hold durable project context useful
   across future long-running tasks.
-
-## Cache Component Notes
-
-- A focused cache-component review plan currently lives in
-  `.docs/plans/001-2026-04-26-planned-cache-component-optimization.md`.
-- The review scope is intentionally limited to `cache/` and `cache/redis/`.
-- Initial local verification passed for `cache/` with `go test ./...` and
-  `go test -race ./...`.
-- Initial `cache/redis` tests require local Redis at `:6379`; in the current
-  restricted environment they failed with `operation not permitted`.
