@@ -138,13 +138,21 @@ func TestClientHooks(t *testing.T) {
 			WithHooks(noopHook{}),
 		)
 
-		require.Len(t, client.config.hooks, len(DefaultHooks())+1)
+		require.Len(t, client.config.hooks, 1)
 		assert.IsType(t, noopHook{}, client.config.hooks[0])
 	})
 
 	t.Run("default hooks empty", func(t *testing.T) {
-		hooks := DefaultHooks()
-		require.Empty(t, hooks)
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+		)
+
+		require.Empty(t, client.config.hooks)
 	})
 
 	t.Run("metrics hooks are explicit", func(t *testing.T) {

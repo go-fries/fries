@@ -222,7 +222,6 @@ func newConfig(signals Signal, opts ...Option) *config {
 		logExportInterval:  defaultLogExportInterval,
 		logExportTimeout:   defaultLogExportTimeout,
 		batchQueueSize:     queueSize(),
-		hooks:              DefaultHooks(),
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
