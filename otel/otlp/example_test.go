@@ -35,3 +35,28 @@ func ExampleNewClient() {
 
 	// do something
 }
+
+func ExampleNewTraceClient() {
+	ctx := context.TODO()
+
+	transport := otlp.NewGRPCTransport(
+		"localhost:4317",
+		otlp.WithGRPCTransportInsecure(true),
+	)
+
+	client, err := otlp.NewTraceClient(
+		transport,
+		otlp.WithServiceName("service-name"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := client.Configure(ctx); err != nil {
+		panic(err)
+	}
+
+	defer client.Shutdown(ctx) //nolint:errcheck
+
+	// do something
+}

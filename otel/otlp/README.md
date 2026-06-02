@@ -8,7 +8,14 @@ This package provides a configuration for the OpenTelemetry Protocol (OTLP) expo
 go get github.com/go-fries/fries/otel/otlp/v3
 ```
 
-## Quick Start
+## Defaults
+
+- `NewClient(...)` configures trace, metric, and log providers.
+- `NewTraceClient(...)`, `NewMetricClient(...)`, and `NewLogClient(...)` configure a single signal.
+- Hooks are disabled by default.
+- Runtime and host metrics are opt-in.
+
+## All Signals
 
 Use `NewGRPCTransport(...)` or `NewHTTPTransport(...)` depending on your collector endpoint.
 
@@ -30,7 +37,6 @@ func main() {
 		otlp.WithGRPCTransportInsecure(true),
 	)
 
-	// client
 	client, err := otlp.NewClient(
 		transport,
 		otlp.WithServiceName("service-name"),
@@ -54,7 +60,61 @@ func main() {
 }
 ```
 
-## HTTP Example
+## Tracing Only
+
+Use `NewTraceClient(...)` when only tracing should be configured.
+
+```go
+package main
+
+import (
+	"context"
+
+	"github.com/go-fries/fries/otel/otlp/v3"
+)
+
+func main() {
+	ctx := context.TODO()
+
+	transport := otlp.NewGRPCTransport("localhost:4317",
+		otlp.WithGRPCTransportInsecure(true),
+	)
+
+	client, err := otlp.NewTraceClient(
+		transport,
+		otlp.WithServiceName("service-name"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := client.Configure(ctx); err != nil {
+		panic(err)
+	}
+
+	defer client.Shutdown(ctx)
+}
+```
+
+## Single Signal
+
+Metric-only and log-only clients use the matching transport capability.
+
+```go
+metricClient, err := otlp.NewMetricClient(
+	transport,
+	otlp.WithServiceName("service-name"),
+)
+```
+
+```go
+logClient, err := otlp.NewLogClient(
+	transport,
+	otlp.WithServiceName("service-name"),
+)
+```
+
+## HTTP Transport
 
 ```go
 package main
