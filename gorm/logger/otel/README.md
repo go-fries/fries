@@ -37,7 +37,7 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 ```
 
 `Trace` emits SQL log records for errors, slow SQL, and info-level query
-logging. SQL records include `db.query.text`, `db.response.returned_rows`,
-`gorm.rows_affected`, `gorm.elapsed_ms`, and `gorm.event` attributes.
+logging. SQL records include `db.query.text`, `gorm.rows_affected`,
+`gorm.elapsed_ms`, and `gorm.event` attributes.
 Use `WithParameterizedQueries(true)` to keep GORM from expanding SQL parameter
 values into the rendered query text.

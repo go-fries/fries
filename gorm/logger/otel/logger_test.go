@@ -116,6 +116,56 @@ func TestEmitSkipsWhenDisabled(t *testing.T) {
 	assert.Equal(t, log.SeverityInfo, provider.logger.enabledParam.Severity)
 }
 
+type panicStringer struct{}
+
+func (panicStringer) String() string {
+	panic("should not format disabled log records")
+}
+
+func TestLogMethodsSkipFormattingWhenDisabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		severity log.Severity
+		log      func(*Logger, context.Context)
+	}{
+		{
+			name:     "info",
+			severity: log.SeverityInfo,
+			log: func(l *Logger, ctx context.Context) {
+				l.Info(ctx, "ignored %s", panicStringer{})
+			},
+		},
+		{
+			name:     "warn",
+			severity: log.SeverityWarn,
+			log: func(l *Logger, ctx context.Context) {
+				l.Warn(ctx, "ignored %s", panicStringer{})
+			},
+		},
+		{
+			name:     "error",
+			severity: log.SeverityError,
+			log: func(l *Logger, ctx context.Context) {
+				l.Error(ctx, "ignored %s", panicStringer{})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &recordingLoggerProvider{}
+			l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
+			provider.logger.enabled = false
+
+			assert.NotPanics(t, func() {
+				tt.log(l, t.Context())
+			})
+			assert.False(t, provider.logger.emitted)
+			assert.Equal(t, tt.severity, provider.logger.enabledParam.Severity)
+		})
+	}
+}
+
 func TestTraceError(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
@@ -131,11 +181,11 @@ func TestTraceError(t *testing.T) {
 	assert.Equal(t, log.StringValue("gorm.sql.error"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, "select * from users", attrs["db.query.text"].Value.AsString())
-	assert.Equal(t, int64(3), attrs["db.response.returned_rows"].Value.AsInt64())
 	assert.Equal(t, int64(3), attrs["gorm.rows_affected"].Value.AsInt64())
 	assert.Equal(t, "gorm.sql.error", attrs["gorm.event"].Value.AsString())
 	assert.Equal(t, "*errors.errorString", attrs["error.type"].Value.AsString())
 	assert.Equal(t, "database failed", attrs["error.message"].Value.AsString())
+	assert.NotContains(t, attrs, "db.response.returned_rows")
 }
 
 type typedError struct{}
@@ -197,6 +247,9 @@ func TestTraceInfo(t *testing.T) {
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityInfo, provider.logger.record.Severity())
 	assert.Equal(t, log.StringValue("gorm.sql"), provider.logger.record.Body())
+	attrs := recordAttributes(provider.logger.record)
+	assert.Equal(t, int64(1), attrs["gorm.rows_affected"].Value.AsInt64())
+	assert.NotContains(t, attrs, "db.response.returned_rows")
 }
 
 func TestTraceIgnoresRecordNotFound(t *testing.T) {

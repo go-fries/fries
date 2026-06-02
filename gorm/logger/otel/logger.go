@@ -50,21 +50,21 @@ func (l *Logger) LogMode(level logger.LogLevel) logger.Interface {
 
 // Info emits an informational GORM log record.
 func (l *Logger) Info(ctx context.Context, msg string, data ...any) {
-	if l.level >= logger.Info {
+	if l.level >= logger.Info && l.enabled(ctx, log.SeverityInfo) {
 		l.emit(ctx, log.SeverityInfo, "INFO", fmt.Sprintf(msg, data...), nil)
 	}
 }
 
 // Warn emits a warning GORM log record.
 func (l *Logger) Warn(ctx context.Context, msg string, data ...any) {
-	if l.level >= logger.Warn {
+	if l.level >= logger.Warn && l.enabled(ctx, log.SeverityWarn) {
 		l.emit(ctx, log.SeverityWarn, "WARN", fmt.Sprintf(msg, data...), nil)
 	}
 }
 
 // Error emits an error GORM log record.
 func (l *Logger) Error(ctx context.Context, msg string, data ...any) {
-	if l.level >= logger.Error {
+	if l.level >= logger.Error && l.enabled(ctx, log.SeverityError) {
 		l.emit(ctx, log.SeverityError, "ERROR", fmt.Sprintf(msg, data...), nil)
 	}
 }
@@ -109,10 +109,6 @@ func (l *Logger) ParamsFilter(_ context.Context, sql string, params ...any) (str
 }
 
 func (l *Logger) emit(ctx context.Context, severity log.Severity, severityText, body string, attrs []log.KeyValue) {
-	if !l.enabled(ctx, severity) {
-		return
-	}
-
 	var record log.Record
 	record.SetTimestamp(time.Now())
 	record.SetSeverity(severity)
@@ -142,9 +138,6 @@ func (l *Logger) emitSQL(
 		log.Int64("gorm.rows_affected", rows),
 		log.Float64("gorm.elapsed_ms", float64(elapsed.Nanoseconds())/1e6),
 		log.String("gorm.event", eventName),
-	}
-	if rows >= 0 {
-		attrs = append(attrs, log.Int64(string(semconv.DBResponseReturnedRowsKey), rows))
 	}
 	if err != nil {
 		errorType := semconv.ErrorType(err)
