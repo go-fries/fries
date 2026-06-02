@@ -11,14 +11,25 @@ import (
 )
 
 var (
-	ErrTransportRequired       = errors.New("otlp transport is required")
-	ErrTraceTransportRequired  = errors.New("otlp trace transport is required")
+	// ErrTransportRequired is returned when an all-signal [Transport] is nil.
+	ErrTransportRequired = errors.New("otlp transport is required")
+	// ErrTraceTransportRequired is returned when a [TraceTransport] is required but nil.
+	ErrTraceTransportRequired = errors.New("otlp trace transport is required")
+	// ErrMetricTransportRequired is returned when a [MetricTransport] is required but nil.
 	ErrMetricTransportRequired = errors.New("otlp metric transport is required")
-	ErrLogTransportRequired    = errors.New("otlp log transport is required")
-	ErrClientConfigured        = errors.New("otlp client has already been configured")
-	ErrClientShutdown          = errors.New("otlp client has been shut down")
+	// ErrLogTransportRequired is returned when a [LogTransport] is required but nil.
+	ErrLogTransportRequired = errors.New("otlp log transport is required")
+	// ErrClientConfigured is returned when [Client.Configure] is called more than once.
+	ErrClientConfigured = errors.New("otlp client has already been configured")
+	// ErrClientShutdown is returned when [Client.Configure] is called after [Client.Shutdown].
+	ErrClientShutdown = errors.New("otlp client has been shut down")
 )
 
+// Client configures OpenTelemetry global providers backed by OTLP exporters.
+//
+// A client may be configured once and shut down once. Configure registers the
+// selected global providers and Shutdown closes any configured SDK providers
+// that support shutdown.
 type Client struct {
 	mu sync.Mutex
 
@@ -28,7 +39,7 @@ type Client struct {
 	shutdown   bool
 }
 
-// NewClient creates a Client configured with a transport for all signals.
+// NewClient creates a [Client] that uses transport for trace, metric, and log signals.
 func NewClient(transport Transport, opts ...Option) (*Client, error) {
 	if transport == nil {
 		return nil, ErrTransportRequired
@@ -42,7 +53,7 @@ func NewClient(transport Transport, opts ...Option) (*Client, error) {
 	return &Client{config: *cfg}, nil
 }
 
-// NewTraceClient creates a Client configured with a trace transport.
+// NewTraceClient creates a [Client] that configures only the trace signal.
 func NewTraceClient(transport TraceTransport, opts ...Option) (*Client, error) {
 	if transport == nil {
 		return nil, ErrTraceTransportRequired
@@ -54,7 +65,7 @@ func NewTraceClient(transport TraceTransport, opts ...Option) (*Client, error) {
 	return &Client{config: *cfg}, nil
 }
 
-// NewMetricClient creates a Client configured with a metric transport.
+// NewMetricClient creates a [Client] that configures only the metric signal.
 func NewMetricClient(transport MetricTransport, opts ...Option) (*Client, error) {
 	if transport == nil {
 		return nil, ErrMetricTransportRequired
@@ -66,7 +77,7 @@ func NewMetricClient(transport MetricTransport, opts ...Option) (*Client, error)
 	return &Client{config: *cfg}, nil
 }
 
-// NewLogClient creates a Client configured with a log transport.
+// NewLogClient creates a [Client] that configures only the log signal.
 func NewLogClient(transport LogTransport, opts ...Option) (*Client, error) {
 	if transport == nil {
 		return nil, ErrLogTransportRequired
@@ -78,6 +89,10 @@ func NewLogClient(transport LogTransport, opts ...Option) (*Client, error) {
 	return &Client{config: *cfg}, nil
 }
 
+// Configure initializes resources, providers, propagators, and configured hooks.
+//
+// Configure sets OpenTelemetry global providers for the enabled signals. It is
+// not idempotent: calling it more than once returns [ErrClientConfigured].
 func (c *Client) Configure(ctx context.Context) error {
 	c.mu.Lock()
 	switch {
@@ -188,6 +203,10 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 	return nil
 }
 
+// Shutdown shuts down all configured SDK providers that support shutdown.
+//
+// Shutdown is idempotent. Errors from multiple providers are joined and
+// returned as a single error.
 func (c *Client) Shutdown(ctx context.Context) (err error) {
 	c.mu.Lock()
 	if c.shutdown {

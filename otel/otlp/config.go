@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// Signal identifies an OpenTelemetry signal configured by Client.
+// Signal identifies an OpenTelemetry signal configured by [Client].
 type Signal uint8
 
 const (
@@ -79,7 +79,7 @@ type config struct {
 	hooks []Hook
 }
 
-// Option configures the OTLP client.
+// Option configures a [Client].
 type Option interface {
 	apply(*config)
 }
@@ -90,30 +90,49 @@ func (f optionFunc) apply(c *config) {
 	f(c)
 }
 
+// WithResource sets the OpenTelemetry resource used by created SDK providers.
+//
+// When resource is nil, the client creates a default [sdkresource.Resource].
 func WithResource(resource *sdkresource.Resource) Option {
 	return optionFunc(func(c *config) {
 		c.resource = resource
 	})
 }
 
+// WithPropagator sets the global text map propagator.
+//
+// When propagator is nil, the client uses a composite propagator containing
+// Trace Context and Baggage.
 func WithPropagator(propagator propagation.TextMapPropagator) Option {
 	return optionFunc(func(c *config) {
 		c.propagator = propagator
 	})
 }
 
+// WithTracerProvider sets the global trace provider used by [Client.Configure].
+//
+// When provider is set, the client does not create a trace exporter or SDK trace
+// provider for the trace signal.
 func WithTracerProvider(provider trace.TracerProvider) Option {
 	return optionFunc(func(c *config) {
 		c.tracerProvider = provider
 	})
 }
 
+// WithMeterProvider sets the global meter provider used by [Client.Configure].
+//
+// When provider is set, the client does not create a metric exporter or SDK
+// meter provider for the metric signal.
 func WithMeterProvider(provider metric.MeterProvider) Option {
 	return optionFunc(func(c *config) {
 		c.meterProvider = provider
 	})
 }
 
+// WithLoggerProvider sets the global logger provider used by [Client.Configure].
+//
+// When provider is set, the client does not create a log exporter or SDK logger
+// provider for the log signal.
 func WithLoggerProvider(provider log.LoggerProvider) Option {
 	return optionFunc(func(c *config) {
 		c.loggerProvider = provider
@@ -121,30 +140,42 @@ func WithLoggerProvider(provider log.LoggerProvider) Option {
 }
 
 // WithSignals sets which OpenTelemetry signals the client configures.
+//
+// The selected signals override the constructor default. [NewClient] enables all
+// signals by default, while the single-signal constructors enable only their own
+// signal.
 func WithSignals(signals ...Signal) Option {
 	return optionFunc(func(c *config) {
 		c.signals = combineSignals(signals...)
 	})
 }
 
+// WithServiceName adds the OpenTelemetry service.name resource attribute.
+//
+// The value is used only when the client creates the resource.
 func WithServiceName(serviceName string) Option {
 	return optionFunc(func(c *config) {
 		c.serviceName = serviceName
 	})
 }
 
+// WithDeploymentEnvironmentName adds the deployment.environment.name resource attribute.
+//
+// The value is used only when the client creates the resource.
 func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
 	return optionFunc(func(c *config) {
 		c.deploymentEnvironmentName = deploymentEnvironment
 	})
 }
 
+// WithAttributes appends resource attributes used when the client creates the resource.
 func WithAttributes(attributes ...attribute.KeyValue) Option {
 	return optionFunc(func(c *config) {
 		c.attributes = append(c.attributes, attributes...)
 	})
 }
 
+// WithTraceSampler sets the sampler used when the client creates an SDK trace provider.
 func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	return optionFunc(func(c *config) {
 		c.traceSampler = sampler
@@ -152,6 +183,8 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 }
 
 // WithBatchQueueSize sets the trace and log batch processor queue size.
+//
+// Non-positive values are ignored.
 func WithBatchQueueSize(size int) Option {
 	return optionFunc(func(c *config) {
 		if size > 0 {
@@ -161,6 +194,8 @@ func WithBatchQueueSize(size int) Option {
 }
 
 // WithTraceBatchTimeout sets the trace batch processor schedule delay.
+//
+// Non-positive values are ignored.
 func WithTraceBatchTimeout(timeout time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if timeout > 0 {
@@ -170,6 +205,8 @@ func WithTraceBatchTimeout(timeout time.Duration) Option {
 }
 
 // WithTraceExportTimeout sets the trace batch processor export timeout.
+//
+// Non-positive values are ignored.
 func WithTraceExportTimeout(timeout time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if timeout > 0 {
@@ -179,6 +216,8 @@ func WithTraceExportTimeout(timeout time.Duration) Option {
 }
 
 // WithMetricInterval sets the periodic metric reader collection interval.
+//
+// Non-positive values are ignored.
 func WithMetricInterval(interval time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if interval > 0 {
@@ -188,6 +227,8 @@ func WithMetricInterval(interval time.Duration) Option {
 }
 
 // WithLogExportInterval sets the log batch processor export interval.
+//
+// Non-positive values are ignored.
 func WithLogExportInterval(interval time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if interval > 0 {
@@ -197,6 +238,8 @@ func WithLogExportInterval(interval time.Duration) Option {
 }
 
 // WithLogExportTimeout sets the log batch processor export timeout.
+//
+// Non-positive values are ignored.
 func WithLogExportTimeout(timeout time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if timeout > 0 {
@@ -205,6 +248,7 @@ func WithLogExportTimeout(timeout time.Duration) Option {
 	})
 }
 
+// WithHooks adds hooks that run after [Client.Configure] finishes provider setup.
 func WithHooks(hooks ...Hook) Option {
 	return optionFunc(func(c *config) {
 		if len(hooks) > 0 {

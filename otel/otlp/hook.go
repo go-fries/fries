@@ -7,6 +7,7 @@ import (
 	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
+// Hook runs after [Client.Configure] has registered providers.
 type Hook interface {
 	// Configured is called after the client is fully configured.
 	Configured(ctx context.Context, client *Client) error
@@ -25,6 +26,7 @@ func WithHostMetrics() Option {
 // RuntimeMetricsHook is a hook that starts the runtime metrics collection.
 type RuntimeMetricsHook struct{}
 
+// Configured starts runtime metrics collection.
 func (RuntimeMetricsHook) Configured(context.Context, *Client) error {
 	return runtimemetrics.Start()
 }
@@ -32,6 +34,7 @@ func (RuntimeMetricsHook) Configured(context.Context, *Client) error {
 // HostMetricsHook is a hook that starts the host metrics collection.
 type HostMetricsHook struct{}
 
+// Configured starts host metrics collection.
 func (HostMetricsHook) Configured(context.Context, *Client) error {
 	return hostmetrics.Start()
 }
