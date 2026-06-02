@@ -1,15 +1,15 @@
-package tracing
+package otel
 
 import (
 	"context"
 
-	"github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3/internal/semconv"
+	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v3/internal/semconv"
 	"github.com/go-fries/fries/hyperf/jet/v3"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const scopeName = "github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3"
+const scopeName = "github.com/go-fries/fries/hyperf/jet/middleware/otel/v3"
 
 var spanAttributeBuilder = semconv.NewBuilder()
 

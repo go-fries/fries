@@ -1,4 +1,4 @@
-# Tracing - Hyperf Jet middleware
+# OTel - Hyperf Jet middleware
 
 OpenTelemetry tracing middleware for Hyperf Jet clients.
 
@@ -19,7 +19,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/hyperf/jet/middleware/tracing/v3"
+	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v3"
 	"github.com/go-fries/fries/hyperf/jet/v3"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -35,10 +35,10 @@ func main() {
 	client, err := jet.NewClient(
 		jet.WithService("example.UserService"),
 		jet.WithTransporter(transporter),
-		jet.WithMiddleware(tracing.New(
-			tracing.WithVersion(tracing.Version()),
-			tracing.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
-			tracing.WithAttributes(attribute.String("component", "jet")),
+		jet.WithMiddleware(otel.New(
+			otel.WithVersion(otel.Version()),
+			otel.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
+			otel.WithAttributes(attribute.String("component", "jet")),
 		)),
 	)
 	if err != nil {

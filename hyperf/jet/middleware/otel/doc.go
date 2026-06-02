@@ -1,5 +1,4 @@
-// Package tracing provides OpenTelemetry tracing middleware for Hyperf Jet
-// clients.
+// Package otel provides OpenTelemetry tracing middleware for Hyperf Jet clients.
 //
 // The middleware creates a client span for each Jet invocation and records
 // semantic-convention attributes for JSON-RPC and the underlying HTTP
@@ -17,9 +16,9 @@
 //	client, err := jet.NewClient(
 //		jet.WithService("example.UserService"),
 //		jet.WithTransporter(transporter),
-//		jet.WithMiddleware(tracing.New(
-//			tracing.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
-//			tracing.WithAttributes(attribute.String("component", "jet")),
+//		jet.WithMiddleware(otel.New(
+//			otel.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
+//			otel.WithAttributes(attribute.String("component", "jet")),
 //		)),
 //	)
 //	if err != nil {
@@ -28,4 +27,4 @@
 //
 //	var reply UserReply
 //	return client.Invoke(ctx, "GetUser", UserRequest{ID: 1}, &reply)
-package tracing
+package otel
