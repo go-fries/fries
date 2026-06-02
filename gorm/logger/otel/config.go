@@ -100,6 +100,10 @@ func WithLogAttributeFuncs(funcs ...LogAttributeFunc) Option {
 func WithTraceContext() Option {
 	return WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
 		span := trace.SpanContextFromContext(ctx)
+		if !span.HasTraceID() && !span.HasSpanID() {
+			return nil
+		}
+
 		attrs := make([]log.KeyValue, 0, 2) //nolint:mnd
 		if span.HasTraceID() {
 			attrs = append(attrs, log.String("trace.id", span.TraceID().String()))

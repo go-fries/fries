@@ -119,26 +119,16 @@ func (l *Logger) emit(ctx context.Context, severity log.Severity, severityText, 
 	record.SetSeverityText(severityText)
 	record.SetBody(log.StringValue(body))
 	record.AddAttributes(attrs...)
-	record.AddAttributes(l.attributes(ctx)...)
+	record.AddAttributes(l.logAttributes...)
+	for _, fn := range l.logAttributeFuncs {
+		record.AddAttributes(fn(ctx)...)
+	}
 
 	l.logger.Emit(ctx, record)
 }
 
 func (l *Logger) enabled(ctx context.Context, severity log.Severity) bool {
 	return l.logger.Enabled(ctx, log.EnabledParameters{Severity: severity})
-}
-
-func (l *Logger) attributes(ctx context.Context) []log.KeyValue {
-	if len(l.logAttributes) == 0 && len(l.logAttributeFuncs) == 0 {
-		return nil
-	}
-
-	attrs := make([]log.KeyValue, 0, len(l.logAttributes))
-	attrs = append(attrs, l.logAttributes...)
-	for _, fn := range l.logAttributeFuncs {
-		attrs = append(attrs, fn(ctx)...)
-	}
-	return attrs
 }
 
 func (l *Logger) emitSQL(

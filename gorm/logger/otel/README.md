@@ -44,7 +44,7 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	})
 }
 
-func tenantIDFromContext(context.Context) string {
+func tenantIDFromContext(ctx context.Context) string {
 	return "tenant-1"
 }
 ```
