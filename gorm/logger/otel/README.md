@@ -34,7 +34,6 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 			otel.WithParameterizedQueries(true),
 			otel.WithAttributes(attribute.String("component", "gorm")),
 			otel.WithLogAttributes(log.String("db.system", "mysql")),
-			otel.WithTraceContext(),
 			otel.WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
 				return []log.KeyValue{
 					log.String("tenant.id", tenantIDFromContext(ctx)),
@@ -57,7 +56,5 @@ expected query miss rather than an application failure. Use
 `WithIgnoreRecordNotFoundError(false)` to report it as an error log record.
 Use `WithLogAttributes` and `WithLogAttributeFuncs` to add fixed or
 context-derived attributes to each emitted log record.
-Use `WithTraceContext` to add `trace.id` and `span.id` from the current span
-context when they are available.
 Use `WithParameterizedQueries(true)` to keep GORM from expanding SQL parameter
 values into the rendered query text.

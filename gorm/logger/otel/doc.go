@@ -16,7 +16,6 @@
 //			otel.WithLoggerProvider(global.GetLoggerProvider()),
 //			otel.WithLogLevel(logger.Warn),
 //			otel.WithLogAttributes(log.String("component", "gorm")),
-//			otel.WithTraceContext(),
 //		),
 //	})
 package otel

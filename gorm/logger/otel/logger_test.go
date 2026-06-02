@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/embedded"
-	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm/logger"
 )
 
@@ -116,46 +115,6 @@ func TestInfoEmitsConfiguredLogAttributes(t *testing.T) {
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, "gorm", attrs["component"].Value.AsString())
 	assert.Equal(t, "tenant-1", attrs["tenant.id"].Value.AsString())
-}
-
-func TestInfoEmitsTraceContext(t *testing.T) {
-	provider := &recordingLoggerProvider{}
-	l := New(
-		WithLoggerProvider(provider),
-		WithLogLevel(logger.Info),
-		WithTraceContext(),
-	)
-	provider.logger.enabled = true
-	traceID := trace.TraceID{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-	spanID := trace.SpanID{2, 2, 2, 2, 2, 2, 2, 2}
-	ctx := trace.ContextWithSpanContext(t.Context(), trace.NewSpanContext(trace.SpanContextConfig{
-		TraceID: traceID,
-		SpanID:  spanID,
-	}))
-
-	l.Info(ctx, "hello")
-
-	require.True(t, provider.logger.emitted)
-	attrs := recordAttributes(provider.logger.record)
-	assert.Equal(t, traceID.String(), attrs["trace.id"].Value.AsString())
-	assert.Equal(t, spanID.String(), attrs["span.id"].Value.AsString())
-}
-
-func TestInfoSkipsInvalidTraceContext(t *testing.T) {
-	provider := &recordingLoggerProvider{}
-	l := New(
-		WithLoggerProvider(provider),
-		WithLogLevel(logger.Info),
-		WithTraceContext(),
-	)
-	provider.logger.enabled = true
-
-	l.Info(t.Context(), "hello")
-
-	require.True(t, provider.logger.emitted)
-	attrs := recordAttributes(provider.logger.record)
-	assert.NotContains(t, attrs, "trace.id")
-	assert.NotContains(t, attrs, "span.id")
 }
 
 func TestWarnAndErrorRespectLogLevel(t *testing.T) {
