@@ -23,16 +23,35 @@ import (
 )
 
 var (
-	ErrTransportRequired = errors.New("otlp transport is required")
-	ErrClientConfigured  = errors.New("otlp client has already been configured")
-	ErrClientShutdown    = errors.New("otlp client has been shut down")
+	ErrTransportRequired       = errors.New("otlp transport is required")
+	ErrTraceTransportRequired  = errors.New("otlp trace transport is required")
+	ErrMetricTransportRequired = errors.New("otlp metric transport is required")
+	ErrLogTransportRequired    = errors.New("otlp log transport is required")
+	ErrClientConfigured        = errors.New("otlp client has already been configured")
+	ErrClientShutdown          = errors.New("otlp client has been shut down")
 )
+
+// Signal identifies an OpenTelemetry signal configured by Client.
+type Signal uint8
+
+const (
+	// TraceSignal configures the global OpenTelemetry trace provider.
+	TraceSignal Signal = 1 << iota
+	// MetricSignal configures the global OpenTelemetry meter provider.
+	MetricSignal
+	// LogSignal configures the global OpenTelemetry logger provider.
+	LogSignal
+)
+
+const allSignals = TraceSignal | MetricSignal | LogSignal
 
 type Client struct {
 	mu sync.Mutex
 
-	// otlp transport
-	transport Transport
+	// otlp transports
+	traceTransport  TraceTransport
+	metricTransport MetricTransport
+	logTransport    LogTransport
 
 	// core components
 	resource       *sdkresource.Resource
@@ -48,6 +67,9 @@ type Client struct {
 
 	// trace options
 	traceSampler sdktrace.Sampler // default is always on
+
+	// signal options
+	signals Signal
 
 	// hooks
 	hooks []Hook
@@ -88,6 +110,13 @@ func WithLoggerProvider(provider log.LoggerProvider) Option {
 	}
 }
 
+// WithSignals sets which OpenTelemetry signals the client configures.
+func WithSignals(signals ...Signal) Option {
+	return func(c *Client) {
+		c.signals = combineSignals(signals...)
+	}
+}
+
 func WithServiceName(serviceName string) Option {
 	return func(c *Client) {
 		c.serviceName = serviceName
@@ -120,19 +149,70 @@ func WithHooks(hooks ...Hook) Option {
 	}
 }
 
+// NewClient creates a Client configured with a transport for all signals.
 func NewClient(transport Transport, opts ...Option) (*Client, error) {
 	if transport == nil {
 		return nil, ErrTransportRequired
 	}
 
 	c := &Client{
-		transport: transport,
-		hooks:     DefaultHooks(),
+		traceTransport:  transport,
+		metricTransport: transport,
+		logTransport:    transport,
+		signals:         allSignals,
+		hooks:           DefaultHooks(),
 	}
+	c.apply(opts...)
+	return c, nil
+}
+
+// NewTraceClient creates a Client configured with a trace transport.
+func NewTraceClient(transport TraceTransport, opts ...Option) (*Client, error) {
+	if transport == nil {
+		return nil, ErrTraceTransportRequired
+	}
+
+	c := newClient(TraceSignal)
+	c.traceTransport = transport
+	c.apply(opts...)
+	return c, nil
+}
+
+// NewMetricClient creates a Client configured with a metric transport.
+func NewMetricClient(transport MetricTransport, opts ...Option) (*Client, error) {
+	if transport == nil {
+		return nil, ErrMetricTransportRequired
+	}
+
+	c := newClient(MetricSignal)
+	c.metricTransport = transport
+	c.apply(opts...)
+	return c, nil
+}
+
+// NewLogClient creates a Client configured with a log transport.
+func NewLogClient(transport LogTransport, opts ...Option) (*Client, error) {
+	if transport == nil {
+		return nil, ErrLogTransportRequired
+	}
+
+	c := newClient(LogSignal)
+	c.logTransport = transport
+	c.apply(opts...)
+	return c, nil
+}
+
+func newClient(signals Signal) *Client {
+	return &Client{
+		signals: signals,
+		hooks:   DefaultHooks(),
+	}
+}
+
+func (c *Client) apply(opts ...Option) {
 	for _, opt := range opts {
 		opt(c)
 	}
-	return c, nil
 }
 
 func (c *Client) Configure(ctx context.Context) error {
@@ -155,19 +235,22 @@ func (c *Client) Configure(ctx context.Context) error {
 	// propagator
 	c.configureTextMapPropagator()
 
-	// trace
-	if err := c.configureTraceProvider(ctx); err != nil {
-		return err
+	if c.signalEnabled(TraceSignal) {
+		if err := c.configureTraceProvider(ctx); err != nil {
+			return err
+		}
 	}
 
-	// metrics
-	if err := c.configureMeterProvider(ctx); err != nil {
-		return err
+	if c.signalEnabled(MetricSignal) {
+		if err := c.configureMeterProvider(ctx); err != nil {
+			return err
+		}
 	}
 
-	// logger
-	if err := c.configureLoggerProvider(ctx); err != nil {
-		return err
+	if c.signalEnabled(LogSignal) {
+		if err := c.configureLoggerProvider(ctx); err != nil {
+			return err
+		}
 	}
 
 	// run configured hooks
@@ -237,7 +320,11 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 		return nil
 	}
 
-	exporter, err := c.transport.GetTraceSpanExporter(ctx)
+	if c.traceTransport == nil {
+		return ErrTraceTransportRequired
+	}
+
+	exporter, err := c.traceTransport.GetTraceSpanExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -268,7 +355,11 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 		return nil
 	}
 
-	exporter, err := c.transport.GetMetricExporter(ctx)
+	if c.metricTransport == nil {
+		return ErrMetricTransportRequired
+	}
+
+	exporter, err := c.metricTransport.GetMetricExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -293,7 +384,11 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 		return nil
 	}
 
-	exporter, err := c.transport.GetLogExporter(ctx)
+	if c.logTransport == nil {
+		return ErrLogTransportRequired
+	}
+
+	exporter, err := c.logTransport.GetLogExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -354,6 +449,18 @@ func (c *Client) runConfiguredHooks(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (c *Client) signalEnabled(signal Signal) bool {
+	return c.signals&signal != 0
+}
+
+func combineSignals(signals ...Signal) Signal {
+	var enabled Signal
+	for _, signal := range signals {
+		enabled |= signal & allSignals
+	}
+	return enabled
 }
 
 func queueSize() int {

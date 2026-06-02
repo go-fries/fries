@@ -25,6 +25,13 @@ func TestNewClient(t *testing.T) {
 		require.Nil(t, client)
 		require.ErrorIs(t, err, ErrTransportRequired)
 	})
+
+	t.Run("returns error without trace transport", func(t *testing.T) {
+		client, err := NewTraceClient(nil)
+
+		require.Nil(t, client)
+		require.ErrorIs(t, err, ErrTraceTransportRequired)
+	})
 }
 
 func TestClientLifecycle(t *testing.T) {
@@ -227,6 +234,44 @@ func TestClientOptions(t *testing.T) {
 
 		assert.NotNil(t, client.traceSampler)
 	})
+
+	t.Run("signals default to all", func(t *testing.T) {
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+		)
+
+		assert.True(t, client.signalEnabled(TraceSignal))
+		assert.True(t, client.signalEnabled(MetricSignal))
+		assert.True(t, client.signalEnabled(LogSignal))
+	})
+
+	t.Run("configure trace only", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		transport := &testTraceTransport{traceExporter: &testTraceExporter{}}
+		client := newTestTraceClient(t, transport)
+		client.hooks = []Hook{noopHook{}}
+
+		require.NoError(t, client.Configure(t.Context()))
+
+		assert.NotNil(t, client.tracerProvider)
+		assert.Nil(t, client.meterProvider)
+		assert.Nil(t, client.loggerProvider)
+		assert.Equal(t, int32(1), transport.traceExporterCount.Load())
+	})
+
+	t.Run("missing enabled signal transport", func(t *testing.T) {
+		client := newTestTraceClient(t, &testTraceTransport{}, WithSignals(MetricSignal))
+		client.hooks = []Hook{noopHook{}}
+
+		require.ErrorIs(t, client.Configure(t.Context()), ErrMetricTransportRequired)
+	})
 }
 
 func TestProvider(t *testing.T) {
@@ -291,6 +336,16 @@ func newTestClient(t *testing.T, transport Transport, opts ...Option) *Client {
 	return client
 }
 
+func newTestTraceClient(t *testing.T, transport TraceTransport, opts ...Option) *Client {
+	t.Helper()
+
+	clientOpts := append([]Option{WithResource(sdkresource.Empty())}, opts...)
+	client, err := NewTraceClient(transport, clientOpts...)
+	require.NoError(t, err)
+
+	return client
+}
+
 func saveGlobalProviders(t *testing.T) func() {
 	t.Helper()
 
@@ -327,6 +382,16 @@ func (t *testTransport) GetMetricExporter(context.Context) (sdkmetric.Exporter, 
 
 func (t *testTransport) GetLogExporter(context.Context) (sdklog.Exporter, error) {
 	return t.logExporter, nil
+}
+
+type testTraceTransport struct {
+	traceExporter      sdktrace.SpanExporter
+	traceExporterCount atomic.Int32
+}
+
+func (t *testTraceTransport) GetTraceSpanExporter(context.Context) (sdktrace.SpanExporter, error) {
+	t.traceExporterCount.Add(1)
+	return t.traceExporter, nil
 }
 
 type testTraceExporter struct {
