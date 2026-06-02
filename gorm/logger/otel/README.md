@@ -14,10 +14,12 @@ go get github.com/go-fries/fries/gorm/logger/otel/v3
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-fries/fries/gorm/logger/otel/v3"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -31,8 +33,19 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 			otel.WithSlowThreshold(200*time.Millisecond),
 			otel.WithParameterizedQueries(true),
 			otel.WithAttributes(attribute.String("component", "gorm")),
+			otel.WithLogAttributes(log.String("db.system", "mysql")),
+			otel.WithTraceContext(),
+			otel.WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
+				return []log.KeyValue{
+					log.String("tenant.id", tenantIDFromContext(ctx)),
+				}
+			}),
 		),
 	})
+}
+
+func tenantIDFromContext(ctx context.Context) string {
+	return "tenant-1"
 }
 ```
 
@@ -42,5 +55,9 @@ logging. SQL records include `db.query.text`, `gorm.rows_affected`,
 `logger.ErrRecordNotFound` is ignored by default because it is commonly an
 expected query miss rather than an application failure. Use
 `WithIgnoreRecordNotFoundError(false)` to report it as an error log record.
+Use `WithLogAttributes` and `WithLogAttributeFuncs` to add fixed or
+context-derived attributes to each emitted log record.
+Use `WithTraceContext` to add `trace.id` and `span.id` from the current span
+context when they are available.
 Use `WithParameterizedQueries(true)` to keep GORM from expanding SQL parameter
 values into the rendered query text.

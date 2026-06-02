@@ -22,6 +22,8 @@ var (
 // Logger emits GORM logs through the OpenTelemetry Logs API.
 type Logger struct {
 	logger                    log.Logger
+	logAttributes             []log.KeyValue
+	logAttributeFuncs         []LogAttributeFunc
 	level                     logger.LogLevel
 	slowThreshold             time.Duration
 	ignoreRecordNotFoundError bool
@@ -34,6 +36,8 @@ func New(opts ...Option) *Logger {
 
 	return &Logger{
 		logger:                    cfg.newLogger(scopeName),
+		logAttributes:             cfg.logAttributes,
+		logAttributeFuncs:         cfg.logAttributeFuncs,
 		level:                     cfg.level,
 		slowThreshold:             cfg.slowThreshold,
 		ignoreRecordNotFoundError: cfg.ignoreRecordNotFoundError,
@@ -115,6 +119,10 @@ func (l *Logger) emit(ctx context.Context, severity log.Severity, severityText, 
 	record.SetSeverityText(severityText)
 	record.SetBody(log.StringValue(body))
 	record.AddAttributes(attrs...)
+	record.AddAttributes(l.logAttributes...)
+	for _, fn := range l.logAttributeFuncs {
+		record.AddAttributes(fn(ctx)...)
+	}
 
 	l.logger.Emit(ctx, record)
 }

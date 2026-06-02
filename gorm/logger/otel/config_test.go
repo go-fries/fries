@@ -1,12 +1,14 @@
 package otel
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm/logger"
 )
@@ -19,6 +21,8 @@ func TestNewConfigDefaults(t *testing.T) {
 	assert.Equal(t, Version(), cfg.version)
 	assert.Empty(t, cfg.schemaURL)
 	assert.Empty(t, cfg.attributes)
+	assert.Empty(t, cfg.logAttributes)
+	assert.Empty(t, cfg.logAttributeFuncs)
 	assert.Equal(t, logger.Warn, cfg.level)
 	assert.Equal(t, 200*time.Millisecond, cfg.slowThreshold)
 	assert.True(t, cfg.ignoreRecordNotFoundError)
@@ -27,6 +31,9 @@ func TestNewConfigDefaults(t *testing.T) {
 
 func TestConfigOptions(t *testing.T) {
 	provider := &recordingLoggerProvider{}
+	attributeFunc := func(context.Context) []log.KeyValue {
+		return []log.KeyValue{log.String("tenant.id", "tenant-1")}
+	}
 
 	cfg := newConfig(
 		WithLoggerProvider(provider),
@@ -34,6 +41,8 @@ func TestConfigOptions(t *testing.T) {
 		WithSchemaURL("https://example.com/schema"),
 		WithAttributes(attribute.String("component", "gorm")),
 		WithAttributes(attribute.String("layer", "database")),
+		WithLogAttributes(log.String("log.scope", "gorm")),
+		WithLogAttributeFuncs(nil, attributeFunc),
 		WithLogLevel(logger.Info),
 		WithSlowThreshold(time.Second),
 		WithIgnoreRecordNotFoundError(false),
@@ -47,6 +56,9 @@ func TestConfigOptions(t *testing.T) {
 		attribute.String("component", "gorm"),
 		attribute.String("layer", "database"),
 	}, cfg.attributes)
+	assert.Equal(t, []log.KeyValue{log.String("log.scope", "gorm")}, cfg.logAttributes)
+	require.Len(t, cfg.logAttributeFuncs, 1)
+	assert.Equal(t, []log.KeyValue{log.String("tenant.id", "tenant-1")}, cfg.logAttributeFuncs[0](t.Context()))
 	assert.Equal(t, logger.Info, cfg.level)
 	assert.Equal(t, time.Second, cfg.slowThreshold)
 	assert.False(t, cfg.ignoreRecordNotFoundError)

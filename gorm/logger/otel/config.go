@@ -1,11 +1,13 @@
 package otel
 
 import (
+	"context"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm/logger"
 )
 
@@ -14,11 +16,16 @@ type config struct {
 	version                   string
 	schemaURL                 string
 	attributes                []attribute.KeyValue
+	logAttributes             []log.KeyValue
+	logAttributeFuncs         []LogAttributeFunc
 	level                     logger.LogLevel
 	slowThreshold             time.Duration
 	ignoreRecordNotFoundError bool
 	parameterizedQueries      bool
 }
+
+// LogAttributeFunc returns OpenTelemetry log record attributes for ctx.
+type LogAttributeFunc func(ctx context.Context) []log.KeyValue
 
 // Option configures a [Logger].
 type Option interface {
@@ -65,6 +72,46 @@ func WithSchemaURL(schemaURL string) Option {
 func WithAttributes(attributes ...attribute.KeyValue) Option {
 	return optionFunc(func(c *config) {
 		c.attributes = append(c.attributes, attributes...)
+	})
+}
+
+// WithLogAttributes adds OpenTelemetry log record attributes emitted with each
+// log record.
+func WithLogAttributes(attributes ...log.KeyValue) Option {
+	return optionFunc(func(c *config) {
+		c.logAttributes = append(c.logAttributes, attributes...)
+	})
+}
+
+// WithLogAttributeFuncs adds functions that return OpenTelemetry log record
+// attributes for each emitted log record.
+func WithLogAttributeFuncs(funcs ...LogAttributeFunc) Option {
+	return optionFunc(func(c *config) {
+		for _, fn := range funcs {
+			if fn != nil {
+				c.logAttributeFuncs = append(c.logAttributeFuncs, fn)
+			}
+		}
+	})
+}
+
+// WithTraceContext adds the current span trace and span IDs to each emitted log
+// record when they are available in the log context.
+func WithTraceContext() Option {
+	return WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
+		span := trace.SpanContextFromContext(ctx)
+		if !span.HasTraceID() && !span.HasSpanID() {
+			return nil
+		}
+
+		attrs := make([]log.KeyValue, 0, 2) //nolint:mnd
+		if span.HasTraceID() {
+			attrs = append(attrs, log.String("trace.id", span.TraceID().String()))
+		}
+		if span.HasSpanID() {
+			attrs = append(attrs, log.String("span.id", span.SpanID().String()))
+		}
+		return attrs
 	})
 }
 

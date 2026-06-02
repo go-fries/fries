@@ -5,6 +5,7 @@
 //
 //	import (
 //		"github.com/go-fries/fries/gorm/logger/otel/v3"
+//		"go.opentelemetry.io/otel/log"
 //		"go.opentelemetry.io/otel/log/global"
 //		"gorm.io/gorm"
 //		"gorm.io/gorm/logger"
@@ -14,6 +15,8 @@
 //		Logger: otel.New(
 //			otel.WithLoggerProvider(global.GetLoggerProvider()),
 //			otel.WithLogLevel(logger.Warn),
+//			otel.WithLogAttributes(log.String("component", "gorm")),
+//			otel.WithTraceContext(),
 //		),
 //	})
 package otel
