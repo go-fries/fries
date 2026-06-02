@@ -32,6 +32,8 @@ For new releasable component modules, update the repository release and reportin
 
 OpenTelemetry integrations should keep instrumentation scope names stable and aligned with the module path. Prefer official OpenTelemetry semantic convention constants and helper functions over raw attribute strings when they exist; use package-specific attributes only for data that has no suitable semantic convention.
 
+For component configuration design conventions, follow [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Testing Guidelines
 Place tests beside the package under test using `*_test.go`. Use Go test naming conventions: `TestXxx`, `BenchmarkXxx`, and `FuzzXxx`. `github.com/stretchr/testify` is available when assertions improve readability. Long-running or integration-style tests should honor `testing.Short()`. Race-sensitive changes should be verified with `make test-race`.
 

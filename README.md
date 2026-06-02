@@ -21,6 +21,10 @@
 go get github.com/go-fries/fries/v3
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and component design conventions.
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.
