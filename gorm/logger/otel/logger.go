@@ -147,7 +147,8 @@ func (l *Logger) emitSQL(
 		attrs = append(attrs, log.Int64(string(semconv.DBResponseReturnedRowsKey), rows))
 	}
 	if err != nil {
-		attrs = append(attrs, log.String(string(semconv.ErrorTypeKey), fmt.Sprintf("%T", err)))
+		errorType := semconv.ErrorType(err)
+		attrs = append(attrs, log.String(string(errorType.Key), errorType.Value.AsString()))
 		attrs = append(attrs, log.String("error.message", err.Error()))
 	}
 

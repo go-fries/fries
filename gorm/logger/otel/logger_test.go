@@ -138,6 +138,31 @@ func TestTraceError(t *testing.T) {
 	assert.Equal(t, "database failed", attrs["error.message"].Value.AsString())
 }
 
+type typedError struct{}
+
+func (typedError) Error() string {
+	return "typed error"
+}
+
+func (typedError) ErrorType() string {
+	return "gorm.test_error"
+}
+
+func TestTraceErrorTypeUsesSemanticConvention(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
+	provider.logger.enabled = true
+
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
+		return "select * from users", 1
+	}, typedError{})
+
+	require.True(t, provider.logger.emitted)
+	attrs := recordAttributes(provider.logger.record)
+	assert.Equal(t, "gorm.test_error", attrs["error.type"].Value.AsString())
+	assert.Equal(t, "typed error", attrs["error.message"].Value.AsString())
+}
+
 func TestTraceSlowSQL(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 	l := New(
