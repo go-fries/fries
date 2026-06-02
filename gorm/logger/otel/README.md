@@ -16,7 +16,7 @@ package main
 import (
 	"time"
 
-	gormotel "github.com/go-fries/fries/gorm/logger/otel/v3"
+	"github.com/go-fries/fries/gorm/logger/otel/v3"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
@@ -25,12 +25,12 @@ import (
 
 func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	return gorm.Open(dialector, &gorm.Config{
-		Logger: gormotel.New(
-			gormotel.WithLoggerProvider(global.GetLoggerProvider()),
-			gormotel.WithLogLevel(logger.Warn),
-			gormotel.WithSlowThreshold(200*time.Millisecond),
-			gormotel.WithParameterizedQueries(true),
-			gormotel.WithAttributes(attribute.String("component", "gorm")),
+		Logger: otel.New(
+			otel.WithLoggerProvider(global.GetLoggerProvider()),
+			otel.WithLogLevel(logger.Warn),
+			otel.WithSlowThreshold(200*time.Millisecond),
+			otel.WithParameterizedQueries(true),
+			otel.WithAttributes(attribute.String("component", "gorm")),
 		),
 	})
 }
