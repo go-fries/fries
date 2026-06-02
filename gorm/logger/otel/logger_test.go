@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/embedded"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm/logger"
 )
 
@@ -91,6 +92,72 @@ func TestInfoEmitsRecord(t *testing.T) {
 	assert.Equal(t, log.StringValue("hello gorm"), provider.logger.record.Body())
 }
 
+type attributeContextKey struct{}
+
+func TestInfoEmitsConfiguredLogAttributes(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Info),
+		WithLogAttributes(log.String("component", "gorm")),
+		WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
+			tenantID, _ := ctx.Value(attributeContextKey{}).(string)
+			return []log.KeyValue{
+				log.String("tenant.id", tenantID),
+			}
+		}),
+	)
+	provider.logger.enabled = true
+
+	ctx := context.WithValue(t.Context(), attributeContextKey{}, "tenant-1")
+	l.Info(ctx, "hello %s", "gorm")
+
+	require.True(t, provider.logger.emitted)
+	attrs := recordAttributes(provider.logger.record)
+	assert.Equal(t, "gorm", attrs["component"].Value.AsString())
+	assert.Equal(t, "tenant-1", attrs["tenant.id"].Value.AsString())
+}
+
+func TestInfoEmitsTraceContext(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Info),
+		WithTraceContext(),
+	)
+	provider.logger.enabled = true
+	traceID := trace.TraceID{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+	spanID := trace.SpanID{2, 2, 2, 2, 2, 2, 2, 2}
+	ctx := trace.ContextWithSpanContext(t.Context(), trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: traceID,
+		SpanID:  spanID,
+	}))
+
+	l.Info(ctx, "hello")
+
+	require.True(t, provider.logger.emitted)
+	attrs := recordAttributes(provider.logger.record)
+	assert.Equal(t, traceID.String(), attrs["trace.id"].Value.AsString())
+	assert.Equal(t, spanID.String(), attrs["span.id"].Value.AsString())
+}
+
+func TestInfoSkipsInvalidTraceContext(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Info),
+		WithTraceContext(),
+	)
+	provider.logger.enabled = true
+
+	l.Info(t.Context(), "hello")
+
+	require.True(t, provider.logger.emitted)
+	attrs := recordAttributes(provider.logger.record)
+	assert.NotContains(t, attrs, "trace.id")
+	assert.NotContains(t, attrs, "span.id")
+}
+
 func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
@@ -166,6 +233,25 @@ func TestLogMethodsSkipFormattingWhenDisabled(t *testing.T) {
 	}
 }
 
+func TestLogAttributeFuncsAreSkippedWhenDisabled(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	called := false
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Info),
+		WithLogAttributeFuncs(func(context.Context) []log.KeyValue {
+			called = true
+			return []log.KeyValue{log.String("tenant.id", "tenant-1")}
+		}),
+	)
+	provider.logger.enabled = false
+
+	l.Info(t.Context(), "ignored")
+
+	assert.False(t, called)
+	assert.False(t, provider.logger.emitted)
+}
+
 func TestTraceError(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
@@ -237,7 +323,11 @@ func TestTraceSlowSQL(t *testing.T) {
 
 func TestTraceInfo(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Info),
+		WithLogAttributes(log.String("component", "gorm")),
+	)
 	provider.logger.enabled = true
 
 	l.Trace(t.Context(), time.Now(), func() (string, int64) {
@@ -249,6 +339,7 @@ func TestTraceInfo(t *testing.T) {
 	assert.Equal(t, log.StringValue("gorm.sql"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, int64(1), attrs["gorm.rows_affected"].Value.AsInt64())
+	assert.Equal(t, "gorm", attrs["component"].Value.AsString())
 	assert.NotContains(t, attrs, "db.response.returned_rows")
 }
 
