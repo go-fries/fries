@@ -110,3 +110,19 @@ client, err := otlp.NewClient(
 	otlp.WithHostMetrics(),
 )
 ```
+
+## Batch Options
+
+Batch and reader timing can be tuned with options.
+
+```go
+client, err := otlp.NewClient(
+	transport,
+	otlp.WithBatchQueueSize(2048),
+	otlp.WithTraceBatchTimeout(5*time.Second),
+	otlp.WithTraceExportTimeout(10*time.Second),
+	otlp.WithMetricInterval(15*time.Second),
+	otlp.WithLogExportInterval(10*time.Second),
+	otlp.WithLogExportTimeout(10*time.Second),
+)
+```

@@ -31,6 +31,14 @@ const (
 
 const allSignals = TraceSignal | MetricSignal | LogSignal
 
+const (
+	defaultTraceBatchTimeout  = 10 * time.Second
+	defaultTraceExportTimeout = 10 * time.Second
+	defaultMetricInterval     = 15 * time.Second
+	defaultLogExportInterval  = 10 * time.Second
+	defaultLogExportTimeout   = 10 * time.Second
+)
+
 type config struct {
 	// otlp transports
 	traceTransport  TraceTransport
@@ -50,10 +58,22 @@ type config struct {
 	attributes                []attribute.KeyValue
 
 	// trace options
-	traceSampler sdktrace.Sampler
+	traceSampler       sdktrace.Sampler
+	traceBatchTimeout  time.Duration
+	traceExportTimeout time.Duration
 
 	// signal options
 	signals Signal
+
+	// metric options
+	metricInterval time.Duration
+
+	// log options
+	logExportInterval time.Duration
+	logExportTimeout  time.Duration
+
+	// batch options
+	batchQueueSize int
 
 	// hooks
 	hooks []Hook
@@ -131,6 +151,60 @@ func WithTraceSampler(sampler sdktrace.Sampler) Option {
 	})
 }
 
+// WithBatchQueueSize sets the trace and log batch processor queue size.
+func WithBatchQueueSize(size int) Option {
+	return optionFunc(func(c *config) {
+		if size > 0 {
+			c.batchQueueSize = size
+		}
+	})
+}
+
+// WithTraceBatchTimeout sets the trace batch processor schedule delay.
+func WithTraceBatchTimeout(timeout time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if timeout > 0 {
+			c.traceBatchTimeout = timeout
+		}
+	})
+}
+
+// WithTraceExportTimeout sets the trace batch processor export timeout.
+func WithTraceExportTimeout(timeout time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if timeout > 0 {
+			c.traceExportTimeout = timeout
+		}
+	})
+}
+
+// WithMetricInterval sets the periodic metric reader collection interval.
+func WithMetricInterval(interval time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if interval > 0 {
+			c.metricInterval = interval
+		}
+	})
+}
+
+// WithLogExportInterval sets the log batch processor export interval.
+func WithLogExportInterval(interval time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if interval > 0 {
+			c.logExportInterval = interval
+		}
+	})
+}
+
+// WithLogExportTimeout sets the log batch processor export timeout.
+func WithLogExportTimeout(timeout time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if timeout > 0 {
+			c.logExportTimeout = timeout
+		}
+	})
+}
+
 func WithHooks(hooks ...Hook) Option {
 	return optionFunc(func(c *config) {
 		if len(hooks) > 0 {
@@ -141,8 +215,14 @@ func WithHooks(hooks ...Hook) Option {
 
 func newConfig(signals Signal, opts ...Option) *config {
 	cfg := &config{
-		signals: signals,
-		hooks:   DefaultHooks(),
+		signals:            signals,
+		traceBatchTimeout:  defaultTraceBatchTimeout,
+		traceExportTimeout: defaultTraceExportTimeout,
+		metricInterval:     defaultMetricInterval,
+		logExportInterval:  defaultLogExportInterval,
+		logExportTimeout:   defaultLogExportTimeout,
+		batchQueueSize:     queueSize(),
+		hooks:              DefaultHooks(),
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
@@ -200,14 +280,13 @@ func (c *config) newTracerProvider(ctx context.Context) (trace.TracerProvider, e
 		return nil, err
 	}
 
-	queueSize := queueSize()
 	return sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(
 			exporter,
-			sdktrace.WithMaxQueueSize(queueSize),
-			sdktrace.WithMaxExportBatchSize(queueSize),
-			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
-			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
+			sdktrace.WithMaxQueueSize(c.batchQueueSize),
+			sdktrace.WithMaxExportBatchSize(c.batchQueueSize),
+			sdktrace.WithBatchTimeout(c.traceBatchTimeout),
+			sdktrace.WithExportTimeout(c.traceExportTimeout),
 		)),
 		sdktrace.WithResource(c.resource),
 		sdktrace.WithSampler(c.traceSampler),
@@ -230,7 +309,7 @@ func (c *config) newMeterProvider(ctx context.Context) (metric.MeterProvider, er
 	return sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(
 			sdkmetric.NewPeriodicReader(exporter,
-				sdkmetric.WithInterval(15*time.Second)),
+				sdkmetric.WithInterval(c.metricInterval)),
 		), //nolint:mnd
 		sdkmetric.WithResource(c.resource),
 	), nil
@@ -249,14 +328,13 @@ func (c *config) newLoggerProvider(ctx context.Context) (log.LoggerProvider, err
 		return nil, err
 	}
 
-	queueSize := queueSize()
 	return sdklog.NewLoggerProvider(
 		sdklog.WithProcessor(sdklog.NewBatchProcessor(
 			exporter,
-			sdklog.WithMaxQueueSize(queueSize),
-			sdklog.WithExportMaxBatchSize(queueSize),
-			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
-			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
+			sdklog.WithMaxQueueSize(c.batchQueueSize),
+			sdklog.WithExportMaxBatchSize(c.batchQueueSize),
+			sdklog.WithExportInterval(c.logExportInterval),
+			sdklog.WithExportTimeout(c.logExportTimeout),
 		)),
 		sdklog.WithResource(c.resource),
 	), nil

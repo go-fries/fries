@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -241,6 +242,72 @@ func TestClientOptions(t *testing.T) {
 		)
 
 		assert.NotNil(t, client.config.traceSampler)
+	})
+
+	t.Run("batch defaults", func(t *testing.T) {
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+		)
+
+		assert.Equal(t, defaultTraceBatchTimeout, client.config.traceBatchTimeout)
+		assert.Equal(t, defaultTraceExportTimeout, client.config.traceExportTimeout)
+		assert.Equal(t, defaultMetricInterval, client.config.metricInterval)
+		assert.Equal(t, defaultLogExportInterval, client.config.logExportInterval)
+		assert.Equal(t, defaultLogExportTimeout, client.config.logExportTimeout)
+		assert.Positive(t, client.config.batchQueueSize)
+	})
+
+	t.Run("batch options", func(t *testing.T) {
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithBatchQueueSize(256),
+			WithTraceBatchTimeout(time.Second),
+			WithTraceExportTimeout(2*time.Second),
+			WithMetricInterval(3*time.Second),
+			WithLogExportInterval(4*time.Second),
+			WithLogExportTimeout(5*time.Second),
+		)
+
+		assert.Equal(t, 256, client.config.batchQueueSize)
+		assert.Equal(t, time.Second, client.config.traceBatchTimeout)
+		assert.Equal(t, 2*time.Second, client.config.traceExportTimeout)
+		assert.Equal(t, 3*time.Second, client.config.metricInterval)
+		assert.Equal(t, 4*time.Second, client.config.logExportInterval)
+		assert.Equal(t, 5*time.Second, client.config.logExportTimeout)
+	})
+
+	t.Run("invalid batch options keep defaults", func(t *testing.T) {
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithBatchQueueSize(0),
+			WithTraceBatchTimeout(0),
+			WithTraceExportTimeout(0),
+			WithMetricInterval(0),
+			WithLogExportInterval(0),
+			WithLogExportTimeout(0),
+		)
+
+		assert.Equal(t, defaultTraceBatchTimeout, client.config.traceBatchTimeout)
+		assert.Equal(t, defaultTraceExportTimeout, client.config.traceExportTimeout)
+		assert.Equal(t, defaultMetricInterval, client.config.metricInterval)
+		assert.Equal(t, defaultLogExportInterval, client.config.logExportInterval)
+		assert.Equal(t, defaultLogExportTimeout, client.config.logExportTimeout)
+		assert.Positive(t, client.config.batchQueueSize)
 	})
 
 	t.Run("signals default to all", func(t *testing.T) {
