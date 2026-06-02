@@ -11,7 +11,7 @@
 //	)
 //
 //	db, err := gorm.Open(dialector, &gorm.Config{
-//		Logger: gormotel.NewLogger(
+//		Logger: gormotel.New(
 //			gormotel.WithLoggerProvider(global.GetLoggerProvider()),
 //			gormotel.WithLogLevel(gormlogger.Warn),
 //		),

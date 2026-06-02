@@ -25,7 +25,7 @@ import (
 
 func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	return gorm.Open(dialector, &gorm.Config{
-		Logger: gormotel.NewLogger(
+		Logger: gormotel.New(
 			gormotel.WithLoggerProvider(global.GetLoggerProvider()),
 			gormotel.WithLogLevel(gormlogger.Warn),
 			gormotel.WithSlowThreshold(200*time.Millisecond),

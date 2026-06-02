@@ -51,10 +51,10 @@ func (l *recordingLogger) Enabled(ctx context.Context, param log.EnabledParamete
 	return l.enabled
 }
 
-func TestNewLogger(t *testing.T) {
+func TestNew(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 
-	logger := NewLogger(WithLoggerProvider(provider))
+	logger := New(WithLoggerProvider(provider))
 
 	require.NotNil(t, logger)
 	assert.Equal(t, scopeName, provider.name)
@@ -65,7 +65,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestLogModeReturnsCopy(t *testing.T) {
-	logger := NewLogger(WithLoggerProvider(&recordingLoggerProvider{}), WithLogLevel(gormlogger.Warn))
+	logger := New(WithLoggerProvider(&recordingLoggerProvider{}), WithLogLevel(gormlogger.Warn))
 
 	leveled := logger.LogMode(gormlogger.Info)
 
@@ -76,7 +76,7 @@ func TestLogModeReturnsCopy(t *testing.T) {
 
 func TestInfoEmitsRecord(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
 	provider.logger.enabled = true
 
 	ctx := t.Context()
@@ -93,7 +93,7 @@ func TestInfoEmitsRecord(t *testing.T) {
 
 func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
 	provider.logger.enabled = true
 
 	logger.Warn(t.Context(), "ignored")
@@ -107,7 +107,7 @@ func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 
 func TestEmitSkipsWhenDisabled(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
 	provider.logger.enabled = false
 
 	logger.Info(t.Context(), "ignored")
@@ -118,7 +118,7 @@ func TestEmitSkipsWhenDisabled(t *testing.T) {
 
 func TestTraceError(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
 	provider.logger.enabled = true
 	err := errors.New("database failed")
 
@@ -140,7 +140,7 @@ func TestTraceError(t *testing.T) {
 
 func TestTraceSlowSQL(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(
+	logger := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(gormlogger.Warn),
 		WithSlowThreshold(time.Millisecond),
@@ -162,7 +162,7 @@ func TestTraceSlowSQL(t *testing.T) {
 
 func TestTraceInfo(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
 	provider.logger.enabled = true
 
 	logger.Trace(t.Context(), time.Now(), func() (string, int64) {
@@ -176,7 +176,7 @@ func TestTraceInfo(t *testing.T) {
 
 func TestTraceIgnoresRecordNotFound(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(
+	logger := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(gormlogger.Error),
 		WithIgnoreRecordNotFoundError(true),
@@ -195,7 +195,7 @@ func TestTraceIgnoresRecordNotFound(t *testing.T) {
 
 func TestTraceSkipsSQLRenderingWhenDisabled(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := NewLogger(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
 	provider.logger.enabled = false
 	called := false
 
@@ -210,7 +210,7 @@ func TestTraceSkipsSQLRenderingWhenDisabled(t *testing.T) {
 }
 
 func TestParamsFilter(t *testing.T) {
-	logger := NewLogger()
+	logger := New()
 
 	sql, params := logger.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
 
@@ -219,7 +219,7 @@ func TestParamsFilter(t *testing.T) {
 }
 
 func TestParamsFilterParameterizedQueries(t *testing.T) {
-	logger := NewLogger(WithParameterizedQueries(true))
+	logger := New(WithParameterizedQueries(true))
 
 	sql, params := logger.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
 

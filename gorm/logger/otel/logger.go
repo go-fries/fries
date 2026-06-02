@@ -28,8 +28,8 @@ type Logger struct {
 	parameterizedQueries      bool
 }
 
-// NewLogger creates a [Logger] that implements [gormlogger.Interface].
-func NewLogger(opts ...Option) *Logger {
+// New creates a [Logger] that implements [gormlogger.Interface].
+func New(opts ...Option) *Logger {
 	cfg := newConfig(opts...)
 
 	return &Logger{
