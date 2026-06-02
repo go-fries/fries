@@ -39,5 +39,8 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 `Trace` emits SQL log records for errors, slow SQL, and info-level query
 logging. SQL records include `db.query.text`, `gorm.rows_affected`,
 `gorm.elapsed_ms`, and `gorm.event` attributes.
+`logger.ErrRecordNotFound` is ignored by default because it is commonly an
+expected query miss rather than an application failure. Use
+`WithIgnoreRecordNotFoundError(false)` to report it as an error log record.
 Use `WithParameterizedQueries(true)` to keep GORM from expanding SQL parameter
 values into the rendered query text.
