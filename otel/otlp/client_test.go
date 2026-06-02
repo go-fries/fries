@@ -189,6 +189,9 @@ func TestClientLifecycle(t *testing.T) {
 	})
 
 	t.Run("hook failure returns error", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
 		expected := errors.New("hook failed")
 		client := newTestClient(
 			t,

@@ -1,6 +1,7 @@
 package otlp
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -232,15 +233,40 @@ func TestConfigProviders(t *testing.T) {
 
 		traceProvider, err := cfg.newTracerProvider(t.Context())
 		require.NoError(t, err)
+		cleanupProvider(t, traceProvider)
 		meterProvider, err := cfg.newMeterProvider(t.Context())
 		require.NoError(t, err)
+		cleanupProvider(t, meterProvider)
 		loggerProvider, err := cfg.newLoggerProvider(t.Context())
 		require.NoError(t, err)
+		cleanupProvider(t, loggerProvider)
 
 		assert.NotNil(t, traceProvider)
 		assert.NotNil(t, meterProvider)
 		assert.NotNil(t, loggerProvider)
 	})
+}
+
+func cleanupProvider(t *testing.T, provider any) {
+	t.Helper()
+
+	shutdownProvider, ok := provider.(interface {
+		Shutdown(context.Context) error
+	})
+	if !ok {
+		return
+	}
+
+	t.Cleanup(func() {
+		ctx, cancel := newCleanupContext()
+		defer cancel()
+
+		require.NoError(t, shutdownProvider.Shutdown(ctx))
+	})
+}
+
+func newCleanupContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), time.Second)
 }
 
 func TestConfigTextMapPropagator(t *testing.T) {
