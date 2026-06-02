@@ -22,10 +22,16 @@ func NewProvider(client *Client) *Provider {
 
 // Bootstrap configures the underlying client.
 func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
+	if p.client == nil {
+		return ctx, ErrClientRequired
+	}
 	return ctx, p.client.Configure(ctx)
 }
 
 // Terminate shuts down the underlying client.
 func (p *Provider) Terminate(ctx context.Context) (context.Context, error) {
+	if p.client == nil {
+		return ctx, ErrClientRequired
+	}
 	return ctx, p.client.Shutdown(ctx)
 }

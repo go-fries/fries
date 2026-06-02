@@ -3,6 +3,7 @@ package otlp
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -140,6 +141,53 @@ func TestClientLifecycle(t *testing.T) {
 		require.ErrorIs(t, client.Configure(t.Context()), ErrClientConfigured)
 	})
 
+	t.Run("concurrent configure only configures once", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		hook := &blockingHook{
+			started: make(chan struct{}),
+			release: make(chan struct{}),
+		}
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(hook),
+		)
+
+		errs := make(chan error, 2)
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			errs <- client.Configure(t.Context())
+		}()
+		<-hook.started
+
+		go func() {
+			defer wg.Done()
+			errs <- client.Configure(t.Context())
+		}()
+
+		close(hook.release)
+		wg.Wait()
+		close(errs)
+
+		var configureErrors []error
+		for err := range errs {
+			configureErrors = append(configureErrors, err)
+		}
+
+		require.Len(t, configureErrors, 2)
+		assert.Contains(t, configureErrors, nil)
+		assert.Contains(t, configureErrors, ErrClientConfigured)
+	})
+
 	t.Run("hook failure returns error", func(t *testing.T) {
 		expected := errors.New("hook failed")
 		client := newTestClient(
@@ -225,6 +273,15 @@ func TestClientSignals(t *testing.T) {
 }
 
 func TestProvider(t *testing.T) {
+	t.Run("bootstrap requires client", func(t *testing.T) {
+		provider := NewProvider(nil)
+
+		ctx, err := provider.Bootstrap(t.Context())
+
+		require.ErrorIs(t, err, ErrClientRequired)
+		assert.Equal(t, t.Context(), ctx)
+	})
+
 	t.Run("bootstrap configures client", func(t *testing.T) {
 		restoreGlobals := saveGlobalProviders(t)
 		defer restoreGlobals()
@@ -244,6 +301,15 @@ func TestProvider(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, t.Context(), ctx)
 		assert.True(t, client.configured)
+	})
+
+	t.Run("terminate requires client", func(t *testing.T) {
+		provider := NewProvider(nil)
+
+		ctx, err := provider.Terminate(t.Context())
+
+		require.ErrorIs(t, err, ErrClientRequired)
+		assert.Equal(t, t.Context(), ctx)
 	})
 
 	t.Run("terminate shuts down client", func(t *testing.T) {
@@ -322,6 +388,20 @@ type errorHook struct {
 
 func (h errorHook) Configured(context.Context, *Client) error {
 	return h.err
+}
+
+type blockingHook struct {
+	once    sync.Once
+	started chan struct{}
+	release chan struct{}
+}
+
+func (h *blockingHook) Configured(context.Context, *Client) error {
+	h.once.Do(func() {
+		close(h.started)
+	})
+	<-h.release
+	return nil
 }
 
 type testTransport struct {

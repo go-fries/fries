@@ -23,6 +23,8 @@ var (
 	ErrClientConfigured = errors.New("otlp client has already been configured")
 	// ErrClientShutdown is returned when [Client.Configure] is called after [Client.Shutdown].
 	ErrClientShutdown = errors.New("otlp client has been shut down")
+	// ErrClientRequired is returned when a [Client] is required but nil.
+	ErrClientRequired = errors.New("otlp client is required")
 )
 
 // Client configures OpenTelemetry global providers backed by OTLP exporters.
@@ -95,15 +97,14 @@ func NewLogClient(transport LogTransport, opts ...Option) (*Client, error) {
 // not idempotent: calling it more than once returns [ErrClientConfigured].
 func (c *Client) Configure(ctx context.Context) error {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	switch {
 	case c.shutdown:
-		c.mu.Unlock()
 		return ErrClientShutdown
 	case c.configured:
-		c.mu.Unlock()
 		return ErrClientConfigured
 	}
-	c.mu.Unlock()
 
 	// resource
 	if err := c.configureResource(ctx); err != nil {
@@ -136,13 +137,10 @@ func (c *Client) Configure(ctx context.Context) error {
 		return err
 	}
 
-	c.mu.Lock()
 	if c.shutdown {
-		c.mu.Unlock()
 		return ErrClientShutdown
 	}
 	c.configured = true
-	c.mu.Unlock()
 
 	kratoslog.Info("OTLP client configured")
 
@@ -214,15 +212,16 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 		return nil
 	}
 	c.shutdown = true
+	providers := []any{
+		c.config.tracerProvider,
+		c.config.meterProvider,
+		c.config.loggerProvider,
+	}
 	c.mu.Unlock()
 
 	kratoslog.Infof("OTLP client is shutting down")
 
-	for _, provider := range []any{
-		c.config.tracerProvider,
-		c.config.meterProvider,
-		c.config.loggerProvider,
-	} {
+	for _, provider := range providers {
 		if provider == nil {
 			continue
 		}
