@@ -7,24 +7,26 @@ import (
 	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
-var defaultHooks = []Hook{
-	RuntimeMetricsHook{},
-	HostMetricsHook{},
-}
-
-// DefaultHooks returns the hooks that are enabled by default.
-func DefaultHooks() []Hook {
-	return append([]Hook(nil), defaultHooks...)
-}
-
+// Hook runs after [Client.Configure] has registered providers.
 type Hook interface {
 	// Configured is called after the client is fully configured.
 	Configured(ctx context.Context, client *Client) error
 }
 
+// WithRuntimeMetrics starts runtime metrics collection after the client is configured.
+func WithRuntimeMetrics() Option {
+	return WithHooks(RuntimeMetricsHook{})
+}
+
+// WithHostMetrics starts host metrics collection after the client is configured.
+func WithHostMetrics() Option {
+	return WithHooks(HostMetricsHook{})
+}
+
 // RuntimeMetricsHook is a hook that starts the runtime metrics collection.
 type RuntimeMetricsHook struct{}
 
+// Configured starts runtime metrics collection.
 func (RuntimeMetricsHook) Configured(context.Context, *Client) error {
 	return runtimemetrics.Start()
 }
@@ -32,6 +34,7 @@ func (RuntimeMetricsHook) Configured(context.Context, *Client) error {
 // HostMetricsHook is a hook that starts the host metrics collection.
 type HostMetricsHook struct{}
 
+// Configured starts host metrics collection.
 func (HostMetricsHook) Configured(context.Context, *Client) error {
 	return hostmetrics.Start()
 }

@@ -96,6 +96,11 @@ golangci-lint/%: $(GOLANGCI_LINT)
 	@echo 'golangci-lint $(if $(ARGS),$(ARGS) ,)$(DIR)' \
 		&& cd $(DIR) \
 		&& $(GOLANGCI_LINT) run --allow-serial-runners $(ARGS)
+golangci-lint-fix/%: DIR=$*
+golangci-lint-fix/%: $(GOLANGCI_LINT)
+	@echo 'golangci-lint --fix $(DIR)' \
+		&& cd $(DIR) \
+		&& $(GOLANGCI_LINT) run --allow-serial-runners --fix
 
 .PHONY: go-mod-tidy
 go-mod-tidy: $(ALL_GO_MOD_DIRS:%=go-mod-tidy/%)
