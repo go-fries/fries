@@ -20,9 +20,9 @@ func NewBuilder() Builder {
 }
 
 // Client returns attributes for a client span.
-func (Builder) Client(ctx context.Context, service, method string) []attribute.KeyValue {
+func (b Builder) Client(ctx context.Context, service, method string) []attribute.KeyValue {
 	attrs := make([]attribute.KeyValue, 0, 6)
-	attrs = append(attrs, RPCMethod(methodName(service, method)))
+	attrs = append(attrs, RPCMethod(b.Operation(ctx, service, method)))
 
 	client, ok := jet.ClientFromContext(ctx)
 	if !ok {
@@ -33,6 +33,21 @@ func (Builder) Client(ctx context.Context, service, method string) []attribute.K
 	attrs = append(attrs, transporterAttributes(client.GetTransporter())...)
 
 	return attrs
+}
+
+// Operation returns the Jet RPC operation name for service and method.
+func (Builder) Operation(ctx context.Context, service, method string) string {
+	client, ok := jet.ClientFromContext(ctx)
+	if !ok {
+		return methodName(service, method)
+	}
+
+	pathGenerator := client.GetPathGenerator()
+	if pathGenerator == nil {
+		return methodName(service, method)
+	}
+
+	return pathGenerator.Generate(service, method)
 }
 
 func formatterAttributes(formatter jet.Formatter) []attribute.KeyValue {

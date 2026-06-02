@@ -53,7 +53,7 @@ func TestTracing(t *testing.T) {
 			span := spans[0]
 
 			assert.Equal(t, trace.SpanKindClient, span.SpanKind)
-			assert.Equal(t, "jet.service/method", span.Name)
+			assert.Equal(t, "service/method", span.Name)
 			assert.Equal(t, scopeName, span.InstrumentationScope.Name)
 			assert.Equal(t, "1.2.3", span.InstrumentationScope.Version)
 			assert.Equal(t, "https://example.com/schema", span.InstrumentationScope.SchemaURL)
@@ -105,6 +105,8 @@ func TestTracingWithJetClientContext(t *testing.T) {
 	require.Len(t, spans, 1)
 	span := spans[0]
 
+	assert.Equal(t, "/service/method", span.Name)
+	assert.Contains(t, span.Attributes, otelsemconv.RPCMethod("/service/method"))
 	assert.Contains(t, span.Attributes, otelsemconv.RPCSystemNameJSONRPC)
 	assert.Contains(t, span.Attributes, otelsemconv.JSONRPCProtocolVersion(jet.JSONRPCVersion))
 	assert.Contains(t, span.Attributes, otelsemconv.HTTPRequestMethodPost)

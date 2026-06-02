@@ -19,12 +19,14 @@ func New(opts ...Option) jet.Middleware {
 	tracer := cfg.newTracer(scopeName)
 	return func(next jet.Handler) jet.Handler {
 		return func(ctx context.Context, service, method string, request any) (response any, err error) {
+			attrs := spanAttributeBuilder.Client(ctx, service, method)
 			ctx, span := tracer.Start(
-				ctx, "jet."+service+"/"+method,
+				ctx,
+				spanAttributeBuilder.Operation(ctx, service, method),
 				trace.WithSpanKind(trace.SpanKindClient),
+				trace.WithAttributes(attrs...),
 			)
 			defer span.End()
-			span.SetAttributes(spanAttributeBuilder.Client(ctx, service, method)...)
 
 			response, err = next(ctx, service, method, request)
 			if err != nil {

@@ -1,6 +1,7 @@
 package semconv
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -27,21 +28,42 @@ func TestBuilderClientWithJSONRPCAndHTTPTransporter(t *testing.T) {
 	require.NoError(t, err)
 
 	client, err := jet.NewClient(
-		jet.WithService("example.Service"),
+		jet.WithService(`Example\User\MoneyService`),
 		jet.WithTransporter(transporter),
 	)
 	require.NoError(t, err)
 	ctx := jet.ContextWithClient(t.Context(), client)
 
-	got := NewBuilder().Client(ctx, "example.Service", "Get")
+	got := NewBuilder().Client(ctx, `Example\User\MoneyService`, "GetBalance")
 
-	assert.Contains(t, got, otelsemconv.RPCMethod("example.Service/Get"))
+	assert.Contains(t, got, otelsemconv.RPCMethod("/money/GetBalance"))
 	assert.Contains(t, got, otelsemconv.RPCSystemNameJSONRPC)
 	assert.Contains(t, got, otelsemconv.JSONRPCProtocolVersion(jet.JSONRPCVersion))
 	assert.Contains(t, got, otelsemconv.HTTPRequestMethodPost)
 	assert.Contains(t, got, otelsemconv.URLFull("https://api.example.com:9443/rpc"))
 	assert.Contains(t, got, otelsemconv.ServerAddress("api.example.com"))
 	assert.Contains(t, got, otelsemconv.ServerPort(9443))
+}
+
+func TestBuilderOperation(t *testing.T) {
+	builder := NewBuilder()
+
+	assert.Equal(t, `Example\User\MoneyService/GetBalance`, builder.Operation(t.Context(), `Example\User\MoneyService`, "GetBalance"))
+
+	client, err := jet.NewClient(
+		jet.WithService(`Example\User\MoneyService`),
+		jet.WithTransporter(&recordingTransporter{}),
+	)
+	require.NoError(t, err)
+	ctx := jet.ContextWithClient(t.Context(), client)
+
+	assert.Equal(t, "/money/GetBalance", builder.Operation(ctx, `Example\User\MoneyService`, "GetBalance"))
+}
+
+type recordingTransporter struct{}
+
+func (*recordingTransporter) Send(context.Context, []byte) ([]byte, error) {
+	return nil, nil
 }
 
 func TestBuilderClientHTTPTransporterDefaultPorts(t *testing.T) {
