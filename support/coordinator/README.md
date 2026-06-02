@@ -9,36 +9,36 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-kratos-ecosystem/components/v2/coordinator"
+	"github.com/go-fries/fries/support/v3/coordinator"
 )
 
 func main() {
+	foo := coordinator.NewCoordinator()
+	bar := coordinator.NewCoordinator()
+
 	var wg sync.WaitGroup
 	wg.Add(3) //nolint:gomnd
 
 	go func() {
 		defer wg.Done()
-		if <-coordinator.Until("foo").Done(); true {
-			fmt.Println("foo")
-		}
+		<-foo.Done()
+		fmt.Println("foo")
 	}()
 
 	go func() {
 		defer wg.Done()
-		if <-coordinator.Until("foo").Done(); true {
-			fmt.Println("foo 2")
-		}
+		<-foo.Done()
+		fmt.Println("foo 2")
 	}()
 
 	go func() {
 		defer wg.Done()
-		if <-coordinator.Until("bar").Done(); true {
-			fmt.Println("bar")
-		}
+		<-bar.Done()
+		fmt.Println("bar")
 	}()
 
-	coordinator.Until("foo").Close()
-	coordinator.Until("bar").Close()
+	foo.Close()
+	bar.Close()
 
 	wg.Wait()
 }
