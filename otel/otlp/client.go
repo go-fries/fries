@@ -7,7 +7,7 @@ import (
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel"
-	logglobal "go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/log/global"
 )
 
 var (
@@ -199,7 +199,7 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 	}
 
 	c.config.loggerProvider = provider
-	logglobal.SetLoggerProvider(provider)
+	global.SetLoggerProvider(provider)
 	return nil
 }
 
