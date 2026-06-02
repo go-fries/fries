@@ -36,7 +36,7 @@ func TestErrorAttributesForHTTPTransporterServerError(t *testing.T) {
 
 	assert.Equal(t, []attribute.KeyValue{
 		otelsemconv.HTTPResponseStatusCode(503),
-		otelsemconv.ErrorTypeKey.String("Service Unavailable"),
+		otelsemconv.ErrorTypeKey.String("503"),
 	}, got)
 }
 

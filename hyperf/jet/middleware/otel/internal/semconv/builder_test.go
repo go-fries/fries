@@ -89,11 +89,27 @@ func TestBuilderClientHTTPTransporterDefaultPorts(t *testing.T) {
 			},
 		},
 		{
-			name: "host port",
+			name: "host port without scheme",
 			addr: "api.example.com:9000",
 			want: []attribute.KeyValue{
 				otelsemconv.ServerAddress("api.example.com"),
 				otelsemconv.ServerPort(9000),
+			},
+		},
+		{
+			name: "ipv6 url",
+			addr: "https://[2001:db8::1]:9443/rpc",
+			want: []attribute.KeyValue{
+				otelsemconv.ServerAddress("2001:db8::1"),
+				otelsemconv.ServerPort(9443),
+			},
+		},
+		{
+			name: "ipv6 without explicit port",
+			addr: "https://[2001:db8::1]/rpc",
+			want: []attribute.KeyValue{
+				otelsemconv.ServerAddress("2001:db8::1"),
+				otelsemconv.ServerPort(443),
 			},
 		},
 	}
@@ -107,4 +123,10 @@ func TestBuilderClientHTTPTransporterDefaultPorts(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuilderClientHTTPTransporterInvalidPort(t *testing.T) {
+	got := httpTransporterAttributes(&jet.HTTPTransporter{Addr: "https://api.example.com:bad/rpc"})
+
+	assert.Empty(t, got)
 }

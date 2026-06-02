@@ -2,7 +2,6 @@ package semconv
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 
 	"github.com/go-fries/fries/hyperf/jet/v3"
@@ -58,9 +57,10 @@ func ErrorAttributes(err error) []attribute.KeyValue {
 
 	var httpErr *jet.HTTPTransporterServerError
 	if errors.As(err, &httpErr) {
+		statusCode := strconv.Itoa(httpErr.StatusCode)
 		return []attribute.KeyValue{
 			HTTPResponseStatusCode(httpErr.StatusCode),
-			otelsemconv.ErrorTypeKey.String(http.StatusText(httpErr.StatusCode)),
+			otelsemconv.ErrorTypeKey.String(statusCode),
 		}
 	}
 

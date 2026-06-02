@@ -2,7 +2,6 @@ package semconv
 
 import (
 	"context"
-	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -92,34 +91,28 @@ func httpTransporterAttributes(t *jet.HTTPTransporter) []attribute.KeyValue {
 }
 
 func serverAddress(addr string) (address string, port int, ok bool) {
-	if u, err := url.Parse(addr); err == nil && u.Host != "" {
-		return splitHostPort(u.Host, defaultPort(u.Scheme))
+	raw := addr
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return "", 0, false
 	}
 
-	return splitHostPort(addr, 0)
-}
-
-func splitHostPort(hostport string, fallbackPort int) (address string, port int, ok bool) {
-	host, portValue, err := net.SplitHostPort(hostport)
-	if err == nil {
-		if p, err := strconv.Atoi(portValue); err == nil {
-			port = p
+	address = u.Hostname()
+	if address == "" {
+		return "", 0, false
+	}
+	if p := u.Port(); p != "" {
+		parsed, err := strconv.Atoi(p)
+		if err != nil {
+			return address, 0, true
 		}
-		return host, port, host != ""
+		return address, parsed, true
 	}
 
-	host = hostport
-	if h, p, ok := strings.Cut(hostport, ":"); ok {
-		host = h
-		if parsed, err := strconv.Atoi(p); err == nil {
-			port = parsed
-		}
-	}
-	if port == 0 {
-		port = fallbackPort
-	}
-
-	return host, port, host != ""
+	return address, defaultPort(u.Scheme), true
 }
 
 func methodName(service, method string) string {
