@@ -29,23 +29,44 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestConfigResourceOptions(t *testing.T) {
-	cfg := newConfig(
-		allSignals,
-		WithServiceName("service-name"),
-		WithDeploymentEnvironmentName("production"),
-		WithAttributes(attribute.String("key", "value")),
-	)
+	t.Run("creates resource from attributes", func(t *testing.T) {
+		cfg := newConfig(
+			allSignals,
+			WithServiceName("service-name"),
+			WithDeploymentEnvironmentName("production"),
+			WithAttributes(attribute.String("key", "value")),
+		)
 
-	res, err := cfg.newResource(t.Context())
-	require.NoError(t, err)
-	require.NotNil(t, res)
+		res, err := cfg.newResource(t.Context())
+		require.NoError(t, err)
+		require.NotNil(t, res)
 
-	assert.Equal(t, "service-name", cfg.serviceName)
-	assert.Equal(t, "production", cfg.deploymentEnvironmentName)
-	assert.Equal(t, []attribute.KeyValue{attribute.String("key", "value")}, cfg.attributes)
-	assert.Contains(t, res.Attributes(), attribute.String("service.name", "service-name"))
-	assert.Contains(t, res.Attributes(), attribute.String("deployment.environment.name", "production"))
-	assert.Contains(t, res.Attributes(), attribute.String("key", "value"))
+		assert.Equal(t, "service-name", cfg.serviceName)
+		assert.Equal(t, "production", cfg.deploymentEnvironmentName)
+		assert.Equal(t, []attribute.KeyValue{attribute.String("key", "value")}, cfg.attributes)
+		assert.Contains(t, res.Attributes(), attribute.String("service.name", "service-name"))
+		assert.Contains(t, res.Attributes(), attribute.String("deployment.environment.name", "production"))
+		assert.Contains(t, res.Attributes(), attribute.String("key", "value"))
+	})
+
+	t.Run("uses configured resource", func(t *testing.T) {
+		resource := sdkresource.Empty()
+		cfg := newConfig(allSignals, WithResource(resource))
+
+		res, err := cfg.newResource(t.Context())
+		require.NoError(t, err)
+
+		assert.Same(t, resource, res)
+	})
+
+	t.Run("nil resource falls back to default", func(t *testing.T) {
+		cfg := newConfig(allSignals, WithResource(nil))
+
+		res, err := cfg.newResource(t.Context())
+		require.NoError(t, err)
+
+		assert.NotNil(t, res)
+	})
 }
 
 func TestConfigCoreOptions(t *testing.T) {
@@ -195,9 +216,12 @@ func TestConfigProviders(t *testing.T) {
 	t.Run("requires enabled transports", func(t *testing.T) {
 		cfg := newConfig(allSignals, WithResource(sdkresource.Empty()))
 
-		require.ErrorIs(t, mustError(cfg.newTracerProvider(t.Context())), ErrTraceTransportRequired)
-		require.ErrorIs(t, mustError(cfg.newMeterProvider(t.Context())), ErrMetricTransportRequired)
-		require.ErrorIs(t, mustError(cfg.newLoggerProvider(t.Context())), ErrLogTransportRequired)
+		_, err := cfg.newTracerProvider(t.Context())
+		require.ErrorIs(t, err, ErrTraceTransportRequired)
+		_, err = cfg.newMeterProvider(t.Context())
+		require.ErrorIs(t, err, ErrMetricTransportRequired)
+		_, err = cfg.newLoggerProvider(t.Context())
+		require.ErrorIs(t, err, ErrLogTransportRequired)
 	})
 
 	t.Run("creates providers from transports", func(t *testing.T) {
@@ -220,11 +244,15 @@ func TestConfigProviders(t *testing.T) {
 }
 
 func TestConfigTextMapPropagator(t *testing.T) {
-	cfg := newConfig(allSignals)
+	t.Run("uses default propagator", func(t *testing.T) {
+		cfg := newConfig(allSignals)
 
-	assert.NotNil(t, cfg.newTextMapPropagator())
-}
+		assert.NotNil(t, cfg.newTextMapPropagator())
+	})
 
-func mustError[T any](_ T, err error) error {
-	return err
+	t.Run("nil propagator falls back to default", func(t *testing.T) {
+		cfg := newConfig(allSignals, WithPropagator(nil))
+
+		assert.NotNil(t, cfg.newTextMapPropagator())
+	})
 }

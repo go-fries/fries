@@ -2,6 +2,7 @@ package otlp
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	logglobal "go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -29,6 +31,20 @@ func TestNewClient(t *testing.T) {
 
 		require.Nil(t, client)
 		require.ErrorIs(t, err, ErrTraceTransportRequired)
+	})
+
+	t.Run("returns error without metric transport", func(t *testing.T) {
+		client, err := NewMetricClient(nil)
+
+		require.Nil(t, client)
+		require.ErrorIs(t, err, ErrMetricTransportRequired)
+	})
+
+	t.Run("returns error without log transport", func(t *testing.T) {
+		client, err := NewLogClient(nil)
+
+		require.Nil(t, client)
+		require.ErrorIs(t, err, ErrLogTransportRequired)
 	})
 }
 
@@ -65,6 +81,50 @@ func TestClientLifecycle(t *testing.T) {
 		assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
 	})
 
+	t.Run("registers configured providers", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		tracerProvider := sdktrace.NewTracerProvider()
+		meterProvider := sdkmetric.NewMeterProvider()
+		loggerProvider := sdklog.NewLoggerProvider()
+		propagator := propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		)
+		ctx := t.Context()
+
+		t.Cleanup(func() {
+			require.NoError(t, tracerProvider.Shutdown(ctx))
+			require.NoError(t, meterProvider.Shutdown(ctx))
+			require.NoError(t, loggerProvider.Shutdown(ctx))
+		})
+
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithTracerProvider(tracerProvider),
+			WithMeterProvider(meterProvider),
+			WithLoggerProvider(loggerProvider),
+			WithPropagator(propagator),
+			WithHooks(noopHook{}),
+		)
+
+		require.NoError(t, client.Configure(ctx))
+
+		assert.Same(t, tracerProvider, client.config.tracerProvider)
+		assert.Same(t, meterProvider, client.config.meterProvider)
+		assert.Same(t, loggerProvider, client.config.loggerProvider)
+		assert.Equal(t, propagator, otel.GetTextMapPropagator())
+		assert.IsType(t, tracerProvider, otel.GetTracerProvider())
+		assert.IsType(t, meterProvider, otel.GetMeterProvider())
+		assert.IsType(t, loggerProvider, logglobal.GetLoggerProvider())
+	})
+
 	t.Run("configure twice", func(t *testing.T) {
 		client := newTestClient(
 			t,
@@ -78,6 +138,22 @@ func TestClientLifecycle(t *testing.T) {
 
 		require.NoError(t, client.Configure(t.Context()))
 		require.ErrorIs(t, client.Configure(t.Context()), ErrClientConfigured)
+	})
+
+	t.Run("hook failure returns error", func(t *testing.T) {
+		expected := errors.New("hook failed")
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(errorHook{err: expected}),
+		)
+
+		require.ErrorIs(t, client.Configure(t.Context()), expected)
+		assert.False(t, client.configured)
 	})
 
 	t.Run("configure after shutdown", func(t *testing.T) {
@@ -238,6 +314,14 @@ type noopHook struct{}
 
 func (noopHook) Configured(context.Context, *Client) error {
 	return nil
+}
+
+type errorHook struct {
+	err error
+}
+
+func (h errorHook) Configured(context.Context, *Client) error {
+	return h.err
 }
 
 type testTransport struct {
