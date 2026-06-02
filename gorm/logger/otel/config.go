@@ -6,7 +6,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
-	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
 type config struct {
@@ -14,7 +14,7 @@ type config struct {
 	version                   string
 	schemaURL                 string
 	attributes                []attribute.KeyValue
-	level                     gormlogger.LogLevel
+	level                     logger.LogLevel
 	slowThreshold             time.Duration
 	ignoreRecordNotFoundError bool
 	parameterizedQueries      bool
@@ -69,7 +69,7 @@ func WithAttributes(attributes ...attribute.KeyValue) Option {
 }
 
 // WithLogLevel sets the GORM log level used by [Logger].
-func WithLogLevel(level gormlogger.LogLevel) Option {
+func WithLogLevel(level logger.LogLevel) Option {
 	return optionFunc(func(c *config) {
 		c.level = level
 	})
@@ -83,7 +83,7 @@ func WithSlowThreshold(threshold time.Duration) Option {
 	})
 }
 
-// WithIgnoreRecordNotFoundError controls whether [gormlogger.ErrRecordNotFound]
+// WithIgnoreRecordNotFoundError controls whether [logger.ErrRecordNotFound]
 // is emitted as an error log record.
 func WithIgnoreRecordNotFoundError(ignore bool) Option {
 	return optionFunc(func(c *config) {
@@ -103,7 +103,7 @@ func newConfig(opts ...Option) *config {
 	cfg := &config{
 		provider:      global.GetLoggerProvider(),
 		version:       Version(),
-		level:         gormlogger.Warn,
+		level:         logger.Warn,
 		slowThreshold: 200 * time.Millisecond,
 	}
 	for _, opt := range opts {

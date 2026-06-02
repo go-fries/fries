@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/embedded"
-	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
 type recordingLoggerProvider struct {
@@ -54,33 +54,33 @@ func (l *recordingLogger) Enabled(ctx context.Context, param log.EnabledParamete
 func TestNew(t *testing.T) {
 	provider := &recordingLoggerProvider{}
 
-	logger := New(WithLoggerProvider(provider))
+	l := New(WithLoggerProvider(provider))
 
-	require.NotNil(t, logger)
+	require.NotNil(t, l)
 	assert.Equal(t, scopeName, provider.name)
-	assert.Equal(t, gormlogger.Warn, logger.level)
-	assert.Equal(t, 200*time.Millisecond, logger.slowThreshold)
-	assert.False(t, logger.ignoreRecordNotFoundError)
-	assert.False(t, logger.parameterizedQueries)
+	assert.Equal(t, logger.Warn, l.level)
+	assert.Equal(t, 200*time.Millisecond, l.slowThreshold)
+	assert.False(t, l.ignoreRecordNotFoundError)
+	assert.False(t, l.parameterizedQueries)
 }
 
 func TestLogModeReturnsCopy(t *testing.T) {
-	logger := New(WithLoggerProvider(&recordingLoggerProvider{}), WithLogLevel(gormlogger.Warn))
+	l := New(WithLoggerProvider(&recordingLoggerProvider{}), WithLogLevel(logger.Warn))
 
-	leveled := logger.LogMode(gormlogger.Info)
+	leveled := l.LogMode(logger.Info)
 
 	require.IsType(t, &Logger{}, leveled)
-	assert.Equal(t, gormlogger.Warn, logger.level)
-	assert.Equal(t, gormlogger.Info, leveled.(*Logger).level)
+	assert.Equal(t, logger.Warn, l.level)
+	assert.Equal(t, logger.Info, leveled.(*Logger).level)
 }
 
 func TestInfoEmitsRecord(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
 	provider.logger.enabled = true
 
 	ctx := t.Context()
-	logger.Info(ctx, "hello %s", "gorm")
+	l.Info(ctx, "hello %s", "gorm")
 
 	require.True(t, provider.logger.emitted)
 	assert.Same(t, ctx, provider.logger.enabledCtx)
@@ -93,13 +93,13 @@ func TestInfoEmitsRecord(t *testing.T) {
 
 func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
 	provider.logger.enabled = true
 
-	logger.Warn(t.Context(), "ignored")
+	l.Warn(t.Context(), "ignored")
 	assert.False(t, provider.logger.emitted)
 
-	logger.Error(t.Context(), "failed: %s", "db")
+	l.Error(t.Context(), "failed: %s", "db")
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityError, provider.logger.record.Severity())
 	assert.Equal(t, log.StringValue("failed: db"), provider.logger.record.Body())
@@ -107,10 +107,10 @@ func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 
 func TestEmitSkipsWhenDisabled(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
 	provider.logger.enabled = false
 
-	logger.Info(t.Context(), "ignored")
+	l.Info(t.Context(), "ignored")
 
 	assert.False(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityInfo, provider.logger.enabledParam.Severity)
@@ -118,11 +118,11 @@ func TestEmitSkipsWhenDisabled(t *testing.T) {
 
 func TestTraceError(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Error))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Error))
 	provider.logger.enabled = true
 	err := errors.New("database failed")
 
-	logger.Trace(t.Context(), time.Now().Add(-10*time.Millisecond), func() (string, int64) {
+	l.Trace(t.Context(), time.Now().Add(-10*time.Millisecond), func() (string, int64) {
 		return "select * from users", 3
 	}, err)
 
@@ -140,14 +140,14 @@ func TestTraceError(t *testing.T) {
 
 func TestTraceSlowSQL(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(
+	l := New(
 		WithLoggerProvider(provider),
-		WithLogLevel(gormlogger.Warn),
+		WithLogLevel(logger.Warn),
 		WithSlowThreshold(time.Millisecond),
 	)
 	provider.logger.enabled = true
 
-	logger.Trace(t.Context(), time.Now().Add(-10*time.Millisecond), func() (string, int64) {
+	l.Trace(t.Context(), time.Now().Add(-10*time.Millisecond), func() (string, int64) {
 		return "update users set name = ?", -1
 	}, nil)
 
@@ -162,10 +162,10 @@ func TestTraceSlowSQL(t *testing.T) {
 
 func TestTraceInfo(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
 	provider.logger.enabled = true
 
-	logger.Trace(t.Context(), time.Now(), func() (string, int64) {
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
 		return "select 1", 1
 	}, nil)
 
@@ -176,18 +176,18 @@ func TestTraceInfo(t *testing.T) {
 
 func TestTraceIgnoresRecordNotFound(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(
+	l := New(
 		WithLoggerProvider(provider),
-		WithLogLevel(gormlogger.Error),
+		WithLogLevel(logger.Error),
 		WithIgnoreRecordNotFoundError(true),
 	)
 	provider.logger.enabled = true
 	called := false
 
-	logger.Trace(t.Context(), time.Now(), func() (string, int64) {
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
 		called = true
 		return "select * from users", 0
-	}, gormlogger.ErrRecordNotFound)
+	}, logger.ErrRecordNotFound)
 
 	assert.False(t, called)
 	assert.False(t, provider.logger.emitted)
@@ -195,11 +195,11 @@ func TestTraceIgnoresRecordNotFound(t *testing.T) {
 
 func TestTraceSkipsSQLRenderingWhenDisabled(t *testing.T) {
 	provider := &recordingLoggerProvider{}
-	logger := New(WithLoggerProvider(provider), WithLogLevel(gormlogger.Info))
+	l := New(WithLoggerProvider(provider), WithLogLevel(logger.Info))
 	provider.logger.enabled = false
 	called := false
 
-	logger.Trace(t.Context(), time.Now(), func() (string, int64) {
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
 		called = true
 		return "select 1", 1
 	}, nil)
@@ -210,18 +210,18 @@ func TestTraceSkipsSQLRenderingWhenDisabled(t *testing.T) {
 }
 
 func TestParamsFilter(t *testing.T) {
-	logger := New()
+	l := New()
 
-	sql, params := logger.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
+	sql, params := l.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
 
 	assert.Equal(t, "select * from users where id = ?", sql)
 	assert.Equal(t, []any{1}, params)
 }
 
 func TestParamsFilterParameterizedQueries(t *testing.T) {
-	logger := New(WithParameterizedQueries(true))
+	l := New(WithParameterizedQueries(true))
 
-	sql, params := logger.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
+	sql, params := l.ParamsFilter(t.Context(), "select * from users where id = ?", 1)
 
 	assert.Equal(t, "select * from users where id = ?", sql)
 	assert.Nil(t, params)

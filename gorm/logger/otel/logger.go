@@ -9,26 +9,26 @@ import (
 	"go.opentelemetry.io/otel/log"
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
 const scopeName = "github.com/go-fries/fries/gorm/logger/otel/v3"
 
 var (
-	_ gormlogger.Interface = (*Logger)(nil)
-	_ gorm.ParamsFilter    = (*Logger)(nil)
+	_ logger.Interface  = (*Logger)(nil)
+	_ gorm.ParamsFilter = (*Logger)(nil)
 )
 
 // Logger emits GORM logs through the OpenTelemetry Logs API.
 type Logger struct {
 	logger                    log.Logger
-	level                     gormlogger.LogLevel
+	level                     logger.LogLevel
 	slowThreshold             time.Duration
 	ignoreRecordNotFoundError bool
 	parameterizedQueries      bool
 }
 
-// New creates a [Logger] that implements [gormlogger.Interface].
+// New creates a [Logger] that implements [logger.Interface].
 func New(opts ...Option) *Logger {
 	cfg := newConfig(opts...)
 
@@ -42,7 +42,7 @@ func New(opts ...Option) *Logger {
 }
 
 // LogMode returns a copy of l with the given GORM log level.
-func (l *Logger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
+func (l *Logger) LogMode(level logger.LogLevel) logger.Interface {
 	copied := *l
 	copied.level = level
 	return &copied
@@ -50,21 +50,21 @@ func (l *Logger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
 
 // Info emits an informational GORM log record.
 func (l *Logger) Info(ctx context.Context, msg string, data ...any) {
-	if l.level >= gormlogger.Info {
+	if l.level >= logger.Info {
 		l.emit(ctx, log.SeverityInfo, "INFO", fmt.Sprintf(msg, data...), nil)
 	}
 }
 
 // Warn emits a warning GORM log record.
 func (l *Logger) Warn(ctx context.Context, msg string, data ...any) {
-	if l.level >= gormlogger.Warn {
+	if l.level >= logger.Warn {
 		l.emit(ctx, log.SeverityWarn, "WARN", fmt.Sprintf(msg, data...), nil)
 	}
 }
 
 // Error emits an error GORM log record.
 func (l *Logger) Error(ctx context.Context, msg string, data ...any) {
-	if l.level >= gormlogger.Error {
+	if l.level >= logger.Error {
 		l.emit(ctx, log.SeverityError, "ERROR", fmt.Sprintf(msg, data...), nil)
 	}
 }
@@ -72,26 +72,26 @@ func (l *Logger) Error(ctx context.Context, msg string, data ...any) {
 // Trace emits a GORM SQL trace log record for errors, slow SQL, or info-level
 // query logging.
 func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
-	if l.level <= gormlogger.Silent {
+	if l.level <= logger.Silent {
 		return
 	}
 
 	elapsed := time.Since(begin)
 	switch {
-	case err != nil && l.level >= gormlogger.Error &&
-		(!errors.Is(err, gormlogger.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
+	case err != nil && l.level >= logger.Error &&
+		(!errors.Is(err, logger.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
 		if !l.enabled(ctx, log.SeverityError) {
 			return
 		}
 		sql, rows := fc()
 		l.emitSQL(ctx, log.SeverityError, "ERROR", "gorm.sql.error", sql, rows, elapsed, err)
-	case elapsed > l.slowThreshold && l.slowThreshold != 0 && l.level >= gormlogger.Warn:
+	case elapsed > l.slowThreshold && l.slowThreshold != 0 && l.level >= logger.Warn:
 		if !l.enabled(ctx, log.SeverityWarn) {
 			return
 		}
 		sql, rows := fc()
 		l.emitSQL(ctx, log.SeverityWarn, "WARN", "gorm.sql.slow", sql, rows, elapsed, nil)
-	case l.level == gormlogger.Info:
+	case l.level == logger.Info:
 		if !l.enabled(ctx, log.SeverityInfo) {
 			return
 		}

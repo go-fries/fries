@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log/global"
-	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
 func TestNewConfigDefaults(t *testing.T) {
@@ -19,7 +19,7 @@ func TestNewConfigDefaults(t *testing.T) {
 	assert.Equal(t, Version(), cfg.version)
 	assert.Empty(t, cfg.schemaURL)
 	assert.Empty(t, cfg.attributes)
-	assert.Equal(t, gormlogger.Warn, cfg.level)
+	assert.Equal(t, logger.Warn, cfg.level)
 	assert.Equal(t, 200*time.Millisecond, cfg.slowThreshold)
 	assert.False(t, cfg.ignoreRecordNotFoundError)
 	assert.False(t, cfg.parameterizedQueries)
@@ -34,7 +34,7 @@ func TestConfigOptions(t *testing.T) {
 		WithSchemaURL("https://example.com/schema"),
 		WithAttributes(attribute.String("component", "gorm")),
 		WithAttributes(attribute.String("layer", "database")),
-		WithLogLevel(gormlogger.Info),
+		WithLogLevel(logger.Info),
 		WithSlowThreshold(time.Second),
 		WithIgnoreRecordNotFoundError(true),
 		WithParameterizedQueries(true),
@@ -47,7 +47,7 @@ func TestConfigOptions(t *testing.T) {
 		attribute.String("component", "gorm"),
 		attribute.String("layer", "database"),
 	}, cfg.attributes)
-	assert.Equal(t, gormlogger.Info, cfg.level)
+	assert.Equal(t, logger.Info, cfg.level)
 	assert.Equal(t, time.Second, cfg.slowThreshold)
 	assert.True(t, cfg.ignoreRecordNotFoundError)
 	assert.True(t, cfg.parameterizedQueries)
@@ -74,9 +74,9 @@ func TestConfigNewLogger(t *testing.T) {
 		WithAttributes(attribute.String("component", "gorm")),
 	)
 
-	logger := cfg.newLogger(scopeName)
+	otelLogger := cfg.newLogger(scopeName)
 
-	require.NotNil(t, logger)
+	require.NotNil(t, otelLogger)
 	assert.Equal(t, scopeName, provider.name)
 	assert.Equal(t, "1.2.3", provider.config.InstrumentationVersion())
 	assert.Equal(t, "https://example.com/schema", provider.config.SchemaURL())

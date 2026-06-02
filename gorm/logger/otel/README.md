@@ -20,14 +20,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
 func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	return gorm.Open(dialector, &gorm.Config{
 		Logger: gormotel.New(
 			gormotel.WithLoggerProvider(global.GetLoggerProvider()),
-			gormotel.WithLogLevel(gormlogger.Warn),
+			gormotel.WithLogLevel(logger.Warn),
 			gormotel.WithSlowThreshold(200*time.Millisecond),
 			gormotel.WithParameterizedQueries(true),
 			gormotel.WithAttributes(attribute.String("component", "gorm")),
