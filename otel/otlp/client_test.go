@@ -126,7 +126,7 @@ func TestClientLifecycle(t *testing.T) {
 }
 
 func TestClientHooks(t *testing.T) {
-	t.Run("with hooks appends to defaults", func(t *testing.T) {
+	t.Run("with hooks appends hooks", func(t *testing.T) {
 		client := newTestClient(
 			t,
 			&testTransport{
@@ -138,21 +138,29 @@ func TestClientHooks(t *testing.T) {
 		)
 
 		require.Len(t, client.config.hooks, len(DefaultHooks())+1)
-		assert.IsType(t, RuntimeMetricsHook{}, client.config.hooks[0])
-		assert.IsType(t, HostMetricsHook{}, client.config.hooks[1])
-		assert.IsType(t, noopHook{}, client.config.hooks[2])
+		assert.IsType(t, noopHook{}, client.config.hooks[0])
 	})
 
-	t.Run("default hooks returns copy", func(t *testing.T) {
+	t.Run("default hooks empty", func(t *testing.T) {
 		hooks := DefaultHooks()
-		require.Len(t, hooks, 2)
+		require.Empty(t, hooks)
+	})
 
-		hooks[0] = noopHook{}
+	t.Run("metrics hooks are explicit", func(t *testing.T) {
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithRuntimeMetrics(),
+			WithHostMetrics(),
+		)
 
-		otherHooks := DefaultHooks()
-		require.Len(t, otherHooks, 2)
-		assert.IsType(t, RuntimeMetricsHook{}, otherHooks[0])
-		assert.IsType(t, HostMetricsHook{}, otherHooks[1])
+		require.Len(t, client.config.hooks, 2)
+		assert.IsType(t, RuntimeMetricsHook{}, client.config.hooks[0])
+		assert.IsType(t, HostMetricsHook{}, client.config.hooks[1])
 	})
 }
 

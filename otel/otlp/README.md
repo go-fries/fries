@@ -90,11 +90,23 @@ func main() {
 
 ## Custom Hooks
 
-`WithHooks(...)` appends custom hooks to the default hooks.
+`WithHooks(...)` appends custom hooks. No hooks are enabled by default.
 
 ```go
 client, err := otlp.NewClient(
 	transport,
 	otlp.WithHooks(myHook{}),
+)
+```
+
+## Runtime and Host Metrics
+
+Runtime and host metrics are opt-in.
+
+```go
+client, err := otlp.NewClient(
+	transport,
+	otlp.WithRuntimeMetrics(),
+	otlp.WithHostMetrics(),
 )
 ```
