@@ -48,13 +48,29 @@ func tenantIDFromContext(ctx context.Context) string {
 }
 ```
 
+## Log Records
+
 `Trace` emits SQL log records for errors, slow SQL, and info-level query
-logging. SQL records include `db.query.text`, `gorm.rows_affected`,
-`gorm.elapsed_ms`, and `gorm.event` attributes.
+logging. SQL records include these attributes:
+
+- `db.query.text`
+- `gorm.rows_affected`
+- `gorm.elapsed_ms`
+- `gorm.event`
+
+## Record Not Found
+
 `logger.ErrRecordNotFound` is ignored by default because it is commonly an
-expected query miss rather than an application failure. Use
-`WithIgnoreRecordNotFoundError(false)` to report it as an error log record.
+expected query miss rather than an application failure.
+
+Use `WithIgnoreRecordNotFoundError(false)` to report it as an error log record.
+
+## Attributes
+
 Use `WithLogAttributes` and `WithLogAttributeFuncs` to add fixed or
 context-derived attributes to each emitted log record.
+
+## SQL Parameters
+
 Use `WithParameterizedQueries(true)` to keep GORM from expanding SQL parameter
 values into the rendered query text.
