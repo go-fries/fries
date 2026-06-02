@@ -56,9 +56,9 @@ func TestClientLifecycle(t *testing.T) {
 		ctx := t.Context()
 
 		require.NoError(t, client.Configure(ctx))
-		require.NotNil(t, client.tracerProvider)
-		require.NotNil(t, client.meterProvider)
-		require.NotNil(t, client.loggerProvider)
+		require.NotNil(t, client.config.tracerProvider)
+		require.NotNil(t, client.config.meterProvider)
+		require.NotNil(t, client.config.loggerProvider)
 
 		require.NoError(t, client.Shutdown(ctx))
 
@@ -137,10 +137,10 @@ func TestClientHooks(t *testing.T) {
 			WithHooks(noopHook{}),
 		)
 
-		require.Len(t, client.hooks, len(DefaultHooks())+1)
-		assert.IsType(t, RuntimeMetricsHook{}, client.hooks[0])
-		assert.IsType(t, HostMetricsHook{}, client.hooks[1])
-		assert.IsType(t, noopHook{}, client.hooks[2])
+		require.Len(t, client.config.hooks, len(DefaultHooks())+1)
+		assert.IsType(t, RuntimeMetricsHook{}, client.config.hooks[0])
+		assert.IsType(t, HostMetricsHook{}, client.config.hooks[1])
+		assert.IsType(t, noopHook{}, client.config.hooks[2])
 	})
 
 	t.Run("default hooks returns copy", func(t *testing.T) {
@@ -171,11 +171,11 @@ func TestClientOptions(t *testing.T) {
 		)
 
 		require.NoError(t, client.configureResource(t.Context()))
-		require.NotNil(t, client.resource)
+		require.NotNil(t, client.config.resource)
 
-		assert.Equal(t, "service-name", client.serviceName)
-		assert.Equal(t, "production", client.deploymentEnvironmentName)
-		assert.Len(t, client.attributes, 1)
+		assert.Equal(t, "service-name", client.config.serviceName)
+		assert.Equal(t, "production", client.config.deploymentEnvironmentName)
+		assert.Len(t, client.config.attributes, 1)
 	})
 
 	t.Run("custom providers and propagator", func(t *testing.T) {
@@ -212,10 +212,10 @@ func TestClientOptions(t *testing.T) {
 
 		require.NoError(t, client.Configure(ctx))
 
-		assert.Same(t, tracerProvider, client.tracerProvider)
-		assert.Same(t, meterProvider, client.meterProvider)
-		assert.Same(t, loggerProvider, client.loggerProvider)
-		assert.NotNil(t, client.propagator)
+		assert.Same(t, tracerProvider, client.config.tracerProvider)
+		assert.Same(t, meterProvider, client.config.meterProvider)
+		assert.Same(t, loggerProvider, client.config.loggerProvider)
+		assert.NotNil(t, client.config.propagator)
 		assert.IsType(t, tracerProvider, otel.GetTracerProvider())
 		assert.IsType(t, meterProvider, otel.GetMeterProvider())
 		assert.IsType(t, loggerProvider, logglobal.GetLoggerProvider())
@@ -232,7 +232,7 @@ func TestClientOptions(t *testing.T) {
 			WithTraceSampler(sdktrace.NeverSample()),
 		)
 
-		assert.NotNil(t, client.traceSampler)
+		assert.NotNil(t, client.config.traceSampler)
 	})
 
 	t.Run("signals default to all", func(t *testing.T) {
@@ -245,9 +245,9 @@ func TestClientOptions(t *testing.T) {
 			},
 		)
 
-		assert.True(t, client.signalEnabled(TraceSignal))
-		assert.True(t, client.signalEnabled(MetricSignal))
-		assert.True(t, client.signalEnabled(LogSignal))
+		assert.True(t, client.config.signalEnabled(TraceSignal))
+		assert.True(t, client.config.signalEnabled(MetricSignal))
+		assert.True(t, client.config.signalEnabled(LogSignal))
 	})
 
 	t.Run("configure trace only", func(t *testing.T) {
@@ -256,19 +256,19 @@ func TestClientOptions(t *testing.T) {
 
 		transport := &testTraceTransport{traceExporter: &testTraceExporter{}}
 		client := newTestTraceClient(t, transport)
-		client.hooks = []Hook{noopHook{}}
+		client.config.hooks = []Hook{noopHook{}}
 
 		require.NoError(t, client.Configure(t.Context()))
 
-		assert.NotNil(t, client.tracerProvider)
-		assert.Nil(t, client.meterProvider)
-		assert.Nil(t, client.loggerProvider)
+		assert.NotNil(t, client.config.tracerProvider)
+		assert.Nil(t, client.config.meterProvider)
+		assert.Nil(t, client.config.loggerProvider)
 		assert.Equal(t, int32(1), transport.traceExporterCount.Load())
 	})
 
 	t.Run("missing enabled signal transport", func(t *testing.T) {
 		client := newTestTraceClient(t, &testTraceTransport{}, WithSignals(MetricSignal))
-		client.hooks = []Hook{noopHook{}}
+		client.config.hooks = []Hook{noopHook{}}
 
 		require.ErrorIs(t, client.Configure(t.Context()), ErrMetricTransportRequired)
 	})

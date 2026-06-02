@@ -9,17 +9,11 @@ import (
 
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/log"
 	logglobal "go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -31,122 +25,13 @@ var (
 	ErrClientShutdown          = errors.New("otlp client has been shut down")
 )
 
-// Signal identifies an OpenTelemetry signal configured by Client.
-type Signal uint8
-
-const (
-	// TraceSignal configures the global OpenTelemetry trace provider.
-	TraceSignal Signal = 1 << iota
-	// MetricSignal configures the global OpenTelemetry meter provider.
-	MetricSignal
-	// LogSignal configures the global OpenTelemetry logger provider.
-	LogSignal
-)
-
-const allSignals = TraceSignal | MetricSignal | LogSignal
-
 type Client struct {
 	mu sync.Mutex
 
-	// otlp transports
-	traceTransport  TraceTransport
-	metricTransport MetricTransport
-	logTransport    LogTransport
-
-	// core components
-	resource       *sdkresource.Resource
-	propagator     propagation.TextMapPropagator
-	tracerProvider trace.TracerProvider
-	meterProvider  metric.MeterProvider
-	loggerProvider log.LoggerProvider
-
-	// resource options
-	serviceName               string
-	deploymentEnvironmentName string
-	attributes                []attribute.KeyValue
-
-	// trace options
-	traceSampler sdktrace.Sampler // default is always on
-
-	// signal options
-	signals Signal
-
-	// hooks
-	hooks []Hook
+	config config
 
 	configured bool
 	shutdown   bool
-}
-
-type Option func(*Client)
-
-func WithResource(resource *sdkresource.Resource) Option {
-	return func(c *Client) {
-		c.resource = resource
-	}
-}
-
-func WithPropagator(propagator propagation.TextMapPropagator) Option {
-	return func(c *Client) {
-		c.propagator = propagator
-	}
-}
-
-func WithTracerProvider(provider trace.TracerProvider) Option {
-	return func(c *Client) {
-		c.tracerProvider = provider
-	}
-}
-
-func WithMeterProvider(provider metric.MeterProvider) Option {
-	return func(c *Client) {
-		c.meterProvider = provider
-	}
-}
-
-func WithLoggerProvider(provider log.LoggerProvider) Option {
-	return func(c *Client) {
-		c.loggerProvider = provider
-	}
-}
-
-// WithSignals sets which OpenTelemetry signals the client configures.
-func WithSignals(signals ...Signal) Option {
-	return func(c *Client) {
-		c.signals = combineSignals(signals...)
-	}
-}
-
-func WithServiceName(serviceName string) Option {
-	return func(c *Client) {
-		c.serviceName = serviceName
-	}
-}
-
-func WithDeploymentEnvironmentName(deploymentEnvironment string) Option {
-	return func(c *Client) {
-		c.deploymentEnvironmentName = deploymentEnvironment
-	}
-}
-
-func WithAttributes(attributes ...attribute.KeyValue) Option {
-	return func(c *Client) {
-		c.attributes = append(c.attributes, attributes...)
-	}
-}
-
-func WithTraceSampler(sampler sdktrace.Sampler) Option {
-	return func(c *Client) {
-		c.traceSampler = sampler
-	}
-}
-
-func WithHooks(hooks ...Hook) Option {
-	return func(c *Client) {
-		if len(hooks) > 0 {
-			c.hooks = append(c.hooks, hooks...)
-		}
-	}
 }
 
 // NewClient creates a Client configured with a transport for all signals.
@@ -155,15 +40,12 @@ func NewClient(transport Transport, opts ...Option) (*Client, error) {
 		return nil, ErrTransportRequired
 	}
 
-	c := &Client{
-		traceTransport:  transport,
-		metricTransport: transport,
-		logTransport:    transport,
-		signals:         allSignals,
-		hooks:           DefaultHooks(),
-	}
-	c.apply(opts...)
-	return c, nil
+	cfg := newConfig(allSignals, opts...)
+	cfg.traceTransport = transport
+	cfg.metricTransport = transport
+	cfg.logTransport = transport
+
+	return &Client{config: *cfg}, nil
 }
 
 // NewTraceClient creates a Client configured with a trace transport.
@@ -172,10 +54,10 @@ func NewTraceClient(transport TraceTransport, opts ...Option) (*Client, error) {
 		return nil, ErrTraceTransportRequired
 	}
 
-	c := newClient(TraceSignal)
-	c.traceTransport = transport
-	c.apply(opts...)
-	return c, nil
+	cfg := newConfig(TraceSignal, opts...)
+	cfg.traceTransport = transport
+
+	return &Client{config: *cfg}, nil
 }
 
 // NewMetricClient creates a Client configured with a metric transport.
@@ -184,10 +66,10 @@ func NewMetricClient(transport MetricTransport, opts ...Option) (*Client, error)
 		return nil, ErrMetricTransportRequired
 	}
 
-	c := newClient(MetricSignal)
-	c.metricTransport = transport
-	c.apply(opts...)
-	return c, nil
+	cfg := newConfig(MetricSignal, opts...)
+	cfg.metricTransport = transport
+
+	return &Client{config: *cfg}, nil
 }
 
 // NewLogClient creates a Client configured with a log transport.
@@ -196,23 +78,10 @@ func NewLogClient(transport LogTransport, opts ...Option) (*Client, error) {
 		return nil, ErrLogTransportRequired
 	}
 
-	c := newClient(LogSignal)
-	c.logTransport = transport
-	c.apply(opts...)
-	return c, nil
-}
+	cfg := newConfig(LogSignal, opts...)
+	cfg.logTransport = transport
 
-func newClient(signals Signal) *Client {
-	return &Client{
-		signals: signals,
-		hooks:   DefaultHooks(),
-	}
-}
-
-func (c *Client) apply(opts ...Option) {
-	for _, opt := range opts {
-		opt(c)
-	}
+	return &Client{config: *cfg}, nil
 }
 
 func (c *Client) Configure(ctx context.Context) error {
@@ -235,19 +104,19 @@ func (c *Client) Configure(ctx context.Context) error {
 	// propagator
 	c.configureTextMapPropagator()
 
-	if c.signalEnabled(TraceSignal) {
+	if c.config.signalEnabled(TraceSignal) {
 		if err := c.configureTraceProvider(ctx); err != nil {
 			return err
 		}
 	}
 
-	if c.signalEnabled(MetricSignal) {
+	if c.config.signalEnabled(MetricSignal) {
 		if err := c.configureMeterProvider(ctx); err != nil {
 			return err
 		}
 	}
 
-	if c.signalEnabled(LogSignal) {
+	if c.config.signalEnabled(LogSignal) {
 		if err := c.configureLoggerProvider(ctx); err != nil {
 			return err
 		}
@@ -272,39 +141,23 @@ func (c *Client) Configure(ctx context.Context) error {
 }
 
 func (c *Client) configureResource(ctx context.Context) error {
-	if c.resource != nil {
+	if c.config.resource != nil {
 		return nil
 	}
 
-	attrs := c.attributes
-
-	if c.serviceName != "" {
-		attrs = append(attrs, semconv.ServiceName(c.serviceName))
-	}
-
-	if c.deploymentEnvironmentName != "" {
-		attrs = append(attrs, semconv.DeploymentEnvironmentName(c.deploymentEnvironmentName))
-	}
-
-	res, err := sdkresource.New(
-		ctx,
-		sdkresource.WithHost(),
-		sdkresource.WithTelemetrySDK(),
-		sdkresource.WithContainer(),
-		sdkresource.WithAttributes(attrs...),
-	)
+	res, err := c.config.newResource(ctx)
 	if err != nil {
 		return err
 	}
 
-	c.resource = res
+	c.config.resource = res
 
 	return nil
 }
 
 func (c *Client) configureTextMapPropagator() {
-	if c.propagator != nil {
-		otel.SetTextMapPropagator(c.propagator)
+	if c.config.propagator != nil {
+		otel.SetTextMapPropagator(c.config.propagator)
 		return
 	}
 
@@ -315,16 +168,16 @@ func (c *Client) configureTextMapPropagator() {
 }
 
 func (c *Client) configureTraceProvider(ctx context.Context) error {
-	if c.tracerProvider != nil {
-		otel.SetTracerProvider(c.tracerProvider)
+	if c.config.tracerProvider != nil {
+		otel.SetTracerProvider(c.config.tracerProvider)
 		return nil
 	}
 
-	if c.traceTransport == nil {
+	if c.config.traceTransport == nil {
 		return ErrTraceTransportRequired
 	}
 
-	exporter, err := c.traceTransport.GetTraceSpanExporter(ctx)
+	exporter, err := c.config.traceTransport.GetTraceSpanExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -339,27 +192,27 @@ func (c *Client) configureTraceProvider(ctx context.Context) error {
 			sdktrace.WithBatchTimeout(10*time.Second),  //nolint:mnd
 			sdktrace.WithExportTimeout(10*time.Second), //nolint:mnd
 		)),
-		sdktrace.WithResource(c.resource),
-		sdktrace.WithSampler(c.traceSampler),
+		sdktrace.WithResource(c.config.resource),
+		sdktrace.WithSampler(c.config.traceSampler),
 	)
 
-	c.tracerProvider = tp
+	c.config.tracerProvider = tp
 	otel.SetTracerProvider(tp)
 
 	return nil
 }
 
 func (c *Client) configureMeterProvider(ctx context.Context) error {
-	if c.meterProvider != nil {
-		otel.SetMeterProvider(c.meterProvider)
+	if c.config.meterProvider != nil {
+		otel.SetMeterProvider(c.config.meterProvider)
 		return nil
 	}
 
-	if c.metricTransport == nil {
+	if c.config.metricTransport == nil {
 		return ErrMetricTransportRequired
 	}
 
-	exporter, err := c.metricTransport.GetMetricExporter(ctx)
+	exporter, err := c.config.metricTransport.GetMetricExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -369,26 +222,26 @@ func (c *Client) configureMeterProvider(ctx context.Context) error {
 			sdkmetric.NewPeriodicReader(exporter,
 				sdkmetric.WithInterval(15*time.Second)),
 		), //nolint:mnd
-		sdkmetric.WithResource(c.resource),
+		sdkmetric.WithResource(c.config.resource),
 	)
 
-	c.meterProvider = mp
+	c.config.meterProvider = mp
 	otel.SetMeterProvider(mp)
 
 	return nil
 }
 
 func (c *Client) configureLoggerProvider(ctx context.Context) error {
-	if c.loggerProvider != nil {
-		logglobal.SetLoggerProvider(c.loggerProvider)
+	if c.config.loggerProvider != nil {
+		logglobal.SetLoggerProvider(c.config.loggerProvider)
 		return nil
 	}
 
-	if c.logTransport == nil {
+	if c.config.logTransport == nil {
 		return ErrLogTransportRequired
 	}
 
-	exporter, err := c.logTransport.GetLogExporter(ctx)
+	exporter, err := c.config.logTransport.GetLogExporter(ctx)
 	if err != nil {
 		return err
 	}
@@ -403,10 +256,10 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 			sdklog.WithExportInterval(10*time.Second), //nolint:mnd
 			sdklog.WithExportTimeout(10*time.Second),  //nolint:mnd
 		)),
-		sdklog.WithResource(c.resource),
+		sdklog.WithResource(c.config.resource),
 	)
 
-	c.loggerProvider = lp
+	c.config.loggerProvider = lp
 	logglobal.SetLoggerProvider(lp)
 	return nil
 }
@@ -423,9 +276,9 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 	kratoslog.Infof("OTLP client is shutting down")
 
 	for _, provider := range []any{
-		c.tracerProvider,
-		c.meterProvider,
-		c.loggerProvider,
+		c.config.tracerProvider,
+		c.config.meterProvider,
+		c.config.loggerProvider,
 	} {
 		if provider == nil {
 			continue
@@ -443,24 +296,12 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 }
 
 func (c *Client) runConfiguredHooks(ctx context.Context) error {
-	for _, hook := range c.hooks {
+	for _, hook := range c.config.hooks {
 		if err := hook.Configured(ctx, c); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (c *Client) signalEnabled(signal Signal) bool {
-	return c.signals&signal != 0
-}
-
-func combineSignals(signals ...Signal) Signal {
-	var enabled Signal
-	for _, signal := range signals {
-		enabled |= signal & allSignals
-	}
-	return enabled
 }
 
 func queueSize() int {
