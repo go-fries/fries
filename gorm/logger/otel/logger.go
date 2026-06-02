@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/log"
-	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 )
