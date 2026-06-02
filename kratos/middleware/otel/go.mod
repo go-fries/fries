@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/kratos/middleware/otel/tracing/v3
+module github.com/go-fries/fries/kratos/middleware/otel/v3
 
 go 1.25.0
 
