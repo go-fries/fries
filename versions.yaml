@@ -96,7 +96,7 @@ module-sets:
       - github.com/go-fries/fries/kratos/middleware/cors/v3
       - github.com/go-fries/fries/kratos/middleware/protovalidate/v3
       - github.com/go-fries/fries/kratos/middleware/slowlog/v3
-      - github.com/go-fries/fries/kratos/middleware/otel/tracing/v3
+      - github.com/go-fries/fries/kratos/middleware/otel/v3
 
       # Locker
       - github.com/go-fries/fries/locker/v3
