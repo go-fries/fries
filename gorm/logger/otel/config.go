@@ -7,7 +7,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm/logger"
 )
 
@@ -92,26 +91,6 @@ func WithLogAttributeFuncs(funcs ...LogAttributeFunc) Option {
 				c.logAttributeFuncs = append(c.logAttributeFuncs, fn)
 			}
 		}
-	})
-}
-
-// WithTraceContext adds the current span trace and span IDs to each emitted log
-// record when they are available in the log context.
-func WithTraceContext() Option {
-	return WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
-		span := trace.SpanContextFromContext(ctx)
-		if !span.HasTraceID() && !span.HasSpanID() {
-			return nil
-		}
-
-		attrs := make([]log.KeyValue, 0, 2) //nolint:mnd
-		if span.HasTraceID() {
-			attrs = append(attrs, log.String("trace.id", span.TraceID().String()))
-		}
-		if span.HasSpanID() {
-			attrs = append(attrs, log.String("span.id", span.SpanID().String()))
-		}
-		return attrs
 	})
 }
 
