@@ -109,8 +109,8 @@ func TestTracingWithJetClientContext(t *testing.T) {
 	assert.Contains(t, span.Attributes, otelsemconv.RPCMethod("/service/method"))
 	assert.Contains(t, span.Attributes, otelsemconv.RPCSystemNameJSONRPC)
 	assert.Contains(t, span.Attributes, otelsemconv.JSONRPCProtocolVersion(jet.JSONRPCVersion))
-	assert.Contains(t, span.Attributes, otelsemconv.HTTPRequestMethodPost)
-	assert.Contains(t, span.Attributes, otelsemconv.URLFull("https://api.example.com:9443/rpc"))
+	assert.NotContains(t, span.Attributes, otelsemconv.HTTPRequestMethodPost)
+	assert.NotContains(t, span.Attributes, otelsemconv.URLFull("https://api.example.com:9443/rpc"))
 	assert.Contains(t, span.Attributes, otelsemconv.ServerAddress("api.example.com"))
 	assert.Contains(t, span.Attributes, otelsemconv.ServerPort(9443))
 }

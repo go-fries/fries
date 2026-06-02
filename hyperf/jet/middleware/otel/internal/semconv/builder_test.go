@@ -39,8 +39,8 @@ func TestBuilderClientWithJSONRPCAndHTTPTransporter(t *testing.T) {
 	assert.Contains(t, got, otelsemconv.RPCMethod("/money/GetBalance"))
 	assert.Contains(t, got, otelsemconv.RPCSystemNameJSONRPC)
 	assert.Contains(t, got, otelsemconv.JSONRPCProtocolVersion(jet.JSONRPCVersion))
-	assert.Contains(t, got, otelsemconv.HTTPRequestMethodPost)
-	assert.Contains(t, got, otelsemconv.URLFull("https://api.example.com:9443/rpc"))
+	assert.NotContains(t, got, otelsemconv.HTTPRequestMethodPost)
+	assert.NotContains(t, got, otelsemconv.URLFull("https://api.example.com:9443/rpc"))
 	assert.Contains(t, got, otelsemconv.ServerAddress("api.example.com"))
 	assert.Contains(t, got, otelsemconv.ServerPort(9443))
 }

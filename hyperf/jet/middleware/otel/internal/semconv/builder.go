@@ -80,10 +80,7 @@ func httpTransporterAttributes(t *jet.HTTPTransporter) []attribute.KeyValue {
 		return nil
 	}
 
-	attrs := []attribute.KeyValue{
-		HTTPRequestMethodPost(),
-		URLFull(t.Addr),
-	}
+	attrs := make([]attribute.KeyValue, 0, 2)
 	if address, port, ok := serverAddress(t.Addr); ok {
 		attrs = append(attrs, ServerAddress(address))
 		if port > 0 {

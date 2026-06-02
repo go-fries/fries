@@ -3,9 +3,8 @@
 OpenTelemetry tracing middleware for Hyperf Jet clients.
 
 The middleware creates a client span for each Jet invocation. When the Jet
-client is available in the context, spans include JSON-RPC attributes and HTTP
-transporter attributes such as `http.request.method`, `url.full`,
-`server.address`, and `server.port`.
+client is available in the context, spans include JSON-RPC attributes and RPC
+server attributes such as `server.address` and `server.port`.
 
 Trace context propagation is not injected by this middleware because the current
 Jet middleware layer does not control HTTP request headers. Propagation should be

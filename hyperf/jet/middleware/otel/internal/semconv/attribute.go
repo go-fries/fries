@@ -10,11 +10,6 @@ import (
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 )
 
-// HTTPRequestMethodPost returns the HTTP POST request method attribute.
-func HTTPRequestMethodPost() attribute.KeyValue {
-	return otelsemconv.HTTPRequestMethodPost
-}
-
 // HTTPResponseStatusCode returns the HTTP response status code attribute.
 func HTTPResponseStatusCode(code int) attribute.KeyValue {
 	return otelsemconv.HTTPResponseStatusCode(code)
@@ -52,11 +47,6 @@ func ServerAddress(address string) attribute.KeyValue {
 // ServerPort returns the server port attribute.
 func ServerPort(port int) attribute.KeyValue {
 	return otelsemconv.ServerPort(port)
-}
-
-// URLFull returns the full URL attribute.
-func URLFull(full string) attribute.KeyValue {
-	return otelsemconv.URLFull(full)
 }
 
 // ErrorAttributes returns semantic-convention attributes derived from err.
