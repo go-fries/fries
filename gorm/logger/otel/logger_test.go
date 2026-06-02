@@ -60,7 +60,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, scopeName, provider.name)
 	assert.Equal(t, logger.Warn, l.level)
 	assert.Equal(t, 200*time.Millisecond, l.slowThreshold)
-	assert.False(t, l.ignoreRecordNotFoundError)
+	assert.True(t, l.ignoreRecordNotFoundError)
 	assert.False(t, l.parameterizedQueries)
 }
 
@@ -257,7 +257,6 @@ func TestTraceIgnoresRecordNotFound(t *testing.T) {
 	l := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(logger.Error),
-		WithIgnoreRecordNotFoundError(true),
 	)
 	provider.logger.enabled = true
 	called := false
@@ -269,6 +268,27 @@ func TestTraceIgnoresRecordNotFound(t *testing.T) {
 
 	assert.False(t, called)
 	assert.False(t, provider.logger.emitted)
+}
+
+func TestTraceReportsRecordNotFoundWhenConfigured(t *testing.T) {
+	provider := &recordingLoggerProvider{}
+	l := New(
+		WithLoggerProvider(provider),
+		WithLogLevel(logger.Error),
+		WithIgnoreRecordNotFoundError(false),
+	)
+	provider.logger.enabled = true
+
+	l.Trace(t.Context(), time.Now(), func() (string, int64) {
+		return "select * from users", 0
+	}, logger.ErrRecordNotFound)
+
+	require.True(t, provider.logger.emitted)
+	assert.Equal(t, log.SeverityError, provider.logger.record.Severity())
+	assert.Equal(t, log.StringValue("gorm.sql.error"), provider.logger.record.Body())
+	attrs := recordAttributes(provider.logger.record)
+	assert.Equal(t, "select * from users", attrs["db.query.text"].Value.AsString())
+	assert.Equal(t, "record not found", attrs["error.message"].Value.AsString())
 }
 
 func TestTraceSkipsSQLRenderingWhenDisabled(t *testing.T) {

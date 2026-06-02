@@ -21,7 +21,7 @@ func TestNewConfigDefaults(t *testing.T) {
 	assert.Empty(t, cfg.attributes)
 	assert.Equal(t, logger.Warn, cfg.level)
 	assert.Equal(t, 200*time.Millisecond, cfg.slowThreshold)
-	assert.False(t, cfg.ignoreRecordNotFoundError)
+	assert.True(t, cfg.ignoreRecordNotFoundError)
 	assert.False(t, cfg.parameterizedQueries)
 }
 
@@ -36,7 +36,7 @@ func TestConfigOptions(t *testing.T) {
 		WithAttributes(attribute.String("layer", "database")),
 		WithLogLevel(logger.Info),
 		WithSlowThreshold(time.Second),
-		WithIgnoreRecordNotFoundError(true),
+		WithIgnoreRecordNotFoundError(false),
 		WithParameterizedQueries(true),
 	)
 
@@ -49,7 +49,7 @@ func TestConfigOptions(t *testing.T) {
 	}, cfg.attributes)
 	assert.Equal(t, logger.Info, cfg.level)
 	assert.Equal(t, time.Second, cfg.slowThreshold)
-	assert.True(t, cfg.ignoreRecordNotFoundError)
+	assert.False(t, cfg.ignoreRecordNotFoundError)
 	assert.True(t, cfg.parameterizedQueries)
 }
 

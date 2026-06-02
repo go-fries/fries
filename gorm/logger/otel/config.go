@@ -101,10 +101,11 @@ func WithParameterizedQueries(parameterized bool) Option {
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		provider:      global.GetLoggerProvider(),
-		version:       Version(),
-		level:         logger.Warn,
-		slowThreshold: 200 * time.Millisecond,
+		provider:                  global.GetLoggerProvider(),
+		version:                   Version(),
+		level:                     logger.Warn,
+		slowThreshold:             200 * time.Millisecond,
+		ignoreRecordNotFoundError: true,
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
