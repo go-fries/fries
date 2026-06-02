@@ -56,6 +56,7 @@ fixes:
   - github.com/go-fries/fries/filesystem/s3/v3::filesystem/s3/
   - github.com/go-fries/fries/foundation/v3::foundation/
   - github.com/go-fries/fries/gin/v3::gin/
+  - github.com/go-fries/fries/gorm/logger/otel/v3::gorm/logger/otel/
   - github.com/go-fries/fries/gorm/scope/v3::gorm/scope/
   - github.com/go-fries/fries/hashing/v3::hashing/
   - github.com/go-fries/fries/hashing/md5/v3::hashing/md5/
