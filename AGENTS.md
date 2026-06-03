@@ -26,11 +26,9 @@ Run commands from the repository root unless working in a specific module.
 For focused work, use module-specific Make targets instead of manually changing directories. For example, `make test/cache` tests `cache/`, `make lint/cache` runs tidy plus lint, and `make lint-fix/cache` applies supported fixes.
 
 ## Coding Style & Naming Conventions
-Follow standard Go formatting with tabs and idiomatic package layout. Package names should be short and lowercase; exported identifiers use `CamelCase`. The linter configuration enables formatting checks including `gofumpt` and `goimports`, so run `make lint` before submitting. Keep module boundaries clear: update the nearest `go.mod` and avoid introducing unnecessary dependencies across components.
+Follow standard Go formatting with tabs and idiomatic package layout. Package names should be short and lowercase; exported identifiers use `CamelCase`. The linter configuration enables formatting checks including `gofumpt` and `goimports`, so run `make lint` before submitting.
 
-For new releasable component modules, update the repository release and reporting metadata in the same change. In practice this usually means adding the module path to `versions.yaml` and adding the matching path rewrite to `codecov.yml`. Public modules should include package documentation (`doc.go`), a README when the module is user-facing, Go doc comments for exported identifiers, and a module-local `Version()` when other versioned components follow that pattern.
-
-OpenTelemetry integrations should keep instrumentation scope names stable and aligned with the module path. Prefer official OpenTelemetry semantic convention constants and helper functions over raw attribute strings when they exist; use package-specific attributes only for data that has no suitable semantic convention.
+For repository-wide contribution conventions, including module layout, public modules, component configuration, options, testing, and validation, follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Testing Guidelines
 Place tests beside the package under test using `*_test.go`. Use Go test naming conventions: `TestXxx`, `BenchmarkXxx`, and `FuzzXxx`. `github.com/stretchr/testify` is available when assertions improve readability. Long-running or integration-style tests should honor `testing.Short()`. Race-sensitive changes should be verified with `make test-race`.
