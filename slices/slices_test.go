@@ -50,6 +50,39 @@ func TestFlatMap(t *testing.T) {
 	}))
 }
 
+func TestKeyBy(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, map[int]int{1: 1, 2: 2, 3: 3}, KeyBy(s1, func(n int) int {
+		return n
+	}))
+
+	s2 := []string{"apple", "banana", "apricot"}
+	assert.Equal(t, map[string]string{"a": "apricot", "b": "banana"}, KeyBy(s2, func(s string) string {
+		return s[:1]
+	}))
+
+	s3 := []T{{"1"}, {"2"}, {"1"}}
+	assert.Equal(t, map[string]T{"1": {"1"}, "2": {"2"}}, KeyBy(s3, func(t T) string {
+		return t.A
+	}))
+}
+
+func TestKeyByN(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, map[int]int{0: 1, 1: 2, 2: 3}, KeyByN(s1, func(_, i int) int {
+		return i
+	}))
+
+	s2 := []string{"apple", "banana", "apricot"}
+	assert.Equal(t, map[string]string{"0:a": "apple", "1:b": "banana", "2:a": "apricot"}, KeyByN(s2, func(s string, i int) string {
+		return strconv.Itoa(i) + ":" + s[:1]
+	}))
+
+	assert.Empty(t, KeyByN([]int{}, func(n, _ int) int {
+		return n
+	}))
+}
+
 func TestKeyMap(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	assert.Equal(t, map[int]int{1: 2, 2: 4, 3: 6, 4: 8, 5: 10}, KeyMap(s1, func(n, _ int) (int, int) {
@@ -468,6 +501,27 @@ func TestCountBy(t *testing.T) {
 	assert.Equal(t, map[string]int{"1": 2, "2": 1}, result2)
 
 	assert.Empty(t, CountBy([]int{}, func(n int) int {
+		return n
+	}))
+}
+
+func TestCountByN(t *testing.T) {
+	s1 := []int{1, 2, 3, 4, 5}
+	result1 := CountByN(s1, func(_, i int) string {
+		if i < 2 {
+			return "first"
+		}
+		return "last"
+	})
+	assert.Equal(t, map[string]int{"first": 2, "last": 3}, result1)
+
+	s2 := []T{{"1"}, {"2"}, {"1"}}
+	result2 := CountByN(s2, func(t T, i int) string {
+		return t.A + ":" + strconv.Itoa(i%2)
+	})
+	assert.Equal(t, map[string]int{"1:0": 2, "2:1": 1}, result2)
+
+	assert.Empty(t, CountByN([]int{}, func(n, _ int) int {
 		return n
 	}))
 }
