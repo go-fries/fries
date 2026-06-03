@@ -34,6 +34,55 @@ func TestMap(t *testing.T) {
 	})
 }
 
+func TestFlatMap(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, FlatMap(s1, func(n int) []int {
+		return []int{n, n * 10}
+	}))
+
+	s2 := []string{"1", "2", "3"}
+	assert.Equal(t, []T{{"1"}, {"1!"}, {"2"}, {"2!"}, {"3"}, {"3!"}}, FlatMap(s2, func(s string) []T {
+		return []T{{s}, {s + "!"}}
+	}))
+
+	assert.Empty(t, FlatMap([]int{}, func(n int) []int {
+		return []int{n}
+	}))
+}
+
+func TestKeyBy(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, map[int]int{1: 1, 2: 2, 3: 3}, KeyBy(s1, func(n int) int {
+		return n
+	}))
+
+	s2 := []string{"apple", "banana", "apricot"}
+	assert.Equal(t, map[string]string{"a": "apricot", "b": "banana"}, KeyBy(s2, func(s string) string {
+		return s[:1]
+	}))
+
+	s3 := []T{{"1"}, {"2"}, {"1"}}
+	assert.Equal(t, map[string]T{"1": {"1"}, "2": {"2"}}, KeyBy(s3, func(t T) string {
+		return t.A
+	}))
+}
+
+func TestKeyByN(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, map[int]int{0: 1, 1: 2, 2: 3}, KeyByN(s1, func(_, i int) int {
+		return i
+	}))
+
+	s2 := []string{"apple", "banana", "apricot"}
+	assert.Equal(t, map[string]string{"0:a": "apple", "1:b": "banana", "2:a": "apricot"}, KeyByN(s2, func(s string, i int) string {
+		return strconv.Itoa(i) + ":" + s[:1]
+	}))
+
+	assert.Empty(t, KeyByN([]int{}, func(n, _ int) int {
+		return n
+	}))
+}
+
 func TestKeyMap(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	assert.Equal(t, map[int]int{1: 2, 2: 4, 3: 6, 4: 8, 5: 10}, KeyMap(s1, func(n, _ int) (int, int) {
@@ -145,6 +194,20 @@ func TestFilter(t *testing.T) {
 	})
 }
 
+func TestAny(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.True(t, Any(s1, func(n int) bool { return n > 2 }))
+	assert.False(t, Any(s1, func(n int) bool { return n > 3 }))
+	assert.False(t, Any([]int{}, func(n int) bool { return n > 0 }))
+}
+
+func TestEvery(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.True(t, Every(s1, func(n int) bool { return n > 0 }))
+	assert.False(t, Every(s1, func(n int) bool { return n > 2 }))
+	assert.True(t, Every([]int{}, func(n int) bool { return n > 0 }))
+}
+
 func TestReduce(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	s2 := []int{1, 2, 3, 4, 5}
@@ -219,20 +282,6 @@ func TestIsEmptyAndIsNotEmpty(t *testing.T) {
 	assert.False(t, IsNotEmpty(s6))
 }
 
-func TestContains(t *testing.T) {
-	s1 := []int{1, 2, 3}
-	assert.True(t, Contains(s1, 1))
-	assert.False(t, Contains(s1, 4))
-
-	s2 := []string{"1", "2", "3"}
-	assert.True(t, Contains(s2, "1"))
-	assert.False(t, Contains(s2, "4"))
-
-	s3 := []T{{"1"}, {"2"}, {"3"}}
-	assert.True(t, Contains(s3, T{"1"}))
-	assert.False(t, Contains(s3, T{"4"}))
-}
-
 func TestIndexOf(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	assert.Equal(t, 0, IndexOf(s1, 1))
@@ -297,6 +346,11 @@ func TestDifference(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	s2 := []int{2, 3, 4}
 	assert.Equal(t, []int{1}, Difference(s1, s2))
+	assert.Equal(t, []int{1, 1, 3}, Difference([]int{1, 1, 2, 3}, []int{2}))
+	diff1 := Difference(s1, []int{})
+	assert.Equal(t, []int{1, 2, 3}, diff1)
+	assert.NotSame(t, &s1[0], &diff1[0])
+	assert.Nil(t, Difference([]int{}, s2))
 
 	s3 := []string{"1", "2", "3"}
 	s4 := []string{"2", "3", "4"}
@@ -311,6 +365,9 @@ func TestIntersect(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	s2 := []int{2, 3, 4}
 	assert.Equal(t, []int{2, 3}, Intersect(s1, s2))
+	assert.Equal(t, []int{2, 2}, Intersect([]int{1, 2, 2, 3}, []int{2, 4}))
+	assert.Nil(t, Intersect(s1, []int{}))
+	assert.Nil(t, Intersect([]int{}, s2))
 
 	s3 := []string{"1", "2", "3"}
 	s4 := []string{"2", "3", "4"}
@@ -324,6 +381,9 @@ func TestIntersect(t *testing.T) {
 func TestOnly(t *testing.T) {
 	s1 := []int{1, 2, 3, 4}
 	assert.Equal(t, []int{2, 4}, Only(s1, 2, 4))
+	assert.Equal(t, []int{2, 2}, Only([]int{1, 2, 2, 3}, 2))
+	assert.Nil(t, Only(s1))
+	assert.Nil(t, Only([]int{}, 1))
 
 	s2 := []string{"1", "2", "3", "4"}
 	assert.Equal(t, []string{"2", "4"}, Only(s2, "2", "4"))
@@ -336,6 +396,11 @@ func TestWithoutAndRemove(t *testing.T) {
 	s1 := []int{1, 2, 3, 4}
 	assert.Equal(t, []int{1, 3}, Without(s1, 2, 4))
 	assert.Equal(t, []int{1, 3}, Remove(s1, 2, 4))
+	assert.Equal(t, []int{1, 3}, Without([]int{1, 2, 2, 3}, 2))
+	without1 := Without(s1)
+	assert.Equal(t, []int{1, 2, 3, 4}, without1)
+	assert.NotSame(t, &s1[0], &without1[0])
+	assert.Nil(t, Without([]int{}, 1))
 
 	s2 := []string{"1", "2", "3", "4"}
 	assert.Equal(t, []string{"1", "3"}, Without(s2, "2", "4"))
@@ -387,6 +452,8 @@ func TestPartition(t *testing.T) {
 func TestChunk(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	assert.Equal(t, [][]int{{1, 2}, {3, 4}, {5}}, Chunk(s1, 2))
+	assert.Nil(t, Chunk(s1, 0))
+	assert.Nil(t, Chunk(s1, -1))
 
 	s2 := []string{"1", "2", "3", "4", "5"}
 	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5"}}, Chunk(s2, 2))
@@ -431,6 +498,48 @@ func TestGroupBy(t *testing.T) {
 		})
 		assert.Equal(t, map[string][]int{"first": {1, 2, 3}, "last": {4, 5}}, result4)
 	})
+}
+
+func TestCountBy(t *testing.T) {
+	s1 := []int{1, 2, 3, 4, 5}
+	result1 := CountBy(s1, func(n int) string {
+		if n%2 == 0 {
+			return "even"
+		}
+		return "odd"
+	})
+	assert.Equal(t, map[string]int{"even": 2, "odd": 3}, result1)
+
+	s2 := []T{{"1"}, {"2"}, {"1"}}
+	result2 := CountBy(s2, func(t T) string {
+		return t.A
+	})
+	assert.Equal(t, map[string]int{"1": 2, "2": 1}, result2)
+
+	assert.Empty(t, CountBy([]int{}, func(n int) int {
+		return n
+	}))
+}
+
+func TestCountByN(t *testing.T) {
+	s1 := []int{1, 2, 3, 4, 5}
+	result1 := CountByN(s1, func(_, i int) string {
+		if i < 2 {
+			return "first"
+		}
+		return "last"
+	})
+	assert.Equal(t, map[string]int{"first": 2, "last": 3}, result1)
+
+	s2 := []T{{"1"}, {"2"}, {"1"}}
+	result2 := CountByN(s2, func(t T, i int) string {
+		return t.A + ":" + strconv.Itoa(i%2)
+	})
+	assert.Equal(t, map[string]int{"1:0": 2, "2:1": 1}, result2)
+
+	assert.Empty(t, CountByN([]int{}, func(n, _ int) int {
+		return n
+	}))
 }
 
 func TestFirst(t *testing.T) {
@@ -698,52 +807,34 @@ func TestFill(t *testing.T) {
 func TestRandom(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	assert.Contains(t, s1, Random(s1))
-	assert.True(t, func() bool {
-		for {
-			v1, v2 := Random(s1), Random(s1)
-			if v1 != v2 {
-				return true
-			}
-		}
-	}())
+	assert.Zero(t, Random([]int{}))
 
 	s2 := []string{"1", "2", "3"}
 	assert.Contains(t, s2, Random(s2))
+	assert.Empty(t, Random([]string{}))
 
 	s3 := []T{{"1"}, {"2"}, {"3"}}
 	assert.Contains(t, s3, Random(s3))
+	assert.Zero(t, Random([]T{}))
 }
 
 func TestShuffle(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s1)
-			if s1[0] != shuffled[0] || s1[1] != shuffled[1] || s1[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled1 := Shuffle(s1)
+	assert.ElementsMatch(t, s1, shuffled1)
+	assert.NotSame(t, &s1[0], &shuffled1[0])
 
 	s2 := []string{"1", "2", "3"}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s2)
-			if s2[0] != shuffled[0] || s2[1] != shuffled[1] || s2[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled2 := Shuffle(s2)
+	assert.ElementsMatch(t, s2, shuffled2)
+	assert.NotSame(t, &s2[0], &shuffled2[0])
 
 	s3 := []T{{"1"}, {"2"}, {"3"}}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s3)
-			if s3[0] != shuffled[0] || s3[1] != shuffled[1] || s3[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled3 := Shuffle(s3)
+	assert.ElementsMatch(t, s3, shuffled3)
+	assert.NotSame(t, &s3[0], &shuffled3[0])
+
+	assert.Empty(t, Shuffle([]int{}))
 }
 
 func TestMin(t *testing.T) {
@@ -755,6 +846,9 @@ func TestMin(t *testing.T) {
 
 	s3 := []int{3, 2, 1}
 	assert.Equal(t, 1, Min(s3))
+
+	assert.Zero(t, Min([]int{}))
+	assert.Empty(t, Min([]string{}))
 }
 
 func TestMax(t *testing.T) {
@@ -763,6 +857,9 @@ func TestMax(t *testing.T) {
 
 	s2 := []string{"1", "2", "3"}
 	assert.Equal(t, "3", Max(s2))
+
+	assert.Zero(t, Max([]int{}))
+	assert.Empty(t, Max([]string{}))
 }
 
 func TestSum(t *testing.T) {
