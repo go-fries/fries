@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"math/rand/v2"
 	"regexp"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -64,15 +63,6 @@ func Is(pattern, value string) bool {
 	}
 
 	return patternIndex == len(pattern)
-}
-
-// InSlice reports whether s exists in slice.
-//
-// Example:
-//
-//	InSlice([]string{"1", "2"}, "1") // true
-func InSlice(slice []string, s string) bool {
-	return slices.Contains(slice, s)
 }
 
 // MD5 returns the MD5 hash of s as a lowercase hexadecimal string.
