@@ -346,6 +346,13 @@ func UniqueByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
 //	Difference([]int{1, 2, 3}, []int{2, 3, 4}) // []int{1}
 //	Difference([]string{"a", "b", "c"}, []string{"b", "c", "d"}) // []string{"a"}
 func Difference[S ~[]E, E comparable](s1, s2 S) S {
+	if len(s1) == 0 {
+		return nil
+	}
+	if len(s2) == 0 {
+		return append(S(nil), s1...)
+	}
+
 	var result S
 	excluded := indexSet(s2)
 	for _, item := range s1 {
@@ -362,6 +369,10 @@ func Difference[S ~[]E, E comparable](s1, s2 S) S {
 //	Intersect([]int{1, 2, 3}, []int{2, 3, 4}) // []int{2, 3}
 //	Intersect([]string{"a", "b", "c"}, []string{"b", "c", "d"}) // []string{"b", "c"}
 func Intersect[S ~[]E, E comparable](s1, s2 S) S {
+	if len(s1) == 0 || len(s2) == 0 {
+		return nil
+	}
+
 	var result S
 	included := indexSet(s2)
 	for _, item := range s1 {
@@ -377,6 +388,10 @@ func Intersect[S ~[]E, E comparable](s1, s2 S) S {
 //	Only([]int{1, 2, 3}, 2, 3) // []int{2, 3}
 //	Only([]string{"a", "b", "c"}, "b", "c") // []string{"b", "c"}
 func Only[S ~[]E, E comparable](s S, items ...E) S {
+	if len(s) == 0 || len(items) == 0 {
+		return nil
+	}
+
 	var result S
 	included := indexSet(items)
 	for _, item := range s {
@@ -392,6 +407,13 @@ func Only[S ~[]E, E comparable](s S, items ...E) S {
 //	Without([]int{1, 2, 3}, 2, 3) // []int{1}
 //	Without([]string{"a", "b", "c"}, "b", "c") // []string{"a"}
 func Without[S ~[]E, E comparable](s S, items ...E) S {
+	if len(s) == 0 {
+		return nil
+	}
+	if len(items) == 0 {
+		return append(S(nil), s...)
+	}
+
 	var result S
 	excluded := indexSet(items)
 	for _, item := range s {
