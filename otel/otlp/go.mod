@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/foundation/v3 => ../../foundation
 
 require (
-	github.com/go-fries/fries/foundation/v3 v3.13.0
+	github.com/go-fries/fries/foundation/v3 v3.14.0
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/host v0.69.0
