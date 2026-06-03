@@ -30,7 +30,6 @@ func main() {
 ## Helpers
 
 - `Is` matches a string against a `*` wildcard pattern.
-- `InSlice` reports whether a string exists in a slice.
 - `MD5` and `SHA1` return lowercase hexadecimal hashes.
 - `Reverse` reverses a string by Unicode code points.
 - `Replace` replaces all occurrences of a substring.

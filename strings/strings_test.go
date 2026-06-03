@@ -1,6 +1,7 @@
 package strings
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,13 +26,6 @@ func TestIs(t *testing.T) {
 	assert.False(t, Is("a+b", "ab"))
 	assert.True(t, Is("[abc]*", "[abc]d"))
 	assert.True(t, Is("张*", "张三"))
-}
-
-func TestInSlice(t *testing.T) {
-	assert.True(t, InSlice([]string{"1", "2"}, "1"))
-	assert.True(t, InSlice([]string{"1", "2"}, "2"))
-	assert.False(t, InSlice([]string{"1", "2"}, "3"))
-	assert.False(t, InSlice([]string{"1", "2"}, "12"))
 }
 
 func TestMD5(t *testing.T) {
@@ -62,8 +56,8 @@ func TestReplaceLast(t *testing.T) {
 	assert.Equal(t, "the quick brown fox", ReplaceLast("the quick brown fox", "cat", "a"))
 }
 
-func TestStrShuffle(t *testing.T) {
-	assert.True(t, InSlice([]string{"abc", "acb", "bac", "bca", "cab", "cba"}, Shuffle("abc")))
+func TestShuffle(t *testing.T) {
+	assert.True(t, slices.Contains([]string{"abc", "acb", "bac", "bca", "cab", "cba"}, Shuffle("abc")))
 }
 
 func TestRandom(t *testing.T) {
