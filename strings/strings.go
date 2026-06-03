@@ -20,8 +20,9 @@ const (
 
 var uuidRegex = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Is returns true if the value matches the pattern.
-// The pattern can contain the wildcard character *.
+// Is reports whether value matches pattern.
+// The pattern can contain the wildcard character *, which matches any sequence
+// of characters.
 //
 // Example:
 //
@@ -43,7 +44,7 @@ func Is(pattern, value string) bool {
 	return match
 }
 
-// InSlice checks if a string is in a string slice.
+// InSlice reports whether s exists in slice.
 //
 // Example:
 //
@@ -52,7 +53,7 @@ func InSlice(slice []string, s string) bool {
 	return slices.Contains(slice, s)
 }
 
-// MD5 returns the md5 hash of a string.
+// MD5 returns the MD5 hash of s as a lowercase hexadecimal string.
 //
 // Example:
 //
@@ -63,7 +64,7 @@ func MD5(s string) string {
 	return fmt.Sprintf("%x", sm)
 }
 
-// SHA1 returns the sha1 hash of a string.
+// SHA1 returns the SHA-1 hash of s as a lowercase hexadecimal string.
 //
 // Example:
 //
@@ -74,7 +75,7 @@ func SHA1(s string) string {
 	return fmt.Sprintf("%x", sm)
 }
 
-// Reverse returns a string with its characters in reverse order.
+// Reverse returns s with its Unicode code points in reverse order.
 //
 // Example:
 //
@@ -87,7 +88,7 @@ func Reverse(s string) string {
 	return string(runes)
 }
 
-// Replace replaces all occurrences of one substring with another.
+// Replace replaces all occurrences of from in s with to.
 //
 // Example:
 //
@@ -96,7 +97,7 @@ func Replace(s, from, to string) string {
 	return strings.NewReplacer(from, to).Replace(s)
 }
 
-// Shuffle returns a string with its characters in random order.
+// Shuffle returns s with its characters in random order.
 //
 // Example:
 //
@@ -111,7 +112,9 @@ func Shuffle(s string) string {
 	return strings.Join(ss, "")
 }
 
-// Random returns a random string with the specified length.
+// Random returns a random alphabetic string with the specified length.
+//
+// Random uses math/rand and is not suitable for security-sensitive values.
 //
 // Example:
 //
@@ -129,8 +132,7 @@ func Random(length int) string {
 	return string(b)
 }
 
-// Len returns the length of a string.
-// Support chinese characters.
+// Len returns the number of Unicode code points in s.
 //
 // Example:
 //
@@ -145,13 +147,14 @@ func IsUUID(str string) bool {
 	return uuidRegex.MatchString(str)
 }
 
-// UUID generate uuid string
+// UUID returns a new UUID string.
 func UUID() string {
 	return uuid.New().String()
 }
 
-// After Return the remainder of a string after a given value.
-// Support chinese characters.
+// After returns the remainder of subject after the first occurrence of search.
+//
+// If search is empty or not found, After returns subject unchanged.
 //
 // Example:
 //
@@ -168,13 +171,14 @@ func After(subject, search string) string {
 	return after
 }
 
-// Before Get the portion of a string before the first occurrence of a given value.
-// Support chinese characters.
+// Before returns the portion of subject before the first occurrence of search.
+//
+// If search is empty or not found, Before returns subject unchanged.
 //
 // Example:
 //
-//	After("Hello, World!", ",") //  Hello
-//	After("张三李四", "李") // 张三
+//	Before("Hello, World!", ",") // Hello
+//	Before("张三李四", "李") // 张三
 func Before(subject, search string) string {
 	if search == "" {
 		return subject
@@ -186,7 +190,10 @@ func Before(subject, search string) string {
 	return before
 }
 
-// SubstrCount Returns the number of substring occurrences.
+// SubstrCount returns the number of non-overlapping instances of needle in
+// haystack.
+//
+// The offset and optional length arguments are byte indexes.
 //
 // Example:
 //
