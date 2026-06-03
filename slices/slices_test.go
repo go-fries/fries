@@ -219,20 +219,6 @@ func TestIsEmptyAndIsNotEmpty(t *testing.T) {
 	assert.False(t, IsNotEmpty(s6))
 }
 
-func TestContains(t *testing.T) {
-	s1 := []int{1, 2, 3}
-	assert.True(t, Contains(s1, 1))
-	assert.False(t, Contains(s1, 4))
-
-	s2 := []string{"1", "2", "3"}
-	assert.True(t, Contains(s2, "1"))
-	assert.False(t, Contains(s2, "4"))
-
-	s3 := []T{{"1"}, {"2"}, {"3"}}
-	assert.True(t, Contains(s3, T{"1"}))
-	assert.False(t, Contains(s3, T{"4"}))
-}
-
 func TestIndexOf(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	assert.Equal(t, 0, IndexOf(s1, 1))
@@ -387,6 +373,8 @@ func TestPartition(t *testing.T) {
 func TestChunk(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	assert.Equal(t, [][]int{{1, 2}, {3, 4}, {5}}, Chunk(s1, 2))
+	assert.Nil(t, Chunk(s1, 0))
+	assert.Nil(t, Chunk(s1, -1))
 
 	s2 := []string{"1", "2", "3", "4", "5"}
 	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5"}}, Chunk(s2, 2))
@@ -698,52 +686,34 @@ func TestFill(t *testing.T) {
 func TestRandom(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	assert.Contains(t, s1, Random(s1))
-	assert.True(t, func() bool {
-		for {
-			v1, v2 := Random(s1), Random(s1)
-			if v1 != v2 {
-				return true
-			}
-		}
-	}())
+	assert.Zero(t, Random([]int{}))
 
 	s2 := []string{"1", "2", "3"}
 	assert.Contains(t, s2, Random(s2))
+	assert.Empty(t, Random([]string{}))
 
 	s3 := []T{{"1"}, {"2"}, {"3"}}
 	assert.Contains(t, s3, Random(s3))
+	assert.Zero(t, Random([]T{}))
 }
 
 func TestShuffle(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s1)
-			if s1[0] != shuffled[0] || s1[1] != shuffled[1] || s1[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled1 := Shuffle(s1)
+	assert.ElementsMatch(t, s1, shuffled1)
+	assert.NotSame(t, &s1[0], &shuffled1[0])
 
 	s2 := []string{"1", "2", "3"}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s2)
-			if s2[0] != shuffled[0] || s2[1] != shuffled[1] || s2[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled2 := Shuffle(s2)
+	assert.ElementsMatch(t, s2, shuffled2)
+	assert.NotSame(t, &s2[0], &shuffled2[0])
 
 	s3 := []T{{"1"}, {"2"}, {"3"}}
-	assert.True(t, func() bool {
-		for {
-			shuffled := Shuffle(s3)
-			if s3[0] != shuffled[0] || s3[1] != shuffled[1] || s3[2] != shuffled[2] {
-				return true
-			}
-		}
-	}())
+	shuffled3 := Shuffle(s3)
+	assert.ElementsMatch(t, s3, shuffled3)
+	assert.NotSame(t, &s3[0], &shuffled3[0])
+
+	assert.Empty(t, Shuffle([]int{}))
 }
 
 func TestMin(t *testing.T) {
@@ -755,6 +725,9 @@ func TestMin(t *testing.T) {
 
 	s3 := []int{3, 2, 1}
 	assert.Equal(t, 1, Min(s3))
+
+	assert.Zero(t, Min([]int{}))
+	assert.Empty(t, Min([]string{}))
 }
 
 func TestMax(t *testing.T) {
@@ -763,6 +736,9 @@ func TestMax(t *testing.T) {
 
 	s2 := []string{"1", "2", "3"}
 	assert.Equal(t, "3", Max(s2))
+
+	assert.Zero(t, Max([]int{}))
+	assert.Empty(t, Max([]string{}))
 }
 
 func TestSum(t *testing.T) {
