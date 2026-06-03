@@ -1,6 +1,7 @@
 package strings
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,13 +22,10 @@ func TestIs(t *testing.T) {
 	assert.False(t, Is("*dd/d", "dd/"))
 	assert.True(t, Is("v1.2.*", "v1.2.3"))
 	assert.False(t, Is("v1.2.*", "v1x2x3"))
-}
-
-func TestInSlice(t *testing.T) {
-	assert.True(t, InSlice([]string{"1", "2"}, "1"))
-	assert.True(t, InSlice([]string{"1", "2"}, "2"))
-	assert.False(t, InSlice([]string{"1", "2"}, "3"))
-	assert.False(t, InSlice([]string{"1", "2"}, "12"))
+	assert.True(t, Is("a+b", "a+b"))
+	assert.False(t, Is("a+b", "ab"))
+	assert.True(t, Is("[abc]*", "[abc]d"))
+	assert.True(t, Is("张*", "张三"))
 }
 
 func TestMD5(t *testing.T) {
@@ -46,16 +44,31 @@ func TestReplace(t *testing.T) {
 	assert.Equal(t, "bbbbcc", Replace("aabbcc", "a", "b"))
 }
 
-func TestStrShuffle(t *testing.T) {
-	assert.True(t, InSlice([]string{"abc", "acb", "bac", "bca", "cab", "cba"}, Shuffle("abc")))
+func TestReplaceFirst(t *testing.T) {
+	assert.Equal(t, "a quick brown fox", ReplaceFirst("the quick brown fox", "the", "a"))
+	assert.Equal(t, "the quick brown fox", ReplaceFirst("the quick brown fox", "", "a"))
+	assert.Equal(t, "the quick brown fox", ReplaceFirst("the quick brown fox", "cat", "a"))
+}
+
+func TestReplaceLast(t *testing.T) {
+	assert.Equal(t, "the quick brown fox jumps over a lazy dog", ReplaceLast("the quick brown fox jumps over the lazy dog", "the", "a"))
+	assert.Equal(t, "the quick brown fox", ReplaceLast("the quick brown fox", "", "a"))
+	assert.Equal(t, "the quick brown fox", ReplaceLast("the quick brown fox", "cat", "a"))
+}
+
+func TestShuffle(t *testing.T) {
+	assert.True(t, slices.Contains([]string{"abc", "acb", "bac", "bca", "cab", "cba"}, Shuffle("abc")))
 }
 
 func TestRandom(t *testing.T) {
-	r1, r2 := Random(10), Random(10)
+	random := Random(10)
 
-	assert.Equal(t, 10, len(r1))
-	assert.Equal(t, 10, len(r2))
-	assert.NotEqual(t, r1, r2)
+	assert.Len(t, random, 10)
+	for _, r := range random {
+		assert.Contains(t, randomLetters, string(r))
+	}
+	assert.Empty(t, Random(0))
+	assert.Empty(t, Random(-1))
 }
 
 func TestLength(t *testing.T) {
@@ -80,6 +93,18 @@ func TestUUID(t *testing.T) {
 	assert.True(t, IsUUID(uuid))
 }
 
+func TestEnsurePrefix(t *testing.T) {
+	assert.Equal(t, "https://api.example.com", EnsurePrefix("api.example.com", "https://"))
+	assert.Equal(t, "https://api.example.com", EnsurePrefix("https://api.example.com", "https://"))
+	assert.Equal(t, "api.example.com", EnsurePrefix("api.example.com", ""))
+}
+
+func TestEnsureSuffix(t *testing.T) {
+	assert.Equal(t, "api.example.com/", EnsureSuffix("api.example.com", "/"))
+	assert.Equal(t, "api.example.com/", EnsureSuffix("api.example.com/", "/"))
+	assert.Equal(t, "api.example.com", EnsureSuffix("api.example.com", ""))
+}
+
 func TestAfter(t *testing.T) {
 	tests := []struct {
 		name, s, sep, want string
@@ -93,6 +118,22 @@ func TestAfter(t *testing.T) {
 
 	for _, tt := range tests {
 		assert.Equal(t, tt.want, After(tt.s, tt.sep))
+	}
+}
+
+func TestAfterLast(t *testing.T) {
+	tests := []struct {
+		name, s, sep, want string
+	}{
+		{"", "path/to/file.go", "/", "file.go"},
+		{"", "path/to/file.go", "", "path/to/file.go"},
+		{"", "", "Hello", ""},
+		{"", "张三李四张三", "张", "三"},
+		{"", "张三李四", "王", "张三李四"},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, AfterLast(tt.s, tt.sep))
 	}
 }
 
@@ -111,10 +152,67 @@ func TestBefore(t *testing.T) {
 	}
 }
 
+func TestBeforeLast(t *testing.T) {
+	tests := []struct {
+		name, s, sep, want string
+	}{
+		{"", "path/to/file.go", "/", "path/to"},
+		{"", "path/to/file.go", "", "path/to/file.go"},
+		{"", "", "Hello", ""},
+		{"", "张三李四张三", "张", "张三李四"},
+		{"", "张三李四", "王", "张三李四"},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, BeforeLast(tt.s, tt.sep))
+	}
+}
+
+func TestBetween(t *testing.T) {
+	tests := []struct {
+		name, s, from, to, want string
+	}{
+		{"", "[a] [b]", "[", "]", "a] [b"},
+		{"", "Hello [World]!", "[", "]", "World"},
+		{"", "Hello World!", "[", "]", "Hello World!"},
+		{"", "Hello [World!", "[", "]", "Hello [World!"},
+		{"", "Hello [World]!", "", "]", "Hello [World]!"},
+		{"", "张三[李四]王五[赵六]", "[", "]", "李四]王五[赵六"},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, Between(tt.s, tt.from, tt.to))
+	}
+}
+
+func TestBetweenFirst(t *testing.T) {
+	tests := []struct {
+		name, s, from, to, want string
+	}{
+		{"", "[a] [b]", "[", "]", "a"},
+		{"", "Hello [World]!", "[", "]", "World"},
+		{"", "Hello World!", "[", "]", "Hello World!"},
+		{"", "Hello [World!", "[", "]", "Hello [World!"},
+		{"", "Hello [World]!", "[", "", "Hello [World]!"},
+		{"", "张三[李四]王五[赵六]", "[", "]", "李四"},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, BetweenFirst(tt.s, tt.from, tt.to))
+	}
+}
+
+func TestNormalizeSpace(t *testing.T) {
+	assert.Equal(t, "hello world", NormalizeSpace("  hello \n world  "))
+	assert.Equal(t, "张三 李四", NormalizeSpace("张三\t\n李四"))
+	assert.Empty(t, NormalizeSpace(" \t\n "))
+}
+
 func TestSubstrCount(t *testing.T) {
 	assert.Equal(t, 5, SubstrCount("babababbaaba", "a", 0, 10))
 	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", -1, 10))
 	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", 15, 10))
+	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", 1, -1))
 	assert.Equal(t, 6, SubstrCount("babababbaaba", "a", 0, Len("babababbaaba")))
 	assert.Equal(t, 2, SubstrCount("121212312", "1", 1, 5))
 	assert.Equal(t, 4, SubstrCount("121212312", "1", 0, 100))
