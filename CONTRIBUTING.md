@@ -4,6 +4,18 @@ This document defines contribution conventions for this repository. It applies t
 
 The goal is to keep components consistent, maintainable, and predictable for both users and maintainers.
 
+## Repository Structure
+
+This is a multi-module Go repository. The root module is `github.com/go-fries/fries/v3`, and many component directories have their own `go.mod` files.
+
+Keep module boundaries explicit:
+
+- update the nearest `go.mod` for the module being changed
+- avoid unnecessary dependencies across components
+- keep framework integrations under the framework or component they adapt
+
+Framework integrations should follow the existing package layout. Kratos integrations live under `kratos/`, Hyperf Jet integrations live under `hyperf/jet/`, GORM integrations live under `gorm/`, and OpenTelemetry components live under `otel/` or under the integration package that emits telemetry.
+
 ## Design Principles
 
 - Keep component boundaries clear. A component should own its configuration, runtime behavior, and tests within its package or module boundary.
@@ -11,6 +23,21 @@ The goal is to keep components consistent, maintainable, and predictable for bot
 - Keep public APIs small and stable. Add exported identifiers only when they describe a real user-facing capability.
 - Prefer established repository patterns over new local styles unless the component has a clear reason to differ.
 - Avoid over-design. Add abstractions only when they reduce real complexity, remove meaningful duplication, or make public behavior easier to understand.
+
+## Public Modules
+
+New releasable component modules should update repository release and reporting metadata in the same change.
+
+For public modules:
+
+- add the module path to `versions.yaml`
+- add the matching Codecov path rewrite to `codecov.yml`
+- include package documentation in `doc.go`
+- include a `README.md` when the module is intended for direct use
+- add Go doc comments for exported identifiers
+- provide a module-local `Version()` helper when the component exposes or reports version metadata
+
+Public modules should be usable from Go documentation alone. README files should focus on installation, common usage, and behavior that is not obvious from type signatures.
 
 ## Component Configuration
 
@@ -108,3 +135,27 @@ Prefer explicit assertions that describe intent:
 - `assert.Contains`
 
 Use table tests when they make behavior easier to scan. Keep each case focused on one observable behavior, and avoid broad table tests that hide setup complexity or make failures hard to diagnose.
+
+## Validation
+
+Run commands from the repository root unless working in a specific module.
+
+Use repository-level commands for broad changes:
+
+- `make build`
+- `make test`
+- `make test-short`
+- `make test-race`
+- `make test-coverage`
+- `make lint`
+
+Use module-specific Make targets for focused work, such as `make test/cache`, `make lint/cache`, and `make lint-fix/cache`.
+
+Run `make lint` before submitting broad or public API changes. It runs `go mod tidy` across modules and then `golangci-lint`.
+
+For protobuf changes, use the Buf targets defined by the repository:
+
+- `make buf-lint`
+- `make buf-build`
+- `make buf-validate`
+- `make buf-generate`
