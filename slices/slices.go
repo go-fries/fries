@@ -7,6 +7,14 @@ import (
 	"github.com/go-fries/fries/constraints/v3"
 )
 
+func indexSet[S ~[]E, E comparable](s S) map[E]struct{} {
+	result := make(map[E]struct{}, len(s))
+	for _, item := range s {
+		result[item] = struct{}{}
+	}
+	return result
+}
+
 // Map returns a new slice containing the results of applying fn to each item in s.
 //
 //	Map([]int{1, 2, 3}, func(i int) int { return i * 2 }) // []int{2, 4, 6}
@@ -51,7 +59,7 @@ func FlatMap[S ~[]E, E, R any](s S, fn func(E) []R) []R {
 //		return s[:1]
 //	}) // map[string]string{"a": "apple", "b": "banana"}
 func KeyBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]E {
-	result := make(map[K]E)
+	result := make(map[K]E, len(s))
 	for _, item := range s {
 		key := fn(item)
 		result[key] = item
@@ -66,7 +74,7 @@ func KeyBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]E {
 //		return i
 //	}) // map[int]string{0: "apple", 1: "banana"}
 func KeyByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]E {
-	result := make(map[K]E)
+	result := make(map[K]E, len(s))
 	for i, item := range s {
 		key := fn(item, i)
 		result[key] = item
@@ -82,7 +90,7 @@ func KeyByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]E {
 //		return s, s + "!"
 //	}) // map[string]string{"a": "a!", "b": "b!", "c": "c!"}
 func KeyMap[S ~[]E, E, R any, K comparable](s S, fn func(E, int) (K, R)) map[K]R {
-	result := make(map[K]R)
+	result := make(map[K]R, len(s))
 	for i, item := range s {
 		key, value := fn(item, i)
 		result[key] = value
@@ -284,7 +292,7 @@ func LastIndexOf[S ~[]E, E comparable](s S, e E) int {
 //	Unique([]string{"a", "b", "b", "c", "c", "c"}) // []string{"a", "b", "c"}
 func Unique[S ~[]E, E comparable](s S) S {
 	var result S
-	seeds := make(map[E]struct{})
+	seeds := make(map[E]struct{}, len(s))
 	for _, item := range s {
 		if _, ok := seeds[item]; !ok {
 			seeds[item] = struct{}{}
@@ -302,7 +310,7 @@ func Unique[S ~[]E, E comparable](s S) S {
 //	}) // []string{"apple", "cherry"}
 func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E) K) S {
 	var result S
-	seeds := make(map[K]struct{})
+	seeds := make(map[K]struct{}, len(s))
 	for _, item := range s {
 		key := fn(item)
 		if _, ok := seeds[key]; !ok {
@@ -321,7 +329,7 @@ func UniqueBy[S ~[]E, E any, K comparable](s S, fn func(E) K) S {
 //	}) // []string{"apple", "cherry"}
 func UniqueByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
 	var result S
-	seeds := make(map[K]struct{})
+	seeds := make(map[K]struct{}, len(s))
 	for i, item := range s {
 		key := fn(item, i)
 		if _, ok := seeds[key]; !ok {
@@ -339,8 +347,9 @@ func UniqueByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) S {
 //	Difference([]string{"a", "b", "c"}, []string{"b", "c", "d"}) // []string{"a"}
 func Difference[S ~[]E, E comparable](s1, s2 S) S {
 	var result S
+	excluded := indexSet(s2)
 	for _, item := range s1 {
-		if !slices.Contains(s2, item) {
+		if _, ok := excluded[item]; !ok {
 			result = append(result, item)
 		}
 	}
@@ -354,8 +363,9 @@ func Difference[S ~[]E, E comparable](s1, s2 S) S {
 //	Intersect([]string{"a", "b", "c"}, []string{"b", "c", "d"}) // []string{"b", "c"}
 func Intersect[S ~[]E, E comparable](s1, s2 S) S {
 	var result S
+	included := indexSet(s2)
 	for _, item := range s1 {
-		if slices.Contains(s2, item) {
+		if _, ok := included[item]; ok {
 			result = append(result, item)
 		}
 	}
@@ -368,8 +378,9 @@ func Intersect[S ~[]E, E comparable](s1, s2 S) S {
 //	Only([]string{"a", "b", "c"}, "b", "c") // []string{"b", "c"}
 func Only[S ~[]E, E comparable](s S, items ...E) S {
 	var result S
+	included := indexSet(items)
 	for _, item := range s {
-		if slices.Contains(items, item) {
+		if _, ok := included[item]; ok {
 			result = append(result, item)
 		}
 	}
@@ -382,8 +393,9 @@ func Only[S ~[]E, E comparable](s S, items ...E) S {
 //	Without([]string{"a", "b", "c"}, "b", "c") // []string{"a"}
 func Without[S ~[]E, E comparable](s S, items ...E) S {
 	var result S
+	excluded := indexSet(items)
 	for _, item := range s {
-		if !slices.Contains(items, item) {
+		if _, ok := excluded[item]; !ok {
 			result = append(result, item)
 		}
 	}
@@ -455,7 +467,7 @@ func Chunk[S ~[]E, E any](s S, size int) (result []S) {
 //
 //	GroupBy([]int{1, 2, 3, 4, 5}, func(i int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
 func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]S {
-	result := make(map[K]S)
+	result := make(map[K]S, len(s))
 	for _, item := range s {
 		key := fn(item)
 		result[key] = append(result[key], item)
@@ -468,7 +480,7 @@ func GroupBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]S {
 //
 //	GroupByN([]int{1, 2, 3, 4, 5}, func(i, idx int) int { return i % 2 }) // map[int][]int{0: {2, 4}, 1: {1, 3, 5}}
 func GroupByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
-	result := make(map[K]S)
+	result := make(map[K]S, len(s))
 	for i, item := range s {
 		key := fn(item, i)
 		result[key] = append(result[key], item)
@@ -486,7 +498,7 @@ func GroupByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]S {
 //		return "odd"
 //	}) // map[string]int{"even": 2, "odd": 2}
 func CountBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]int {
-	result := make(map[K]int)
+	result := make(map[K]int, len(s))
 	for _, item := range s {
 		key := fn(item)
 		result[key]++
@@ -504,7 +516,7 @@ func CountBy[S ~[]E, E any, K comparable](s S, fn func(E) K) map[K]int {
 //		return "last"
 //	}) // map[string]int{"first": 2, "last": 2}
 func CountByN[S ~[]E, E any, K comparable](s S, fn func(E, int) K) map[K]int {
-	result := make(map[K]int)
+	result := make(map[K]int, len(s))
 	for i, item := range s {
 		key := fn(item, i)
 		result[key]++

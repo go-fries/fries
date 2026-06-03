@@ -346,6 +346,7 @@ func TestDifference(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	s2 := []int{2, 3, 4}
 	assert.Equal(t, []int{1}, Difference(s1, s2))
+	assert.Equal(t, []int{1, 1, 3}, Difference([]int{1, 1, 2, 3}, []int{2}))
 
 	s3 := []string{"1", "2", "3"}
 	s4 := []string{"2", "3", "4"}
@@ -360,6 +361,7 @@ func TestIntersect(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	s2 := []int{2, 3, 4}
 	assert.Equal(t, []int{2, 3}, Intersect(s1, s2))
+	assert.Equal(t, []int{2, 2}, Intersect([]int{1, 2, 2, 3}, []int{2, 4}))
 
 	s3 := []string{"1", "2", "3"}
 	s4 := []string{"2", "3", "4"}
@@ -373,6 +375,8 @@ func TestIntersect(t *testing.T) {
 func TestOnly(t *testing.T) {
 	s1 := []int{1, 2, 3, 4}
 	assert.Equal(t, []int{2, 4}, Only(s1, 2, 4))
+	assert.Equal(t, []int{2, 2}, Only([]int{1, 2, 2, 3}, 2))
+	assert.Nil(t, Only(s1))
 
 	s2 := []string{"1", "2", "3", "4"}
 	assert.Equal(t, []string{"2", "4"}, Only(s2, "2", "4"))
@@ -385,6 +389,8 @@ func TestWithoutAndRemove(t *testing.T) {
 	s1 := []int{1, 2, 3, 4}
 	assert.Equal(t, []int{1, 3}, Without(s1, 2, 4))
 	assert.Equal(t, []int{1, 3}, Remove(s1, 2, 4))
+	assert.Equal(t, []int{1, 3}, Without([]int{1, 2, 2, 3}, 2))
+	assert.Equal(t, []int{1, 2, 3, 4}, Without(s1))
 
 	s2 := []string{"1", "2", "3", "4"}
 	assert.Equal(t, []string{"1", "3"}, Without(s2, "2", "4"))
