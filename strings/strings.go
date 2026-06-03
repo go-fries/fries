@@ -33,15 +33,37 @@ func Is(pattern, value string) bool {
 		return true
 	}
 
-	pattern = regexp.QuoteMeta(pattern)
-	pattern = strings.ReplaceAll(pattern, `\*`, ".*")
+	patternIndex, valueIndex := 0, 0
+	starIndex, matchIndex := -1, 0
 
-	match, err := regexp.MatchString("^"+pattern+"$", value)
-	if err != nil {
-		return false
+	for valueIndex < len(value) {
+		if patternIndex < len(pattern) && pattern[patternIndex] == '*' {
+			starIndex = patternIndex
+			matchIndex = valueIndex
+			patternIndex++
+			continue
+		}
+
+		if patternIndex < len(pattern) && pattern[patternIndex] == value[valueIndex] {
+			patternIndex++
+			valueIndex++
+			continue
+		}
+
+		if starIndex == -1 {
+			return false
+		}
+
+		patternIndex = starIndex + 1
+		matchIndex++
+		valueIndex = matchIndex
 	}
 
-	return match
+	for patternIndex < len(pattern) && pattern[patternIndex] == '*' {
+		patternIndex++
+	}
+
+	return patternIndex == len(pattern)
 }
 
 // InSlice reports whether s exists in slice.

@@ -21,6 +21,10 @@ func TestIs(t *testing.T) {
 	assert.False(t, Is("*dd/d", "dd/"))
 	assert.True(t, Is("v1.2.*", "v1.2.3"))
 	assert.False(t, Is("v1.2.*", "v1x2x3"))
+	assert.True(t, Is("a+b", "a+b"))
+	assert.False(t, Is("a+b", "ab"))
+	assert.True(t, Is("[abc]*", "[abc]d"))
+	assert.True(t, Is("张*", "张三"))
 }
 
 func TestInSlice(t *testing.T) {
