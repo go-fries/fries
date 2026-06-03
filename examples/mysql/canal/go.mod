@@ -10,8 +10,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 v3.13.0
-	github.com/go-fries/fries/mysql/canal/v3 v3.13.0
+	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 v3.14.0
+	github.com/go-fries/fries/mysql/canal/v3 v3.14.0
 )
 
 require (
@@ -19,8 +19,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
-	github.com/go-fries/fries/codec/json/v3 v3.13.0 // indirect
-	github.com/go-fries/fries/codec/v3 v3.13.0 // indirect
+	github.com/go-fries/fries/codec/json/v3 v3.14.0 // indirect
+	github.com/go-fries/fries/codec/v3 v3.14.0 // indirect
 	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
