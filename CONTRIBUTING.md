@@ -4,13 +4,14 @@ This document defines contribution conventions for this repository. It applies t
 
 The goal is to keep components consistent, maintainable, and predictable for both users and maintainers.
 
-## Repository Structure
+## Module Layout
 
 This is a multi-module Go repository. The root module is `github.com/go-fries/fries/v3`, and many component directories have their own `go.mod` files.
 
 Keep module boundaries explicit:
 
 - update the nearest `go.mod` for the module being changed
+- keep module paths in `go.mod` suffixed with `/v3`
 - avoid unnecessary dependencies across components
 - keep framework integrations under the framework or component they adapt
 
@@ -53,7 +54,7 @@ Use `config.go` for:
 - `newConfig(...)`
 - small config-owned factory helpers such as `newLogger(...)`, `newResource(...)`, or `newTracerProvider(...)`
 
-Runtime types should focus on lifecycle and behavior. A `Client`, `Logger`, `Middleware`, or similar type should generally call into its `config` for configured dependencies instead of carrying many option fields or scattered defaulting logic directly.
+Runtime types should focus on lifecycle and behavior. The primary runtime type in a component should generally call into its `config` for configured dependencies instead of carrying many option fields or scattered defaulting logic directly.
 
 Config-owned factory helpers are appropriate when the created value is determined by configuration. Keep business logic, request handling, and runtime orchestration outside `config.go`.
 
