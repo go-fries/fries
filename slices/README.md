@@ -31,14 +31,15 @@ func main() {
 
 ## Helpers
 
-- `Map`, `MapN`, and `KeyMap` transform slices into new slices or maps.
+- `Map`, `MapN`, `FlatMap`, and `KeyMap` transform slices into new slices or maps.
 - `Each` and `EachN` iterate over slice items.
 - `Prepend`, `Append`, `Concat`, and `Reverse` build derived slices.
 - `Filter`, `FilterN`, `Partition`, and `PartitionN` select items by predicate.
+- `Any` and `Every` test predicates across slice items.
 - `Reduce` and `ReduceN` reduce a slice to a single value.
 - `Unique`, `UniqueBy`, and `UniqueByN` remove duplicate items.
 - `Difference`, `Intersect`, `Only`, `Without`, and `Remove` provide set-like helpers.
-- `Chunk`, `GroupBy`, and `GroupByN` split or group items.
+- `Chunk`, `GroupBy`, `GroupByN`, and `CountBy` split, group, or count items.
 - `First`, `Last`, `Find`, `FindN`, `FindLast`, and `FindLastN` locate items.
 - `Index`, `IndexN`, `LastIndex`, and `LastIndexN` locate item indexes by predicate.
 - `IndexOf` and `LastIndexOf` locate comparable items.

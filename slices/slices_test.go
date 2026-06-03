@@ -34,6 +34,22 @@ func TestMap(t *testing.T) {
 	})
 }
 
+func TestFlatMap(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, FlatMap(s1, func(n int) []int {
+		return []int{n, n * 10}
+	}))
+
+	s2 := []string{"1", "2", "3"}
+	assert.Equal(t, []T{{"1"}, {"1!"}, {"2"}, {"2!"}, {"3"}, {"3!"}}, FlatMap(s2, func(s string) []T {
+		return []T{{s}, {s + "!"}}
+	}))
+
+	assert.Empty(t, FlatMap([]int{}, func(n int) []int {
+		return []int{n}
+	}))
+}
+
 func TestKeyMap(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5}
 	assert.Equal(t, map[int]int{1: 2, 2: 4, 3: 6, 4: 8, 5: 10}, KeyMap(s1, func(n, _ int) (int, int) {
@@ -143,6 +159,20 @@ func TestFilter(t *testing.T) {
 		assert.Equal(t, []T{{"1"}, {"2"}, {"3"}}, FilterN(s4, func(t T, _ int) bool { return t.A < "4" }))
 		assert.Equal(t, []string{"1", "2", "3"}, FilterN(s5, func(_ string, i int) bool { return i <= 2 }))
 	})
+}
+
+func TestAny(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.True(t, Any(s1, func(n int) bool { return n > 2 }))
+	assert.False(t, Any(s1, func(n int) bool { return n > 3 }))
+	assert.False(t, Any([]int{}, func(n int) bool { return n > 0 }))
+}
+
+func TestEvery(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.True(t, Every(s1, func(n int) bool { return n > 0 }))
+	assert.False(t, Every(s1, func(n int) bool { return n > 2 }))
+	assert.True(t, Every([]int{}, func(n int) bool { return n > 0 }))
 }
 
 func TestReduce(t *testing.T) {
@@ -419,6 +449,27 @@ func TestGroupBy(t *testing.T) {
 		})
 		assert.Equal(t, map[string][]int{"first": {1, 2, 3}, "last": {4, 5}}, result4)
 	})
+}
+
+func TestCountBy(t *testing.T) {
+	s1 := []int{1, 2, 3, 4, 5}
+	result1 := CountBy(s1, func(n int) string {
+		if n%2 == 0 {
+			return "even"
+		}
+		return "odd"
+	})
+	assert.Equal(t, map[string]int{"even": 2, "odd": 3}, result1)
+
+	s2 := []T{{"1"}, {"2"}, {"1"}}
+	result2 := CountBy(s2, func(t T) string {
+		return t.A
+	})
+	assert.Equal(t, map[string]int{"1": 2, "2": 1}, result2)
+
+	assert.Empty(t, CountBy([]int{}, func(n int) int {
+		return n
+	}))
 }
 
 func TestFirst(t *testing.T) {
