@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"regexp"
 	"slices"
 	"strings"
@@ -114,7 +114,7 @@ func Shuffle(s string) string {
 
 // Random returns a random alphabetic string with the specified length.
 //
-// Random uses math/rand and is not suitable for security-sensitive values.
+// Random uses math/rand/v2 and is not suitable for security-sensitive values.
 //
 // Example:
 //
@@ -126,7 +126,7 @@ func Random(length int) string {
 	b := make([]rune, length)
 
 	for i := range b {
-		b[i] = letters[rand.Intn(lettersLength)]
+		b[i] = letters[rand.IntN(lettersLength)]
 	}
 
 	return string(b)
