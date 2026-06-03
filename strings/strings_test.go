@@ -62,6 +62,7 @@ func TestRandom(t *testing.T) {
 		assert.Contains(t, randomLetters, string(r))
 	}
 	assert.Empty(t, Random(0))
+	assert.Empty(t, Random(-1))
 }
 
 func TestLength(t *testing.T) {

@@ -142,6 +142,10 @@ func Shuffle(s string) string {
 //
 //	Random(10) // "qujrlkhyqr"
 func Random(length int) string {
+	if length <= 0 {
+		return ""
+	}
+
 	letters := []rune(randomLetters)
 	lettersLength := len(letters)
 
