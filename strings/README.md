@@ -34,10 +34,14 @@ func main() {
 - `MD5` and `SHA1` return lowercase hexadecimal hashes.
 - `Reverse` reverses a string by Unicode code points.
 - `Replace` replaces all occurrences of a substring.
+- `ReplaceFirst` and `ReplaceLast` replace only the first or last occurrence.
 - `Shuffle` randomly reorders characters.
 - `Random` returns a random alphabetic string.
 - `Len` returns the Unicode code point length.
 - `IsUUID` validates UUID strings.
 - `UUID` returns a new UUID string.
-- `After` and `Before` split around the first occurrence of a separator.
+- `EnsurePrefix` and `EnsureSuffix` add a prefix or suffix exactly once.
+- `After`, `AfterLast`, `Before`, and `BeforeLast` split around a separator.
+- `Between` and `BetweenFirst` return text between boundary strings.
+- `NormalizeSpace` trims and collapses whitespace runs.
 - `SubstrCount` counts substring occurrences in a byte-indexed range.

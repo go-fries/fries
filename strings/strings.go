@@ -119,6 +119,40 @@ func Replace(s, from, to string) string {
 	return strings.NewReplacer(from, to).Replace(s)
 }
 
+// ReplaceFirst replaces the first occurrence of from in s with to.
+//
+// If from is empty or not found, ReplaceFirst returns s unchanged.
+//
+// Example:
+//
+//	ReplaceFirst("the quick brown fox", "the", "a") // "a quick brown fox"
+func ReplaceFirst(s, from, to string) string {
+	if from == "" {
+		return s
+	}
+	return strings.Replace(s, from, to, 1)
+}
+
+// ReplaceLast replaces the last occurrence of from in s with to.
+//
+// If from is empty or not found, ReplaceLast returns s unchanged.
+//
+// Example:
+//
+//	ReplaceLast("the quick brown fox jumps over the lazy dog", "the", "a") // "the quick brown fox jumps over a lazy dog"
+func ReplaceLast(s, from, to string) string {
+	if from == "" {
+		return s
+	}
+
+	index := strings.LastIndex(s, from)
+	if index == -1 {
+		return s
+	}
+
+	return s[:index] + to + s[index+len(from):]
+}
+
 // Shuffle returns s with its characters in random order.
 //
 // Example:
@@ -178,6 +212,36 @@ func UUID() string {
 	return uuid.New().String()
 }
 
+// EnsurePrefix returns s with prefix prepended exactly once.
+//
+// If prefix is empty or s already starts with prefix, EnsurePrefix returns s
+// unchanged.
+//
+// Example:
+//
+//	EnsurePrefix("api.example.com", "https://") // "https://api.example.com"
+func EnsurePrefix(s, prefix string) string {
+	if prefix == "" || strings.HasPrefix(s, prefix) {
+		return s
+	}
+	return prefix + s
+}
+
+// EnsureSuffix returns s with suffix appended exactly once.
+//
+// If suffix is empty or s already ends with suffix, EnsureSuffix returns s
+// unchanged.
+//
+// Example:
+//
+//	EnsureSuffix("api.example.com", "/") // "api.example.com/"
+func EnsureSuffix(s, suffix string) string {
+	if suffix == "" || strings.HasSuffix(s, suffix) {
+		return s
+	}
+	return s + suffix
+}
+
 // After returns the remainder of subject after the first occurrence of search.
 //
 // If search is empty or not found, After returns subject unchanged.
@@ -197,6 +261,26 @@ func After(subject, search string) string {
 	return after
 }
 
+// AfterLast returns the remainder of subject after the last occurrence of search.
+//
+// If search is empty or not found, AfterLast returns subject unchanged.
+//
+// Example:
+//
+//	AfterLast("path/to/file.go", "/") // "file.go"
+func AfterLast(subject, search string) string {
+	if search == "" {
+		return subject
+	}
+
+	index := strings.LastIndex(subject, search)
+	if index == -1 {
+		return subject
+	}
+
+	return subject[index+len(search):]
+}
+
 // Before returns the portion of subject before the first occurrence of search.
 //
 // If search is empty or not found, Before returns subject unchanged.
@@ -214,6 +298,86 @@ func Before(subject, search string) string {
 		return subject
 	}
 	return before
+}
+
+// BeforeLast returns the portion of subject before the last occurrence of search.
+//
+// If search is empty or not found, BeforeLast returns subject unchanged.
+//
+// Example:
+//
+//	BeforeLast("path/to/file.go", "/") // "path/to"
+func BeforeLast(subject, search string) string {
+	if search == "" {
+		return subject
+	}
+
+	index := strings.LastIndex(subject, search)
+	if index == -1 {
+		return subject
+	}
+
+	return subject[:index]
+}
+
+// Between returns the portion of subject between the first occurrence of from
+// and the last following occurrence of to.
+//
+// If from or to is empty, or either boundary is not found, Between returns
+// subject unchanged.
+//
+// Example:
+//
+//	Between("[a] [b]", "[", "]") // "a] [b"
+func Between(subject, from, to string) string {
+	return between(subject, from, to, true)
+}
+
+// BetweenFirst returns the portion of subject between the first occurrence of
+// from and the first following occurrence of to.
+//
+// If from or to is empty, or either boundary is not found, BetweenFirst returns
+// subject unchanged.
+//
+// Example:
+//
+//	BetweenFirst("[a] [b]", "[", "]") // "a"
+func BetweenFirst(subject, from, to string) string {
+	return between(subject, from, to, false)
+}
+
+func between(subject, from, to string, last bool) string {
+	if from == "" || to == "" {
+		return subject
+	}
+
+	start := strings.Index(subject, from)
+	if start == -1 {
+		return subject
+	}
+
+	offset := start + len(from)
+	after := subject[offset:]
+
+	end := strings.Index(after, to)
+	if last {
+		end = strings.LastIndex(after, to)
+	}
+	if end == -1 {
+		return subject
+	}
+
+	return after[:end]
+}
+
+// NormalizeSpace returns s with leading and trailing whitespace removed and
+// each internal run of whitespace replaced by a single space.
+//
+// Example:
+//
+//	NormalizeSpace("  hello \n world  ") // "hello world"
+func NormalizeSpace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // SubstrCount returns the number of non-overlapping instances of needle in
