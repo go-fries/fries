@@ -55,11 +55,13 @@ func TestStrShuffle(t *testing.T) {
 }
 
 func TestRandom(t *testing.T) {
-	r1, r2 := Random(10), Random(10)
+	random := Random(10)
 
-	assert.Equal(t, 10, len(r1))
-	assert.Equal(t, 10, len(r2))
-	assert.NotEqual(t, r1, r2)
+	assert.Len(t, random, 10)
+	for _, r := range random {
+		assert.Contains(t, randomLetters, string(r))
+	}
+	assert.Empty(t, Random(0))
 }
 
 func TestLength(t *testing.T) {
