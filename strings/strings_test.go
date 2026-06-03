@@ -121,6 +121,7 @@ func TestSubstrCount(t *testing.T) {
 	assert.Equal(t, 5, SubstrCount("babababbaaba", "a", 0, 10))
 	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", -1, 10))
 	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", 15, 10))
+	assert.Equal(t, 0, SubstrCount("babababbaaba", "a", 1, -1))
 	assert.Equal(t, 6, SubstrCount("babababbaaba", "a", 0, Len("babababbaaba")))
 	assert.Equal(t, 2, SubstrCount("121212312", "1", 1, 5))
 	assert.Equal(t, 4, SubstrCount("121212312", "1", 0, 100))

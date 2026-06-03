@@ -228,6 +228,9 @@ func SubstrCount(haystack, needle string, offset int, lengths ...int) int {
 
 	var end int
 	if len(lengths) > 0 {
+		if lengths[0] < 0 {
+			return 0
+		}
 		end = min(offset+lengths[0], len(haystack))
 	} else {
 		end = len(haystack)
