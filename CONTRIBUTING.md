@@ -15,7 +15,7 @@ Keep module boundaries explicit:
 - avoid unnecessary dependencies across components
 - keep framework integrations under the framework or component they adapt
 
-Framework integrations should follow the existing package layout. Kratos integrations live under `kratos/`, Hyperf Jet integrations live under `hyperf/jet/`, GORM integrations live under `gorm/`, and OpenTelemetry components live under `otel/` or under the integration package that emits telemetry.
+Framework and library integrations should follow the existing package layout for the integration target. Prefer placing integration code near the component or framework it adapts instead of introducing a new top-level area without a clear repository-wide reason.
 
 ## Design Principles
 
