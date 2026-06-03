@@ -30,3 +30,8 @@ type Option interface {
 ```
 
 Choose the non-error form for simple assignment and defaulting. Choose the error-returning form only when the component has a real failure path during option application, and keep validation errors explicit rather than hiding them in later runtime behavior.
+
+## Testing
+Use `github.com/stretchr/testify` when it improves test readability, especially for grouped assertions, error checks, and setup requirements. Prefer `require` for conditions that must stop the current test before continuing, such as constructor errors, nil checks before dereferencing, or setup failures. Prefer `assert` for independent value checks where the test can report multiple failures in one run.
+
+Use Go's standard `testing` package conventions for test structure and naming. Keep tests close to the package under test, use table tests when they make behavior easier to scan, and prefer explicit assertions such as `require.ErrorIs`, `assert.ErrorIs`, `require.NoError`, and `assert.Equal` over manual boolean checks when they clarify intent.
