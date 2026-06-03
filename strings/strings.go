@@ -3,7 +3,7 @@ package strings
 import (
 	"crypto/md5"
 	"crypto/sha1"
-	"fmt"
+	"encoding/hex"
 	"math/rand/v2"
 	"regexp"
 	"slices"
@@ -83,7 +83,7 @@ func InSlice(slice []string, s string) bool {
 func MD5(s string) string {
 	sm := md5.Sum([]byte(s))
 
-	return fmt.Sprintf("%x", sm)
+	return hex.EncodeToString(sm[:])
 }
 
 // SHA1 returns the SHA-1 hash of s as a lowercase hexadecimal string.
@@ -94,7 +94,7 @@ func MD5(s string) string {
 func SHA1(s string) string {
 	sm := sha1.Sum([]byte(s))
 
-	return fmt.Sprintf("%x", sm)
+	return hex.EncodeToString(sm[:])
 }
 
 // Reverse returns s with its Unicode code points in reverse order.
