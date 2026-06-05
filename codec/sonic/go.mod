@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/codec/v3 => ../
 
 require (
-	github.com/bytedance/sonic v1.15.1
+	github.com/bytedance/sonic v1.15.2
 	github.com/go-fries/fries/codec/v3 v3.14.0
 	github.com/stretchr/testify v1.11.1
 )
