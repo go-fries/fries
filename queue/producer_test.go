@@ -1,9 +1,11 @@
 package queue
 
 import (
-	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProducerEnqueueCopiesTaskData(t *testing.T) {
@@ -22,39 +24,27 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 		WithHeaders(headers),
 		WithIdempotencyKey("email:1"),
 	)
-	if err != nil {
-		t.Fatalf("enqueue task: %v", err)
-	}
+	require.NoError(t, err)
 
 	payload[0] = 'x'
 	headers["trace"] = "2"
 
 	lease, err := backend.Dequeue(ctx, DefaultQueue, time.Minute)
-	if err != nil {
-		t.Fatalf("dequeue task: %v", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task)
 
-	if task.ID != "task-1" {
-		t.Fatalf("task id = %q, want task-1", task.ID)
-	}
-	if string(lease.Task.Payload) != "hello" {
-		t.Fatalf("payload = %q, want hello", lease.Task.Payload)
-	}
-	if lease.Task.Headers["trace"] != "1" {
-		t.Fatalf("header trace = %q, want 1", lease.Task.Headers["trace"])
-	}
-	if lease.Task.IdempotencyKey != "email:1" {
-		t.Fatalf("idempotency key = %q, want email:1", lease.Task.IdempotencyKey)
-	}
+	assert.Equal(t, "task-1", task.ID)
+	assert.Equal(t, "hello", string(lease.Task.Payload))
+	assert.Equal(t, "1", lease.Task.Headers["trace"])
+	assert.Equal(t, "email:1", lease.Task.IdempotencyKey)
 }
 
 func TestProducerRejectsEmptyTaskType(t *testing.T) {
 	t.Parallel()
 
 	_, err := NewProducer(NewMemoryBackend()).Enqueue(t.Context(), "", nil)
-	if !errors.Is(err, ErrInvalidTaskType) {
-		t.Fatalf("error = %v, want %v", err, ErrInvalidTaskType)
-	}
+	require.ErrorIs(t, err, ErrInvalidTaskType)
 }
 
 func TestMemoryBackendHonorsDelay(t *testing.T) {
@@ -63,20 +53,15 @@ func TestMemoryBackendHonorsDelay(t *testing.T) {
 	ctx := t.Context()
 	backend := NewMemoryBackend()
 	_, err := NewProducer(backend).Enqueue(ctx, "delayed", nil, WithDelay(20*time.Millisecond))
-	if err != nil {
-		t.Fatalf("enqueue task: %v", err)
-	}
+	require.NoError(t, err)
 
-	if _, err := backend.Dequeue(ctx, DefaultQueue, time.Minute); !errors.Is(err, ErrNoTask) {
-		t.Fatalf("immediate dequeue error = %v, want %v", err, ErrNoTask)
-	}
+	_, err = backend.Dequeue(ctx, DefaultQueue, time.Minute)
+	require.ErrorIs(t, err, ErrNoTask)
 
 	time.Sleep(30 * time.Millisecond)
 	lease, err := backend.Dequeue(ctx, DefaultQueue, time.Minute)
-	if err != nil {
-		t.Fatalf("delayed dequeue: %v", err)
-	}
-	if lease.Task.Type != "delayed" {
-		t.Fatalf("task type = %q, want delayed", lease.Task.Type)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task)
+	assert.Equal(t, "delayed", lease.Task.Type)
 }

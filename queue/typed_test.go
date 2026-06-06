@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type emailPayload struct {
@@ -20,20 +23,13 @@ func TestEnqueueForEncodesPayload(t *testing.T) {
 		UserID:  10,
 		Subject: "welcome",
 	})
-	if err != nil {
-		t.Fatalf("enqueue typed task: %v", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, task)
 
 	var decoded emailPayload
-	if err := json.Unmarshal(task.Payload, &decoded); err != nil {
-		t.Fatalf("unmarshal task payload: %v", err)
-	}
-	if decoded.UserID != 10 {
-		t.Fatalf("user id = %d, want 10", decoded.UserID)
-	}
-	if decoded.Subject != "welcome" {
-		t.Fatalf("subject = %q, want welcome", decoded.Subject)
-	}
+	require.NoError(t, json.Unmarshal(task.Payload, &decoded))
+	assert.Equal(t, 10, decoded.UserID)
+	assert.Equal(t, "welcome", decoded.Subject)
 }
 
 func TestHandleForDecodesPayload(t *testing.T) {
@@ -62,29 +58,19 @@ func TestHandleForDecodesPayload(t *testing.T) {
 		UserID:  12,
 		Subject: "reset",
 	})
-	if err != nil {
-		t.Fatalf("enqueue typed task: %v", err)
-	}
+	require.NoError(t, err)
 
 	select {
 	case task := <-handled:
-		if task.ID == "" {
-			t.Fatal("task id is empty")
-		}
-		if task.Payload.UserID != 12 {
-			t.Fatalf("user id = %d, want 12", task.Payload.UserID)
-		}
-		if string(task.Task.Payload) == "" {
-			t.Fatal("raw payload is empty")
-		}
+		assert.NotEmpty(t, task.ID)
+		assert.Equal(t, 12, task.Payload.UserID)
+		assert.NotEmpty(t, string(task.Task.Payload))
 	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for typed task")
+		require.Fail(t, "timeout waiting for typed task")
 	}
 
 	cancel()
-	if err := <-errs; err != nil {
-		t.Fatalf("worker run: %v", err)
-	}
+	require.NoError(t, <-errs)
 }
 
 type passthroughCodec struct{}
@@ -121,21 +107,15 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 	}()
 
 	_, err := EnqueueForWithCodec(t.Context(), NewProducer(backend), "raw", "payload", passthroughCodec{})
-	if err != nil {
-		t.Fatalf("enqueue typed task: %v", err)
-	}
+	require.NoError(t, err)
 
 	select {
 	case payload := <-handled:
-		if payload != "payload" {
-			t.Fatalf("payload = %q, want payload", payload)
-		}
+		assert.Equal(t, "payload", payload)
 	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for typed task")
+		require.Fail(t, "timeout waiting for typed task")
 	}
 
 	cancel()
-	if err := <-errs; err != nil {
-		t.Fatalf("worker run: %v", err)
-	}
+	require.NoError(t, <-errs)
 }

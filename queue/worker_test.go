@@ -5,6 +5,9 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWorkerProcessesAndAcksTask(t *testing.T) {
@@ -30,27 +33,20 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 	}()
 
 	_, err := NewProducer(backend).Enqueue(t.Context(), "send_email", []byte("hello"))
-	if err != nil {
-		t.Fatalf("enqueue task: %v", err)
-	}
+	require.NoError(t, err)
 
 	select {
 	case task := <-handled:
-		if string(task.Payload) != "hello" {
-			t.Fatalf("payload = %q, want hello", task.Payload)
-		}
+		assert.Equal(t, "hello", string(task.Payload))
 	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for task")
+		require.Fail(t, "timeout waiting for task")
 	}
 
 	cancel()
-	if err := <-errs; err != nil {
-		t.Fatalf("worker run: %v", err)
-	}
+	require.NoError(t, <-errs)
 
-	if _, err := backend.Dequeue(t.Context(), DefaultQueue, time.Minute); !errors.Is(err, ErrNoTask) {
-		t.Fatalf("dequeue after ack error = %v, want %v", err, ErrNoTask)
-	}
+	_, err = backend.Dequeue(t.Context(), DefaultQueue, time.Minute)
+	require.ErrorIs(t, err, ErrNoTask)
 }
 
 func TestWorkerRetriesThenDeadLetters(t *testing.T) {
@@ -77,15 +73,13 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	}()
 
 	_, err := NewProducer(backend).Enqueue(t.Context(), "fail", nil)
-	if err != nil {
-		t.Fatalf("enqueue task: %v", err)
-	}
+	require.NoError(t, err)
 
 	for range 2 {
 		select {
 		case <-seen:
 		case <-time.After(time.Second):
-			t.Fatal("timeout waiting for retry attempt")
+			require.Fail(t, "timeout waiting for retry attempt")
 		}
 	}
 
@@ -93,24 +87,18 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	for len(backend.DeadLetters(DefaultQueue)) != 1 {
 		select {
 		case <-deadline:
-			t.Fatal("timeout waiting for dead letter")
+			require.Fail(t, "timeout waiting for dead letter")
 		default:
 			time.Sleep(time.Millisecond)
 		}
 	}
 
 	cancel()
-	if err := <-errs; err != nil {
-		t.Fatalf("worker run: %v", err)
-	}
+	require.NoError(t, <-errs)
 
 	dead := backend.DeadLetters(DefaultQueue)[0]
-	if dead.Attempt != 2 {
-		t.Fatalf("dead letter attempt = %d, want 2", dead.Attempt)
-	}
-	if dead.Headers["queue.dead_letter.reason"] == "" {
-		t.Fatal("dead letter reason is empty")
-	}
+	assert.Equal(t, 2, dead.Attempt)
+	assert.NotEmpty(t, dead.Headers["queue.dead_letter.reason"])
 }
 
 func TestWorkerConsumesConfiguredQueue(t *testing.T) {
@@ -137,18 +125,14 @@ func TestWorkerConsumesConfiguredQueue(t *testing.T) {
 	}()
 
 	_, err := NewProducer(backend).Enqueue(t.Context(), "custom", nil, WithQueue("critical"))
-	if err != nil {
-		t.Fatalf("enqueue task: %v", err)
-	}
+	require.NoError(t, err)
 
 	select {
 	case <-handled:
 	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for task")
+		require.Fail(t, "timeout waiting for task")
 	}
 
 	cancel()
-	if err := <-errs; err != nil {
-		t.Fatalf("worker run: %v", err)
-	}
+	require.NoError(t, <-errs)
 }
