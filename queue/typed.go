@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 )
 
+// PayloadCodec encodes and decodes typed task payloads.
 type PayloadCodec interface {
+	// Marshal encodes data into a task payload.
 	Marshal(data any) ([]byte, error)
+	// Unmarshal decodes a task payload into dest.
 	Unmarshal(src []byte, dest any) error
 }
 
+// JSONPayloadCodec is the default JSON codec used by typed payload helpers.
 var JSONPayloadCodec PayloadCodec = jsonPayloadCodec{}
 
 type jsonPayloadCodec struct{}
@@ -22,25 +26,32 @@ func (jsonPayloadCodec) Unmarshal(src []byte, dest any) error {
 	return json.Unmarshal(src, dest)
 }
 
+// TaskFor is a typed view of a task with its payload decoded as T.
 type TaskFor[T any] struct {
 	*Task
 	Payload T
 }
 
+// HandlerFor processes a task whose payload has been decoded as T.
 type HandlerFor[T any] interface {
+	// Handle processes a typed task and returns nil only when it should be acknowledged.
 	Handle(ctx context.Context, task *TaskFor[T]) error
 }
 
+// HandlerFuncFor adapts a function to HandlerFor.
 type HandlerFuncFor[T any] func(ctx context.Context, task *TaskFor[T]) error
 
+// Handle calls f(ctx, task).
 func (f HandlerFuncFor[T]) Handle(ctx context.Context, task *TaskFor[T]) error {
 	return f(ctx, task)
 }
 
+// EnqueueFor encodes payload with JSONPayloadCodec and enqueues it as taskType.
 func EnqueueFor[T any](ctx context.Context, producer *Producer, taskType string, payload T, opts ...EnqueueOption) (*Task, error) {
 	return EnqueueForWithCodec(ctx, producer, taskType, payload, JSONPayloadCodec, opts...)
 }
 
+// EnqueueForWithCodec encodes payload with codec and enqueues it as taskType.
 func EnqueueForWithCodec[T any](
 	ctx context.Context,
 	producer *Producer,
@@ -60,10 +71,12 @@ func EnqueueForWithCodec[T any](
 	return producer.Enqueue(ctx, taskType, data, opts...)
 }
 
+// HandleFor decodes task payloads with JSONPayloadCodec before calling handler.
 func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
 	return HandleForWithCodec(taskType, JSONPayloadCodec, handler)
 }
 
+// HandleForWithCodec decodes task payloads with codec before calling handler.
 func HandleForWithCodec[T any](taskType string, codec PayloadCodec, handler HandlerFor[T]) WorkerOption {
 	if handler == nil {
 		return Handle(taskType, nil)

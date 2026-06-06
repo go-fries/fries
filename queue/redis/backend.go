@@ -30,6 +30,7 @@ end
 return #tasks
 `
 
+// Backend stores and consumes queue tasks with Redis Streams.
 type Backend struct {
 	redis       goredis.UniversalClient
 	prefix      string
@@ -38,6 +39,7 @@ type Backend struct {
 	promoteSize int
 }
 
+// Option configures a Redis queue backend.
 type Option interface {
 	apply(*Backend)
 }
@@ -48,6 +50,7 @@ func (f optionFunc) apply(b *Backend) {
 	f(b)
 }
 
+// WithPrefix sets the Redis key prefix.
 func WithPrefix(prefix string) Option {
 	return optionFunc(func(b *Backend) {
 		if prefix != "" {
@@ -56,6 +59,7 @@ func WithPrefix(prefix string) Option {
 	})
 }
 
+// WithGroup sets the Redis Streams consumer group name.
 func WithGroup(group string) Option {
 	return optionFunc(func(b *Backend) {
 		if group != "" {
@@ -64,6 +68,7 @@ func WithGroup(group string) Option {
 	})
 }
 
+// WithConsumer sets the Redis Streams consumer name.
 func WithConsumer(consumer string) Option {
 	return optionFunc(func(b *Backend) {
 		if consumer != "" {
@@ -72,6 +77,7 @@ func WithConsumer(consumer string) Option {
 	})
 }
 
+// WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
 func WithPromoteSize(size int) Option {
 	return optionFunc(func(b *Backend) {
 		if size > 0 {
@@ -82,6 +88,7 @@ func WithPromoteSize(size int) Option {
 
 var _ queue.Backend = (*Backend)(nil)
 
+// NewBackend creates a Redis Streams backend.
 func NewBackend(redis goredis.UniversalClient, opts ...Option) *Backend {
 	b := &Backend{
 		redis:       redis,
@@ -96,6 +103,7 @@ func NewBackend(redis goredis.UniversalClient, opts ...Option) *Backend {
 	return b
 }
 
+// Enqueue stores task in a stream or delayed sorted set.
 func (b *Backend) Enqueue(ctx context.Context, task *queue.Task) error {
 	if task == nil {
 		return nil
@@ -120,6 +128,7 @@ func (b *Backend) Enqueue(ctx context.Context, task *queue.Task) error {
 	return b.addToStream(ctx, task.Queue, data)
 }
 
+// Dequeue returns a task lease from a Redis stream consumer group.
 func (b *Backend) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
 	if name == "" {
 		name = queue.DefaultQueue
@@ -158,6 +167,7 @@ func (b *Backend) Dequeue(ctx context.Context, name string, visibilityTimeout ti
 	return b.leaseFromMessage(streams[0].Messages[0])
 }
 
+// Ack acknowledges a leased stream message.
 func (b *Backend) Ack(ctx context.Context, lease *queue.Lease) error {
 	if lease == nil || lease.Task == nil || lease.Token == "" {
 		return nil
@@ -165,6 +175,7 @@ func (b *Backend) Ack(ctx context.Context, lease *queue.Lease) error {
 	return b.redis.XAck(ctx, b.streamKey(lease.Task.Queue), b.group, lease.Token).Err()
 }
 
+// Retry re-enqueues a leased task and acknowledges the original stream message.
 func (b *Backend) Retry(ctx context.Context, lease *queue.Lease, delay time.Duration) error {
 	if lease == nil || lease.Task == nil {
 		return nil
@@ -178,6 +189,7 @@ func (b *Backend) Retry(ctx context.Context, lease *queue.Lease, delay time.Dura
 	return b.Ack(ctx, lease)
 }
 
+// DeadLetter writes a leased task to the dead-letter stream and acknowledges the original message.
 func (b *Backend) DeadLetter(ctx context.Context, lease *queue.Lease, reason string) error {
 	if lease == nil || lease.Task == nil {
 		return nil

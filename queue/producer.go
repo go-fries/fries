@@ -17,6 +17,7 @@ type enqueueConfig struct {
 	now            func() time.Time
 }
 
+// EnqueueOption configures task enqueue behavior.
 type EnqueueOption interface {
 	apply(*enqueueConfig)
 }
@@ -27,12 +28,14 @@ func (f enqueueOptionFunc) apply(c *enqueueConfig) {
 	f(c)
 }
 
+// WithID sets the task ID.
 func WithID(id string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		c.id = id
 	})
 }
 
+// WithQueue sets the queue name for a task.
 func WithQueue(name string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		if name != "" {
@@ -41,6 +44,7 @@ func WithQueue(name string) EnqueueOption {
 	})
 }
 
+// WithHeader adds a single task header.
 func WithHeader(key, value string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		if c.headers == nil {
@@ -50,6 +54,7 @@ func WithHeader(key, value string) EnqueueOption {
 	})
 }
 
+// WithHeaders adds task headers.
 func WithHeaders(headers map[string]string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		if len(headers) == 0 {
@@ -62,12 +67,14 @@ func WithHeaders(headers map[string]string) EnqueueOption {
 	})
 }
 
+// WithIdempotencyKey sets an application-level idempotency key for the task.
 func WithIdempotencyKey(key string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		c.idempotencyKey = key
 	})
 }
 
+// WithDelay delays task availability.
 func WithDelay(delay time.Duration) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		if delay > 0 {
@@ -87,14 +94,17 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	return c
 }
 
+// Producer creates tasks in a backend.
 type Producer struct {
 	backend Backend
 }
 
+// NewProducer creates a producer that writes to backend.
 func NewProducer(backend Backend) *Producer {
 	return &Producer{backend: backend}
 }
 
+// Enqueue creates a task with a byte payload and stores it in the backend.
 func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte, opts ...EnqueueOption) (*Task, error) {
 	if taskType == "" {
 		return nil, ErrInvalidTaskType

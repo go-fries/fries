@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// MemoryBackend is an in-memory Backend implementation for tests and local use.
 type MemoryBackend struct {
 	mu         sync.Mutex
 	queues     map[string][]*Task
@@ -14,6 +15,7 @@ type MemoryBackend struct {
 
 var _ Backend = (*MemoryBackend)(nil)
 
+// NewMemoryBackend creates an empty in-memory backend.
 func NewMemoryBackend() *MemoryBackend {
 	return &MemoryBackend{
 		queues:     make(map[string][]*Task),
@@ -21,6 +23,7 @@ func NewMemoryBackend() *MemoryBackend {
 	}
 }
 
+// Enqueue stores task in memory.
 func (b *MemoryBackend) Enqueue(ctx context.Context, task *Task) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -38,6 +41,7 @@ func (b *MemoryBackend) Enqueue(ctx context.Context, task *Task) error {
 	return nil
 }
 
+// Dequeue returns the first available task from queue.
 func (b *MemoryBackend) Dequeue(ctx context.Context, queue string, _ time.Duration) (*Lease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -65,10 +69,12 @@ func (b *MemoryBackend) Dequeue(ctx context.Context, queue string, _ time.Durati
 	return nil, ErrNoTask
 }
 
+// Ack marks a memory lease as complete.
 func (b *MemoryBackend) Ack(ctx context.Context, _ *Lease) error {
 	return ctx.Err()
 }
 
+// Retry re-enqueues a leased task after delay.
 func (b *MemoryBackend) Retry(ctx context.Context, lease *Lease, delay time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -82,6 +88,7 @@ func (b *MemoryBackend) Retry(ctx context.Context, lease *Lease, delay time.Dura
 	return b.Enqueue(ctx, task)
 }
 
+// DeadLetter stores a leased task in the in-memory dead-letter list.
 func (b *MemoryBackend) DeadLetter(ctx context.Context, lease *Lease, reason string) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -103,6 +110,7 @@ func (b *MemoryBackend) DeadLetter(ctx context.Context, lease *Lease, reason str
 	return nil
 }
 
+// DeadLetters returns a copy of dead-lettered tasks for queue.
 func (b *MemoryBackend) DeadLetters(queue string) []*Task {
 	if queue == "" {
 		queue = DefaultQueue

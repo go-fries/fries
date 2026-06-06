@@ -5,8 +5,10 @@ import (
 	"time"
 )
 
+// DefaultQueue is the queue name used when no queue is explicitly configured.
 const DefaultQueue = "default"
 
+// Task is the durable envelope stored and delivered by queue backends.
 type Task struct {
 	ID             string            `json:"id"`
 	Type           string            `json:"type"`
@@ -23,6 +25,7 @@ func (t *Task) clone() *Task {
 	return t.Clone()
 }
 
+// Clone returns a deep copy of the task payload and headers.
 func (t *Task) Clone() *Task {
 	if t == nil {
 		return nil
@@ -39,6 +42,7 @@ func (t *Task) Clone() *Task {
 	return &cloned
 }
 
+// Lease represents a task delivery that can be acknowledged, retried, or dead-lettered.
 type Lease struct {
 	Task  *Task
 	Token string

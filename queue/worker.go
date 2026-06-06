@@ -19,6 +19,7 @@ type workerConfig struct {
 	handlers          map[string]Handler
 }
 
+// WorkerOption configures a Worker.
 type WorkerOption interface {
 	apply(*workerConfig)
 }
@@ -29,6 +30,7 @@ func (f workerOptionFunc) apply(c *workerConfig) {
 	f(c)
 }
 
+// WithWorkerQueue sets the queue name consumed by the worker.
 func WithWorkerQueue(name string) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if name != "" {
@@ -37,6 +39,7 @@ func WithWorkerQueue(name string) WorkerOption {
 	})
 }
 
+// WithConcurrency sets the number of concurrent worker loops.
 func WithConcurrency(concurrency int) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if concurrency > 0 {
@@ -45,6 +48,7 @@ func WithConcurrency(concurrency int) WorkerOption {
 	})
 }
 
+// WithPollInterval sets how long the worker waits after an empty dequeue.
 func WithPollInterval(interval time.Duration) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if interval > 0 {
@@ -53,6 +57,7 @@ func WithPollInterval(interval time.Duration) WorkerOption {
 	})
 }
 
+// WithVisibilityTimeout sets how long a leased task can remain unacknowledged before redelivery.
 func WithVisibilityTimeout(timeout time.Duration) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if timeout > 0 {
@@ -61,6 +66,7 @@ func WithVisibilityTimeout(timeout time.Duration) WorkerOption {
 	})
 }
 
+// WithHandlerTimeout sets a per-task handler timeout.
 func WithHandlerTimeout(timeout time.Duration) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if timeout > 0 {
@@ -69,6 +75,7 @@ func WithHandlerTimeout(timeout time.Duration) WorkerOption {
 	})
 }
 
+// WithRetryPolicy sets the retry policy used after handler errors.
 func WithRetryPolicy(policy RetryPolicy) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if policy != nil {
@@ -77,12 +84,14 @@ func WithRetryPolicy(policy RetryPolicy) WorkerOption {
 	})
 }
 
+// WithMiddleware appends worker middleware around task handlers.
 func WithMiddleware(middleware ...Middleware) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		c.middleware = append(c.middleware, middleware...)
 	})
 }
 
+// Handle registers handler for taskType.
 func Handle(taskType string, handler Handler) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if taskType != "" && handler != nil {
@@ -106,11 +115,13 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	return c
 }
 
+// Worker consumes tasks from a backend and dispatches them to registered handlers.
 type Worker struct {
 	backend Backend
 	config  *workerConfig
 }
 
+// NewWorker creates a worker with the provided backend and options.
 func NewWorker(backend Backend, opts ...WorkerOption) *Worker {
 	return &Worker{
 		backend: backend,
@@ -118,6 +129,7 @@ func NewWorker(backend Backend, opts ...WorkerOption) *Worker {
 	}
 }
 
+// Run starts worker loops and blocks until ctx is canceled or a backend operation fails.
 func (w *Worker) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

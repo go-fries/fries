@@ -5,14 +5,18 @@ import (
 	"time"
 )
 
+// ErrRetryExhausted is used as the dead-letter reason when a task has no retries left.
 var ErrRetryExhausted = errors.New("queue: retry exhausted")
 
+// RetryPolicy decides whether a failed task should be retried and after what delay.
 type RetryPolicy interface {
+	// NextDelay returns the next retry delay and whether another retry should happen.
 	NextDelay(task *Task, err error) (time.Duration, bool)
 }
 
 type noRetry struct{}
 
+// NoRetry returns a retry policy that dead-letters every failed task immediately.
 func NoRetry() RetryPolicy {
 	return noRetry{}
 }
@@ -26,6 +30,7 @@ type fixedRetry struct {
 	delay       time.Duration
 }
 
+// FixedRetry returns a retry policy with a constant delay between attempts.
 func FixedRetry(maxAttempts int, delay time.Duration) RetryPolicy {
 	if maxAttempts < 1 {
 		maxAttempts = 1
@@ -52,6 +57,7 @@ type exponentialRetry struct {
 	maxDelay    time.Duration
 }
 
+// ExponentialRetry returns a retry policy whose delay doubles after each failed attempt.
 func ExponentialRetry(maxAttempts int, baseDelay, maxDelay time.Duration) RetryPolicy {
 	if maxAttempts < 1 {
 		maxAttempts = 1
