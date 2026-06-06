@@ -103,6 +103,10 @@ module-sets:
       - github.com/go-fries/fries/locker/v3
       - github.com/go-fries/fries/locker/redis/v3
 
+      # Queue
+      - github.com/go-fries/fries/queue/v3
+      - github.com/go-fries/fries/queue/redis/v3
+
       # MySQL
       - github.com/go-fries/fries/mysql/canal/v3
       - github.com/go-fries/fries/mysql/canal/positioner/redis/v3

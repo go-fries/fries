@@ -21,6 +21,13 @@
   adapt. For example, Kratos integrations live under `kratos/`, Hyperf Jet
   integrations live under `hyperf/jet/`, and GORM integrations live under
   `gorm/`.
+- The `queue/` component owns durable task queue primitives, including task
+  envelopes, producers, workers, retry policies, middleware, and the in-memory
+  backend. Backend adapters should live under the component, such as
+  `queue/redis/` for Redis Streams.
+- Queue backends stay byte-oriented through `Task.Payload []byte`. Typed payload
+  helpers such as `TaskFor[T]`, `EnqueueFor`, and `HandleFor` live in the core
+  module as a convenience layer and should not change backend contracts.
 
 ## Public Module Conventions
 
