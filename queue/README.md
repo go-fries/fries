@@ -22,11 +22,11 @@ import (
 
 func main() {
 	ctx := context.Background()
-	backend := queue.NewMemoryBackend()
+	q := queue.NewMemoryQueue()
 
-	producer := queue.NewProducer(backend)
+	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
-		backend,
+		q,
 		queue.Handle("send_email", queue.HandlerFunc(func(ctx context.Context, task *queue.Task) error {
 			fmt.Println(string(task.Payload))
 			return nil
@@ -42,13 +42,13 @@ func main() {
 ## Delivery Semantics
 
 Tasks are delivered at least once. A handler may receive the same task again
-after a crash, timeout, backend redelivery, or retry. Use `WithIdempotencyKey`
+after a crash, timeout, queue redelivery, or retry. Use `WithIdempotencyKey`
 and idempotent handler logic when duplicate side effects matter.
 
 ## Typed Payloads
 
 Use `EnqueueFor` and `HandleFor` when a task payload should be encoded and
-decoded as a Go type. Typed helpers use JSON by default and keep the backend
+decoded as a Go type. Typed helpers use JSON by default and keep the queue
 payload as `[]byte`.
 
 ```go
@@ -58,7 +58,7 @@ type SendEmail struct {
 }
 
 worker := queue.NewWorker(
-	backend,
+	q,
 	queue.HandleFor("send_email", queue.HandlerFuncFor[SendEmail](func(ctx context.Context, task *queue.TaskFor[SendEmail]) error {
 		// task.Payload is SendEmail.
 		// task.Task.Payload is the original []byte payload.
@@ -73,4 +73,4 @@ _, _ = queue.EnqueueFor(ctx, producer, "send_email", SendEmail{UserID: 1, Subjec
 
 Workers ACK tasks only when handlers return `nil`. Handler errors are retried
 according to the configured retry policy. When a task exhausts its retry budget,
-the backend moves it to a dead-letter queue.
+the queue moves it to a dead-letter queue.

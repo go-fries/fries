@@ -8,7 +8,7 @@ import (
 // DefaultQueue is the queue name used when no queue is explicitly configured.
 const DefaultQueue = "default"
 
-// Task is the durable envelope stored and delivered by queue backends.
+// Task is the durable envelope stored and delivered by queue implementations.
 type Task struct {
 	ID             string            `json:"id"`
 	Type           string            `json:"type"`

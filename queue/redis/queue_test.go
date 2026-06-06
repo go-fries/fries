@@ -13,7 +13,7 @@ import (
 func TestLeaseFromMessage(t *testing.T) {
 	t.Parallel()
 
-	backend := NewBackend(nil)
+	q := NewQueue(nil)
 	task := &queue.Task{
 		ID:      "task-1",
 		Type:    "send_email",
@@ -24,7 +24,7 @@ func TestLeaseFromMessage(t *testing.T) {
 	data, err := json.Marshal(task)
 	require.NoError(t, err)
 
-	lease, err := backend.leaseFromMessage(goredis.XMessage{
+	lease, err := q.leaseFromMessage(goredis.XMessage{
 		ID: "1-0",
 		Values: map[string]any{
 			taskField: string(data),
@@ -42,12 +42,12 @@ func TestLeaseFromMessage(t *testing.T) {
 func TestBackendKeysUsePrefix(t *testing.T) {
 	t.Parallel()
 
-	backend := NewBackend(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10))
+	q := NewQueue(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10))
 
-	assert.Equal(t, "app:critical:stream", backend.streamKey("critical"))
-	assert.Equal(t, "app:critical:delayed", backend.delayedKey("critical"))
-	assert.Equal(t, "app:critical:dead", backend.deadLetterKey("critical"))
-	assert.Equal(t, "workers", backend.group)
-	assert.Equal(t, "worker-1", backend.consumer)
-	assert.Equal(t, 10, backend.promoteSize)
+	assert.Equal(t, "app:critical:stream", q.streamKey("critical"))
+	assert.Equal(t, "app:critical:delayed", q.delayedKey("critical"))
+	assert.Equal(t, "app:critical:dead", q.deadLetterKey("critical"))
+	assert.Equal(t, "workers", q.group)
+	assert.Equal(t, "worker-1", q.consumer)
+	assert.Equal(t, 10, q.promoteSize)
 }

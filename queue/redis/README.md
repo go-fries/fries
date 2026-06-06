@@ -1,6 +1,6 @@
 # Redis Queue
 
-A Redis Streams backend for `github.com/go-fries/fries/queue/v3`.
+A Redis Streams queue implementation for `github.com/go-fries/fries/queue/v3`.
 
 ## Installation
 
@@ -23,16 +23,16 @@ import (
 
 func main() {
 	client := redis.NewClient(&redis.Options{Addr: "127.0.0.1:6379"})
-	backend := queueredis.NewBackend(
+	q := queueredis.NewQueue(
 		client,
 		queueredis.WithPrefix("app"),
 		queueredis.WithGroup("workers"),
 		queueredis.WithConsumer("worker-1"),
 	)
 
-	producer := queue.NewProducer(backend)
+	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
-		backend,
+		q,
 		queue.Handle("send_email", queue.HandlerFunc(func(ctx context.Context, task *queue.Task) error {
 			// process task
 			return nil
@@ -44,6 +44,6 @@ func main() {
 }
 ```
 
-The backend stores ready tasks in Redis Streams, delayed tasks in a sorted set,
+The queue stores ready tasks in Redis Streams, delayed tasks in a sorted set,
 and exhausted tasks in a dead-letter stream. Consumer groups are created lazily
 with `XGROUP CREATE ... MKSTREAM`.

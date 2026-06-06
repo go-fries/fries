@@ -16,10 +16,10 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	backend := NewMemoryBackend()
+	q := NewMemoryQueue()
 	handled := make(chan *Task, 1)
 	worker := NewWorker(
-		backend,
+		q,
 		Handle("send_email", HandlerFunc(func(_ context.Context, task *Task) error {
 			handled <- task.Clone()
 			return nil
@@ -32,7 +32,7 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 		errs <- worker.Run(ctx)
 	}()
 
-	_, err := NewProducer(backend).Enqueue(t.Context(), "send_email", []byte("hello"))
+	_, err := NewProducer(q).Enqueue(t.Context(), "send_email", []byte("hello"))
 	require.NoError(t, err)
 
 	select {
@@ -45,7 +45,7 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 	cancel()
 	require.NoError(t, <-errs)
 
-	_, err = backend.Dequeue(t.Context(), DefaultQueue, time.Minute)
+	_, err = q.Dequeue(t.Context(), DefaultQueue, time.Minute)
 	require.ErrorIs(t, err, ErrNoTask)
 }
 
@@ -55,10 +55,10 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	backend := NewMemoryBackend()
+	q := NewMemoryQueue()
 	seen := make(chan int, 2)
 	worker := NewWorker(
-		backend,
+		q,
 		Handle("fail", HandlerFunc(func(_ context.Context, task *Task) error {
 			seen <- task.Attempt
 			return errors.New("temporary failure")
@@ -72,7 +72,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 		errs <- worker.Run(ctx)
 	}()
 
-	_, err := NewProducer(backend).Enqueue(t.Context(), "fail", nil)
+	_, err := NewProducer(q).Enqueue(t.Context(), "fail", nil)
 	require.NoError(t, err)
 
 	for range 2 {
@@ -84,7 +84,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	}
 
 	deadline := time.After(time.Second)
-	for len(backend.DeadLetters(DefaultQueue)) != 1 {
+	for len(q.DeadLetters(DefaultQueue)) != 1 {
 		select {
 		case <-deadline:
 			require.Fail(t, "timeout waiting for dead letter")
@@ -96,7 +96,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	cancel()
 	require.NoError(t, <-errs)
 
-	dead := backend.DeadLetters(DefaultQueue)[0]
+	dead := q.DeadLetters(DefaultQueue)[0]
 	assert.Equal(t, 2, dead.Attempt)
 	assert.NotEmpty(t, dead.Headers["queue.dead_letter.reason"])
 }
@@ -107,10 +107,10 @@ func TestWorkerConsumesConfiguredQueue(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	backend := NewMemoryBackend()
+	q := NewMemoryQueue()
 	handled := make(chan struct{}, 1)
 	worker := NewWorker(
-		backend,
+		q,
 		Handle("custom", HandlerFunc(func(context.Context, *Task) error {
 			handled <- struct{}{}
 			return nil
@@ -124,7 +124,7 @@ func TestWorkerConsumesConfiguredQueue(t *testing.T) {
 		errs <- worker.Run(ctx)
 	}()
 
-	_, err := NewProducer(backend).Enqueue(t.Context(), "custom", nil, WithQueue("critical"))
+	_, err := NewProducer(q).Enqueue(t.Context(), "custom", nil, WithQueue("critical"))
 	require.NoError(t, err)
 
 	select {

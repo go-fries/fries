@@ -12,10 +12,10 @@ func ExampleNewWorker() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
-	backend := queue.NewMemoryBackend()
-	producer := queue.NewProducer(backend)
+	q := queue.NewMemoryQueue()
+	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
-		backend,
+		q,
 		queue.Handle("send_email", queue.HandlerFunc(func(_ context.Context, task *queue.Task) error {
 			fmt.Printf("%s: %s\n", task.Type, task.Payload)
 			return nil
@@ -43,10 +43,10 @@ func ExampleEnqueueFor() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
-	backend := queue.NewMemoryBackend()
-	producer := queue.NewProducer(backend)
+	q := queue.NewMemoryQueue()
+	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
-		backend,
+		q,
 		queue.HandleFor("send_email", queue.HandlerFuncFor[sendEmailPayload](func(_ context.Context, task *queue.TaskFor[sendEmailPayload]) error {
 			fmt.Printf("%d: %s\n", task.Payload.UserID, task.Payload.Subject)
 			return nil

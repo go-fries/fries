@@ -115,21 +115,21 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	return c
 }
 
-// Worker consumes tasks from a backend and dispatches them to registered handlers.
+// Worker consumes tasks from a queue and dispatches them to registered handlers.
 type Worker struct {
-	backend Backend
-	config  *workerConfig
+	queue  Queue
+	config *workerConfig
 }
 
-// NewWorker creates a worker with the provided backend and options.
-func NewWorker(backend Backend, opts ...WorkerOption) *Worker {
+// NewWorker creates a worker with the provided queue and options.
+func NewWorker(q Queue, opts ...WorkerOption) *Worker {
 	return &Worker{
-		backend: backend,
-		config:  newWorkerConfig(opts...),
+		queue:  q,
+		config: newWorkerConfig(opts...),
 	}
 }
 
-// Run starts worker loops and blocks until ctx is canceled or a backend operation fails.
+// Run starts worker loops and blocks until ctx is canceled or a queue operation fails.
 func (w *Worker) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -175,7 +175,7 @@ func (w *Worker) loop(ctx context.Context) error {
 		default:
 		}
 
-		lease, err := w.backend.Dequeue(ctx, w.config.queue, w.config.visibilityTimeout)
+		lease, err := w.queue.Dequeue(ctx, w.config.queue, w.config.visibilityTimeout)
 		if errors.Is(err, ErrNoTask) {
 			if err := sleep(ctx, w.config.pollInterval); err != nil {
 				return nil
@@ -201,20 +201,20 @@ func (w *Worker) loop(ctx context.Context) error {
 func (w *Worker) process(ctx context.Context, lease *Lease) error {
 	handler, ok := w.config.handlers[lease.Task.Type]
 	if !ok {
-		return w.backend.DeadLetter(ctx, lease, ErrHandlerNotFound.Error())
+		return w.queue.DeadLetter(ctx, lease, ErrHandlerNotFound.Error())
 	}
 
 	err := w.handle(ctx, handler, lease.Task)
 	if err == nil {
-		return w.backend.Ack(ctx, lease)
+		return w.queue.Ack(ctx, lease)
 	}
 
 	delay, ok := w.config.retryPolicy.NextDelay(lease.Task, err)
 	if !ok {
-		return w.backend.DeadLetter(ctx, lease, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
+		return w.queue.DeadLetter(ctx, lease, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
 	}
 
-	return w.backend.Retry(ctx, lease, delay)
+	return w.queue.Retry(ctx, lease, delay)
 }
 
 func (w *Worker) handle(ctx context.Context, handler Handler, task *Task) error {

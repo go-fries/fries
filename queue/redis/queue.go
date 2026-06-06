@@ -30,8 +30,8 @@ end
 return #tasks
 `
 
-// Backend stores and consumes queue tasks with Redis Streams.
-type Backend struct {
+// Queue stores and consumes queue tasks with Redis Streams.
+type Queue struct {
 	redis       goredis.UniversalClient
 	prefix      string
 	group       string
@@ -39,58 +39,58 @@ type Backend struct {
 	promoteSize int
 }
 
-// Option configures a Redis queue backend.
+// Option configures a Redis queue.
 type Option interface {
-	apply(*Backend)
+	apply(*Queue)
 }
 
-type optionFunc func(*Backend)
+type optionFunc func(*Queue)
 
-func (f optionFunc) apply(b *Backend) {
-	f(b)
+func (f optionFunc) apply(q *Queue) {
+	f(q)
 }
 
 // WithPrefix sets the Redis key prefix.
 func WithPrefix(prefix string) Option {
-	return optionFunc(func(b *Backend) {
+	return optionFunc(func(q *Queue) {
 		if prefix != "" {
-			b.prefix = strings.TrimSuffix(prefix, ":")
+			q.prefix = strings.TrimSuffix(prefix, ":")
 		}
 	})
 }
 
 // WithGroup sets the Redis Streams consumer group name.
 func WithGroup(group string) Option {
-	return optionFunc(func(b *Backend) {
+	return optionFunc(func(q *Queue) {
 		if group != "" {
-			b.group = group
+			q.group = group
 		}
 	})
 }
 
 // WithConsumer sets the Redis Streams consumer name.
 func WithConsumer(consumer string) Option {
-	return optionFunc(func(b *Backend) {
+	return optionFunc(func(q *Queue) {
 		if consumer != "" {
-			b.consumer = consumer
+			q.consumer = consumer
 		}
 	})
 }
 
 // WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
 func WithPromoteSize(size int) Option {
-	return optionFunc(func(b *Backend) {
+	return optionFunc(func(q *Queue) {
 		if size > 0 {
-			b.promoteSize = size
+			q.promoteSize = size
 		}
 	})
 }
 
-var _ queue.Backend = (*Backend)(nil)
+var _ queue.Queue = (*Queue)(nil)
 
-// NewBackend creates a Redis Streams backend.
-func NewBackend(redis goredis.UniversalClient, opts ...Option) *Backend {
-	b := &Backend{
+// NewQueue creates a Redis Streams queue.
+func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
+	q := &Queue{
 		redis:       redis,
 		prefix:      defaultPrefix,
 		group:       defaultGroup,
@@ -98,13 +98,13 @@ func NewBackend(redis goredis.UniversalClient, opts ...Option) *Backend {
 		promoteSize: defaultPromoteBy,
 	}
 	for _, opt := range opts {
-		opt.apply(b)
+		opt.apply(q)
 	}
-	return b
+	return q
 }
 
 // Enqueue stores task in a stream or delayed sorted set.
-func (b *Backend) Enqueue(ctx context.Context, task *queue.Task) error {
+func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	if task == nil {
 		return nil
 	}
@@ -119,29 +119,29 @@ func (b *Backend) Enqueue(ctx context.Context, task *queue.Task) error {
 
 	now := time.Now().UTC()
 	if task.AvailableAt.After(now) {
-		return b.redis.ZAdd(ctx, b.delayedKey(task.Queue), goredis.Z{
+		return q.redis.ZAdd(ctx, q.delayedKey(task.Queue), goredis.Z{
 			Score:  float64(task.AvailableAt.UnixNano()),
 			Member: string(data),
 		}).Err()
 	}
 
-	return b.addToStream(ctx, task.Queue, data)
+	return q.addToStream(ctx, task.Queue, data)
 }
 
 // Dequeue returns a task lease from a Redis stream consumer group.
-func (b *Backend) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
+func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
 	if name == "" {
 		name = queue.DefaultQueue
 	}
-	if err := b.ensureGroup(ctx, name); err != nil {
+	if err := q.ensureGroup(ctx, name); err != nil {
 		return nil, err
 	}
-	if err := b.promoteDue(ctx, name); err != nil {
+	if err := q.promoteDue(ctx, name); err != nil {
 		return nil, err
 	}
 
 	if visibilityTimeout > 0 {
-		lease, err := b.claimPending(ctx, name, visibilityTimeout)
+		lease, err := q.claimPending(ctx, name, visibilityTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -150,10 +150,10 @@ func (b *Backend) Dequeue(ctx context.Context, name string, visibilityTimeout ti
 		}
 	}
 
-	streams, err := b.redis.XReadGroup(ctx, &goredis.XReadGroupArgs{
-		Group:    b.group,
-		Consumer: b.consumer,
-		Streams:  []string{b.streamKey(name), ">"},
+	streams, err := q.redis.XReadGroup(ctx, &goredis.XReadGroupArgs{
+		Group:    q.group,
+		Consumer: q.consumer,
+		Streams:  []string{q.streamKey(name), ">"},
 		Count:    1,
 		Block:    -1,
 	}).Result()
@@ -164,33 +164,33 @@ func (b *Backend) Dequeue(ctx context.Context, name string, visibilityTimeout ti
 		return nil, err
 	}
 
-	return b.leaseFromMessage(streams[0].Messages[0])
+	return q.leaseFromMessage(streams[0].Messages[0])
 }
 
 // Ack acknowledges a leased stream message.
-func (b *Backend) Ack(ctx context.Context, lease *queue.Lease) error {
+func (q *Queue) Ack(ctx context.Context, lease *queue.Lease) error {
 	if lease == nil || lease.Task == nil || lease.Token == "" {
 		return nil
 	}
-	return b.redis.XAck(ctx, b.streamKey(lease.Task.Queue), b.group, lease.Token).Err()
+	return q.redis.XAck(ctx, q.streamKey(lease.Task.Queue), q.group, lease.Token).Err()
 }
 
 // Retry re-enqueues a leased task and acknowledges the original stream message.
-func (b *Backend) Retry(ctx context.Context, lease *queue.Lease, delay time.Duration) error {
+func (q *Queue) Retry(ctx context.Context, lease *queue.Lease, delay time.Duration) error {
 	if lease == nil || lease.Task == nil {
 		return nil
 	}
 
 	task := lease.Task.Clone()
 	task.AvailableAt = time.Now().UTC().Add(delay)
-	if err := b.Enqueue(ctx, task); err != nil {
+	if err := q.Enqueue(ctx, task); err != nil {
 		return err
 	}
-	return b.Ack(ctx, lease)
+	return q.Ack(ctx, lease)
 }
 
 // DeadLetter writes a leased task to the dead-letter stream and acknowledges the original message.
-func (b *Backend) DeadLetter(ctx context.Context, lease *queue.Lease, reason string) error {
+func (q *Queue) DeadLetter(ctx context.Context, lease *queue.Lease, reason string) error {
 	if lease == nil || lease.Task == nil {
 		return nil
 	}
@@ -199,8 +199,8 @@ func (b *Backend) DeadLetter(ctx context.Context, lease *queue.Lease, reason str
 	if err != nil {
 		return err
 	}
-	if err := b.redis.XAdd(ctx, &goredis.XAddArgs{
-		Stream: b.deadLetterKey(lease.Task.Queue),
+	if err := q.redis.XAdd(ctx, &goredis.XAddArgs{
+		Stream: q.deadLetterKey(lease.Task.Queue),
 		Values: map[string]any{
 			taskField:       data,
 			deadReasonField: reason,
@@ -208,14 +208,14 @@ func (b *Backend) DeadLetter(ctx context.Context, lease *queue.Lease, reason str
 	}).Err(); err != nil {
 		return err
 	}
-	return b.Ack(ctx, lease)
+	return q.Ack(ctx, lease)
 }
 
-func (b *Backend) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
-	messages, _, err := b.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
-		Stream:   b.streamKey(name),
-		Group:    b.group,
-		Consumer: b.consumer,
+func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
+	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
+		Stream:   q.streamKey(name),
+		Group:    q.group,
+		Consumer: q.consumer,
 		MinIdle:  visibilityTimeout,
 		Start:    "0-0",
 		Count:    1,
@@ -226,10 +226,10 @@ func (b *Backend) claimPending(ctx context.Context, name string, visibilityTimeo
 	if err != nil {
 		return nil, err
 	}
-	return b.leaseFromMessage(messages[0])
+	return q.leaseFromMessage(messages[0])
 }
 
-func (b *Backend) leaseFromMessage(message goredis.XMessage) (*queue.Lease, error) {
+func (q *Queue) leaseFromMessage(message goredis.XMessage) (*queue.Lease, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
 		return nil, fmt.Errorf("queue/redis: message %s missing %q field", message.ID, taskField)
@@ -256,40 +256,40 @@ func (b *Backend) leaseFromMessage(message goredis.XMessage) (*queue.Lease, erro
 	}, nil
 }
 
-func (b *Backend) addToStream(ctx context.Context, name string, data []byte) error {
-	return b.redis.XAdd(ctx, &goredis.XAddArgs{
-		Stream: b.streamKey(name),
+func (q *Queue) addToStream(ctx context.Context, name string, data []byte) error {
+	return q.redis.XAdd(ctx, &goredis.XAddArgs{
+		Stream: q.streamKey(name),
 		Values: map[string]any{
 			taskField: data,
 		},
 	}).Err()
 }
 
-func (b *Backend) ensureGroup(ctx context.Context, name string) error {
-	err := b.redis.XGroupCreateMkStream(ctx, b.streamKey(name), b.group, "0").Err()
+func (q *Queue) ensureGroup(ctx context.Context, name string) error {
+	err := q.redis.XGroupCreateMkStream(ctx, q.streamKey(name), q.group, "0").Err()
 	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
 		return err
 	}
 	return nil
 }
 
-func (b *Backend) promoteDue(ctx context.Context, name string) error {
-	return b.redis.Eval(
-		ctx, promoteScript, []string{b.delayedKey(name), b.streamKey(name)},
+func (q *Queue) promoteDue(ctx context.Context, name string) error {
+	return q.redis.Eval(
+		ctx, promoteScript, []string{q.delayedKey(name), q.streamKey(name)},
 		time.Now().UTC().UnixNano(),
-		b.promoteSize,
+		q.promoteSize,
 		taskField,
 	).Err()
 }
 
-func (b *Backend) streamKey(name string) string {
-	return b.prefix + ":" + name + ":stream"
+func (q *Queue) streamKey(name string) string {
+	return q.prefix + ":" + name + ":stream"
 }
 
-func (b *Backend) delayedKey(name string) string {
-	return b.prefix + ":" + name + ":delayed"
+func (q *Queue) delayedKey(name string) string {
+	return q.prefix + ":" + name + ":delayed"
 }
 
-func (b *Backend) deadLetterKey(name string) string {
-	return b.prefix + ":" + name + ":dead"
+func (q *Queue) deadLetterKey(name string) string {
+	return q.prefix + ":" + name + ":dead"
 }

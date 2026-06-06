@@ -94,17 +94,17 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	return c
 }
 
-// Producer creates tasks in a backend.
+// Producer creates tasks in a queue.
 type Producer struct {
-	backend Backend
+	queue Queue
 }
 
-// NewProducer creates a producer that writes to backend.
-func NewProducer(backend Backend) *Producer {
-	return &Producer{backend: backend}
+// NewProducer creates a producer that writes to q.
+func NewProducer(q Queue) *Producer {
+	return &Producer{queue: q}
 }
 
-// Enqueue creates a task with a byte payload and stores it in the backend.
+// Enqueue creates a task with a byte payload and stores it in the queue.
 func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte, opts ...EnqueueOption) (*Task, error) {
 	if taskType == "" {
 		return nil, ErrInvalidTaskType
@@ -127,7 +127,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		CreatedAt:      now,
 		AvailableAt:    now.Add(c.delay),
 	}
-	if err := p.backend.Enqueue(ctx, task); err != nil {
+	if err := p.queue.Enqueue(ctx, task); err != nil {
 		return nil, err
 	}
 	return task.clone(), nil

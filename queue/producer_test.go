@@ -12,8 +12,8 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	backend := NewMemoryBackend()
-	producer := NewProducer(backend)
+	q := NewMemoryQueue()
+	producer := NewProducer(q)
 
 	payload := []byte("hello")
 	headers := map[string]string{"trace": "1"}
@@ -29,7 +29,7 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	payload[0] = 'x'
 	headers["trace"] = "2"
 
-	lease, err := backend.Dequeue(ctx, DefaultQueue, time.Minute)
+	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task)
@@ -43,23 +43,23 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 func TestProducerRejectsEmptyTaskType(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewProducer(NewMemoryBackend()).Enqueue(t.Context(), "", nil)
+	_, err := NewProducer(NewMemoryQueue()).Enqueue(t.Context(), "", nil)
 	require.ErrorIs(t, err, ErrInvalidTaskType)
 }
 
-func TestMemoryBackendHonorsDelay(t *testing.T) {
+func TestMemoryQueueHonorsDelay(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	backend := NewMemoryBackend()
-	_, err := NewProducer(backend).Enqueue(ctx, "delayed", nil, WithDelay(20*time.Millisecond))
+	q := NewMemoryQueue()
+	_, err := NewProducer(q).Enqueue(ctx, "delayed", nil, WithDelay(20*time.Millisecond))
 	require.NoError(t, err)
 
-	_, err = backend.Dequeue(ctx, DefaultQueue, time.Minute)
+	_, err = q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.ErrorIs(t, err, ErrNoTask)
 
 	time.Sleep(30 * time.Millisecond)
-	lease, err := backend.Dequeue(ctx, DefaultQueue, time.Minute)
+	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task)

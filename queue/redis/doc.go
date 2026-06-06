@@ -1,2 +1,2 @@
-// Package redis provides a Redis Streams backend for queue.
+// Package redis provides a Redis Streams queue implementation.
 package redis

@@ -18,8 +18,8 @@ type emailPayload struct {
 func TestEnqueueForEncodesPayload(t *testing.T) {
 	t.Parallel()
 
-	backend := NewMemoryBackend()
-	task, err := EnqueueFor(t.Context(), NewProducer(backend), "send_email", emailPayload{
+	q := NewMemoryQueue()
+	task, err := EnqueueFor(t.Context(), NewProducer(q), "send_email", emailPayload{
 		UserID:  10,
 		Subject: "welcome",
 	})
@@ -38,10 +38,10 @@ func TestHandleForDecodesPayload(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	backend := NewMemoryBackend()
+	q := NewMemoryQueue()
 	handled := make(chan *TaskFor[emailPayload], 1)
 	worker := NewWorker(
-		backend,
+		q,
 		HandleFor("send_email", HandlerFuncFor[emailPayload](func(_ context.Context, task *TaskFor[emailPayload]) error {
 			handled <- task
 			return nil
@@ -54,7 +54,7 @@ func TestHandleForDecodesPayload(t *testing.T) {
 		errs <- worker.Run(ctx)
 	}()
 
-	_, err := EnqueueFor(t.Context(), NewProducer(backend), "send_email", emailPayload{
+	_, err := EnqueueFor(t.Context(), NewProducer(q), "send_email", emailPayload{
 		UserID:  12,
 		Subject: "reset",
 	})
@@ -90,10 +90,10 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	backend := NewMemoryBackend()
+	q := NewMemoryQueue()
 	handled := make(chan string, 1)
 	worker := NewWorker(
-		backend,
+		q,
 		HandleForWithCodec("raw", passthroughCodec{}, HandlerFuncFor[string](func(_ context.Context, task *TaskFor[string]) error {
 			handled <- task.Payload
 			return nil
@@ -106,7 +106,7 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 		errs <- worker.Run(ctx)
 	}()
 
-	_, err := EnqueueForWithCodec(t.Context(), NewProducer(backend), "raw", "payload", passthroughCodec{})
+	_, err := EnqueueForWithCodec(t.Context(), NewProducer(q), "raw", "payload", passthroughCodec{})
 	require.NoError(t, err)
 
 	select {

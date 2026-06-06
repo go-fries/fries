@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// Backend stores tasks and manages task delivery state.
-type Backend interface {
+// Queue stores tasks and manages task delivery state.
+type Queue interface {
 	// Enqueue stores a task for future delivery.
 	Enqueue(ctx context.Context, task *Task) error
 	// Dequeue returns an available task lease from the queue.
