@@ -105,7 +105,7 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 		queue:             DefaultQueue,
 		concurrency:       1,
 		pollInterval:      time.Second,
-		visibilityTimeout: time.Minute,
+		visibilityTimeout: 5 * time.Minute,
 		retryPolicy:       FixedRetry(3, time.Second),
 		handlers:          make(map[string]Handler),
 	}
