@@ -2,7 +2,12 @@ module github.com/go-fries/fries/queue/v3
 
 go 1.25.0
 
-require github.com/stretchr/testify v1.11.1
+replace github.com/go-fries/fries/codec/v3 => ../codec
+
+require (
+	github.com/go-fries/fries/codec/v3 v3.14.0
+	github.com/stretchr/testify v1.11.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

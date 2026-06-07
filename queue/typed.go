@@ -3,18 +3,12 @@ package queue
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/go-fries/fries/codec/v3"
 )
 
-// PayloadCodec encodes and decodes typed task payloads.
-type PayloadCodec interface {
-	// Marshal encodes data into a task payload.
-	Marshal(data any) ([]byte, error)
-	// Unmarshal decodes a task payload into dest.
-	Unmarshal(src []byte, dest any) error
-}
-
 // JSONPayloadCodec is the default JSON codec used by typed payload helpers.
-var JSONPayloadCodec PayloadCodec = jsonPayloadCodec{}
+var JSONPayloadCodec codec.Codec = jsonPayloadCodec{}
 
 type jsonPayloadCodec struct{}
 
@@ -60,7 +54,7 @@ func EnqueueForWithCodec[T any](
 	producer *Producer,
 	taskType string,
 	payload T,
-	codec PayloadCodec,
+	codec codec.Codec,
 	opts ...EnqueueOption,
 ) (*Task, error) {
 	if codec == nil {
@@ -80,7 +74,7 @@ func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
 }
 
 // HandleForWithCodec decodes task payloads with codec before calling handler.
-func HandleForWithCodec[T any](taskType string, codec PayloadCodec, handler HandlerFor[T]) WorkerOption {
+func HandleForWithCodec[T any](taskType string, codec codec.Codec, handler HandlerFor[T]) WorkerOption {
 	if handler == nil {
 		return Handle(taskType, nil)
 	}
