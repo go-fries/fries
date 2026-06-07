@@ -62,7 +62,8 @@ func TestHandleForDecodesPayload(t *testing.T) {
 
 	select {
 	case task := <-handled:
-		assert.NotEmpty(t, task.ID)
+		require.NotNil(t, task.Task)
+		assert.NotEmpty(t, task.Task.ID)
 		assert.Equal(t, 12, task.Payload.UserID)
 		assert.NotEmpty(t, string(task.Task.Payload))
 	case <-time.After(time.Second):

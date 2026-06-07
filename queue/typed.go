@@ -28,7 +28,10 @@ func (jsonPayloadCodec) Unmarshal(src []byte, dest any) error {
 
 // TaskFor is a typed view of a task with its payload decoded as T.
 type TaskFor[T any] struct {
-	*Task
+	// Task is the original queue task with its raw payload and delivery metadata.
+	Task *Task
+
+	// Payload is the decoded application payload.
 	Payload T
 }
 
