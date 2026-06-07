@@ -81,6 +81,9 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	for _, opt := range opts {
 		opt.apply(c)
 	}
+	if c.id == "" {
+		c.id = newID()
+	}
 	return c
 }
 
@@ -101,14 +104,9 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 	}
 
 	c := newEnqueueConfig(opts...)
-	id := c.id
-	if id == "" {
-		id = newID()
-	}
-
 	now := time.Now().UTC()
 	task := &Task{
-		ID:          id,
+		ID:          c.id,
 		Type:        taskType,
 		Queue:       c.queue,
 		Payload:     append([]byte(nil), payload...),
