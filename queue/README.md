@@ -17,12 +17,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-fries/fries/queue/adapter/memory/v3"
 	"github.com/go-fries/fries/queue/v3"
 )
 
 func main() {
 	ctx := context.Background()
-	q := queue.NewMemoryQueue()
+	q := memory.NewQueue()
 
 	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(

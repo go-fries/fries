@@ -16,7 +16,7 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	handled := make(chan *Task, 1)
 	worker := NewWorker(
 		q,
@@ -55,7 +55,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	seen := make(chan int, 2)
 	worker := NewWorker(
 		q,
@@ -107,7 +107,7 @@ func TestWorkerConsumesConfiguredQueue(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	handled := make(chan struct{}, 1)
 	worker := NewWorker(
 		q,

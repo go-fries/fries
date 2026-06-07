@@ -12,7 +12,7 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	producer := NewProducer(q)
 
 	payload := []byte("hello")
@@ -43,15 +43,15 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 func TestProducerRejectsEmptyTaskType(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewProducer(NewMemoryQueue()).Enqueue(t.Context(), "", nil)
+	_, err := NewProducer(newTestQueue()).Enqueue(t.Context(), "", nil)
 	require.ErrorIs(t, err, ErrInvalidTaskType)
 }
 
-func TestMemoryQueueHonorsDelay(t *testing.T) {
+func TestProducerHonorsDelay(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	_, err := NewProducer(q).Enqueue(ctx, "delayed", nil, WithDelay(20*time.Millisecond))
 	require.NoError(t, err)
 

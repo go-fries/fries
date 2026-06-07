@@ -22,9 +22,10 @@
   integrations live under `hyperf/jet/`, and GORM integrations live under
   `gorm/`.
 - The `queue/` component owns durable task queue primitives, including task
-  envelopes, producers, workers, retry policies, middleware, and the in-memory
-  queue. Queue adapters should live under the component, such as
-  `queue/redis/` for Redis Streams.
+  envelopes, producers, workers, retry policies, and middleware. Queue adapters
+  should live under the component in `queue/adapter/`, such as
+  `queue/adapter/memory/` for local in-memory queues and
+  `queue/adapter/redis/` for Redis Streams.
 - Queue implementations stay byte-oriented through `Task.Payload []byte`. Typed payload
   helpers such as `TaskFor[T]`, `EnqueueFor`, and `HandleFor` live in the core
   module as a convenience layer and should not change queue contracts.

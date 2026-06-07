@@ -18,7 +18,7 @@ type emailPayload struct {
 func TestEnqueueForEncodesPayload(t *testing.T) {
 	t.Parallel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	task, err := EnqueueFor(t.Context(), NewProducer(q), "send_email", emailPayload{
 		UserID:  10,
 		Subject: "welcome",
@@ -38,7 +38,7 @@ func TestHandleForDecodesPayload(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	handled := make(chan *TaskFor[emailPayload], 1)
 	worker := NewWorker(
 		q,
@@ -90,7 +90,7 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	q := NewMemoryQueue()
+	q := newTestQueue()
 	handled := make(chan string, 1)
 	worker := NewWorker(
 		q,

@@ -3,6 +3,7 @@ package queue_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-fries/fries/queue/v3"
@@ -12,7 +13,7 @@ func ExampleNewWorker() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
-	q := queue.NewMemoryQueue()
+	q := newExampleQueue()
 	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
 		q,
@@ -43,7 +44,7 @@ func ExampleEnqueueFor() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
-	q := queue.NewMemoryQueue()
+	q := newExampleQueue()
 	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
 		q,
@@ -67,4 +68,77 @@ func ExampleEnqueueFor() {
 
 	// Output:
 	// 100: welcome
+}
+
+type exampleQueue struct {
+	mu    sync.Mutex
+	tasks []*queue.Task
+}
+
+func newExampleQueue() *exampleQueue {
+	return &exampleQueue{}
+}
+
+func (q *exampleQueue) Enqueue(ctx context.Context, task *queue.Task) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	task = task.Clone()
+	if task.Queue == "" {
+		task.Queue = queue.DefaultQueue
+	}
+
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	q.tasks = append(q.tasks, task)
+	return nil
+}
+
+func (q *exampleQueue) Dequeue(ctx context.Context, queueName string, _ time.Duration) (queue.Lease, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if queueName == "" {
+		queueName = queue.DefaultQueue
+	}
+
+	now := time.Now().UTC()
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	for i, task := range q.tasks {
+		if task.Queue != queueName || task.AvailableAt.After(now) {
+			continue
+		}
+
+		q.tasks = append(q.tasks[:i], q.tasks[i+1:]...)
+		task = task.Clone()
+		task.Attempt++
+		return queue.NewLease(task), nil
+	}
+
+	return nil, queue.ErrNoTask
+}
+
+func (q *exampleQueue) Ack(ctx context.Context, _ queue.Lease) error {
+	return ctx.Err()
+}
+
+func (q *exampleQueue) Retry(ctx context.Context, lease queue.Lease, delay time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if lease == nil || lease.Task() == nil {
+		return nil
+	}
+
+	task := lease.Task().Clone()
+	task.AvailableAt = time.Now().UTC().Add(delay)
+	return q.Enqueue(ctx, task)
+}
+
+func (q *exampleQueue) DeadLetter(ctx context.Context, _ queue.Lease, _ string) error {
+	return ctx.Err()
 }
