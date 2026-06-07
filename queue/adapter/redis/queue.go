@@ -253,7 +253,7 @@ func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout
 func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
-		return nil, fmt.Errorf("queue/redis: message %s missing %q field", message.ID, taskField)
+		return nil, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField)
 	}
 
 	var data []byte
@@ -263,7 +263,7 @@ func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) 
 	case []byte:
 		data = v
 	default:
-		return nil, fmt.Errorf("queue/redis: message %s has unsupported %q field", message.ID, taskField)
+		return nil, fmt.Errorf("queue/adapter/redis: message %s has unsupported %q field", message.ID, taskField)
 	}
 
 	var task queue.Task

@@ -34,6 +34,8 @@
 - Queue middleware packages live under `queue/middleware/`; for example,
   `queue/middleware/recovery/` provides panic recovery middleware that converts
   panics into handler errors for retry or dead-letter handling.
+- Queue adapter packages live under `queue/adapter/`; for example,
+  `queue/adapter/redis/` adapts Redis Streams to the `queue.Queue` interface.
 
 ## Public Module Conventions
 

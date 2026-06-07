@@ -105,8 +105,8 @@ module-sets:
 
       # Queue
       - github.com/go-fries/fries/queue/v3
+      - github.com/go-fries/fries/queue/adapter/redis/v3
       - github.com/go-fries/fries/queue/middleware/recovery/v3
-      - github.com/go-fries/fries/queue/redis/v3
 
       # MySQL
       - github.com/go-fries/fries/mysql/canal/v3

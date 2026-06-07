@@ -5,7 +5,7 @@ A Redis Streams queue implementation for `github.com/go-fries/fries/queue/v3`.
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/redis/v3
+go get github.com/go-fries/fries/queue/adapter/redis/v3
 ```
 
 ## Usage
@@ -17,17 +17,17 @@ import (
 	"context"
 
 	"github.com/go-fries/fries/queue/v3"
-	queueredis "github.com/go-fries/fries/queue/redis/v3"
-	"github.com/redis/go-redis/v9"
+	"github.com/go-fries/fries/queue/adapter/redis/v3"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 func main() {
-	client := redis.NewClient(&redis.Options{Addr: "127.0.0.1:6379"})
-	q := queueredis.NewQueue(
+	client := goredis.NewClient(&goredis.Options{Addr: "127.0.0.1:6379"})
+	q := redis.NewQueue(
 		client,
-		queueredis.WithPrefix("app"),
-		queueredis.WithGroup("workers"),
-		queueredis.WithConsumer("worker-1"),
+		redis.WithPrefix("app"),
+		redis.WithGroup("workers"),
+		redis.WithConsumer("worker-1"),
 	)
 
 	producer := queue.NewProducer(q)
