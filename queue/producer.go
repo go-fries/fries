@@ -13,7 +13,6 @@ type enqueueConfig struct {
 	queue    string
 	metadata map[string]string
 	delay    time.Duration
-	now      func() time.Time
 }
 
 // EnqueueOption configures task enqueue behavior.
@@ -78,7 +77,6 @@ func WithDelay(delay time.Duration) EnqueueOption {
 func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	c := &enqueueConfig{
 		queue: DefaultQueue,
-		now:   func() time.Time { return time.Now().UTC() },
 	}
 	for _, opt := range opts {
 		opt.apply(c)
@@ -108,7 +106,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		id = newID()
 	}
 
-	now := c.now()
+	now := time.Now().UTC()
 	task := &Task{
 		ID:          id,
 		Type:        taskType,
