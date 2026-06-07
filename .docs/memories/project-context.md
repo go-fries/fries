@@ -21,6 +21,22 @@
   adapt. For example, Kratos integrations live under `kratos/`, Hyperf Jet
   integrations live under `hyperf/jet/`, and GORM integrations live under
   `gorm/`.
+- The `queue/` component owns durable task queue primitives, including task
+  envelopes, producers, workers, retry policies, and middleware. Queue adapters
+  should live under the component in `queue/adapter/`, such as
+  `queue/adapter/memory/` for local in-memory queues and
+  `queue/adapter/redis/` for Redis Streams.
+- Queue implementations stay byte-oriented through `Task.Payload []byte`. Typed payload
+  helpers such as `TaskFor[T]`, `EnqueueFor`, and `HandleFor` live in the core
+  module as a convenience layer and should not change queue contracts.
+- Queue task metadata is `Task.Metadata map[string]string`; it is task-level
+  application metadata, not queue delivery state. Delivery-specific values stay
+  in `Lease` implementations.
+- Queue middleware packages live under `queue/middleware/`; for example,
+  `queue/middleware/recovery/` provides panic recovery middleware that converts
+  panics into handler errors for retry or dead-letter handling.
+- Queue adapter packages live under `queue/adapter/`; for example,
+  `queue/adapter/redis/` adapts Redis Streams to the `queue.Queue` interface.
 
 ## Public Module Conventions
 
