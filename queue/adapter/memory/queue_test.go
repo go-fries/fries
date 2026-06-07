@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,26 +10,86 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQueueHonorsDelay(t *testing.T) {
+func TestQueue_EnqueueDefaultsQueueAndClonesTask(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
 	q := NewQueue()
-	_, err := queue.NewProducer(q).Enqueue(ctx, "delayed", nil, queue.WithDelay(20*time.Millisecond))
-	require.NoError(t, err)
+	task := &queue.Task{
+		ID:       "task-1",
+		Type:     "send_email",
+		Payload:  []byte("hello"),
+		Metadata: map[string]string{"trace": "1"},
+	}
 
-	_, err = q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	require.NoError(t, q.Enqueue(ctx, task))
+	task.Payload[0] = 'x'
+	task.Metadata["trace"] = "2"
+
+	lease, err := q.Dequeue(ctx, "", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+
+	assert.Equal(t, queue.DefaultQueue, lease.Task().Queue)
+	assert.Equal(t, 1, lease.Task().Attempt)
+	assert.Equal(t, "hello", string(lease.Task().Payload))
+	assert.Equal(t, "1", lease.Task().Metadata["trace"])
+}
+
+func TestQueue_DequeueHonorsAvailability(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := NewQueue()
+	now := time.Now().UTC()
+	require.NoError(t, q.Enqueue(ctx, &queue.Task{
+		ID:          "future",
+		Type:        "send_email",
+		AvailableAt: now.Add(time.Minute),
+	}))
+
+	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
 	require.ErrorIs(t, err, queue.ErrNoTask)
 
-	time.Sleep(30 * time.Millisecond)
+	require.NoError(t, q.Enqueue(ctx, &queue.Task{
+		ID:          "ready",
+		Type:        "send_email",
+		AvailableAt: now.Add(-time.Minute),
+	}))
+
 	lease, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
-	assert.Equal(t, "delayed", lease.Task().Type)
+	assert.Equal(t, "ready", lease.Task().ID)
+	assert.Equal(t, 1, lease.Task().Attempt)
 }
 
-func TestQueueDeadLettersClonesTask(t *testing.T) {
+func TestQueue_RetryReenqueuesTask(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := NewQueue()
+	require.NoError(t, q.Enqueue(ctx, &queue.Task{
+		ID:    "task-1",
+		Type:  "send_email",
+		Queue: "critical",
+	}))
+
+	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NoError(t, q.Retry(ctx, lease, 0))
+
+	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, "task-1", lease.Task().ID)
+	assert.Equal(t, 2, lease.Task().Attempt)
+}
+
+func TestQueue_DeadLettersClonesTask(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -62,4 +123,33 @@ func TestQueueDeadLettersClonesTask(t *testing.T) {
 	require.Len(t, dead, 1)
 	assert.Equal(t, "hello", string(dead[0].Payload))
 	assert.Equal(t, "1", dead[0].Metadata["trace"])
+}
+
+func TestQueue_MethodsReturnContextError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	q := NewQueue()
+	task := &queue.Task{ID: "task-1", Type: "send_email"}
+
+	require.ErrorIs(t, q.Enqueue(ctx, task), context.Canceled)
+	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorIs(t, q.Ack(ctx, nil), context.Canceled)
+	require.ErrorIs(t, q.Retry(ctx, queue.NewLease(task), 0), context.Canceled)
+	require.ErrorIs(t, q.DeadLetter(ctx, queue.NewLease(task), "failed"), context.Canceled)
+}
+
+func TestQueue_NilLeaseOperationsAreNoop(t *testing.T) {
+	t.Parallel()
+
+	q := NewQueue()
+
+	require.NoError(t, q.Retry(t.Context(), nil, 0))
+	require.NoError(t, q.Retry(t.Context(), queue.NewLease(nil), 0))
+	require.NoError(t, q.DeadLetter(t.Context(), nil, "failed"))
+	require.NoError(t, q.DeadLetter(t.Context(), queue.NewLease(nil), "failed"))
+	assert.Empty(t, q.DeadLetters(queue.DefaultQueue))
 }
