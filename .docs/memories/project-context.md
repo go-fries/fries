@@ -31,6 +31,9 @@
 - Queue task metadata is `Task.Metadata map[string]string`; it is task-level
   application metadata, not queue delivery state. Delivery-specific values stay
   in `Lease` implementations.
+- Queue middleware packages live under `queue/middleware/`; for example,
+  `queue/middleware/recovery/` provides panic recovery middleware that converts
+  panics into handler errors for retry or dead-letter handling.
 
 ## Public Module Conventions
 
