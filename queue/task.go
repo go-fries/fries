@@ -25,8 +25,12 @@ type Task struct {
 	// field while exposing the decoded value through TaskFor.Payload.
 	Payload []byte `json:"payload"`
 
-	// Headers carries optional application metadata for handlers and middleware.
-	Headers map[string]string `json:"headers,omitempty"`
+	// Metadata carries optional task metadata for handlers and middleware.
+	//
+	// Metadata is task data and may be persisted, retried, and dead-lettered with
+	// the task. Queue delivery state, such as Lease.Token, is intentionally kept
+	// outside this map.
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// IdempotencyKey is an application-level key for detecting duplicate work.
 	//
@@ -51,7 +55,7 @@ func (t *Task) clone() *Task {
 	return t.Clone()
 }
 
-// Clone returns a deep copy of the task payload and headers.
+// Clone returns a deep copy of the task payload and metadata.
 func (t *Task) Clone() *Task {
 	if t == nil {
 		return nil
@@ -61,9 +65,9 @@ func (t *Task) Clone() *Task {
 	if t.Payload != nil {
 		cloned.Payload = append([]byte(nil), t.Payload...)
 	}
-	if t.Headers != nil {
-		cloned.Headers = make(map[string]string, len(t.Headers))
-		maps.Copy(cloned.Headers, t.Headers)
+	if t.Metadata != nil {
+		cloned.Metadata = make(map[string]string, len(t.Metadata))
+		maps.Copy(cloned.Metadata, t.Metadata)
 	}
 	return &cloned
 }

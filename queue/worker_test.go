@@ -98,7 +98,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 
 	dead := q.DeadLetters(DefaultQueue)[0]
 	assert.Equal(t, 2, dead.Attempt)
-	assert.NotEmpty(t, dead.Headers["queue.dead_letter.reason"])
+	assert.NotEmpty(t, dead.Metadata["queue.dead_letter.reason"])
 }
 
 func TestWorkerConsumesConfiguredQueue(t *testing.T) {

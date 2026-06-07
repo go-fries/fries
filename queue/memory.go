@@ -98,10 +98,10 @@ func (b *MemoryQueue) DeadLetter(ctx context.Context, lease *Lease, reason strin
 	}
 
 	task := lease.Task.clone()
-	if task.Headers == nil {
-		task.Headers = make(map[string]string)
+	if task.Metadata == nil {
+		task.Metadata = make(map[string]string)
 	}
-	task.Headers["queue.dead_letter.reason"] = reason
+	task.Metadata["queue.dead_letter.reason"] = reason
 
 	b.mu.Lock()
 	defer b.mu.Unlock()

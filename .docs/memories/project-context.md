@@ -28,6 +28,9 @@
 - Queue implementations stay byte-oriented through `Task.Payload []byte`. Typed payload
   helpers such as `TaskFor[T]`, `EnqueueFor`, and `HandleFor` live in the core
   module as a convenience layer and should not change queue contracts.
+- Queue task metadata is `Task.Metadata map[string]string`; it is task-level
+  application metadata, not queue delivery state. Delivery-specific values stay
+  in `Lease`, such as `Lease.Token`.
 
 ## Public Module Conventions
 

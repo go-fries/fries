@@ -11,7 +11,7 @@ import (
 type enqueueConfig struct {
 	id             string
 	queue          string
-	headers        map[string]string
+	metadata       map[string]string
 	idempotencyKey string
 	delay          time.Duration
 	now            func() time.Time
@@ -44,26 +44,26 @@ func WithQueue(name string) EnqueueOption {
 	})
 }
 
-// WithHeader adds a single task header.
-func WithHeader(key, value string) EnqueueOption {
+// WithMetadataValue adds a single task metadata value.
+func WithMetadataValue(key, value string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
-		if c.headers == nil {
-			c.headers = make(map[string]string)
+		if c.metadata == nil {
+			c.metadata = make(map[string]string)
 		}
-		c.headers[key] = value
+		c.metadata[key] = value
 	})
 }
 
-// WithHeaders adds task headers.
-func WithHeaders(headers map[string]string) EnqueueOption {
+// WithMetadata adds task metadata values.
+func WithMetadata(metadata map[string]string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
-		if len(headers) == 0 {
+		if len(metadata) == 0 {
 			return
 		}
-		if c.headers == nil {
-			c.headers = make(map[string]string, len(headers))
+		if c.metadata == nil {
+			c.metadata = make(map[string]string, len(metadata))
 		}
-		maps.Copy(c.headers, headers)
+		maps.Copy(c.metadata, metadata)
 	})
 }
 
@@ -122,7 +122,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		Type:           taskType,
 		Queue:          c.queue,
 		Payload:        append([]byte(nil), payload...),
-		Headers:        c.headers,
+		Metadata:       c.metadata,
 		IdempotencyKey: c.idempotencyKey,
 		CreatedAt:      now,
 		AvailableAt:    now.Add(c.delay),

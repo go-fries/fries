@@ -16,18 +16,18 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	producer := NewProducer(q)
 
 	payload := []byte("hello")
-	headers := map[string]string{"trace": "1"}
+	metadata := map[string]string{"trace": "1"}
 
 	task, err := producer.Enqueue(
 		ctx, "send_email", payload,
 		WithID("task-1"),
-		WithHeaders(headers),
+		WithMetadata(metadata),
 		WithIdempotencyKey("email:1"),
 	)
 	require.NoError(t, err)
 
 	payload[0] = 'x'
-	headers["trace"] = "2"
+	metadata["trace"] = "2"
 
 	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 
 	assert.Equal(t, "task-1", task.ID)
 	assert.Equal(t, "hello", string(lease.Task.Payload))
-	assert.Equal(t, "1", lease.Task.Headers["trace"])
+	assert.Equal(t, "1", lease.Task.Metadata["trace"])
 	assert.Equal(t, "email:1", lease.Task.IdempotencyKey)
 }
 
