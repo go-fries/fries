@@ -32,11 +32,13 @@ func TestLeaseFromMessage(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task)
+	require.NotNil(t, lease.Task())
 
-	assert.Equal(t, "1-0", lease.Token)
-	assert.Equal(t, 3, lease.Task.Attempt)
-	assert.Equal(t, "hello", string(lease.Task.Payload))
+	l, ok := lease.(*redisLease)
+	require.True(t, ok)
+	assert.Equal(t, "1-0", l.streamID)
+	assert.Equal(t, 3, lease.Task().Attempt)
+	assert.Equal(t, "hello", string(lease.Task().Payload))
 }
 
 func TestBackendKeysUsePrefix(t *testing.T) {

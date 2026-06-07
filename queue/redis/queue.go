@@ -39,6 +39,18 @@ type Queue struct {
 	promoteSize int
 }
 
+type redisLease struct {
+	task     *queue.Task
+	streamID string
+}
+
+func (l *redisLease) Task() *queue.Task {
+	if l == nil {
+		return nil
+	}
+	return l.task
+}
+
 // Option configures a Redis queue.
 type Option interface {
 	apply(*Queue)
@@ -129,7 +141,7 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 }
 
 // Dequeue returns a task lease from a Redis stream consumer group.
-func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
+func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
 	if name == "" {
 		name = queue.DefaultQueue
 	}
@@ -168,20 +180,25 @@ func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time
 }
 
 // Ack acknowledges a leased stream message.
-func (q *Queue) Ack(ctx context.Context, lease *queue.Lease) error {
-	if lease == nil || lease.Task == nil || lease.Token == "" {
+func (q *Queue) Ack(ctx context.Context, lease queue.Lease) error {
+	l, ok := lease.(*redisLease)
+	if !ok || l == nil || l.task == nil || l.streamID == "" {
 		return nil
 	}
-	return q.redis.XAck(ctx, q.streamKey(lease.Task.Queue), q.group, lease.Token).Err()
+	return q.redis.XAck(ctx, q.streamKey(l.task.Queue), q.group, l.streamID).Err()
 }
 
 // Retry re-enqueues a leased task and acknowledges the original stream message.
-func (q *Queue) Retry(ctx context.Context, lease *queue.Lease, delay time.Duration) error {
-	if lease == nil || lease.Task == nil {
+func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duration) error {
+	if lease == nil {
+		return nil
+	}
+	task := lease.Task()
+	if task == nil {
 		return nil
 	}
 
-	task := lease.Task.Clone()
+	task = task.Clone()
 	task.AvailableAt = time.Now().UTC().Add(delay)
 	if err := q.Enqueue(ctx, task); err != nil {
 		return err
@@ -190,17 +207,21 @@ func (q *Queue) Retry(ctx context.Context, lease *queue.Lease, delay time.Durati
 }
 
 // DeadLetter writes a leased task to the dead-letter stream and acknowledges the original message.
-func (q *Queue) DeadLetter(ctx context.Context, lease *queue.Lease, reason string) error {
-	if lease == nil || lease.Task == nil {
+func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string) error {
+	if lease == nil {
+		return nil
+	}
+	task := lease.Task()
+	if task == nil {
 		return nil
 	}
 
-	data, err := json.Marshal(lease.Task)
+	data, err := json.Marshal(task)
 	if err != nil {
 		return err
 	}
 	if err := q.redis.XAdd(ctx, &goredis.XAddArgs{
-		Stream: q.deadLetterKey(lease.Task.Queue),
+		Stream: q.deadLetterKey(task.Queue),
 		Values: map[string]any{
 			taskField:       data,
 			deadReasonField: reason,
@@ -211,7 +232,7 @@ func (q *Queue) DeadLetter(ctx context.Context, lease *queue.Lease, reason strin
 	return q.Ack(ctx, lease)
 }
 
-func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (*queue.Lease, error) {
+func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
 	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   q.streamKey(name),
 		Group:    q.group,
@@ -229,7 +250,7 @@ func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout
 	return q.leaseFromMessage(messages[0])
 }
 
-func (q *Queue) leaseFromMessage(message goredis.XMessage) (*queue.Lease, error) {
+func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
 		return nil, fmt.Errorf("queue/redis: message %s missing %q field", message.ID, taskField)
@@ -250,9 +271,9 @@ func (q *Queue) leaseFromMessage(message goredis.XMessage) (*queue.Lease, error)
 		return nil, err
 	}
 	task.Attempt++
-	return &queue.Lease{
-		Task:  &task,
-		Token: message.ID,
+	return &redisLease{
+		task:     &task,
+		streamID: message.ID,
 	}, nil
 }
 

@@ -30,7 +30,7 @@
   module as a convenience layer and should not change queue contracts.
 - Queue task metadata is `Task.Metadata map[string]string`; it is task-level
   application metadata, not queue delivery state. Delivery-specific values stay
-  in `Lease`, such as `Lease.Token`.
+  in `Lease` implementations.
 
 ## Public Module Conventions
 

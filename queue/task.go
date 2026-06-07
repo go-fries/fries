@@ -28,8 +28,7 @@ type Task struct {
 	// Metadata carries optional task metadata for handlers and middleware.
 	//
 	// Metadata is task data and may be persisted, retried, and dead-lettered with
-	// the task. Queue delivery state, such as Lease.Token, is intentionally kept
-	// outside this map.
+	// the task. Queue delivery state is intentionally kept outside this map.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// IdempotencyKey is an application-level key for detecting duplicate work.
@@ -72,11 +71,27 @@ func (t *Task) Clone() *Task {
 	return &cloned
 }
 
-// Lease represents a task delivery that can be acknowledged, retried, or dead-lettered.
-type Lease struct {
-	// Task is the delivered task envelope.
-	Task *Task
+// Lease represents one delivery attempt of a task.
+//
+// Queue implementations may attach backend-specific acknowledgement state to a
+// lease. That delivery state is intentionally separate from Task.Metadata.
+type Lease interface {
+	// Task returns the delivered task envelope.
+	Task() *Task
+}
 
-	// Token is a queue-specific delivery token used by Ack, Retry, and DeadLetter.
-	Token string
+type taskLease struct {
+	task *Task
+}
+
+// NewLease creates a basic lease for queue implementations that do not need extra delivery state.
+func NewLease(task *Task) Lease {
+	return &taskLease{task: task}
+}
+
+func (l *taskLease) Task() *Task {
+	if l == nil {
+		return nil
+	}
+	return l.task
 }

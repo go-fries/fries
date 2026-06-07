@@ -42,7 +42,7 @@ func (b *MemoryQueue) Enqueue(ctx context.Context, task *Task) error {
 }
 
 // Dequeue returns the first available task from queue.
-func (b *MemoryQueue) Dequeue(ctx context.Context, queue string, _ time.Duration) (*Lease, error) {
+func (b *MemoryQueue) Dequeue(ctx context.Context, queue string, _ time.Duration) (Lease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -63,41 +63,41 @@ func (b *MemoryQueue) Dequeue(ctx context.Context, queue string, _ time.Duration
 		b.queues[queue] = append(tasks[:i], tasks[i+1:]...)
 		task = task.clone()
 		task.Attempt++
-		return &Lease{Task: task, Token: task.ID}, nil
+		return NewLease(task), nil
 	}
 
 	return nil, ErrNoTask
 }
 
 // Ack marks a memory lease as complete.
-func (b *MemoryQueue) Ack(ctx context.Context, _ *Lease) error {
+func (b *MemoryQueue) Ack(ctx context.Context, _ Lease) error {
 	return ctx.Err()
 }
 
 // Retry re-enqueues a leased task after delay.
-func (b *MemoryQueue) Retry(ctx context.Context, lease *Lease, delay time.Duration) error {
+func (b *MemoryQueue) Retry(ctx context.Context, lease Lease, delay time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if lease == nil || lease.Task == nil {
+	if lease == nil || lease.Task() == nil {
 		return nil
 	}
 
-	task := lease.Task.clone()
+	task := lease.Task().clone()
 	task.AvailableAt = time.Now().UTC().Add(delay)
 	return b.Enqueue(ctx, task)
 }
 
 // DeadLetter stores a leased task in the in-memory dead-letter list.
-func (b *MemoryQueue) DeadLetter(ctx context.Context, lease *Lease, reason string) error {
+func (b *MemoryQueue) DeadLetter(ctx context.Context, lease Lease, reason string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if lease == nil || lease.Task == nil {
+	if lease == nil || lease.Task() == nil {
 		return nil
 	}
 
-	task := lease.Task.clone()
+	task := lease.Task().clone()
 	if task.Metadata == nil {
 		task.Metadata = make(map[string]string)
 	}

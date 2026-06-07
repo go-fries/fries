@@ -32,12 +32,12 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task)
+	require.NotNil(t, lease.Task())
 
 	assert.Equal(t, "task-1", task.ID)
-	assert.Equal(t, "hello", string(lease.Task.Payload))
-	assert.Equal(t, "1", lease.Task.Metadata["trace"])
-	assert.Equal(t, "email:1", lease.Task.IdempotencyKey)
+	assert.Equal(t, "hello", string(lease.Task().Payload))
+	assert.Equal(t, "1", lease.Task().Metadata["trace"])
+	assert.Equal(t, "email:1", lease.Task().IdempotencyKey)
 }
 
 func TestProducerRejectsEmptyTaskType(t *testing.T) {
@@ -62,6 +62,6 @@ func TestMemoryQueueHonorsDelay(t *testing.T) {
 	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task)
-	assert.Equal(t, "delayed", lease.Task.Type)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, "delayed", lease.Task().Type)
 }

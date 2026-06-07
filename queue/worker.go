@@ -188,7 +188,11 @@ func (w *Worker) loop(ctx context.Context) error {
 			}
 			return err
 		}
-		if lease == nil || lease.Task == nil {
+		if lease == nil {
+			continue
+		}
+		task := lease.Task()
+		if task == nil {
 			continue
 		}
 
@@ -198,18 +202,19 @@ func (w *Worker) loop(ctx context.Context) error {
 	}
 }
 
-func (w *Worker) process(ctx context.Context, lease *Lease) error {
-	handler, ok := w.config.handlers[lease.Task.Type]
+func (w *Worker) process(ctx context.Context, lease Lease) error {
+	task := lease.Task()
+	handler, ok := w.config.handlers[task.Type]
 	if !ok {
 		return w.queue.DeadLetter(ctx, lease, ErrHandlerNotFound.Error())
 	}
 
-	err := w.handle(ctx, handler, lease.Task)
+	err := w.handle(ctx, handler, task)
 	if err == nil {
 		return w.queue.Ack(ctx, lease)
 	}
 
-	delay, ok := w.config.retryPolicy.NextDelay(lease.Task, err)
+	delay, ok := w.config.retryPolicy.NextDelay(task, err)
 	if !ok {
 		return w.queue.DeadLetter(ctx, lease, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
 	}
