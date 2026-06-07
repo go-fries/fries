@@ -43,8 +43,9 @@ func main() {
 ## Delivery Semantics
 
 Tasks are delivered at least once. A handler may receive the same task again
-after a crash, timeout, queue redelivery, or retry. Use `WithIdempotencyKey`
-and idempotent handler logic when duplicate side effects matter.
+after a crash, timeout, queue redelivery, or retry. Keep business idempotency
+keys in the payload or metadata, and make handlers idempotent when duplicate
+side effects matter.
 
 ## Typed Payloads
 

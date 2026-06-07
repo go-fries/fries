@@ -9,12 +9,11 @@ import (
 )
 
 type enqueueConfig struct {
-	id             string
-	queue          string
-	metadata       map[string]string
-	idempotencyKey string
-	delay          time.Duration
-	now            func() time.Time
+	id       string
+	queue    string
+	metadata map[string]string
+	delay    time.Duration
+	now      func() time.Time
 }
 
 // EnqueueOption configures task enqueue behavior.
@@ -67,13 +66,6 @@ func WithMetadata(metadata map[string]string) EnqueueOption {
 	})
 }
 
-// WithIdempotencyKey sets an application-level idempotency key for the task.
-func WithIdempotencyKey(key string) EnqueueOption {
-	return enqueueOptionFunc(func(c *enqueueConfig) {
-		c.idempotencyKey = key
-	})
-}
-
 // WithDelay delays task availability.
 func WithDelay(delay time.Duration) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
@@ -118,14 +110,13 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 
 	now := c.now()
 	task := &Task{
-		ID:             id,
-		Type:           taskType,
-		Queue:          c.queue,
-		Payload:        append([]byte(nil), payload...),
-		Metadata:       c.metadata,
-		IdempotencyKey: c.idempotencyKey,
-		CreatedAt:      now,
-		AvailableAt:    now.Add(c.delay),
+		ID:          id,
+		Type:        taskType,
+		Queue:       c.queue,
+		Payload:     append([]byte(nil), payload...),
+		Metadata:    c.metadata,
+		CreatedAt:   now,
+		AvailableAt: now.Add(c.delay),
 	}
 	if err := p.queue.Enqueue(ctx, task); err != nil {
 		return nil, err

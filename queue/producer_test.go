@@ -22,7 +22,6 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 		ctx, "send_email", payload,
 		WithID("task-1"),
 		WithMetadata(metadata),
-		WithIdempotencyKey("email:1"),
 	)
 	require.NoError(t, err)
 
@@ -37,7 +36,6 @@ func TestProducerEnqueueCopiesTaskData(t *testing.T) {
 	assert.Equal(t, "task-1", task.ID)
 	assert.Equal(t, "hello", string(lease.Task().Payload))
 	assert.Equal(t, "1", lease.Task().Metadata["trace"])
-	assert.Equal(t, "email:1", lease.Task().IdempotencyKey)
 }
 
 func TestProducerRejectsEmptyTaskType(t *testing.T) {

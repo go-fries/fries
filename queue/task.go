@@ -31,12 +31,6 @@ type Task struct {
 	// the task. Queue delivery state is intentionally kept outside this map.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
-	// IdempotencyKey is an application-level key for detecting duplicate work.
-	//
-	// The core queue stores the key but does not enforce idempotency; handlers
-	// or middleware should use it when duplicate side effects matter.
-	IdempotencyKey string `json:"idempotency_key,omitempty"`
-
 	// Attempt is the delivery attempt count observed by the handler.
 	//
 	// Queue implementations increment it before delivery, so the first handler
