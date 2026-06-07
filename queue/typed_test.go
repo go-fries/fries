@@ -120,3 +120,30 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 	cancel()
 	require.NoError(t, <-errs)
 }
+
+func TestTaskProducerEnqueueUsesBoundTaskType(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := newTestQueue()
+	producer := NewTaskProducer[emailPayload](NewProducer(q), "send_email")
+
+	task, err := producer.Enqueue(ctx, emailPayload{
+		UserID:  20,
+		Subject: "digest",
+	}, WithQueue("critical"))
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "send_email", task.Type)
+	assert.Equal(t, "critical", task.Queue)
+
+	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+
+	var decoded emailPayload
+	require.NoError(t, json.Unmarshal(lease.Task().Payload, &decoded))
+	assert.Equal(t, 20, decoded.UserID)
+	assert.Equal(t, "digest", decoded.Subject)
+}
