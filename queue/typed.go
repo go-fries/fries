@@ -7,16 +7,15 @@ import (
 	"github.com/go-fries/fries/codec/v3"
 )
 
-// JSONPayloadCodec is the default JSON codec used by typed payload helpers.
-var JSONPayloadCodec codec.Codec = jsonPayloadCodec{}
+var defaultCodec codec.Codec = jsonCodec{}
 
-type jsonPayloadCodec struct{}
+type jsonCodec struct{}
 
-func (jsonPayloadCodec) Marshal(data any) ([]byte, error) {
+func (jsonCodec) Marshal(data any) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (jsonPayloadCodec) Unmarshal(src []byte, dest any) error {
+func (jsonCodec) Unmarshal(src []byte, dest any) error {
 	return json.Unmarshal(src, dest)
 }
 
@@ -43,9 +42,9 @@ func (f HandlerFuncFor[T]) Handle(ctx context.Context, task *TaskFor[T]) error {
 	return f(ctx, task)
 }
 
-// EnqueueFor encodes payload with JSONPayloadCodec and enqueues it as taskType.
+// EnqueueFor encodes payload with the default JSON codec and enqueues it as taskType.
 func EnqueueFor[T any](ctx context.Context, producer *Producer, taskType string, payload T, opts ...EnqueueOption) (*Task, error) {
-	return EnqueueForWithCodec(ctx, producer, taskType, payload, JSONPayloadCodec, opts...)
+	return EnqueueForWithCodec(ctx, producer, taskType, payload, defaultCodec, opts...)
 }
 
 // EnqueueForWithCodec encodes payload with codec and enqueues it as taskType.
@@ -58,7 +57,7 @@ func EnqueueForWithCodec[T any](
 	opts ...EnqueueOption,
 ) (*Task, error) {
 	if codec == nil {
-		codec = JSONPayloadCodec
+		codec = defaultCodec
 	}
 
 	data, err := codec.Marshal(payload)
@@ -68,9 +67,9 @@ func EnqueueForWithCodec[T any](
 	return producer.Enqueue(ctx, taskType, data, opts...)
 }
 
-// HandleFor decodes task payloads with JSONPayloadCodec before calling handler.
+// HandleFor decodes task payloads with the default JSON codec before calling handler.
 func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
-	return HandleForWithCodec(taskType, JSONPayloadCodec, handler)
+	return HandleForWithCodec(taskType, defaultCodec, handler)
 }
 
 // HandleForWithCodec decodes task payloads with codec before calling handler.
@@ -79,7 +78,7 @@ func HandleForWithCodec[T any](taskType string, codec codec.Codec, handler Handl
 		return Handle(taskType, nil)
 	}
 	if codec == nil {
-		codec = JSONPayloadCodec
+		codec = defaultCodec
 	}
 
 	return Handle(taskType, HandlerFunc(func(ctx context.Context, task *Task) error {
