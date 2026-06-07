@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -85,6 +86,19 @@ func (passthroughCodec) Unmarshal(src []byte, dest any) error {
 	return nil
 }
 
+type failingCodec struct {
+	marshalErr   error
+	unmarshalErr error
+}
+
+func (c failingCodec) Marshal(any) ([]byte, error) {
+	return nil, c.marshalErr
+}
+
+func (c failingCodec) Unmarshal([]byte, any) error {
+	return c.unmarshalErr
+}
+
 func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 	t.Parallel()
 
@@ -119,6 +133,75 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 
 	cancel()
 	require.NoError(t, <-errs)
+}
+
+func TestEnqueueForWithCodecUsesDefaultCodecWhenNil(t *testing.T) {
+	t.Parallel()
+
+	task, err := EnqueueForWithCodec(t.Context(), NewProducer(newTestQueue()), "send_email", emailPayload{
+		UserID:  30,
+		Subject: "welcome",
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, task)
+
+	var decoded emailPayload
+	require.NoError(t, json.Unmarshal(task.Payload, &decoded))
+	assert.Equal(t, 30, decoded.UserID)
+	assert.Equal(t, "welcome", decoded.Subject)
+}
+
+func TestEnqueueForWithCodecReturnsMarshalError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("marshal failed")
+
+	_, err := EnqueueForWithCodec(t.Context(), NewProducer(newTestQueue()), "send_email", emailPayload{}, failingCodec{
+		marshalErr: wantErr,
+	})
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestHandleForWithCodecUsesDefaultCodecWhenNil(t *testing.T) {
+	t.Parallel()
+
+	var handled emailPayload
+	config := newWorkerConfig(HandleForWithCodec("send_email", nil, HandlerFuncFor[emailPayload](func(_ context.Context, task *TaskFor[emailPayload]) error {
+		handled = task.Payload
+		return nil
+	})))
+	handler := config.handlers["send_email"]
+	require.NotNil(t, handler)
+
+	err := handler.Handle(t.Context(), &Task{Payload: []byte(`{"user_id":40,"subject":"digest"}`)})
+	require.NoError(t, err)
+	assert.Equal(t, emailPayload{UserID: 40, Subject: "digest"}, handled)
+}
+
+func TestHandleForWithCodecReturnsUnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("unmarshal failed")
+	config := newWorkerConfig(HandleForWithCodec("send_email", failingCodec{
+		unmarshalErr: wantErr,
+	}, HandlerFuncFor[emailPayload](func(context.Context, *TaskFor[emailPayload]) error {
+		return nil
+	})))
+	handler := config.handlers["send_email"]
+	require.NotNil(t, handler)
+
+	err := handler.Handle(t.Context(), &Task{Payload: []byte("invalid")})
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestHandleForWithCodecIgnoresNilHandler(t *testing.T) {
+	t.Parallel()
+
+	config := newWorkerConfig(HandleForWithCodec[emailPayload]("send_email", nil, nil))
+
+	assert.Empty(t, config.handlers)
 }
 
 func TestTaskProducerEnqueueUsesBoundTaskType(t *testing.T) {

@@ -10,7 +10,84 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWorkerProcessesAndAcksTask(t *testing.T) {
+type dequeueErrorQueue struct {
+	err error
+}
+
+func (q dequeueErrorQueue) Enqueue(context.Context, *Task) error {
+	return nil
+}
+
+func (q dequeueErrorQueue) Dequeue(context.Context, string, time.Duration) (Lease, error) {
+	return nil, q.err
+}
+
+func (q dequeueErrorQueue) Ack(context.Context, Lease) error {
+	return nil
+}
+
+func (q dequeueErrorQueue) Retry(context.Context, Lease, time.Duration) error {
+	return nil
+}
+
+func (q dequeueErrorQueue) DeadLetter(context.Context, Lease, string) error {
+	return nil
+}
+
+func TestWorker_ConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	config := newWorkerConfig(
+		WithWorkerQueue(""),
+		WithConcurrency(0),
+		WithPollInterval(0),
+		WithVisibilityTimeout(0),
+		WithHandlerTimeout(0),
+		WithRetryPolicy(nil),
+		WithMiddleware(),
+		Handle("", HandlerFunc(func(context.Context, *Task) error { return nil })),
+		Handle("ignored", nil),
+	)
+
+	assert.Equal(t, DefaultQueue, config.queue)
+	assert.Equal(t, 1, config.concurrency)
+	assert.Equal(t, time.Second, config.pollInterval)
+	assert.Equal(t, 5*time.Minute, config.visibilityTimeout)
+	assert.Zero(t, config.handlerTimeout)
+	assert.NotNil(t, config.retryPolicy)
+	assert.Empty(t, config.middleware)
+	assert.Empty(t, config.handlers)
+}
+
+func TestWorker_ConfigOptions(t *testing.T) {
+	t.Parallel()
+
+	middleware := Middleware(func(next Handler) Handler { return next })
+	handler := HandlerFunc(func(context.Context, *Task) error { return nil })
+	retryPolicy := NoRetry()
+
+	config := newWorkerConfig(
+		WithWorkerQueue("critical"),
+		WithConcurrency(4),
+		WithPollInterval(10*time.Millisecond),
+		WithVisibilityTimeout(30*time.Second),
+		WithHandlerTimeout(time.Second),
+		WithRetryPolicy(retryPolicy),
+		WithMiddleware(middleware),
+		Handle("send_email", handler),
+	)
+
+	assert.Equal(t, "critical", config.queue)
+	assert.Equal(t, 4, config.concurrency)
+	assert.Equal(t, 10*time.Millisecond, config.pollInterval)
+	assert.Equal(t, 30*time.Second, config.visibilityTimeout)
+	assert.Equal(t, time.Second, config.handlerTimeout)
+	assert.Equal(t, retryPolicy, config.retryPolicy)
+	assert.Len(t, config.middleware, 1)
+	assert.NotNil(t, config.handlers["send_email"])
+}
+
+func TestWorker_ProcessesAndAcksTask(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -49,7 +126,7 @@ func TestWorkerProcessesAndAcksTask(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoTask)
 }
 
-func TestWorkerRetriesThenDeadLetters(t *testing.T) {
+func TestWorker_RetriesThenDeadLetters(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -101,7 +178,7 @@ func TestWorkerRetriesThenDeadLetters(t *testing.T) {
 	assert.NotEmpty(t, dead.Metadata["queue.dead_letter.reason"])
 }
 
-func TestWorkerConsumesConfiguredQueue(t *testing.T) {
+func TestWorker_ConsumesConfiguredQueue(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -135,4 +212,112 @@ func TestWorkerConsumesConfiguredQueue(t *testing.T) {
 
 	cancel()
 	require.NoError(t, <-errs)
+}
+
+func TestWorker_RunReturnsQueueErrors(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("dequeue failed")
+	worker := NewWorker(dequeueErrorQueue{err: wantErr})
+
+	err := worker.Run(t.Context())
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestWorker_RunStopsOnContextQueueErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{name: "canceled", err: context.Canceled},
+		{name: "deadline exceeded", err: context.DeadlineExceeded},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			worker := NewWorker(dequeueErrorQueue{err: tt.err})
+
+			err := worker.Run(t.Context())
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestWorker_DeadLettersTaskWithoutHandler(t *testing.T) {
+	t.Parallel()
+
+	q := newTestQueue()
+	worker := NewWorker(q)
+	lease := NewLease(&Task{
+		ID:    "task-1",
+		Type:  "unknown",
+		Queue: DefaultQueue,
+	})
+
+	err := worker.process(t.Context(), lease)
+	require.NoError(t, err)
+
+	deadLetters := q.DeadLetters(DefaultQueue)
+	require.Len(t, deadLetters, 1)
+	assert.Equal(t, "task-1", deadLetters[0].ID)
+	assert.Equal(t, ErrHandlerNotFound.Error(), deadLetters[0].Metadata["queue.dead_letter.reason"])
+}
+
+func TestWorker_HandlerTimeout(t *testing.T) {
+	t.Parallel()
+
+	worker := NewWorker(newTestQueue(), WithHandlerTimeout(time.Millisecond))
+	err := worker.handle(t.Context(), HandlerFunc(func(ctx context.Context, _ *Task) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}), &Task{})
+
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestWorker_MiddlewareOrder(t *testing.T) {
+	t.Parallel()
+
+	var calls []string
+	worker := NewWorker(
+		newTestQueue(),
+		WithMiddleware(
+			func(next Handler) Handler {
+				return HandlerFunc(func(ctx context.Context, task *Task) error {
+					calls = append(calls, "first before")
+					err := next.Handle(ctx, task)
+					calls = append(calls, "first after")
+					return err
+				})
+			},
+			func(next Handler) Handler {
+				return HandlerFunc(func(ctx context.Context, task *Task) error {
+					calls = append(calls, "second before")
+					err := next.Handle(ctx, task)
+					calls = append(calls, "second after")
+					return err
+				})
+			},
+		),
+	)
+
+	err := worker.handle(t.Context(), HandlerFunc(func(context.Context, *Task) error {
+		calls = append(calls, "handler")
+		return nil
+	}), &Task{})
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{
+		"first before",
+		"second before",
+		"handler",
+		"second after",
+		"first after",
+	}, calls)
 }
