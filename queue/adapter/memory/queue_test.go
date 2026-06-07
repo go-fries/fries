@@ -147,6 +147,7 @@ func TestQueue_NilLeaseOperationsAreNoop(t *testing.T) {
 
 	q := NewQueue()
 
+	require.NoError(t, q.Enqueue(t.Context(), nil))
 	require.NoError(t, q.Retry(t.Context(), nil, 0))
 	require.NoError(t, q.Retry(t.Context(), queue.NewLease(nil), 0))
 	require.NoError(t, q.DeadLetter(t.Context(), nil, "failed"))

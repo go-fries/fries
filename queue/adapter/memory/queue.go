@@ -30,6 +30,9 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if task == nil {
+		return nil
+	}
 
 	task = task.Clone()
 	if task.Queue == "" {

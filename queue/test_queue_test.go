@@ -23,6 +23,9 @@ func (q *testQueue) Enqueue(ctx context.Context, task *Task) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if task == nil {
+		return nil
+	}
 
 	task = task.clone()
 	if task.Queue == "" {

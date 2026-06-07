@@ -187,6 +187,28 @@ func TestQueue_EnqueueDequeueAck(t *testing.T) {
 	require.ErrorIs(t, err, queue.ErrNoTask)
 }
 
+func TestQueue_EnqueueDoesNotMutateTask(t *testing.T) {
+	t.Parallel()
+
+	q, _ := newRedisTestQueue(t)
+	ctx := t.Context()
+	task := &queue.Task{
+		ID:      "task-1",
+		Type:    "send_email",
+		Payload: []byte("hello"),
+	}
+
+	require.NoError(t, q.Enqueue(ctx, task))
+
+	assert.Empty(t, task.Queue)
+
+	lease, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, queue.DefaultQueue, lease.Task().Queue)
+}
+
 func TestQueue_RetryReenqueuesAndAcksLease(t *testing.T) {
 	t.Parallel()
 

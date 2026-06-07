@@ -120,6 +120,8 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	if task == nil {
 		return nil
 	}
+
+	task = task.Clone()
 	if task.Queue == "" {
 		task.Queue = queue.DefaultQueue
 	}
@@ -169,11 +171,14 @@ func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time
 		Count:    1,
 		Block:    -1,
 	}).Result()
-	if errors.Is(err, goredis.Nil) || len(streams) == 0 || len(streams[0].Messages) == 0 {
+	if errors.Is(err, goredis.Nil) {
 		return nil, queue.ErrNoTask
 	}
 	if err != nil {
 		return nil, err
+	}
+	if len(streams) == 0 || len(streams[0].Messages) == 0 {
+		return nil, queue.ErrNoTask
 	}
 
 	return q.leaseFromMessage(streams[0].Messages[0])
