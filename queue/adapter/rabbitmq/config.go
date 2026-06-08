@@ -5,12 +5,16 @@ import (
 	"time"
 )
 
-const defaultDelayQueueTTL = time.Hour
+const (
+	defaultDelayQueueTTL = time.Hour
+	defaultPrefetch      = 1
+)
 
 type config struct {
 	prefix        string
 	durable       bool
 	delayQueueTTL time.Duration
+	prefetch      int
 }
 
 // Option configures a RabbitMQ queue adapter.
@@ -49,10 +53,22 @@ func WithDelayQueueTTL(ttl time.Duration) Option {
 	})
 }
 
+// WithPrefetch sets the maximum unacknowledged deliveries per consumer.
+//
+// Set prefetch to 0 to use RabbitMQ's unlimited prefetch behavior.
+func WithPrefetch(prefetch int) Option {
+	return optionFunc(func(c *config) {
+		if prefetch >= 0 {
+			c.prefetch = prefetch
+		}
+	})
+}
+
 func newConfig(opts ...Option) *config {
 	c := &config{
 		durable:       true,
 		delayQueueTTL: defaultDelayQueueTTL,
+		prefetch:      defaultPrefetch,
 	}
 	for _, opt := range opts {
 		opt.apply(c)

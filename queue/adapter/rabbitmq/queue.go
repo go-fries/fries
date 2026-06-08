@@ -22,6 +22,7 @@ var (
 type channel interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+	Qos(prefetchCount, prefetchSize int, global bool) error
 	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
 	Close() error
 }
@@ -34,6 +35,7 @@ type Queue struct {
 	prefix        string
 	durable       bool
 	delayQueueTTL time.Duration
+	prefetch      int
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -58,6 +60,7 @@ func newQueue(opener channelOpener, opts ...Option) *Queue {
 		prefix:        c.prefix,
 		durable:       c.durable,
 		delayQueueTTL: c.delayQueueTTL,
+		prefetch:      c.prefetch,
 	}
 }
 
@@ -91,6 +94,10 @@ func (q *Queue) NewConsumer(ctx context.Context, queueName string) (queue.Consum
 		return nil, err
 	}
 	if err := q.ensureReadyQueue(ch, queueName); err != nil {
+		_ = ch.Close()
+		return nil, err
+	}
+	if err := ch.Qos(q.prefetch, 0, false); err != nil {
 		_ = ch.Close()
 		return nil, err
 	}

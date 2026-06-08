@@ -59,3 +59,8 @@ for publish operations, and each consumer owns one channel for receiving and
 acknowledging deliveries. RabbitMQ channels are not safe to share between
 goroutines, so applications should share the connection and let the adapter
 manage channels.
+
+Consumers set RabbitMQ QoS prefetch to `1` by default so a consumer does not
+reserve more unacknowledged deliveries than it can process. Use `WithPrefetch`
+to tune this per-consumer limit, or set it to `0` to use RabbitMQ's unlimited
+prefetch behavior.

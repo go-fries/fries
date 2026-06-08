@@ -30,14 +30,22 @@ type publishCall struct {
 	msg       amqp.Publishing
 }
 
+type qosCall struct {
+	prefetchCount int
+	prefetchSize  int
+	global        bool
+}
+
 type fakeChannel struct {
 	declareErr error
 	publishErr error
+	qosErr     error
 	consumeErr error
 	closeErr   error
 	deliveries []amqp.Delivery
 	declares   []declareCall
 	publishes  []publishCall
+	qoses      []qosCall
 	closed     int
 }
 
@@ -79,6 +87,15 @@ func (c *fakeChannel) PublishWithContext(
 		msg:       msg,
 	})
 	return c.publishErr
+}
+
+func (c *fakeChannel) Qos(prefetchCount, prefetchSize int, global bool) error {
+	c.qoses = append(c.qoses, qosCall{
+		prefetchCount: prefetchCount,
+		prefetchSize:  prefetchSize,
+		global:        global,
+	})
+	return c.qosErr
 }
 
 func (c *fakeChannel) Consume(
@@ -166,6 +183,7 @@ func TestQueue_ConfigDefaultsAndOptions(t *testing.T) {
 		WithPrefix("app."),
 		WithDurable(false),
 		WithDelayQueueTTL(2*time.Hour),
+		WithPrefetch(7),
 	)
 
 	assert.Equal(t, "app.critical", q.readyQueueName("critical"))
@@ -173,6 +191,7 @@ func TestQueue_ConfigDefaultsAndOptions(t *testing.T) {
 	assert.Equal(t, "app.critical.delay.1500", q.delayQueueName("critical", 1500*time.Millisecond))
 	assert.False(t, q.durable)
 	assert.Equal(t, 2*time.Hour, q.delayQueueTTL)
+	assert.Equal(t, 7, q.prefetch)
 }
 
 func TestQueue_EnqueuePublishesReadyTask(t *testing.T) {
@@ -252,6 +271,36 @@ func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
 	assert.Nil(t, delivery)
 	require.Len(t, ch.declares, 1)
 	assert.Equal(t, "default", ch.declares[0].name)
+	assert.Equal(t, []qosCall{{prefetchCount: defaultPrefetch}}, ch.qoses)
+}
+
+func TestQueue_NewConsumerConfiguresPrefetch(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefetch(3))
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+
+	assert.Equal(t, []qosCall{{prefetchCount: 3}}, ch.qoses)
+}
+
+func TestQueue_NewConsumerReturnsQosError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("qos failed")
+	ch := &fakeChannel{qosErr: wantErr}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+
+	require.ErrorIs(t, err, wantErr)
+	assert.Nil(t, consumer)
+	assert.Equal(t, 1, ch.closed)
 }
 
 func TestQueue_ReceiveDecodesTaskAndAck(t *testing.T) {
