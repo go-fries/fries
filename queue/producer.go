@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"maps"
 	"time"
 
@@ -155,6 +156,9 @@ func EnqueueForWithCodec[T any](
 	codec codec.Codec,
 	opts ...EnqueueOption,
 ) (*Task, error) {
+	if producer == nil {
+		return nil, errors.New("queue: producer is nil")
+	}
 	if codec == nil {
 		codec = defaultCodec
 	}

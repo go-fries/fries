@@ -158,7 +158,12 @@ func TestServer_StopDrainsInFlightTask(t *testing.T) {
 		errs <- server.Start(t.Context())
 	}()
 
-	handlerCtx := <-handlerCtxs
+	var handlerCtx context.Context
+	select {
+	case handlerCtx = <-handlerCtxs:
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for handler start")
+	}
 	stopErrs := make(chan error, 1)
 	go func() {
 		stopErrs <- server.Stop(t.Context())
@@ -202,7 +207,11 @@ func TestServer_StopCancelsInFlightTaskAfterContextDeadline(t *testing.T) {
 		errs <- server.Start(t.Context())
 	}()
 
-	<-handlerStarted
+	select {
+	case <-handlerStarted:
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for handler start")
+	}
 	stopCtx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
 	defer cancel()
 	require.ErrorIs(t, server.Stop(stopCtx), context.DeadlineExceeded)

@@ -252,6 +252,12 @@ func (w *Worker) Stop(ctx context.Context) error {
 	select {
 	case <-done:
 		return nil
+	default:
+	}
+
+	select {
+	case <-done:
+		return nil
 	case <-ctx.Done():
 		interrupt()
 		return ctx.Err()

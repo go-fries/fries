@@ -80,6 +80,7 @@ fixes:
   - github.com/go-fries/fries/queue/v3::queue/
   - github.com/go-fries/fries/queue/adapter/memory/v3::queue/adapter/memory/
   - github.com/go-fries/fries/queue/adapter/redis/v3::queue/adapter/redis/
+  - github.com/go-fries/fries/queue/kratos/server/v3::queue/kratos/server/
   - github.com/go-fries/fries/queue/middleware/recovery/v3::queue/middleware/recovery/
   - github.com/go-fries/fries/mysql/canal/v3::mysql/canal/
   - github.com/go-fries/fries/mysql/canal/positioner/redis/v3::mysql/canal/positioner/redis/

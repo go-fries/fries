@@ -45,6 +45,13 @@ func TestProducer_RejectsEmptyTaskType(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidTaskType)
 }
 
+func TestEnqueueForWithCodec_RejectsNilProducer(t *testing.T) {
+	t.Parallel()
+
+	_, err := EnqueueForWithCodec(t.Context(), nil, "send_email", struct{}{}, nil)
+	require.ErrorContains(t, err, "producer is nil")
+}
+
 func TestProducer_EnqueueSetsDefaultsAndOptions(t *testing.T) {
 	t.Parallel()
 
