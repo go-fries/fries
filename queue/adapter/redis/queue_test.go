@@ -246,9 +246,9 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	assert.Equal(t, "queue:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "queue:critical:delayed", q.delayedKey("critical"))
 	assert.Equal(t, "queue:critical:dead", q.deadLetterKey("critical"))
-	assert.Equal(t, defaultGroup, q.group)
-	assert.Equal(t, defaultConsumer, q.consumer)
-	assert.Equal(t, defaultPromoteBy, q.promoteSize)
+	assert.Equal(t, "queue", q.group)
+	assert.Equal(t, "worker", q.consumer)
+	assert.Equal(t, 100, q.promoteSize)
 }
 
 func TestQueue_Options(t *testing.T) {

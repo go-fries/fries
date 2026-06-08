@@ -281,6 +281,99 @@ func TestWorker_HandlerTimeout(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+func TestWorker_StopDrainsInFlightTask(t *testing.T) {
+	t.Parallel()
+
+	q := newTestQueue()
+	_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
+	require.NoError(t, err)
+
+	handlerCtxs := make(chan context.Context, 1)
+	release := make(chan struct{})
+	worker := NewWorker(
+		q,
+		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+			handlerCtxs <- ctx
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})),
+		WithPollInterval(time.Millisecond),
+	)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- worker.Run(t.Context())
+	}()
+
+	var handlerCtx context.Context
+	select {
+	case handlerCtx = <-handlerCtxs:
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for handler start")
+	}
+	stopErrs := make(chan error, 1)
+	go func() {
+		stopErrs <- worker.Stop(t.Context())
+	}()
+
+	select {
+	case err := <-stopErrs:
+		require.Failf(t, "stop returned before in-flight task finished", "err=%v", err)
+	default:
+	}
+	select {
+	case <-handlerCtx.Done():
+		require.Fail(t, "handler context was canceled before drain timeout")
+	default:
+	}
+
+	close(release)
+	require.NoError(t, <-stopErrs)
+	require.NoError(t, <-errs)
+}
+
+func TestWorker_StopCancelsInFlightTaskAfterContextDeadline(t *testing.T) {
+	t.Parallel()
+
+	q := newTestQueue()
+	_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
+	require.NoError(t, err)
+
+	handlerStarted := make(chan struct{})
+	handlerDone := make(chan error, 1)
+	worker := NewWorker(
+		q,
+		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+			close(handlerStarted)
+			<-ctx.Done()
+			err := ctx.Err()
+			handlerDone <- err
+			return err
+		})),
+		WithPollInterval(time.Millisecond),
+	)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- worker.Run(t.Context())
+	}()
+
+	select {
+	case <-handlerStarted:
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for handler start")
+	}
+	stopCtx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
+	defer cancel()
+	require.ErrorIs(t, worker.Stop(stopCtx), context.DeadlineExceeded)
+	require.ErrorIs(t, <-handlerDone, context.Canceled)
+	require.ErrorIs(t, <-errs, context.Canceled)
+}
+
 func TestWorker_MiddlewareOrder(t *testing.T) {
 	t.Parallel()
 

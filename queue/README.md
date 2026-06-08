@@ -47,6 +47,18 @@ after a crash, timeout, queue redelivery, or retry. Keep business idempotency
 keys in the payload or metadata, and make handlers idempotent when duplicate
 side effects matter.
 
+## Worker Shutdown
+
+`Run` blocks until the worker exits. For graceful shutdown, call
+`Worker.Stop(ctx)`: it stops polling for new tasks, waits for in-flight task
+handlers to finish, and cancels running handlers only if the stop context
+expires before the worker exits. Canceling the context passed to `Run` interrupts
+the worker immediately and should be reserved for forced shutdown paths.
+
+When using Kratos, prefer `queue/kratos/server`; its `Stop` method delegates to
+`Worker.Stop(ctx)` so application shutdown follows the same graceful drain
+semantics as other Kratos servers.
+
 ## Typed Payloads
 
 Use `EnqueueFor` and `HandleFor` when a task payload should be encoded and
