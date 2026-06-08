@@ -127,7 +127,13 @@ func newTestQueue(opener *fakeChannelOpener, opts ...Option) *Queue {
 }
 
 type fakeAcknowledger struct {
-	acks []uint64
+	acks    []uint64
+	rejects []rejectCall
+}
+
+type rejectCall struct {
+	tag     uint64
+	requeue bool
 }
 
 func (a *fakeAcknowledger) Ack(tag uint64, _ bool) error {
@@ -139,7 +145,8 @@ func (*fakeAcknowledger) Nack(uint64, bool, bool) error {
 	return nil
 }
 
-func (*fakeAcknowledger) Reject(uint64, bool) error {
+func (a *fakeAcknowledger) Reject(tag uint64, requeue bool) error {
+	a.rejects = append(a.rejects, rejectCall{tag: tag, requeue: requeue})
 	return nil
 }
 
@@ -258,6 +265,28 @@ func TestQueue_DequeueDecodesTaskAndAck(t *testing.T) {
 
 	require.NoError(t, q.Ack(t.Context(), lease))
 	assert.Equal(t, []uint64{42}, ack.acks)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_DequeueRejectsMalformedDelivery(t *testing.T) {
+	t.Parallel()
+
+	ack := &fakeAcknowledger{}
+	ch := &fakeChannel{
+		deliveries: []amqp.Delivery{{
+			Body:         []byte("{"),
+			DeliveryTag:  43,
+			Acknowledger: ack,
+		}},
+	}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+
+	lease, err := q.Dequeue(t.Context(), "emails")
+
+	require.Error(t, err)
+	assert.Nil(t, lease)
+	assert.Empty(t, ack.acks)
+	assert.Equal(t, []rejectCall{{tag: 43, requeue: false}}, ack.rejects)
 	assert.Equal(t, 1, ch.closed)
 }
 

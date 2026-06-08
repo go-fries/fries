@@ -107,6 +107,7 @@ func (q *Queue) Dequeue(ctx context.Context, queueName string) (queue.Lease, err
 
 	lease, err := leaseFromDelivery(delivery, ch)
 	if err != nil {
+		_ = delivery.Reject(false)
 		_ = ch.Close()
 		return nil, err
 	}
