@@ -34,9 +34,14 @@ type HandlerFor[T any] interface {
 	Handle(ctx context.Context, task *TaskFor[T]) error
 }
 
-// Tasker binds one task type to its typed handler.
+// Tasker binds a typed handler to the task type it handles.
+//
+// Use Tasker when an application wants one concrete type to own the task type
+// constant and the typed Handle method. Applications can add their own Enqueue
+// method to the same concrete type, but Enqueue is intentionally not part of
+// this interface so each task can expose a business-friendly enqueue signature.
 type Tasker[T any] interface {
-	// TaskType returns the task type handled by this tasker.
+	// TaskType returns the queue task type handled by this tasker.
 	TaskType() string
 	HandlerFor[T]
 }
@@ -98,7 +103,10 @@ func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
 	return HandleForWithCodec(taskType, defaultCodec, handler)
 }
 
-// HandleTasker registers tasker as the typed handler for tasker.TaskType().
+// HandleTasker registers tasker as the typed handler for its TaskType.
+//
+// It is equivalent to calling HandleFor(tasker.TaskType(), tasker). A nil tasker
+// is ignored, matching HandleFor's nil-handler behavior.
 func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
 	if tasker == nil {
 		return Handle("", nil)
