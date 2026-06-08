@@ -16,6 +16,25 @@ type emailPayload struct {
 	Subject string `json:"subject"`
 }
 
+type emailTasker struct {
+	handled chan *TaskFor[emailPayload]
+}
+
+func (t *emailTasker) TaskType() string {
+	return "send_email"
+}
+
+func (t *emailTasker) Handle(ctx context.Context, task *TaskFor[emailPayload]) error {
+	select {
+	case t.handled <- task:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+var _ Tasker[emailPayload] = (*emailTasker)(nil)
+
 func TestEnqueueForEncodesPayload(t *testing.T) {
 	t.Parallel()
 
@@ -73,6 +92,53 @@ func TestHandleForDecodesPayload(t *testing.T) {
 
 	cancel()
 	require.NoError(t, <-errs)
+}
+
+func TestHandleTaskerRegistersTypedHandler(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	q := newTestQueue()
+	tasker := &emailTasker{handled: make(chan *TaskFor[emailPayload], 1)}
+	worker := NewWorker(
+		q,
+		HandleTasker[emailPayload](tasker),
+		WithPollInterval(time.Millisecond),
+	)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- worker.Run(ctx)
+	}()
+
+	_, err := EnqueueFor(t.Context(), NewProducer(q), tasker.TaskType(), emailPayload{
+		UserID:  12,
+		Subject: "reset",
+	})
+	require.NoError(t, err)
+
+	select {
+	case task := <-tasker.handled:
+		require.NotNil(t, task.Task)
+		assert.Equal(t, 12, task.Payload.UserID)
+		assert.Equal(t, "reset", task.Payload.Subject)
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for tasker")
+	}
+
+	cancel()
+	require.NoError(t, <-errs)
+}
+
+func TestHandleTaskerIgnoresNilTasker(t *testing.T) {
+	t.Parallel()
+
+	var tasker Tasker[emailPayload]
+	config := newWorkerConfig(HandleTasker[emailPayload](tasker))
+
+	assert.Empty(t, config.handlers)
 }
 
 type passthroughCodec struct{}

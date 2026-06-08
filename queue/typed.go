@@ -34,6 +34,13 @@ type HandlerFor[T any] interface {
 	Handle(ctx context.Context, task *TaskFor[T]) error
 }
 
+// Tasker binds one task type to its typed handler.
+type Tasker[T any] interface {
+	// TaskType returns the task type handled by this tasker.
+	TaskType() string
+	HandlerFor[T]
+}
+
 // HandlerFuncFor adapts a function to HandlerFor.
 type HandlerFuncFor[T any] func(ctx context.Context, task *TaskFor[T]) error
 
@@ -89,6 +96,14 @@ func EnqueueForWithCodec[T any](
 // HandleFor decodes task payloads with the default JSON codec before calling handler.
 func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
 	return HandleForWithCodec(taskType, defaultCodec, handler)
+}
+
+// HandleTasker registers tasker as the typed handler for tasker.TaskType().
+func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
+	if tasker == nil {
+		return Handle("", nil)
+	}
+	return HandleFor(tasker.TaskType(), tasker)
 }
 
 // HandleForWithCodec decodes task payloads with codec before calling handler.

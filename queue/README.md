@@ -71,6 +71,34 @@ worker := queue.NewWorker(
 _, _ = queue.EnqueueFor(ctx, producer, "send_email", SendEmail{UserID: 1, Subject: "welcome"})
 ```
 
+Use `Tasker` and `HandleTasker` when one type should own both enqueueing and
+handling for a task type. This keeps the task type string in one place.
+
+```go
+const sendEmailTaskType = "send_email"
+
+type SendEmailTasker struct {
+	producer *queue.Producer
+}
+
+func (t *SendEmailTasker) TaskType() string {
+	return sendEmailTaskType
+}
+
+func (t *SendEmailTasker) Enqueue(ctx context.Context, payload SendEmail, opts ...queue.EnqueueOption) (*queue.Task, error) {
+	return queue.EnqueueFor(ctx, t.producer, t.TaskType(), payload, opts...)
+}
+
+func (t *SendEmailTasker) Handle(ctx context.Context, task *queue.TaskFor[SendEmail]) error {
+	// task.Payload is SendEmail.
+	return nil
+}
+
+tasker := &SendEmailTasker{producer: producer}
+worker := queue.NewWorker(q, queue.HandleTasker[SendEmail](tasker))
+_, _ = tasker.Enqueue(ctx, SendEmail{UserID: 1, Subject: "welcome"})
+```
+
 ## Retry and Dead Letter
 
 Workers ACK tasks only when handlers return `nil`. Handler errors are retried
