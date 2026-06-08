@@ -18,7 +18,7 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) Dequeue(context.Context, string, time.Duration) (Lease, error) {
+func (q dequeueErrorQueue) Dequeue(context.Context, string) (Lease, error) {
 	return nil, q.err
 }
 
@@ -41,7 +41,6 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 		WithWorkerQueue(""),
 		WithConcurrency(0),
 		WithPollInterval(0),
-		WithVisibilityTimeout(0),
 		WithHandlerTimeout(0),
 		WithRetryPolicy(nil),
 		WithMiddleware(),
@@ -52,7 +51,6 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	assert.Equal(t, DefaultQueue, config.queue)
 	assert.Equal(t, 1, config.concurrency)
 	assert.Equal(t, time.Second, config.pollInterval)
-	assert.Equal(t, 5*time.Minute, config.visibilityTimeout)
 	assert.Zero(t, config.handlerTimeout)
 	assert.NotNil(t, config.retryPolicy)
 	assert.Empty(t, config.middleware)
@@ -70,7 +68,6 @@ func TestWorker_ConfigOptions(t *testing.T) {
 		WithWorkerQueue("critical"),
 		WithConcurrency(4),
 		WithPollInterval(10*time.Millisecond),
-		WithVisibilityTimeout(30*time.Second),
 		WithHandlerTimeout(time.Second),
 		WithRetryPolicy(retryPolicy),
 		WithMiddleware(middleware),
@@ -80,7 +77,6 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	assert.Equal(t, "critical", config.queue)
 	assert.Equal(t, 4, config.concurrency)
 	assert.Equal(t, 10*time.Millisecond, config.pollInterval)
-	assert.Equal(t, 30*time.Second, config.visibilityTimeout)
 	assert.Equal(t, time.Second, config.handlerTimeout)
 	assert.Equal(t, retryPolicy, config.retryPolicy)
 	assert.Len(t, config.middleware, 1)
@@ -122,7 +118,7 @@ func TestWorker_ProcessesAndAcksTask(t *testing.T) {
 	cancel()
 	require.NoError(t, <-errs)
 
-	_, err = q.Dequeue(t.Context(), DefaultQueue, time.Minute)
+	_, err = q.Dequeue(t.Context(), DefaultQueue)
 	require.ErrorIs(t, err, ErrNoTask)
 }
 

@@ -12,12 +12,12 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
+func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Duration) (queue.Lease, error) {
 	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   q.streamKey(name),
 		Group:    q.group,
 		Consumer: q.consumer,
-		MinIdle:  visibilityTimeout,
+		MinIdle:  minIdle,
 		Start:    "0-0",
 		Count:    1,
 	}).Result()

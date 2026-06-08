@@ -17,11 +17,12 @@ const (
 
 // Queue stores and consumes queue tasks with Redis Streams.
 type Queue struct {
-	redis       goredis.UniversalClient
-	prefix      string
-	group       string
-	consumer    string
-	promoteSize int
+	redis        goredis.UniversalClient
+	prefix       string
+	group        string
+	consumer     string
+	promoteSize  int
+	claimMinIdle time.Duration
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -30,11 +31,12 @@ var _ queue.Queue = (*Queue)(nil)
 func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
 	c := newConfig(opts...)
 	q := &Queue{
-		redis:       redis,
-		prefix:      c.prefix,
-		group:       c.group,
-		consumer:    c.consumer,
-		promoteSize: c.promoteSize,
+		redis:        redis,
+		prefix:       c.prefix,
+		group:        c.group,
+		consumer:     c.consumer,
+		promoteSize:  c.promoteSize,
+		claimMinIdle: c.claimMinIdle,
 	}
 	return q
 }
@@ -67,7 +69,7 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 }
 
 // Dequeue returns a task lease from a Redis stream consumer group.
-func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
+func (q *Queue) Dequeue(ctx context.Context, name string) (queue.Lease, error) {
 	if name == "" {
 		name = queue.DefaultQueue
 	}
@@ -78,8 +80,8 @@ func (q *Queue) Dequeue(ctx context.Context, name string, visibilityTimeout time
 		return nil, err
 	}
 
-	if visibilityTimeout > 0 {
-		lease, err := q.claimPending(ctx, name, visibilityTimeout)
+	if q.claimMinIdle > 0 {
+		lease, err := q.claimPending(ctx, name, q.claimMinIdle)
 		if err != nil {
 			return nil, err
 		}

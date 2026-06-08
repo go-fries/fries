@@ -10,7 +10,7 @@ type Queue interface {
 	// Enqueue stores a task for future delivery.
 	Enqueue(ctx context.Context, task *Task) error
 	// Dequeue returns an available task lease from the queue.
-	Dequeue(ctx context.Context, queue string, visibilityTimeout time.Duration) (Lease, error)
+	Dequeue(ctx context.Context, queue string) (Lease, error)
 	// Ack marks a leased task as successfully processed.
 	Ack(ctx context.Context, lease Lease) error
 	// Retry releases a leased task for another attempt after delay.

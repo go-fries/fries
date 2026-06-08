@@ -11,22 +11,20 @@ import (
 )
 
 const (
-	defaultConcurrency       = 1
-	defaultPollInterval      = time.Second
-	defaultVisibilityTimeout = 5 * time.Minute
-	defaultRetryMaxAttempts  = 3
-	defaultRetryDelay        = time.Second
+	defaultConcurrency      = 1
+	defaultPollInterval     = time.Second
+	defaultRetryMaxAttempts = 3
+	defaultRetryDelay       = time.Second
 )
 
 type workerConfig struct {
-	queue             string
-	concurrency       int
-	pollInterval      time.Duration
-	visibilityTimeout time.Duration
-	handlerTimeout    time.Duration
-	retryPolicy       RetryPolicy
-	middleware        []Middleware
-	handlers          map[string]Handler
+	queue          string
+	concurrency    int
+	pollInterval   time.Duration
+	handlerTimeout time.Duration
+	retryPolicy    RetryPolicy
+	middleware     []Middleware
+	handlers       map[string]Handler
 }
 
 // WorkerOption configures a Worker.
@@ -63,15 +61,6 @@ func WithPollInterval(interval time.Duration) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if interval > 0 {
 			c.pollInterval = interval
-		}
-	})
-}
-
-// WithVisibilityTimeout sets how long a leased task can remain unacknowledged before redelivery.
-func WithVisibilityTimeout(timeout time.Duration) WorkerOption {
-	return workerOptionFunc(func(c *workerConfig) {
-		if timeout > 0 {
-			c.visibilityTimeout = timeout
 		}
 	})
 }
@@ -149,12 +138,11 @@ func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
 
 func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	c := &workerConfig{
-		queue:             DefaultQueue,
-		concurrency:       defaultConcurrency,
-		pollInterval:      defaultPollInterval,
-		visibilityTimeout: defaultVisibilityTimeout,
-		retryPolicy:       FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
-		handlers:          make(map[string]Handler),
+		queue:        DefaultQueue,
+		concurrency:  defaultConcurrency,
+		pollInterval: defaultPollInterval,
+		retryPolicy:  FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
+		handlers:     make(map[string]Handler),
 	}
 	for _, opt := range opts {
 		opt.apply(c)
@@ -303,7 +291,7 @@ func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 		default:
 		}
 
-		lease, err := w.queue.Dequeue(pollCtx, w.config.queue, w.config.visibilityTimeout)
+		lease, err := w.queue.Dequeue(pollCtx, w.config.queue)
 		if errors.Is(err, ErrNoTask) {
 			if err := sleep(pollCtx, w.config.pollInterval); err != nil {
 				return nil

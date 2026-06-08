@@ -26,7 +26,7 @@ func TestQueue_EnqueueDefaultsQueueAndClonesTask(t *testing.T) {
 	task.Payload[0] = 'x'
 	task.Metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, "", time.Minute)
+	lease, err := q.Dequeue(ctx, "")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -49,7 +49,7 @@ func TestQueue_DequeueHonorsAvailability(t *testing.T) {
 		AvailableAt: now.Add(time.Minute),
 	}))
 
-	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	_, err := q.Dequeue(ctx, queue.DefaultQueue)
 	require.ErrorIs(t, err, queue.ErrNoTask)
 
 	require.NoError(t, q.Enqueue(ctx, &queue.Task{
@@ -58,7 +58,7 @@ func TestQueue_DequeueHonorsAvailability(t *testing.T) {
 		AvailableAt: now.Add(-time.Minute),
 	}))
 
-	lease, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	lease, err := q.Dequeue(ctx, queue.DefaultQueue)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -77,11 +77,11 @@ func TestQueue_RetryReenqueuesTask(t *testing.T) {
 		Queue: "critical",
 	}))
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NoError(t, q.Retry(ctx, lease, 0))
 
-	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	lease, err = q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -106,7 +106,7 @@ func TestQueue_DeadLettersClonesTask(t *testing.T) {
 	task.Payload[0] = 'x'
 	task.Metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NoError(t, q.DeadLetter(ctx, lease, "failed"))
 
@@ -135,7 +135,7 @@ func TestQueue_MethodsReturnContextError(t *testing.T) {
 	task := &queue.Task{ID: "task-1", Type: "send_email"}
 
 	require.ErrorIs(t, q.Enqueue(ctx, task), context.Canceled)
-	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	_, err := q.Dequeue(ctx, queue.DefaultQueue)
 	require.ErrorIs(t, err, context.Canceled)
 	require.ErrorIs(t, q.Ack(ctx, nil), context.Canceled)
 	require.ErrorIs(t, q.Retry(ctx, queue.NewLease(task), 0), context.Canceled)

@@ -286,7 +286,7 @@ func TestTaskProducerEnqueueUsesBoundTaskType(t *testing.T) {
 	assert.Equal(t, "send_email", task.Type)
 	assert.Equal(t, "critical", task.Queue)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())

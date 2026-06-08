@@ -241,7 +241,7 @@ func TestQueue_LeaseFromMessageErrors(t *testing.T) {
 func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix(""), WithGroup(""), WithConsumer(""), WithPromoteSize(0))
+	q := NewQueue(nil, WithPrefix(""), WithGroup(""), WithConsumer(""), WithPromoteSize(0), WithClaimMinIdle(-time.Second))
 
 	assert.Equal(t, "queue:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "queue:critical:delayed", q.delayedKey("critical"))
@@ -249,12 +249,13 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	assert.Equal(t, "queue", q.group)
 	assert.Equal(t, "worker", q.consumer)
 	assert.Equal(t, 100, q.promoteSize)
+	assert.Equal(t, 5*time.Minute, q.claimMinIdle)
 }
 
 func TestQueue_Options(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10))
+	q := NewQueue(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10), WithClaimMinIdle(30*time.Second))
 
 	assert.Equal(t, "app:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "app:critical:delayed", q.delayedKey("critical"))
@@ -262,6 +263,7 @@ func TestQueue_Options(t *testing.T) {
 	assert.Equal(t, "workers", q.group)
 	assert.Equal(t, "worker-1", q.consumer)
 	assert.Equal(t, 10, q.promoteSize)
+	assert.Equal(t, 30*time.Second, q.claimMinIdle)
 }
 
 func TestQueue_NoopOperations(t *testing.T) {
@@ -295,7 +297,7 @@ func TestQueue_EnqueueDequeueAck(t *testing.T) {
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
 	require.NoError(t, err)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -306,7 +308,7 @@ func TestQueue_EnqueueDequeueAck(t *testing.T) {
 
 	require.NoError(t, q.Ack(ctx, lease))
 
-	_, err = q.Dequeue(ctx, "critical", time.Minute)
+	_, err = q.Dequeue(ctx, "critical")
 	require.ErrorIs(t, err, queue.ErrNoTask)
 }
 
@@ -325,7 +327,7 @@ func TestQueue_EnqueueDoesNotMutateTask(t *testing.T) {
 
 	assert.Empty(t, task.Queue)
 
-	lease, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	lease, err := q.Dequeue(ctx, queue.DefaultQueue)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -341,11 +343,11 @@ func TestQueue_RetryReenqueuesAndAcksLease(t *testing.T) {
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
 	require.NoError(t, err)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NoError(t, q.Retry(ctx, lease, 0))
 
-	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	lease, err = q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -356,13 +358,13 @@ func TestQueue_RetryReenqueuesAndAcksLease(t *testing.T) {
 func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 	t.Parallel()
 
-	q, client := newRedisTestQueue(t)
+	q, client := newRedisTestQueue(t, WithClaimMinIdle(time.Millisecond))
 	ctx := t.Context()
 
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
 	require.NoError(t, err)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -376,7 +378,7 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 
 	var claimed queue.Lease
 	require.Eventually(t, func() bool {
-		got, err := q.Dequeue(ctx, "critical", time.Millisecond)
+		got, err := q.Dequeue(ctx, "critical")
 		if errors.Is(err, queue.ErrNoTask) {
 			return false
 		}
@@ -395,20 +397,20 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 	t.Parallel()
 
-	q, client := newRedisTestQueue(t)
+	q, client := newRedisTestQueue(t, WithClaimMinIdle(time.Millisecond))
 	ctx := t.Context()
 
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
 	require.NoError(t, err)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
 	require.Equal(t, 1, lease.Task().Attempt)
 	require.NoError(t, q.Retry(ctx, lease, 0))
 
-	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	lease, err = q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -422,7 +424,7 @@ func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 
 	var claimed queue.Lease
 	require.Eventually(t, func() bool {
-		got, err := q.Dequeue(ctx, "critical", time.Millisecond)
+		got, err := q.Dequeue(ctx, "critical")
 		if errors.Is(err, queue.ErrNoTask) {
 			return false
 		}
@@ -447,7 +449,7 @@ func TestQueue_DeadLetterWritesReasonAndAcksLease(t *testing.T) {
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
 	require.NoError(t, err)
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	lease, err := q.Dequeue(ctx, "critical")
 	require.NoError(t, err)
 	require.NoError(t, q.DeadLetter(ctx, lease, "failed"))
 
@@ -456,7 +458,7 @@ func TestQueue_DeadLetterWritesReasonAndAcksLease(t *testing.T) {
 	require.Len(t, messages, 1)
 	assert.Equal(t, "failed", messages[0].Values[deadReasonField])
 
-	_, err = q.Dequeue(ctx, "critical", time.Minute)
+	_, err = q.Dequeue(ctx, "critical")
 	require.ErrorIs(t, err, queue.ErrNoTask)
 }
 
@@ -469,12 +471,12 @@ func TestQueue_DelayedTaskPromotion(t *testing.T) {
 	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"), queue.WithDelay(20*time.Millisecond))
 	require.NoError(t, err)
 
-	_, err = q.Dequeue(ctx, "critical", time.Minute)
+	_, err = q.Dequeue(ctx, "critical")
 	require.ErrorIs(t, err, queue.ErrNoTask)
 
 	var lease queue.Lease
 	require.Eventually(t, func() bool {
-		got, err := q.Dequeue(ctx, "critical", time.Minute)
+		got, err := q.Dequeue(ctx, "critical")
 		if errors.Is(err, queue.ErrNoTask) {
 			return false
 		}
@@ -487,7 +489,7 @@ func TestQueue_DelayedTaskPromotion(t *testing.T) {
 	assert.Equal(t, "send_email", lease.Task().Type)
 }
 
-func newRedisTestQueue(t *testing.T) (*Queue, *goredis.Client) {
+func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {
 	t.Helper()
 
 	addr := os.Getenv("REDIS_ADDR")
@@ -504,7 +506,13 @@ func newRedisTestQueue(t *testing.T) (*Queue, *goredis.Client) {
 	}
 
 	prefix := "queue-test:" + sanitizeRedisKey(t.Name()) + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	q := NewQueue(client, WithPrefix(prefix), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10))
+	options := append([]Option{
+		WithPrefix(prefix),
+		WithGroup("workers"),
+		WithConsumer("worker-1"),
+		WithPromoteSize(10),
+	}, opts...)
+	q := NewQueue(client, options...)
 
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(t.Context()), 2*time.Second)

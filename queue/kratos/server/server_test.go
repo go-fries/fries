@@ -27,7 +27,7 @@ func (q *blockingQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *blockingQueue) Dequeue(ctx context.Context, _ string, _ time.Duration) (queue.Lease, error) {
+func (q *blockingQueue) Dequeue(ctx context.Context, _ string) (queue.Lease, error) {
 	q.once.Do(func() {
 		close(q.started)
 	})
@@ -55,7 +55,7 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) Dequeue(context.Context, string, time.Duration) (queue.Lease, error) {
+func (q dequeueErrorQueue) Dequeue(context.Context, string) (queue.Lease, error) {
 	return nil, q.err
 }
 
@@ -86,7 +86,7 @@ func (q *singleTaskQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *singleTaskQueue) Dequeue(ctx context.Context, _ string, _ time.Duration) (queue.Lease, error) {
+func (q *singleTaskQueue) Dequeue(ctx context.Context, _ string) (queue.Lease, error) {
 	q.mu.Lock()
 	task := q.task
 	q.task = nil

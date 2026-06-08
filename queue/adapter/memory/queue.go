@@ -47,7 +47,7 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 }
 
 // Dequeue returns the first available task from queueName.
-func (q *Queue) Dequeue(ctx context.Context, queueName string, _ time.Duration) (queue.Lease, error) {
+func (q *Queue) Dequeue(ctx context.Context, queueName string) (queue.Lease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

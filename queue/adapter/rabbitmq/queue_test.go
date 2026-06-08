@@ -184,7 +184,7 @@ func TestQueue_DequeueReturnsNoTask(t *testing.T) {
 	ch := &fakeChannel{}
 	q := NewQueue(ch)
 
-	lease, err := q.Dequeue(t.Context(), "", time.Minute)
+	lease, err := q.Dequeue(t.Context(), "")
 
 	require.ErrorIs(t, err, queue.ErrNoTask)
 	assert.Nil(t, lease)
@@ -208,7 +208,7 @@ func TestQueue_DequeueDecodesTaskAndAck(t *testing.T) {
 	}
 	q := NewQueue(ch, WithPrefix("app"))
 
-	lease, err := q.Dequeue(t.Context(), "emails", time.Minute)
+	lease, err := q.Dequeue(t.Context(), "emails")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	assert.Equal(t, 3, lease.Task().Attempt)

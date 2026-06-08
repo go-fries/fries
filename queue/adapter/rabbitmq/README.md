@@ -50,5 +50,4 @@ stores queue `emails` as `app.emails`.
 Delayed tasks are stored in RabbitMQ TTL queues that dead-letter back to the
 ready queue after the delay, so the adapter does not require the RabbitMQ
 delayed message exchange plugin. RabbitMQ re-delivers unacknowledged tasks when
-the channel or connection closes; the queue visibility timeout passed to
-`Dequeue` is not used by this adapter.
+the channel or connection closes.

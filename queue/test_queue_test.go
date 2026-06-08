@@ -39,7 +39,7 @@ func (q *testQueue) Enqueue(ctx context.Context, task *Task) error {
 	return nil
 }
 
-func (q *testQueue) Dequeue(ctx context.Context, queueName string, _ time.Duration) (Lease, error) {
+func (q *testQueue) Dequeue(ctx context.Context, queueName string) (Lease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

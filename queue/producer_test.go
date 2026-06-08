@@ -28,7 +28,7 @@ func TestProducer_EnqueueCopiesTaskData(t *testing.T) {
 	payload[0] = 'x'
 	metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, DefaultQueue, time.Minute)
+	lease, err := q.Dequeue(ctx, DefaultQueue)
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 	require.NotNil(t, lease.Task())
@@ -84,7 +84,7 @@ func TestProducer_EnqueueSetsDefaultsAndOptions(t *testing.T) {
 	assert.Equal(t, time.UTC, task.AvailableAt.Location())
 	assert.GreaterOrEqual(t, task.AvailableAt.Sub(task.CreatedAt), 20*time.Millisecond)
 
-	_, err = q.Dequeue(ctx, DefaultQueue, time.Minute)
+	_, err = q.Dequeue(ctx, DefaultQueue)
 	require.ErrorIs(t, err, ErrNoTask)
 }
 
