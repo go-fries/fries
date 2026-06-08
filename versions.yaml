@@ -152,4 +152,5 @@ excluded-modules:
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v3
   - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v3
   - github.com/go-fries/fries/examples/mysql/canal/v3
+  - github.com/go-fries/fries/queue/examples/tasker/v3
   - github.com/go-fries/fries/eino/components/embedding/cached/example/v3
