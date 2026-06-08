@@ -2,13 +2,6 @@ package redis
 
 import "strings"
 
-const (
-	defaultPrefix    = "queue"
-	defaultGroup     = "queue"
-	defaultConsumer  = "worker"
-	defaultPromoteBy = 100
-)
-
 type config struct {
 	prefix      string
 	group       string
@@ -65,10 +58,10 @@ func WithPromoteSize(size int) Option {
 
 func newConfig(opts ...Option) *config {
 	c := &config{
-		prefix:      defaultPrefix,
-		group:       defaultGroup,
-		consumer:    defaultConsumer,
-		promoteSize: defaultPromoteBy,
+		prefix:      "queue",
+		group:       "queue",
+		consumer:    "worker",
+		promoteSize: 100,
 	}
 	for _, opt := range opts {
 		opt.apply(c)
