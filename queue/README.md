@@ -72,7 +72,8 @@ _, _ = queue.EnqueueFor(ctx, producer, "send_email", SendEmail{UserID: 1, Subjec
 ```
 
 Use `Tasker` and `HandleTasker` when one type should own both enqueueing and
-handling for a task type. This keeps the task type string in one place.
+handling for a task type. This keeps the task type string in one place. Name
+application helpers `Enqueue` when they add tasks to the queue.
 
 ```go
 const sendEmailTaskType = "send_email"
@@ -98,6 +99,8 @@ tasker := &SendEmailTasker{producer: producer}
 worker := queue.NewWorker(q, queue.HandleTasker[SendEmail](tasker))
 _, _ = tasker.Enqueue(ctx, SendEmail{UserID: 1, Subject: "welcome"})
 ```
+
+See [examples/tasker](examples/tasker) for a runnable Tasker example.
 
 ## Retry and Dead Letter
 
