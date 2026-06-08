@@ -9,49 +9,69 @@ const (
 	defaultPromoteBy = 100
 )
 
-// Option configures a Redis queue.
-type Option interface {
-	apply(*Queue)
+type config struct {
+	prefix      string
+	group       string
+	consumer    string
+	promoteSize int
 }
 
-type optionFunc func(*Queue)
+// Option configures a Redis queue.
+type Option interface {
+	apply(*config)
+}
 
-func (f optionFunc) apply(q *Queue) {
-	f(q)
+type optionFunc func(*config)
+
+func (f optionFunc) apply(c *config) {
+	f(c)
 }
 
 // WithPrefix sets the Redis key prefix.
 func WithPrefix(prefix string) Option {
-	return optionFunc(func(q *Queue) {
+	return optionFunc(func(c *config) {
 		if prefix != "" {
-			q.prefix = strings.TrimSuffix(prefix, ":")
+			c.prefix = strings.TrimSuffix(prefix, ":")
 		}
 	})
 }
 
 // WithGroup sets the Redis Streams consumer group name.
 func WithGroup(group string) Option {
-	return optionFunc(func(q *Queue) {
+	return optionFunc(func(c *config) {
 		if group != "" {
-			q.group = group
+			c.group = group
 		}
 	})
 }
 
 // WithConsumer sets the Redis Streams consumer name.
 func WithConsumer(consumer string) Option {
-	return optionFunc(func(q *Queue) {
+	return optionFunc(func(c *config) {
 		if consumer != "" {
-			q.consumer = consumer
+			c.consumer = consumer
 		}
 	})
 }
 
 // WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
 func WithPromoteSize(size int) Option {
-	return optionFunc(func(q *Queue) {
+	return optionFunc(func(c *config) {
 		if size > 0 {
-			q.promoteSize = size
+			c.promoteSize = size
 		}
 	})
+}
+
+func newConfig(opts ...Option) *config {
+	c := &config{
+		prefix:      defaultPrefix,
+		group:       defaultGroup,
+		consumer:    defaultConsumer,
+		promoteSize: defaultPromoteBy,
+	}
+	for _, opt := range opts {
+		opt.apply(c)
+	}
+	return c
 }

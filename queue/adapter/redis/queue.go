@@ -28,15 +28,13 @@ var _ queue.Queue = (*Queue)(nil)
 
 // NewQueue creates a Redis Streams queue.
 func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
+	c := newConfig(opts...)
 	q := &Queue{
 		redis:       redis,
-		prefix:      defaultPrefix,
-		group:       defaultGroup,
-		consumer:    defaultConsumer,
-		promoteSize: defaultPromoteBy,
-	}
-	for _, opt := range opts {
-		opt.apply(q)
+		prefix:      c.prefix,
+		group:       c.group,
+		consumer:    c.consumer,
+		promoteSize: c.promoteSize,
 	}
 	return q
 }
