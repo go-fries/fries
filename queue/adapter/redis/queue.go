@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -252,10 +253,39 @@ func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout
 	if err != nil {
 		return nil, err
 	}
-	return q.leaseFromMessage(messages[0])
+	return q.leaseFromClaimedMessage(ctx, name, messages[0])
 }
 
 func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) {
+	return q.leaseFromMessageWithDeliveryCount(message, 0)
+}
+
+func (q *Queue) leaseFromClaimedMessage(ctx context.Context, name string, message goredis.XMessage) (queue.Lease, error) {
+	deliveryCount, err := q.deliveryCount(ctx, name, message.ID)
+	if err != nil {
+		return nil, err
+	}
+	return q.leaseFromMessageWithDeliveryCount(message, deliveryCount)
+}
+
+func (q *Queue) deliveryCount(ctx context.Context, name, messageID string) (int64, error) {
+	pending, err := q.redis.XPendingExt(ctx, &goredis.XPendingExtArgs{
+		Stream: q.streamKey(name),
+		Group:  q.group,
+		Start:  messageID,
+		End:    messageID,
+		Count:  1,
+	}).Result()
+	if errors.Is(err, goredis.Nil) || len(pending) == 0 {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return pending[0].RetryCount, nil
+}
+
+func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deliveryCount int64) (queue.Lease, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
 		return nil, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField)
@@ -275,11 +305,29 @@ func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) 
 	if err := json.Unmarshal(data, &task); err != nil {
 		return nil, err
 	}
-	task.Attempt++
+	task.Attempt = attemptWithDeliveryCount(task.Attempt, deliveryCount)
 	return &redisLease{
 		task:     &task,
 		streamID: message.ID,
 	}, nil
+}
+
+func attemptWithDeliveryCount(baseAttempt int, deliveryCount int64) int {
+	if deliveryCount <= 0 {
+		if baseAttempt == math.MaxInt {
+			return math.MaxInt
+		}
+		return baseAttempt + 1
+	}
+
+	if baseAttempt >= math.MaxInt {
+		return math.MaxInt
+	}
+	maxRemaining := math.MaxInt - baseAttempt
+	if deliveryCount > int64(maxRemaining) {
+		return math.MaxInt
+	}
+	return baseAttempt + int(deliveryCount)
 }
 
 func (q *Queue) addToStream(ctx context.Context, name string, data []byte) error {

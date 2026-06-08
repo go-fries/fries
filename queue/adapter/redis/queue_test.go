@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -65,6 +66,71 @@ func TestQueue_LeaseFromMessageAcceptsBytes(t *testing.T) {
 	require.NotNil(t, lease.Task())
 	assert.Equal(t, "task-1", lease.Task().ID)
 	assert.Equal(t, 1, lease.Task().Attempt)
+}
+
+func TestQueue_LeaseFromMessageWithDeliveryCount(t *testing.T) {
+	t.Parallel()
+
+	q := NewQueue(nil)
+	data, err := json.Marshal(&queue.Task{ID: "task-1", Type: "send_email", Attempt: 1})
+	require.NoError(t, err)
+
+	lease, err := q.leaseFromMessageWithDeliveryCount(goredis.XMessage{
+		ID: "1-0",
+		Values: map[string]any{
+			taskField: data,
+		},
+	}, 2)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, 3, lease.Task().Attempt)
+}
+
+func TestAttemptWithDeliveryCount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		baseAttempt   int
+		deliveryCount int64
+		want          int
+	}{
+		{
+			name:          "increments when delivery count is unavailable",
+			baseAttempt:   1,
+			deliveryCount: 0,
+			want:          2,
+		},
+		{
+			name:          "adds redis delivery count to stored attempt",
+			baseAttempt:   1,
+			deliveryCount: 2,
+			want:          3,
+		},
+		{
+			name:          "saturates unavailable delivery count",
+			baseAttempt:   math.MaxInt,
+			deliveryCount: 0,
+			want:          math.MaxInt,
+		},
+		{
+			name:          "saturates large delivery count",
+			baseAttempt:   math.MaxInt - 1,
+			deliveryCount: 2,
+			want:          math.MaxInt,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := attemptWithDeliveryCount(tt.baseAttempt, tt.deliveryCount)
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestQueue_LeaseFromMessageErrors(t *testing.T) {
@@ -230,6 +296,91 @@ func TestQueue_RetryReenqueuesAndAcksLease(t *testing.T) {
 	assert.Equal(t, 2, lease.Task().Attempt)
 }
 
+func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
+	t.Parallel()
+
+	q, client := newRedisTestQueue(t)
+	ctx := t.Context()
+
+	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
+	require.NoError(t, err)
+
+	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, 1, lease.Task().Attempt)
+
+	messages, err := client.XRange(ctx, q.streamKey("critical"), "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, messages, 1)
+	stored := taskFromMessage(t, messages[0])
+	assert.Equal(t, 0, stored.Attempt)
+
+	var claimed queue.Lease
+	require.Eventually(t, func() bool {
+		got, err := q.Dequeue(ctx, "critical", time.Millisecond)
+		if errors.Is(err, queue.ErrNoTask) {
+			return false
+		}
+		require.NoError(t, err)
+		claimed = got
+		return true
+	}, time.Second, 10*time.Millisecond)
+
+	require.NotNil(t, claimed)
+	require.NotNil(t, claimed.Task())
+	assert.Equal(t, "send_email", claimed.Task().Type)
+	assert.Equal(t, 2, claimed.Task().Attempt)
+	require.NoError(t, q.Ack(ctx, claimed))
+}
+
+func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
+	t.Parallel()
+
+	q, client := newRedisTestQueue(t)
+	ctx := t.Context()
+
+	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"))
+	require.NoError(t, err)
+
+	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	require.Equal(t, 1, lease.Task().Attempt)
+	require.NoError(t, q.Retry(ctx, lease, 0))
+
+	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	require.NotNil(t, lease.Task())
+	assert.Equal(t, 2, lease.Task().Attempt)
+
+	messages, err := client.XRange(ctx, q.streamKey("critical"), "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, messages, 2)
+	stored := taskFromMessage(t, messages[1])
+	assert.Equal(t, 1, stored.Attempt)
+
+	var claimed queue.Lease
+	require.Eventually(t, func() bool {
+		got, err := q.Dequeue(ctx, "critical", time.Millisecond)
+		if errors.Is(err, queue.ErrNoTask) {
+			return false
+		}
+		require.NoError(t, err)
+		claimed = got
+		return true
+	}, time.Second, 10*time.Millisecond)
+
+	require.NotNil(t, claimed)
+	require.NotNil(t, claimed.Task())
+	assert.Equal(t, "send_email", claimed.Task().Type)
+	assert.Equal(t, 3, claimed.Task().Attempt)
+	require.NoError(t, q.Ack(ctx, claimed))
+}
+
 func TestQueue_DeadLetterWritesReasonAndAcksLease(t *testing.T) {
 	t.Parallel()
 
@@ -319,4 +470,25 @@ func newRedisTestQueue(t *testing.T) (*Queue, *goredis.Client) {
 func sanitizeRedisKey(name string) string {
 	replacer := strings.NewReplacer("/", "-", " ", "-", ":", "-")
 	return replacer.Replace(name)
+}
+
+func taskFromMessage(t *testing.T, message goredis.XMessage) queue.Task {
+	t.Helper()
+
+	value, ok := message.Values[taskField]
+	require.True(t, ok)
+
+	var data []byte
+	switch v := value.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		require.Failf(t, "unsupported task field", "%T", value)
+	}
+
+	var task queue.Task
+	require.NoError(t, json.Unmarshal(data, &task))
+	return task
 }
