@@ -56,6 +56,12 @@ func (t *SendEmailTasker) Handle(ctx context.Context, task *queue.TaskFor[SendEm
 }
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -73,13 +79,11 @@ func main() {
 	}()
 
 	if _, err := tasker.Enqueue(ctx, 42, "welcome"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
 	cancel()
-	if err := <-errs; err != nil {
-		log.Fatal(err)
-	}
+	return <-errs
 }
