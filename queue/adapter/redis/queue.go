@@ -247,11 +247,14 @@ func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout
 		Start:    "0-0",
 		Count:    1,
 	}).Result()
-	if errors.Is(err, goredis.Nil) || len(messages) == 0 {
+	if errors.Is(err, goredis.Nil) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if len(messages) == 0 {
+		return nil, nil
 	}
 	return q.leaseFromClaimedMessage(ctx, name, messages[0])
 }
@@ -276,11 +279,14 @@ func (q *Queue) deliveryCount(ctx context.Context, name, messageID string) (int6
 		End:    messageID,
 		Count:  1,
 	}).Result()
-	if errors.Is(err, goredis.Nil) || len(pending) == 0 {
+	if errors.Is(err, goredis.Nil) {
 		return 0, nil
 	}
 	if err != nil {
 		return 0, err
+	}
+	if len(pending) == 0 {
+		return 0, nil
 	}
 	return pending[0].RetryCount, nil
 }
@@ -313,6 +319,9 @@ func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deli
 }
 
 func attemptWithDeliveryCount(baseAttempt int, deliveryCount int64) int {
+	if baseAttempt < 0 {
+		baseAttempt = 0
+	}
 	if deliveryCount <= 0 {
 		if baseAttempt == math.MaxInt {
 			return math.MaxInt

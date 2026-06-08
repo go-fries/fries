@@ -17,6 +17,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type redisClientStub struct {
+	goredis.UniversalClient
+
+	xAutoClaimMessages []goredis.XMessage
+	xAutoClaimErr      error
+	xPendingExt        []goredis.XPendingExt
+	xPendingExtErr     error
+}
+
+func (c *redisClientStub) XAutoClaim(ctx context.Context, _ *goredis.XAutoClaimArgs) *goredis.XAutoClaimCmd {
+	cmd := goredis.NewXAutoClaimCmd(ctx)
+	cmd.SetVal(c.xAutoClaimMessages, "0-0")
+	cmd.SetErr(c.xAutoClaimErr)
+	return cmd
+}
+
+func (c *redisClientStub) XPendingExt(ctx context.Context, _ *goredis.XPendingExtArgs) *goredis.XPendingExtCmd {
+	cmd := goredis.NewXPendingExtCmd(ctx)
+	cmd.SetVal(c.xPendingExt)
+	cmd.SetErr(c.xPendingExtErr)
+	return cmd
+}
+
 func TestQueue_LeaseFromMessage(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +143,18 @@ func TestAttemptWithDeliveryCount(t *testing.T) {
 			deliveryCount: 2,
 			want:          math.MaxInt,
 		},
+		{
+			name:          "normalizes negative stored attempt",
+			baseAttempt:   -1,
+			deliveryCount: 2,
+			want:          2,
+		},
+		{
+			name:          "normalizes negative stored attempt without delivery count",
+			baseAttempt:   -1,
+			deliveryCount: 0,
+			want:          1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -131,6 +166,28 @@ func TestAttemptWithDeliveryCount(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestQueue_ClaimPendingReturnsXAutoClaimError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("xautoclaim failed")
+	q := NewQueue(&redisClientStub{xAutoClaimErr: wantErr})
+
+	_, err := q.claimPending(t.Context(), "critical", time.Second)
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestQueue_DeliveryCountReturnsXPendingExtError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("xpending failed")
+	q := NewQueue(&redisClientStub{xPendingExtErr: wantErr})
+
+	_, err := q.deliveryCount(t.Context(), "critical", "1-0")
+
+	require.ErrorIs(t, err, wantErr)
 }
 
 func TestQueue_LeaseFromMessageErrors(t *testing.T) {
