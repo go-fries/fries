@@ -33,7 +33,7 @@ type publishCall struct {
 type fakeChannel struct {
 	declareErr error
 	publishErr error
-	getErr     error
+	consumeErr error
 	closeErr   error
 	deliveries []amqp.Delivery
 	declares   []declareCall
@@ -81,16 +81,24 @@ func (c *fakeChannel) PublishWithContext(
 	return c.publishErr
 }
 
-func (c *fakeChannel) Get(string, bool) (amqp.Delivery, bool, error) {
-	if c.getErr != nil {
-		return amqp.Delivery{}, false, c.getErr
+func (c *fakeChannel) Consume(
+	string,
+	string,
+	bool,
+	bool,
+	bool,
+	bool,
+	amqp.Table,
+) (<-chan amqp.Delivery, error) {
+	if c.consumeErr != nil {
+		return nil, c.consumeErr
 	}
-	if len(c.deliveries) == 0 {
-		return amqp.Delivery{}, false, nil
+	deliveries := make(chan amqp.Delivery, len(c.deliveries))
+	for _, delivery := range c.deliveries {
+		deliveries <- delivery
 	}
-	delivery := c.deliveries[0]
-	c.deliveries = c.deliveries[1:]
-	return delivery, true, nil
+	close(deliveries)
+	return deliveries, nil
 }
 
 func (c *fakeChannel) Close() error {
@@ -227,22 +235,26 @@ func TestQueue_EnqueuePublishesDelayedTask(t *testing.T) {
 	assert.Equal(t, 1, ch.closed)
 }
 
-func TestQueue_DequeueReturnsNoTask(t *testing.T) {
+func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
 	t.Parallel()
 
 	ch := &fakeChannel{}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
 
-	lease, err := q.Dequeue(t.Context(), "")
+	consumer, err := q.NewConsumer(t.Context(), "")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
 
-	require.ErrorIs(t, err, queue.ErrNoTask)
-	assert.Nil(t, lease)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, delivery)
 	require.Len(t, ch.declares, 1)
 	assert.Equal(t, "default", ch.declares[0].name)
-	assert.Equal(t, 1, ch.closed)
 }
 
-func TestQueue_DequeueDecodesTaskAndAck(t *testing.T) {
+func TestQueue_ReceiveDecodesTaskAndAck(t *testing.T) {
 	t.Parallel()
 
 	task := &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails", Attempt: 2}
@@ -258,17 +270,22 @@ func TestQueue_DequeueDecodesTaskAndAck(t *testing.T) {
 	}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefix("app"))
 
-	lease, err := q.Dequeue(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), "emails")
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	assert.Equal(t, 3, lease.Task().Attempt)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, 3, delivery.Task().Attempt)
 
-	require.NoError(t, q.Ack(t.Context(), lease))
+	require.NoError(t, delivery.Ack(t.Context()))
 	assert.Equal(t, []uint64{42}, ack.acks)
-	assert.Equal(t, 1, ch.closed)
+	assert.Zero(t, ch.closed)
 }
 
-func TestQueue_DequeueRejectsMalformedDelivery(t *testing.T) {
+func TestQueue_ReceiveRejectsMalformedDelivery(t *testing.T) {
 	t.Parallel()
 
 	ack := &fakeAcknowledger{}
@@ -281,13 +298,17 @@ func TestQueue_DequeueRejectsMalformedDelivery(t *testing.T) {
 	}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
 
-	lease, err := q.Dequeue(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
 
 	require.Error(t, err)
-	assert.Nil(t, lease)
+	assert.Nil(t, delivery)
 	assert.Empty(t, ack.acks)
 	assert.Equal(t, []rejectCall{{tag: 43, requeue: false}}, ack.rejects)
-	assert.Equal(t, 1, ch.closed)
 }
 
 func TestQueue_RetryPublishesDelayedTaskAndAcksOriginal(t *testing.T) {
@@ -295,19 +316,18 @@ func TestQueue_RetryPublishesDelayedTaskAndAcksOriginal(t *testing.T) {
 
 	ack := &fakeAcknowledger{}
 	ch := &fakeChannel{}
-	leaseCh := &fakeChannel{}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
-	lease := &rabbitLease{
+	delivery := &delivery{
+		queue: q,
 		task: &queue.Task{
 			ID:    "task-1",
 			Type:  "send_email",
 			Queue: "emails",
 		},
 		delivery: amqp.Delivery{DeliveryTag: 7, Acknowledger: ack},
-		closer:   leaseCh,
 	}
 
-	err := q.Retry(t.Context(), lease, 2*time.Second)
+	err := delivery.Retry(t.Context(), 2*time.Second)
 	require.NoError(t, err)
 
 	require.Len(t, ch.declares, 2)
@@ -318,7 +338,6 @@ func TestQueue_RetryPublishesDelayedTaskAndAcksOriginal(t *testing.T) {
 	assert.Equal(t, "emails.delay.2000", ch.publishes[0].key)
 	assert.Equal(t, []uint64{7}, ack.acks)
 	assert.Equal(t, 1, ch.closed)
-	assert.Equal(t, 1, leaseCh.closed)
 }
 
 func TestQueue_DeadLetterPublishesReasonAndAcksOriginal(t *testing.T) {
@@ -326,19 +345,18 @@ func TestQueue_DeadLetterPublishesReasonAndAcksOriginal(t *testing.T) {
 
 	ack := &fakeAcknowledger{}
 	ch := &fakeChannel{}
-	leaseCh := &fakeChannel{}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
-	lease := &rabbitLease{
+	delivery := &delivery{
+		queue: q,
 		task: &queue.Task{
 			ID:    "task-1",
 			Type:  "send_email",
 			Queue: "emails",
 		},
 		delivery: amqp.Delivery{DeliveryTag: 8, Acknowledger: ack},
-		closer:   leaseCh,
 	}
 
-	err := q.DeadLetter(t.Context(), lease, "retry exhausted")
+	err := delivery.DeadLetter(t.Context(), "retry exhausted")
 	require.NoError(t, err)
 
 	require.Len(t, ch.declares, 1)
@@ -352,29 +370,24 @@ func TestQueue_DeadLetterPublishesReasonAndAcksOriginal(t *testing.T) {
 	require.NoError(t, json.Unmarshal(ch.publishes[0].msg.Body, &stored))
 	assert.Equal(t, "retry exhausted", stored.Metadata[deadReasonKey])
 	assert.Equal(t, 1, ch.closed)
-	assert.Equal(t, 1, leaseCh.closed)
 }
 
-func TestQueue_AckWithCanceledContextClosesLease(t *testing.T) {
+func TestQueue_AckWithCanceledContextDoesNotAck(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	ack := &fakeAcknowledger{}
-	leaseCh := &fakeChannel{}
-	q := newTestQueue(&fakeChannelOpener{})
-	lease := &rabbitLease{
+	delivery := &delivery{
 		task:     &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"},
 		delivery: amqp.Delivery{DeliveryTag: 9, Acknowledger: ack},
-		closer:   leaseCh,
 	}
 
-	err := q.Ack(ctx, lease)
+	err := delivery.Ack(ctx)
 
 	require.ErrorIs(t, err, context.Canceled)
 	assert.Empty(t, ack.acks)
-	assert.Equal(t, 1, leaseCh.closed)
 }
 
 func TestQueue_NilChannelReturnsError(t *testing.T) {

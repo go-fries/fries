@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,14 +29,14 @@ func TestProducer_EnqueueCopiesTaskData(t *testing.T) {
 	payload[0] = 'x'
 	metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, DefaultQueue)
+	delivery, err := q.Receive(ctx, DefaultQueue)
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task())
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
 
 	assert.Equal(t, "task-1", task.ID)
-	assert.Equal(t, "hello", string(lease.Task().Payload))
-	assert.Equal(t, "1", lease.Task().Metadata["trace"])
+	assert.Equal(t, "hello", string(delivery.Task().Payload))
+	assert.Equal(t, "1", delivery.Task().Metadata["trace"])
 }
 
 func TestProducer_RejectsEmptyTaskType(t *testing.T) {
@@ -84,8 +85,10 @@ func TestProducer_EnqueueSetsDefaultsAndOptions(t *testing.T) {
 	assert.Equal(t, time.UTC, task.AvailableAt.Location())
 	assert.GreaterOrEqual(t, task.AvailableAt.Sub(task.CreatedAt), 20*time.Millisecond)
 
-	_, err = q.Dequeue(ctx, DefaultQueue)
-	require.ErrorIs(t, err, ErrNoTask)
+	receiveCtx, cancel := context.WithTimeout(ctx, time.Millisecond)
+	defer cancel()
+	_, err = q.Receive(receiveCtx, DefaultQueue)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestProducer_OptionsIgnoreEmptyOrInvalidValues(t *testing.T) {

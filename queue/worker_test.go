@@ -18,20 +18,8 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) Dequeue(context.Context, string) (Lease, error) {
+func (q dequeueErrorQueue) NewConsumer(context.Context, string) (Consumer, error) {
 	return nil, q.err
-}
-
-func (q dequeueErrorQueue) Ack(context.Context, Lease) error {
-	return nil
-}
-
-func (q dequeueErrorQueue) Retry(context.Context, Lease, time.Duration) error {
-	return nil
-}
-
-func (q dequeueErrorQueue) DeadLetter(context.Context, Lease, string) error {
-	return nil
 }
 
 func TestWorker_ConfigDefaults(t *testing.T) {
@@ -40,7 +28,6 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	config := newWorkerConfig(
 		WithWorkerQueue(""),
 		WithConcurrency(0),
-		WithPollInterval(0),
 		WithHandlerTimeout(0),
 		WithRetryPolicy(nil),
 		WithMiddleware(),
@@ -50,7 +37,6 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 
 	assert.Equal(t, DefaultQueue, config.queue)
 	assert.Equal(t, 1, config.concurrency)
-	assert.Equal(t, time.Second, config.pollInterval)
 	assert.Zero(t, config.handlerTimeout)
 	assert.NotNil(t, config.retryPolicy)
 	assert.Empty(t, config.middleware)
@@ -67,7 +53,6 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	config := newWorkerConfig(
 		WithWorkerQueue("critical"),
 		WithConcurrency(4),
-		WithPollInterval(10*time.Millisecond),
 		WithHandlerTimeout(time.Second),
 		WithRetryPolicy(retryPolicy),
 		WithMiddleware(middleware),
@@ -76,7 +61,6 @@ func TestWorker_ConfigOptions(t *testing.T) {
 
 	assert.Equal(t, "critical", config.queue)
 	assert.Equal(t, 4, config.concurrency)
-	assert.Equal(t, 10*time.Millisecond, config.pollInterval)
 	assert.Equal(t, time.Second, config.handlerTimeout)
 	assert.Equal(t, retryPolicy, config.retryPolicy)
 	assert.Len(t, config.middleware, 1)
@@ -97,7 +81,6 @@ func TestWorker_ProcessesAndAcksTask(t *testing.T) {
 			handled <- task.Clone()
 			return nil
 		})),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -118,8 +101,7 @@ func TestWorker_ProcessesAndAcksTask(t *testing.T) {
 	cancel()
 	require.NoError(t, <-errs)
 
-	_, err = q.Dequeue(t.Context(), DefaultQueue)
-	require.ErrorIs(t, err, ErrNoTask)
+	require.Empty(t, q.queues[DefaultQueue])
 }
 
 func TestWorker_RetriesThenDeadLetters(t *testing.T) {
@@ -136,7 +118,6 @@ func TestWorker_RetriesThenDeadLetters(t *testing.T) {
 			seen <- task.Attempt
 			return errors.New("temporary failure")
 		})),
-		WithPollInterval(time.Millisecond),
 		WithRetryPolicy(FixedRetry(2, 0)),
 	)
 
@@ -189,7 +170,6 @@ func TestWorker_ConsumesConfiguredQueue(t *testing.T) {
 			return nil
 		})),
 		WithWorkerQueue("critical"),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -250,13 +230,13 @@ func TestWorker_DeadLettersTaskWithoutHandler(t *testing.T) {
 
 	q := newTestQueue()
 	worker := NewWorker(q)
-	lease := NewLease(&Task{
+	delivery := &testDelivery{queue: q, task: &Task{
 		ID:    "task-1",
 		Type:  "unknown",
 		Queue: DefaultQueue,
-	})
+	}}
 
-	err := worker.process(t.Context(), lease)
+	err := worker.process(t.Context(), delivery)
 	require.NoError(t, err)
 
 	deadLetters := q.DeadLetters(DefaultQueue)
@@ -297,7 +277,6 @@ func TestWorker_StopDrainsInFlightTask(t *testing.T) {
 				return ctx.Err()
 			}
 		})),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -350,7 +329,6 @@ func TestWorker_StopCancelsInFlightTaskAfterContextDeadline(t *testing.T) {
 			handlerDone <- err
 			return err
 		})),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)

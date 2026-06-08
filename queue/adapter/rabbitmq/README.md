@@ -49,9 +49,13 @@ stores queue `emails` as `app.emails`.
 
 Delayed tasks are stored in RabbitMQ TTL queues that dead-letter back to the
 ready queue after the delay, so the adapter does not require the RabbitMQ
-delayed message exchange plugin. RabbitMQ re-delivers unacknowledged tasks when
-the channel or connection closes.
+delayed message exchange plugin. The current implementation creates one delay
+queue per queue name and delay value, for example `emails.delay.1500`, so prefer
+bounded retry delays in production workloads. RabbitMQ re-delivers unacknowledged
+tasks when the channel or connection closes.
 
-The adapter opens AMQP channels internally for queue operations. RabbitMQ
-channels are not safe to share between goroutines, so applications should share
-the connection and let the adapter manage per-operation channels.
+The adapter opens AMQP channels internally. Producers use short-lived channels
+for publish operations, and each consumer owns one channel for receiving and
+acknowledging deliveries. RabbitMQ channels are not safe to share between
+goroutines, so applications should share the connection and let the adapter
+manage channels.

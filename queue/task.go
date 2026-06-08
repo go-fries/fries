@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"maps"
 	"time"
 )
@@ -65,27 +66,54 @@ func (t *Task) Clone() *Task {
 	return &cloned
 }
 
-// Lease represents one delivery attempt of a task.
-//
-// Queue implementations may attach backend-specific acknowledgement state to a
-// lease. That delivery state is intentionally separate from Task.Metadata.
-type Lease interface {
-	// Task returns the delivered task envelope.
-	Task() *Task
+// Consumer receives task deliveries from a queue.
+type Consumer interface {
+	// Receive blocks until a delivery is available or ctx is canceled.
+	Receive(ctx context.Context) (Delivery, error)
+	// Close stops the consumer and releases backend resources.
+	Close() error
 }
 
-type taskLease struct {
+// Delivery represents one delivery attempt of a task.
+//
+// Queue implementations may attach backend-specific acknowledgement state to a
+// delivery. That delivery state is intentionally separate from Task.Metadata.
+type Delivery interface {
+	// Task returns the delivered task envelope.
+	Task() *Task
+	// Ack marks the delivery as successfully processed.
+	Ack(ctx context.Context) error
+	// Retry releases the delivery for another attempt after delay.
+	Retry(ctx context.Context, delay time.Duration) error
+	// DeadLetter moves the delivery out of normal processing with a reason.
+	DeadLetter(ctx context.Context, reason string) error
+}
+
+type noopDelivery struct {
 	task *Task
 }
 
-// NewLease creates a basic lease for queue implementations that do not need extra delivery state.
-func NewLease(task *Task) Lease {
-	return &taskLease{task: task}
+// NewDelivery creates a basic delivery for tests and queue implementations that
+// do not need backend-specific acknowledgement state.
+func NewDelivery(task *Task) Delivery {
+	return &noopDelivery{task: task}
 }
 
-func (l *taskLease) Task() *Task {
-	if l == nil {
+func (d *noopDelivery) Task() *Task {
+	if d == nil {
 		return nil
 	}
-	return l.task
+	return d.task
+}
+
+func (*noopDelivery) Ack(ctx context.Context) error {
+	return ctx.Err()
+}
+
+func (*noopDelivery) Retry(ctx context.Context, _ time.Duration) error {
+	return ctx.Err()
+}
+
+func (*noopDelivery) DeadLetter(ctx context.Context, _ string) error {
+	return ctx.Err()
 }

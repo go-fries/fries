@@ -52,20 +52,20 @@ func TestTask_CloneNil(t *testing.T) {
 	assert.Nil(t, task.Clone())
 }
 
-func TestLease_Task(t *testing.T) {
+func TestDelivery_Task(t *testing.T) {
 	t.Parallel()
 
 	task := &Task{ID: "task-1"}
-	lease := NewLease(task)
+	delivery := NewDelivery(task)
 
-	require.NotNil(t, lease)
-	assert.Same(t, task, lease.Task())
+	require.NotNil(t, delivery)
+	assert.Same(t, task, delivery.Task())
 }
 
-func TestLease_TaskNilReceiver(t *testing.T) {
+func TestDelivery_TaskNilReceiver(t *testing.T) {
 	t.Parallel()
 
-	var lease *taskLease
+	var delivery *noopDelivery
 
-	assert.Nil(t, lease.Task())
+	assert.Nil(t, delivery.Task())
 }

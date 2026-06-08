@@ -51,5 +51,5 @@ and exhausted tasks in a dead-letter stream. Consumer groups are created lazily
 with `XGROUP CREATE ... MKSTREAM`.
 
 `WithClaimMinIdle` controls how long a pending stream message must remain idle
-before `Dequeue` can claim it for redelivery. Set it to `0` to disable pending
-message claims during dequeue.
+before a consumer can claim it for redelivery. Set it to `0` to disable pending
+message claims during receive.

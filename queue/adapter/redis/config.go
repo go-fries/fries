@@ -51,7 +51,7 @@ func WithConsumer(consumer string) Option {
 	})
 }
 
-// WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
+// WithPromoteSize sets the maximum delayed tasks promoted before each receive attempt.
 func WithPromoteSize(size int) Option {
 	return optionFunc(func(c *config) {
 		if size > 0 {
@@ -60,9 +60,9 @@ func WithPromoteSize(size int) Option {
 	})
 }
 
-// WithClaimMinIdle sets how long a pending stream message must remain idle before Dequeue can claim it.
+// WithClaimMinIdle sets how long a pending stream message must remain idle before a consumer can claim it.
 //
-// Set minIdle to 0 to disable pending message claims during Dequeue.
+// Set minIdle to 0 to disable pending message claims during receive.
 func WithClaimMinIdle(minIdle time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if minIdle >= 0 {

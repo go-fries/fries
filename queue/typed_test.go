@@ -66,7 +66,6 @@ func TestHandleForDecodesPayload(t *testing.T) {
 			handled <- task
 			return nil
 		})),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -105,7 +104,6 @@ func TestHandleTaskerRegistersTypedHandler(t *testing.T) {
 	worker := NewWorker(
 		q,
 		HandleTasker[emailPayload](tasker),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -179,7 +177,6 @@ func TestHandleForWithCodecUsesCustomCodec(t *testing.T) {
 			handled <- task.Payload
 			return nil
 		})),
-		WithPollInterval(time.Millisecond),
 	)
 
 	errs := make(chan error, 1)
@@ -286,13 +283,13 @@ func TestTaskProducerEnqueueUsesBoundTaskType(t *testing.T) {
 	assert.Equal(t, "send_email", task.Type)
 	assert.Equal(t, "critical", task.Queue)
 
-	lease, err := q.Dequeue(ctx, "critical")
+	delivery, err := q.Receive(ctx, "critical")
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task())
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
 
 	var decoded emailPayload
-	require.NoError(t, json.Unmarshal(lease.Task().Payload, &decoded))
+	require.NoError(t, json.Unmarshal(delivery.Task().Payload, &decoded))
 	assert.Equal(t, 20, decoded.UserID)
 	assert.Equal(t, "digest", decoded.Subject)
 }

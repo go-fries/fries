@@ -13,6 +13,7 @@ import (
 const (
 	taskField       = "task"
 	deadReasonField = "reason"
+	receiveBlock    = time.Second
 )
 
 // Queue stores and consumes queue tasks with Redis Streams.
@@ -68,25 +69,68 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	return q.addToStream(ctx, task.Queue, data)
 }
 
-// Dequeue returns a task lease from a Redis stream consumer group.
-func (q *Queue) Dequeue(ctx context.Context, name string) (queue.Lease, error) {
+// NewConsumer creates a Redis Streams consumer for name.
+func (q *Queue) NewConsumer(ctx context.Context, name string) (queue.Consumer, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if name == "" {
 		name = queue.DefaultQueue
 	}
 	if err := q.ensureGroup(ctx, name); err != nil {
 		return nil, err
 	}
+
+	consumerCtx, cancel := context.WithCancel(context.Background())
+	return &consumer{
+		queue:  q,
+		name:   name,
+		ctx:    consumerCtx,
+		cancel: cancel,
+	}, nil
+}
+
+type consumer struct {
+	queue  *Queue
+	name   string
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
+	receiveCtx, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(c.ctx, cancel)
+	defer func() {
+		stop()
+		cancel()
+	}()
+
+	for {
+		delivery, err := c.queue.receive(receiveCtx, c.name)
+		if errors.Is(err, queue.ErrNoTask) {
+			continue
+		}
+		return delivery, err
+	}
+}
+
+func (c *consumer) Close() error {
+	c.cancel()
+	return nil
+}
+
+func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error) {
 	if err := q.promoteDue(ctx, name); err != nil {
 		return nil, err
 	}
 
 	if q.claimMinIdle > 0 {
-		lease, err := q.claimPending(ctx, name, q.claimMinIdle)
+		delivery, err := q.claimPending(ctx, name, q.claimMinIdle)
 		if err != nil {
 			return nil, err
 		}
-		if lease != nil {
-			return lease, nil
+		if delivery != nil {
+			return delivery, nil
 		}
 	}
 
@@ -95,7 +139,7 @@ func (q *Queue) Dequeue(ctx context.Context, name string) (queue.Lease, error) {
 		Consumer: q.consumer,
 		Streams:  []string{q.streamKey(name), ">"},
 		Count:    1,
-		Block:    -1,
+		Block:    receiveBlock,
 	}).Result()
 	if errors.Is(err, goredis.Nil) {
 		return nil, queue.ErrNoTask
@@ -108,57 +152,4 @@ func (q *Queue) Dequeue(ctx context.Context, name string) (queue.Lease, error) {
 	}
 
 	return q.leaseFromMessage(streams[0].Messages[0])
-}
-
-// Ack acknowledges a leased stream message.
-func (q *Queue) Ack(ctx context.Context, lease queue.Lease) error {
-	l, ok := lease.(*redisLease)
-	if !ok || l == nil || l.task == nil || l.streamID == "" {
-		return nil
-	}
-	return q.redis.XAck(ctx, q.streamKey(l.task.Queue), q.group, l.streamID).Err()
-}
-
-// Retry re-enqueues a leased task and acknowledges the original stream message.
-func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duration) error {
-	if lease == nil {
-		return nil
-	}
-	task := lease.Task()
-	if task == nil {
-		return nil
-	}
-
-	task = task.Clone()
-	task.AvailableAt = time.Now().UTC().Add(delay)
-	if err := q.Enqueue(ctx, task); err != nil {
-		return err
-	}
-	return q.Ack(ctx, lease)
-}
-
-// DeadLetter writes a leased task to the dead-letter stream and acknowledges the original message.
-func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string) error {
-	if lease == nil {
-		return nil
-	}
-	task := lease.Task()
-	if task == nil {
-		return nil
-	}
-
-	data, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-	if err := q.redis.XAdd(ctx, &goredis.XAddArgs{
-		Stream: q.deadLetterKey(task.Queue),
-		Values: map[string]any{
-			taskField:       data,
-			deadReasonField: reason,
-		},
-	}).Err(); err != nil {
-		return err
-	}
-	return q.Ack(ctx, lease)
 }

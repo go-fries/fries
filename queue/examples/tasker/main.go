@@ -70,7 +70,6 @@ func run() error {
 	worker := queue.NewWorker(
 		q,
 		queue.HandleTasker[SendEmail](tasker),
-		queue.WithPollInterval(10*time.Millisecond),
 	)
 
 	errs := make(chan error, 1)

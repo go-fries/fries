@@ -22,7 +22,7 @@ var (
 type channel interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
-	Get(queue string, autoAck bool) (amqp.Delivery, bool, error)
+	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
 	Close() error
 }
 
@@ -77,8 +77,8 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	return q.publishTask(ctx, task, delayFromAvailableAt(time.Now().UTC(), task.AvailableAt))
 }
 
-// Dequeue returns one available task lease from queueName.
-func (q *Queue) Dequeue(ctx context.Context, queueName string) (queue.Lease, error) {
+// NewConsumer creates a RabbitMQ consumer for queueName.
+func (q *Queue) NewConsumer(ctx context.Context, queueName string) (queue.Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -95,94 +95,16 @@ func (q *Queue) Dequeue(ctx context.Context, queueName string) (queue.Lease, err
 		return nil, err
 	}
 
-	delivery, ok, err := ch.Get(q.readyQueueName(queueName), false)
+	deliveries, err := ch.Consume(q.readyQueueName(queueName), "", false, false, false, false, nil)
 	if err != nil {
 		_ = ch.Close()
 		return nil, err
 	}
-	if !ok {
-		_ = ch.Close()
-		return nil, queue.ErrNoTask
-	}
-
-	lease, err := leaseFromDelivery(delivery, ch)
-	if err != nil {
-		_ = delivery.Reject(false)
-		_ = ch.Close()
-		return nil, err
-	}
-	return lease, nil
-}
-
-// Ack acknowledges a leased RabbitMQ delivery.
-func (q *Queue) Ack(ctx context.Context, lease queue.Lease) error {
-	if err := ctx.Err(); err != nil {
-		closeLease(lease)
-		return err
-	}
-	l, ok := lease.(*rabbitLease)
-	if !ok || l == nil || l.task == nil {
-		return nil
-	}
-	err := l.delivery.Ack(false)
-	closeErr := l.close()
-	if err != nil {
-		return err
-	}
-	return closeErr
-}
-
-// Retry republishes a leased task after delay and acknowledges the original delivery.
-func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duration) error {
-	if err := ctx.Err(); err != nil {
-		closeLease(lease)
-		return err
-	}
-	if lease == nil || lease.Task() == nil {
-		return nil
-	}
-
-	task := lease.Task().Clone()
-	task.AvailableAt = time.Now().UTC().Add(delay)
-	if err := q.publishTask(ctx, task, delay); err != nil {
-		closeLease(lease)
-		return err
-	}
-	return q.Ack(ctx, lease)
-}
-
-// DeadLetter publishes a leased task to the dead-letter queue and acknowledges the original delivery.
-func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string) error {
-	if err := ctx.Err(); err != nil {
-		closeLease(lease)
-		return err
-	}
-	if lease == nil || lease.Task() == nil {
-		return nil
-	}
-
-	task := lease.Task().Clone()
-	if task.Metadata == nil {
-		task.Metadata = make(map[string]string)
-	}
-	task.Metadata[deadReasonKey] = reason
-
-	msg, err := publishingFromTask(task)
-	if err != nil {
-		return err
-	}
-	msg.Headers = amqp.Table{deadReasonKey: reason}
-	err = q.withChannel(ctx, func(ch channel) error {
-		if err := q.ensureDeadLetterQueue(ch, task.Queue); err != nil {
-			return err
-		}
-		return ch.PublishWithContext(ctx, defaultExchange, q.deadLetterQueueName(task.Queue), false, false, msg)
-	})
-	if err != nil {
-		closeLease(lease)
-		return err
-	}
-	return q.Ack(ctx, lease)
+	return &consumer{
+		queue:      q,
+		channel:    ch,
+		deliveries: deliveries,
+	}, nil
 }
 
 func (q *Queue) publishTask(ctx context.Context, task *queue.Task, delay time.Duration) error {
