@@ -22,6 +22,8 @@ type redisClientStub struct {
 
 	xAutoClaimMessages []goredis.XMessage
 	xAutoClaimErr      error
+	xClaimMessages     []goredis.XMessage
+	xClaimErr          error
 	xPendingExt        []goredis.XPendingExt
 	xPendingExtErr     error
 }
@@ -30,6 +32,13 @@ func (c *redisClientStub) XAutoClaim(ctx context.Context, _ *goredis.XAutoClaimA
 	cmd := goredis.NewXAutoClaimCmd(ctx)
 	cmd.SetVal(c.xAutoClaimMessages, "0-0")
 	cmd.SetErr(c.xAutoClaimErr)
+	return cmd
+}
+
+func (c *redisClientStub) XClaim(ctx context.Context, _ *goredis.XClaimArgs) *goredis.XMessageSliceCmd {
+	cmd := goredis.NewXMessageSliceCmd(ctx)
+	cmd.SetVal(c.xClaimMessages)
+	cmd.SetErr(c.xClaimErr)
 	return cmd
 }
 
@@ -173,6 +182,51 @@ func TestQueue_ClaimPendingReturnsXAutoClaimError(t *testing.T) {
 
 	wantErr := errors.New("xautoclaim failed")
 	q := NewQueue(&redisClientStub{xAutoClaimErr: wantErr})
+
+	_, err := q.claimPending(t.Context(), "critical", time.Second)
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestQueue_ClaimPendingFallsBackToXClaim(t *testing.T) {
+	t.Parallel()
+
+	data, err := json.Marshal(&queue.Task{ID: "task-1", Type: "send_email"})
+	require.NoError(t, err)
+	client := &redisClientStub{
+		xPendingExt: []goredis.XPendingExt{
+			{ID: "1-0", Idle: time.Second, RetryCount: 2},
+		},
+		xClaimMessages: []goredis.XMessage{
+			{
+				ID: "1-0",
+				Values: map[string]any{
+					taskField: string(data),
+				},
+			},
+		},
+	}
+	q := NewQueue(client)
+
+	delivery, err := q.claimPending(t.Context(), "critical", time.Second)
+
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
+	assert.Equal(t, "task-1", delivery.Task().ID)
+	assert.Equal(t, 2, delivery.Task().Attempt)
+}
+
+func TestQueue_ClaimPendingReturnsXClaimError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("xclaim failed")
+	q := NewQueue(&redisClientStub{
+		xPendingExt: []goredis.XPendingExt{
+			{ID: "1-0", Idle: time.Second},
+		},
+		xClaimErr: wantErr,
+	})
 
 	_, err := q.claimPending(t.Context(), "critical", time.Second)
 
@@ -378,8 +432,9 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 	assert.Equal(t, 0, stored.Attempt)
 
 	var claimed queue.Delivery
+	claimer := q.withConsumer("worker-2")
 	require.Eventually(t, func() bool {
-		got, err := receiveCriticalWithTimeout(ctx, q, 20*time.Millisecond)
+		got, err := receiveCriticalWithTimeout(ctx, claimer, 50*time.Millisecond)
 		if errors.Is(err, context.DeadlineExceeded) {
 			return false
 		}
@@ -424,8 +479,9 @@ func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 	assert.Equal(t, 1, stored.Attempt)
 
 	var claimed queue.Delivery
+	claimer := q.withConsumer("worker-2")
 	require.Eventually(t, func() bool {
-		got, err := receiveCriticalWithTimeout(ctx, q, 20*time.Millisecond)
+		got, err := receiveCriticalWithTimeout(ctx, claimer, 50*time.Millisecond)
 		if errors.Is(err, context.DeadlineExceeded) {
 			return false
 		}
@@ -505,6 +561,12 @@ func receiveCriticalWithTimeout(ctx context.Context, q *Queue, timeout time.Dura
 	receiveCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	return receive(receiveCtx, q, "critical")
+}
+
+func (q *Queue) withConsumer(consumer string) *Queue {
+	clone := *q
+	clone.consumer = consumer
+	return &clone
 }
 
 func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {

@@ -28,6 +28,44 @@ func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Dura
 		return nil, err
 	}
 	if len(messages) == 0 {
+		return q.claimPendingWithXClaim(ctx, name, minIdle)
+	}
+	return q.leaseFromClaimedMessage(ctx, name, messages[0])
+}
+
+func (q *Queue) claimPendingWithXClaim(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
+	pending, err := q.redis.XPendingExt(ctx, &goredis.XPendingExtArgs{
+		Stream: q.streamKey(name),
+		Group:  q.group,
+		Idle:   minIdle,
+		Start:  "-",
+		End:    "+",
+		Count:  1,
+	}).Result()
+	if errors.Is(err, goredis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(pending) == 0 {
+		return nil, nil
+	}
+
+	messages, err := q.redis.XClaim(ctx, &goredis.XClaimArgs{
+		Stream:   q.streamKey(name),
+		Group:    q.group,
+		Consumer: q.consumer,
+		MinIdle:  minIdle,
+		Messages: []string{pending[0].ID},
+	}).Result()
+	if errors.Is(err, goredis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(messages) == 0 {
 		return nil, nil
 	}
 	return q.leaseFromClaimedMessage(ctx, name, messages[0])
