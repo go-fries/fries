@@ -13,18 +13,24 @@ import (
 
 const defaultExchange = ""
 
-var errNilChannel = errors.New("queue/adapter/rabbitmq: channel is nil")
+var (
+	errNilConnection    = errors.New("queue/adapter/rabbitmq: connection is nil")
+	errNilChannelOpener = errors.New("queue/adapter/rabbitmq: channel opener is nil")
+	errNilChannel       = errors.New("queue/adapter/rabbitmq: channel is nil")
+)
 
-// Channel is the subset of an AMQP 0.9.1 channel used by Queue.
-type Channel interface {
+type channel interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	Get(queue string, autoAck bool) (amqp.Delivery, bool, error)
+	Close() error
 }
+
+type channelOpener func(ctx context.Context) (channel, error)
 
 // Queue stores and consumes queue tasks with RabbitMQ.
 type Queue struct {
-	channel       Channel
+	opener        channelOpener
 	prefix        string
 	durable       bool
 	delayQueueTTL time.Duration
@@ -32,11 +38,23 @@ type Queue struct {
 
 var _ queue.Queue = (*Queue)(nil)
 
-// NewQueue creates a RabbitMQ queue adapter using channel.
-func NewQueue(channel Channel, opts ...Option) *Queue {
+// NewQueue creates a RabbitMQ queue adapter using connection.
+func NewQueue(connection *amqp.Connection, opts ...Option) *Queue {
+	return newQueue(func(ctx context.Context) (channel, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if connection == nil {
+			return nil, errNilConnection
+		}
+		return connection.Channel()
+	}, opts...)
+}
+
+func newQueue(opener channelOpener, opts ...Option) *Queue {
 	c := newConfig(opts...)
 	return &Queue{
-		channel:       channel,
+		opener:        opener,
 		prefix:        c.prefix,
 		durable:       c.durable,
 		delayQueueTTL: c.delayQueueTTL,
@@ -67,36 +85,56 @@ func (q *Queue) Dequeue(ctx context.Context, queueName string) (queue.Lease, err
 	if queueName == "" {
 		queueName = queue.DefaultQueue
 	}
-	if err := q.ensureReadyQueue(queueName); err != nil {
-		return nil, err
-	}
 
-	delivery, ok, err := q.channel.Get(q.readyQueueName(queueName), false)
+	ch, err := q.openChannel(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if err := q.ensureReadyQueue(ch, queueName); err != nil {
+		_ = ch.Close()
+		return nil, err
+	}
+
+	delivery, ok, err := ch.Get(q.readyQueueName(queueName), false)
+	if err != nil {
+		_ = ch.Close()
+		return nil, err
+	}
 	if !ok {
+		_ = ch.Close()
 		return nil, queue.ErrNoTask
 	}
 
-	return leaseFromDelivery(delivery)
+	lease, err := leaseFromDelivery(delivery, ch)
+	if err != nil {
+		_ = ch.Close()
+		return nil, err
+	}
+	return lease, nil
 }
 
 // Ack acknowledges a leased RabbitMQ delivery.
 func (q *Queue) Ack(ctx context.Context, lease queue.Lease) error {
 	if err := ctx.Err(); err != nil {
+		closeLease(lease)
 		return err
 	}
 	l, ok := lease.(*rabbitLease)
 	if !ok || l == nil || l.task == nil {
 		return nil
 	}
-	return l.delivery.Ack(false)
+	err := l.delivery.Ack(false)
+	closeErr := l.close()
+	if err != nil {
+		return err
+	}
+	return closeErr
 }
 
 // Retry republishes a leased task after delay and acknowledges the original delivery.
 func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duration) error {
 	if err := ctx.Err(); err != nil {
+		closeLease(lease)
 		return err
 	}
 	if lease == nil || lease.Task() == nil {
@@ -106,6 +144,7 @@ func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duratio
 	task := lease.Task().Clone()
 	task.AvailableAt = time.Now().UTC().Add(delay)
 	if err := q.publishTask(ctx, task, delay); err != nil {
+		closeLease(lease)
 		return err
 	}
 	return q.Ack(ctx, lease)
@@ -114,6 +153,7 @@ func (q *Queue) Retry(ctx context.Context, lease queue.Lease, delay time.Duratio
 // DeadLetter publishes a leased task to the dead-letter queue and acknowledges the original delivery.
 func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string) error {
 	if err := ctx.Err(); err != nil {
+		closeLease(lease)
 		return err
 	}
 	if lease == nil || lease.Task() == nil {
@@ -126,70 +166,97 @@ func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string
 	}
 	task.Metadata[deadReasonKey] = reason
 
-	if err := q.ensureDeadLetterQueue(task.Queue); err != nil {
-		return err
-	}
 	msg, err := publishingFromTask(task)
 	if err != nil {
 		return err
 	}
 	msg.Headers = amqp.Table{deadReasonKey: reason}
-	if err := q.channel.PublishWithContext(ctx, defaultExchange, q.deadLetterQueueName(task.Queue), false, false, msg); err != nil {
+	err = q.withChannel(ctx, func(ch channel) error {
+		if err := q.ensureDeadLetterQueue(ch, task.Queue); err != nil {
+			return err
+		}
+		return ch.PublishWithContext(ctx, defaultExchange, q.deadLetterQueueName(task.Queue), false, false, msg)
+	})
+	if err != nil {
+		closeLease(lease)
 		return err
 	}
 	return q.Ack(ctx, lease)
 }
 
 func (q *Queue) publishTask(ctx context.Context, task *queue.Task, delay time.Duration) error {
-	if q.channel == nil {
-		return errNilChannel
-	}
-	if err := q.ensureReadyQueue(task.Queue); err != nil {
-		return err
-	}
-
 	msg, err := publishingFromTask(task)
 	if err != nil {
 		return err
 	}
 
-	target := q.readyQueueName(task.Queue)
-	if delay > 0 {
-		target = q.delayQueueName(task.Queue, delay)
-		if err := q.ensureDelayQueue(task.Queue, target, delay); err != nil {
+	return q.withChannel(ctx, func(ch channel) error {
+		if err := q.ensureReadyQueue(ch, task.Queue); err != nil {
 			return err
 		}
-	}
-	return q.channel.PublishWithContext(ctx, defaultExchange, target, false, false, msg)
+
+		target := q.readyQueueName(task.Queue)
+		if delay > 0 {
+			target = q.delayQueueName(task.Queue, delay)
+			if err := q.ensureDelayQueue(ch, task.Queue, target, delay); err != nil {
+				return err
+			}
+		}
+		return ch.PublishWithContext(ctx, defaultExchange, target, false, false, msg)
+	})
 }
 
-func (q *Queue) ensureReadyQueue(name string) error {
-	if q.channel == nil {
-		return errNilChannel
-	}
+func (q *Queue) ensureReadyQueue(ch channel, name string) error {
 	queueName := q.readyQueueName(name)
-	_, err := q.channel.QueueDeclare(queueName, q.durable, false, false, false, nil)
+	_, err := ch.QueueDeclare(queueName, q.durable, false, false, false, nil)
 	return queueDeclareError(queueName, err)
 }
 
-func (q *Queue) ensureDeadLetterQueue(name string) error {
-	if q.channel == nil {
-		return errNilChannel
-	}
+func (q *Queue) ensureDeadLetterQueue(ch channel, name string) error {
 	queueName := q.deadLetterQueueName(name)
-	_, err := q.channel.QueueDeclare(queueName, q.durable, false, false, false, nil)
+	_, err := ch.QueueDeclare(queueName, q.durable, false, false, false, nil)
 	return queueDeclareError(queueName, err)
 }
 
-func (q *Queue) ensureDelayQueue(queueName, delayQueueName string, delay time.Duration) error {
+func (q *Queue) ensureDelayQueue(ch channel, queueName, delayQueueName string, delay time.Duration) error {
 	expires := delay + q.delayQueueTTL
-	_, err := q.channel.QueueDeclare(delayQueueName, q.durable, false, false, false, amqp.Table{
+	_, err := ch.QueueDeclare(delayQueueName, q.durable, false, false, false, amqp.Table{
 		"x-message-ttl":             durationMillis(delay),
 		"x-expires":                 durationMillis(expires),
 		"x-dead-letter-exchange":    defaultExchange,
 		"x-dead-letter-routing-key": q.readyQueueName(queueName),
 	})
 	return queueDeclareError(delayQueueName, err)
+}
+
+func (q *Queue) openChannel(ctx context.Context) (channel, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if q.opener == nil {
+		return nil, errNilChannelOpener
+	}
+	ch, err := q.opener(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ch == nil {
+		return nil, errNilChannel
+	}
+	return ch, nil
+}
+
+func (q *Queue) withChannel(ctx context.Context, fn func(channel) error) error {
+	ch, err := q.openChannel(ctx)
+	if err != nil {
+		return err
+	}
+	err = fn(ch)
+	closeErr := ch.Close()
+	if err != nil {
+		return err
+	}
+	return closeErr
 }
 
 func (q *Queue) readyQueueName(name string) string {

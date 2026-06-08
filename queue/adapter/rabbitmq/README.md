@@ -23,10 +23,10 @@ import (
 
 func main() {
 	conn, _ := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	ch, _ := conn.Channel()
+	defer conn.Close()
 
 	q := rabbitmq.NewQueue(
-		ch,
+		conn,
 		rabbitmq.WithPrefix("app"),
 	)
 	producer := queue.NewProducer(q)
@@ -51,3 +51,7 @@ Delayed tasks are stored in RabbitMQ TTL queues that dead-letter back to the
 ready queue after the delay, so the adapter does not require the RabbitMQ
 delayed message exchange plugin. RabbitMQ re-delivers unacknowledged tasks when
 the channel or connection closes.
+
+The adapter opens AMQP channels internally for queue operations. RabbitMQ
+channels are not safe to share between goroutines, so applications should share
+the connection and let the adapter manage per-operation channels.

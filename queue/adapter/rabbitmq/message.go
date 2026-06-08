@@ -30,7 +30,7 @@ func publishingFromTask(task *queue.Task) (amqp.Publishing, error) {
 	}, nil
 }
 
-func leaseFromDelivery(delivery amqp.Delivery) (queue.Lease, error) {
+func leaseFromDelivery(delivery amqp.Delivery, closer interface{ Close() error }) (queue.Lease, error) {
 	var task queue.Task
 	if err := json.Unmarshal(delivery.Body, &task); err != nil {
 		return nil, err
@@ -42,6 +42,7 @@ func leaseFromDelivery(delivery amqp.Delivery) (queue.Lease, error) {
 	return &rabbitLease{
 		task:     &task,
 		delivery: delivery,
+		closer:   closer,
 	}, nil
 }
 
