@@ -66,29 +66,6 @@ func (t *Task) Clone() *Task {
 	return &cloned
 }
 
-// Consumer receives task deliveries from a queue.
-type Consumer interface {
-	// Receive blocks until a delivery is available or ctx is canceled.
-	Receive(ctx context.Context) (Delivery, error)
-	// Close stops the consumer and releases backend resources.
-	Close() error
-}
-
-// Delivery represents one delivery attempt of a task.
-//
-// Queue implementations may attach backend-specific acknowledgement state to a
-// delivery. That delivery state is intentionally separate from Task.Metadata.
-type Delivery interface {
-	// Task returns the delivered task envelope.
-	Task() *Task
-	// Ack marks the delivery as successfully processed.
-	Ack(ctx context.Context) error
-	// Retry releases the delivery for another attempt after delay.
-	Retry(ctx context.Context, delay time.Duration) error
-	// DeadLetter moves the delivery out of normal processing with a reason.
-	DeadLetter(ctx context.Context, reason string) error
-}
-
 type noopDelivery struct {
 	task *Task
 }
