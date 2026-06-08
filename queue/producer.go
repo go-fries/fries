@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"maps"
 	"time"
+
+	"github.com/go-fries/fries/codec/v3"
 )
 
 type enqueueConfig struct {
@@ -118,6 +120,50 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		return nil, err
 	}
 	return task.clone(), nil
+}
+
+// TaskProducer enqueues one task type with a structured payload.
+type TaskProducer[T any] struct {
+	producer *Producer
+	taskType string
+}
+
+// NewTaskProducer creates a typed producer bound to taskType.
+func NewTaskProducer[T any](producer *Producer, taskType string) *TaskProducer[T] {
+	return &TaskProducer[T]{
+		producer: producer,
+		taskType: taskType,
+	}
+}
+
+// Enqueue encodes payload with the default JSON codec and enqueues it as the producer task type.
+func (p *TaskProducer[T]) Enqueue(ctx context.Context, payload T, opts ...EnqueueOption) (*Task, error) {
+	return EnqueueFor(ctx, p.producer, p.taskType, payload, opts...)
+}
+
+// EnqueueFor encodes payload with the default JSON codec and enqueues it as taskType.
+func EnqueueFor[T any](ctx context.Context, producer *Producer, taskType string, payload T, opts ...EnqueueOption) (*Task, error) {
+	return EnqueueForWithCodec(ctx, producer, taskType, payload, defaultCodec, opts...)
+}
+
+// EnqueueForWithCodec encodes payload with codec and enqueues it as taskType.
+func EnqueueForWithCodec[T any](
+	ctx context.Context,
+	producer *Producer,
+	taskType string,
+	payload T,
+	codec codec.Codec,
+	opts ...EnqueueOption,
+) (*Task, error) {
+	if codec == nil {
+		codec = defaultCodec
+	}
+
+	data, err := codec.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return producer.Enqueue(ctx, taskType, data, opts...)
 }
 
 func newID() string {

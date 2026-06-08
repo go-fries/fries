@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/go-fries/fries/codec/v3"
 )
 
 const (
@@ -106,6 +108,43 @@ func Handle(taskType string, handler Handler) WorkerOption {
 			c.handlers[taskType] = handler
 		}
 	})
+}
+
+// HandleFor decodes task payloads with the default JSON codec before calling handler.
+func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
+	return HandleForWithCodec(taskType, defaultCodec, handler)
+}
+
+// HandleForWithCodec decodes task payloads with codec before calling handler.
+func HandleForWithCodec[T any](taskType string, codec codec.Codec, handler HandlerFor[T]) WorkerOption {
+	if handler == nil {
+		return Handle(taskType, nil)
+	}
+	if codec == nil {
+		codec = defaultCodec
+	}
+
+	return Handle(taskType, HandlerFunc(func(ctx context.Context, task *Task) error {
+		var payload T
+		if err := codec.Unmarshal(task.Payload, &payload); err != nil {
+			return err
+		}
+		return handler.Handle(ctx, &TaskFor[T]{
+			Task:    task,
+			Payload: payload,
+		})
+	}))
+}
+
+// HandleTasker registers tasker as the typed handler for its TaskType.
+//
+// It is equivalent to calling HandleFor(tasker.TaskType(), tasker). A nil tasker
+// is ignored, matching HandleFor's nil-handler behavior.
+func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
+	if tasker == nil {
+		return Handle("", nil)
+	}
+	return HandleFor(tasker.TaskType(), tasker)
 }
 
 func newWorkerConfig(opts ...WorkerOption) *workerConfig {
