@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"math"
-	"strings"
 	"time"
 
 	"github.com/go-fries/fries/queue/v3"
@@ -14,22 +11,9 @@ import (
 )
 
 const (
-	taskField        = "task"
-	deadReasonField  = "reason"
-	defaultPrefix    = "queue"
-	defaultGroup     = "queue"
-	defaultConsumer  = "worker"
-	defaultPromoteBy = 100
+	taskField       = "task"
+	deadReasonField = "reason"
 )
-
-const promoteScript = `
-local tasks = redis.call("zrangebyscore", KEYS[1], "-inf", ARGV[1], "limit", 0, ARGV[2])
-for _, task in ipairs(tasks) do
-	redis.call("xadd", KEYS[2], "*", ARGV[3], task)
-	redis.call("zrem", KEYS[1], task)
-end
-return #tasks
-`
 
 // Queue stores and consumes queue tasks with Redis Streams.
 type Queue struct {
@@ -38,65 +22,6 @@ type Queue struct {
 	group       string
 	consumer    string
 	promoteSize int
-}
-
-type redisLease struct {
-	task     *queue.Task
-	streamID string
-}
-
-func (l *redisLease) Task() *queue.Task {
-	if l == nil {
-		return nil
-	}
-	return l.task
-}
-
-// Option configures a Redis queue.
-type Option interface {
-	apply(*Queue)
-}
-
-type optionFunc func(*Queue)
-
-func (f optionFunc) apply(q *Queue) {
-	f(q)
-}
-
-// WithPrefix sets the Redis key prefix.
-func WithPrefix(prefix string) Option {
-	return optionFunc(func(q *Queue) {
-		if prefix != "" {
-			q.prefix = strings.TrimSuffix(prefix, ":")
-		}
-	})
-}
-
-// WithGroup sets the Redis Streams consumer group name.
-func WithGroup(group string) Option {
-	return optionFunc(func(q *Queue) {
-		if group != "" {
-			q.group = group
-		}
-	})
-}
-
-// WithConsumer sets the Redis Streams consumer name.
-func WithConsumer(consumer string) Option {
-	return optionFunc(func(q *Queue) {
-		if consumer != "" {
-			q.consumer = consumer
-		}
-	})
-}
-
-// WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
-func WithPromoteSize(size int) Option {
-	return optionFunc(func(q *Queue) {
-		if size > 0 {
-			q.promoteSize = size
-		}
-	})
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -236,143 +161,4 @@ func (q *Queue) DeadLetter(ctx context.Context, lease queue.Lease, reason string
 		return err
 	}
 	return q.Ack(ctx, lease)
-}
-
-func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
-	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
-		Stream:   q.streamKey(name),
-		Group:    q.group,
-		Consumer: q.consumer,
-		MinIdle:  visibilityTimeout,
-		Start:    "0-0",
-		Count:    1,
-	}).Result()
-	if errors.Is(err, goredis.Nil) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if len(messages) == 0 {
-		return nil, nil
-	}
-	return q.leaseFromClaimedMessage(ctx, name, messages[0])
-}
-
-func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) {
-	return q.leaseFromMessageWithDeliveryCount(message, 0)
-}
-
-func (q *Queue) leaseFromClaimedMessage(ctx context.Context, name string, message goredis.XMessage) (queue.Lease, error) {
-	deliveryCount, err := q.deliveryCount(ctx, name, message.ID)
-	if err != nil {
-		return nil, err
-	}
-	return q.leaseFromMessageWithDeliveryCount(message, deliveryCount)
-}
-
-func (q *Queue) deliveryCount(ctx context.Context, name, messageID string) (int64, error) {
-	pending, err := q.redis.XPendingExt(ctx, &goredis.XPendingExtArgs{
-		Stream: q.streamKey(name),
-		Group:  q.group,
-		Start:  messageID,
-		End:    messageID,
-		Count:  1,
-	}).Result()
-	if errors.Is(err, goredis.Nil) {
-		return 0, nil
-	}
-	if err != nil {
-		return 0, err
-	}
-	if len(pending) == 0 {
-		return 0, nil
-	}
-	return pending[0].RetryCount, nil
-}
-
-func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deliveryCount int64) (queue.Lease, error) {
-	value, ok := message.Values[taskField]
-	if !ok {
-		return nil, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField)
-	}
-
-	var data []byte
-	switch v := value.(type) {
-	case string:
-		data = []byte(v)
-	case []byte:
-		data = v
-	default:
-		return nil, fmt.Errorf("queue/adapter/redis: message %s has unsupported %q field", message.ID, taskField)
-	}
-
-	var task queue.Task
-	if err := json.Unmarshal(data, &task); err != nil {
-		return nil, err
-	}
-	task.Attempt = attemptWithDeliveryCount(task.Attempt, deliveryCount)
-	return &redisLease{
-		task:     &task,
-		streamID: message.ID,
-	}, nil
-}
-
-func attemptWithDeliveryCount(baseAttempt int, deliveryCount int64) int {
-	if baseAttempt < 0 {
-		baseAttempt = 0
-	}
-	if deliveryCount <= 0 {
-		if baseAttempt == math.MaxInt {
-			return math.MaxInt
-		}
-		return baseAttempt + 1
-	}
-
-	if baseAttempt >= math.MaxInt {
-		return math.MaxInt
-	}
-	maxRemaining := math.MaxInt - baseAttempt
-	if deliveryCount > int64(maxRemaining) {
-		return math.MaxInt
-	}
-	return baseAttempt + int(deliveryCount)
-}
-
-func (q *Queue) addToStream(ctx context.Context, name string, data []byte) error {
-	return q.redis.XAdd(ctx, &goredis.XAddArgs{
-		Stream: q.streamKey(name),
-		Values: map[string]any{
-			taskField: data,
-		},
-	}).Err()
-}
-
-func (q *Queue) ensureGroup(ctx context.Context, name string) error {
-	err := q.redis.XGroupCreateMkStream(ctx, q.streamKey(name), q.group, "0").Err()
-	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
-		return err
-	}
-	return nil
-}
-
-func (q *Queue) promoteDue(ctx context.Context, name string) error {
-	return q.redis.Eval(
-		ctx, promoteScript, []string{q.delayedKey(name), q.streamKey(name)},
-		time.Now().UTC().UnixNano(),
-		q.promoteSize,
-		taskField,
-	).Err()
-}
-
-func (q *Queue) streamKey(name string) string {
-	return q.prefix + ":" + name + ":stream"
-}
-
-func (q *Queue) delayedKey(name string) string {
-	return q.prefix + ":" + name + ":delayed"
-}
-
-func (q *Queue) deadLetterKey(name string) string {
-	return q.prefix + ":" + name + ":dead"
 }
