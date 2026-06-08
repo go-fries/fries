@@ -71,6 +71,46 @@ func (q dequeueErrorQueue) DeadLetter(context.Context, queue.Lease, string) erro
 	return nil
 }
 
+type singleTaskQueue struct {
+	mu   sync.Mutex
+	task *queue.Task
+}
+
+func newSingleTaskQueue(task *queue.Task) *singleTaskQueue {
+	return &singleTaskQueue{
+		task: task,
+	}
+}
+
+func (q *singleTaskQueue) Enqueue(context.Context, *queue.Task) error {
+	return nil
+}
+
+func (q *singleTaskQueue) Dequeue(ctx context.Context, _ string, _ time.Duration) (queue.Lease, error) {
+	q.mu.Lock()
+	task := q.task
+	q.task = nil
+	q.mu.Unlock()
+	if task != nil {
+		return queue.NewLease(task), nil
+	}
+
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func (q *singleTaskQueue) Ack(context.Context, queue.Lease) error {
+	return nil
+}
+
+func (q *singleTaskQueue) Retry(context.Context, queue.Lease, time.Duration) error {
+	return nil
+}
+
+func (q *singleTaskQueue) DeadLetter(context.Context, queue.Lease, string) error {
+	return nil
+}
+
 func TestServer_StopCancelsWorker(t *testing.T) {
 	t.Parallel()
 
@@ -92,6 +132,82 @@ func TestServer_StopCancelsWorker(t *testing.T) {
 	defer cancel()
 	require.NoError(t, server.Stop(stopCtx))
 	require.NoError(t, <-errs)
+}
+
+func TestServer_StopDrainsInFlightTask(t *testing.T) {
+	t.Parallel()
+
+	handlerCtxs := make(chan context.Context, 1)
+	release := make(chan struct{})
+	worker := queue.NewWorker(
+		newSingleTaskQueue(&queue.Task{Type: "slow"}),
+		queue.Handle("slow", queue.HandlerFunc(func(ctx context.Context, _ *queue.Task) error {
+			handlerCtxs <- ctx
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})),
+	)
+	server := New(worker)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- server.Start(t.Context())
+	}()
+
+	handlerCtx := <-handlerCtxs
+	stopErrs := make(chan error, 1)
+	go func() {
+		stopErrs <- server.Stop(t.Context())
+	}()
+
+	select {
+	case err := <-stopErrs:
+		require.Failf(t, "stop returned before in-flight task finished", "err=%v", err)
+	default:
+	}
+	select {
+	case <-handlerCtx.Done():
+		require.Fail(t, "handler context was canceled before drain timeout")
+	default:
+	}
+
+	close(release)
+	require.NoError(t, <-stopErrs)
+	require.NoError(t, <-errs)
+}
+
+func TestServer_StopCancelsInFlightTaskAfterContextDeadline(t *testing.T) {
+	t.Parallel()
+
+	handlerStarted := make(chan struct{})
+	handlerDone := make(chan error, 1)
+	worker := queue.NewWorker(
+		newSingleTaskQueue(&queue.Task{Type: "slow"}),
+		queue.Handle("slow", queue.HandlerFunc(func(ctx context.Context, _ *queue.Task) error {
+			close(handlerStarted)
+			<-ctx.Done()
+			err := ctx.Err()
+			handlerDone <- err
+			return err
+		})),
+	)
+	server := New(worker)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- server.Start(t.Context())
+	}()
+
+	<-handlerStarted
+	stopCtx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
+	defer cancel()
+	require.ErrorIs(t, server.Stop(stopCtx), context.DeadlineExceeded)
+	require.ErrorIs(t, <-handlerDone, context.Canceled)
+	<-errs
 }
 
 func TestServer_StopBeforeStartIsNoop(t *testing.T) {

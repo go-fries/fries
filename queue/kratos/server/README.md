@@ -21,6 +21,7 @@ app := kratos.New(
 )
 ```
 
-`Start` runs the worker and blocks until the worker exits. `Stop` cancels the
-worker context and waits for it to return, so normal Kratos shutdown can stop
-queue processing cleanly.
+`Start` runs the worker and blocks until the worker exits. `Stop` stops polling
+for new tasks and waits for in-flight tasks to finish. If the Kratos stop
+context expires before the worker exits, the worker cancels running task
+handlers and returns the stop context error.

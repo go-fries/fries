@@ -166,6 +166,11 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 type Worker struct {
 	queue  Queue
 	config *workerConfig
+
+	mu        sync.Mutex
+	stop      context.CancelFunc
+	interrupt context.CancelFunc
+	done      chan struct{}
 }
 
 // NewWorker creates a worker with the provided queue and options.
@@ -178,29 +183,47 @@ func NewWorker(q Queue, opts ...WorkerOption) *Worker {
 
 // Run starts worker loops and blocks until ctx is canceled or a queue operation fails.
 func (w *Worker) Run(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	pollCtx, stop := context.WithCancel(ctx)
+	handlerCtx, interrupt := context.WithCancel(context.WithoutCancel(ctx))
+	lifecycleDone := make(chan struct{})
+	if !w.start(stop, interrupt, lifecycleDone) {
+		stop()
+		interrupt()
+		return errors.New("queue: worker already running")
+	}
+	defer func() {
+		stop()
+		interrupt()
+		w.finish(lifecycleDone)
+	}()
+
+	stopWatchingRun := context.AfterFunc(ctx, func() {
+		stop()
+		interrupt()
+	})
+	defer stopWatchingRun()
 
 	errs := make(chan error, w.config.concurrency)
 	var wg sync.WaitGroup
 
 	for i := 0; i < w.config.concurrency; i++ {
 		wg.Go(func() {
-			if err := w.loop(ctx); err != nil {
+			if err := w.loop(pollCtx, handlerCtx); err != nil {
 				errs <- err
-				cancel()
+				stop()
+				interrupt()
 			}
 		})
 	}
 
-	done := make(chan struct{})
+	workersDone := make(chan struct{})
 	go func() {
 		wg.Wait()
-		close(done)
+		close(workersDone)
 	}()
 
 	select {
-	case <-done:
+	case <-workersDone:
 		select {
 		case err := <-errs:
 			return err
@@ -208,23 +231,75 @@ func (w *Worker) Run(ctx context.Context) error {
 			return nil
 		}
 	case err := <-errs:
-		cancel()
-		<-done
+		stop()
+		interrupt()
+		<-workersDone
 		return err
 	}
 }
 
-func (w *Worker) loop(ctx context.Context) error {
+// Stop stops polling for new tasks and waits for in-flight tasks to finish.
+//
+// If ctx is canceled before the worker exits, Stop cancels in-flight task
+// handlers and returns ctx.Err().
+func (w *Worker) Stop(ctx context.Context) error {
+	stop, interrupt, done := w.lifecycle()
+	if stop == nil {
+		return nil
+	}
+
+	stop()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		interrupt()
+		return ctx.Err()
+	}
+}
+
+func (w *Worker) lifecycle() (context.CancelFunc, context.CancelFunc, chan struct{}) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	return w.stop, w.interrupt, w.done
+}
+
+func (w *Worker) start(stop, interrupt context.CancelFunc, done chan struct{}) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.done != nil {
+		return false
+	}
+	w.stop = stop
+	w.interrupt = interrupt
+	w.done = done
+	return true
+}
+
+func (w *Worker) finish(done chan struct{}) {
+	w.mu.Lock()
+	if w.done == done {
+		w.stop = nil
+		w.interrupt = nil
+		w.done = nil
+	}
+	close(done)
+	w.mu.Unlock()
+}
+
+func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-pollCtx.Done():
 			return nil
 		default:
 		}
 
-		lease, err := w.queue.Dequeue(ctx, w.config.queue, w.config.visibilityTimeout)
+		lease, err := w.queue.Dequeue(pollCtx, w.config.queue, w.config.visibilityTimeout)
 		if errors.Is(err, ErrNoTask) {
-			if err := sleep(ctx, w.config.pollInterval); err != nil {
+			if err := sleep(pollCtx, w.config.pollInterval); err != nil {
 				return nil
 			}
 			continue
@@ -243,7 +318,7 @@ func (w *Worker) loop(ctx context.Context) error {
 			continue
 		}
 
-		if err := w.process(ctx, lease); err != nil {
+		if err := w.process(handlerCtx, lease); err != nil {
 			return err
 		}
 	}
