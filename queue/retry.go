@@ -44,7 +44,7 @@ func FixedRetry(maxAttempts int, delay time.Duration) RetryPolicy {
 	}
 }
 
-func (r fixedRetry) NextDelay(task *Task, errorErr error) (time.Duration, bool) {
+func (r fixedRetry) NextDelay(task *Task, _ error) (time.Duration, bool) {
 	if task == nil || task.Attempt >= r.maxAttempts {
 		return 0, false
 	}
@@ -75,7 +75,7 @@ func ExponentialRetry(maxAttempts int, baseDelay, maxDelay time.Duration) RetryP
 	}
 }
 
-func (r exponentialRetry) NextDelay(task *Task, errorErr error) (time.Duration, bool) {
+func (r exponentialRetry) NextDelay(task *Task, _ error) (time.Duration, bool) {
 	if task == nil || task.Attempt >= r.maxAttempts {
 		return 0, false
 	}

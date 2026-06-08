@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+const (
+	defaultConcurrency       = 1
+	defaultPollInterval      = time.Second
+	defaultVisibilityTimeout = 5 * time.Minute
+	defaultRetryMaxAttempts  = 3
+	defaultRetryDelay        = time.Second
+)
+
 type workerConfig struct {
 	queue             string
 	concurrency       int
@@ -103,10 +111,10 @@ func Handle(taskType string, handler Handler) WorkerOption {
 func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	c := &workerConfig{
 		queue:             DefaultQueue,
-		concurrency:       1,
-		pollInterval:      time.Second,
-		visibilityTimeout: 5 * time.Minute,
-		retryPolicy:       FixedRetry(3, time.Second),
+		concurrency:       defaultConcurrency,
+		pollInterval:      defaultPollInterval,
+		visibilityTimeout: defaultVisibilityTimeout,
+		retryPolicy:       FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
 		handlers:          make(map[string]Handler),
 	}
 	for _, opt := range opts {
