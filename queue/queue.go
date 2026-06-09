@@ -5,6 +5,26 @@ import (
 	"time"
 )
 
+// ConsumerConfig configures a consumer created by a Queue.
+type ConsumerConfig struct {
+	// Queue is the logical queue name to consume. Empty values are treated as
+	// DefaultQueue.
+	Queue string
+
+	// Name identifies the consumer instance when a backend supports or requires
+	// consumer identity. Empty values let the queue implementation choose its
+	// default behavior.
+	Name string
+}
+
+// Normalize returns a copy of c with shared queue defaults applied.
+func (c ConsumerConfig) Normalize() ConsumerConfig {
+	if c.Queue == "" {
+		c.Queue = DefaultQueue
+	}
+	return c
+}
+
 // Queue stores tasks and creates consumers for task delivery.
 type Queue interface {
 	// Enqueue stores a task for future delivery.
