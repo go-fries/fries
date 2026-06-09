@@ -18,7 +18,7 @@ type config struct {
 	publisherConfirm bool
 }
 
-// Option configures a RabbitMQ queue adapter.
+// Option is an option that configures a RabbitMQ queue adapter.
 type Option interface {
 	apply(*config)
 }

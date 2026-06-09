@@ -29,7 +29,7 @@ type workerConfig struct {
 	handlers          map[string]Handler
 }
 
-// WorkerOption configures a Worker.
+// WorkerOption is an option that configures a Worker.
 type WorkerOption interface {
 	applyWorker(*workerConfig)
 }

@@ -22,7 +22,7 @@ type producerConfig struct {
 	observer Observer
 }
 
-// EnqueueOption configures task enqueue behavior.
+// EnqueueOption is an option that configures how a task is enqueued.
 type EnqueueOption interface {
 	applyEnqueue(*enqueueConfig)
 }
@@ -85,7 +85,7 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	return c
 }
 
-// ProducerOption configures a Producer.
+// ProducerOption is an option that configures a Producer.
 type ProducerOption interface {
 	applyProducer(*producerConfig)
 }

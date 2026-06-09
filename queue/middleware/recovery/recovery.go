@@ -34,7 +34,7 @@ type config struct {
 	stackSize int
 }
 
-// Option configures recovery middleware.
+// Option is an option that configures recovery middleware.
 type Option interface {
 	apply(*config)
 }
