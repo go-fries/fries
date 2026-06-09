@@ -180,6 +180,9 @@ func NewWorker(q Queue, opts ...WorkerOption) *Worker {
 }
 
 // Run starts worker loops and blocks until ctx is canceled or a queue operation fails.
+//
+// Queue operation errors stop the worker and are returned to the caller unless
+// they are normal stop signals such as context cancellation or ErrConsumerClosed.
 func (w *Worker) Run(ctx context.Context) error {
 	pollCtx, stop := context.WithCancel(ctx)
 	handlerCtx, interrupt := context.WithCancel(context.WithoutCancel(ctx))
