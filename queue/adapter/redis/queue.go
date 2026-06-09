@@ -18,12 +18,14 @@ const (
 
 // Queue stores and consumes queue tasks with Redis Streams.
 type Queue struct {
-	redis        goredis.UniversalClient
-	prefix       string
-	group        string
-	consumer     string
-	promoteSize  int
-	claimMinIdle time.Duration
+	redis            goredis.UniversalClient
+	prefix           string
+	group            string
+	consumer         string
+	promoteSize      int
+	claimMinIdle     time.Duration
+	streamMaxLen     int64
+	deadLetterMaxLen int64
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -32,12 +34,14 @@ var _ queue.Queue = (*Queue)(nil)
 func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
 	c := newConfig(opts...)
 	q := &Queue{
-		redis:        redis,
-		prefix:       c.prefix,
-		group:        c.group,
-		consumer:     c.consumer,
-		promoteSize:  c.promoteSize,
-		claimMinIdle: c.claimMinIdle,
+		redis:            redis,
+		prefix:           c.prefix,
+		group:            c.group,
+		consumer:         c.consumer,
+		promoteSize:      c.promoteSize,
+		claimMinIdle:     c.claimMinIdle,
+		streamMaxLen:     c.streamMaxLen,
+		deadLetterMaxLen: c.deadLetterMaxLen,
 	}
 	return q
 }

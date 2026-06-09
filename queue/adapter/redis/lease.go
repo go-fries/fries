@@ -53,6 +53,8 @@ func (d *redisDelivery) DeadLetter(ctx context.Context, reason string) error {
 	}
 	if err := d.queue.redis.XAdd(ctx, &goredis.XAddArgs{
 		Stream: d.queue.deadLetterKey(d.task.Queue),
+		MaxLen: d.queue.deadLetterMaxLen,
+		Approx: d.queue.deadLetterMaxLen > 0,
 		Values: map[string]any{
 			taskField:       data,
 			deadReasonField: reason,

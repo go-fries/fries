@@ -20,6 +20,8 @@ return #tasks
 func (q *Queue) addToStream(ctx context.Context, name string, data []byte) error {
 	return q.redis.XAdd(ctx, &goredis.XAddArgs{
 		Stream: q.streamKey(name),
+		MaxLen: q.streamMaxLen,
+		Approx: q.streamMaxLen > 0,
 		Values: map[string]any{
 			taskField: data,
 		},

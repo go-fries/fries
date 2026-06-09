@@ -295,7 +295,16 @@ func TestQueue_DeliveryFromMessageErrors(t *testing.T) {
 func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix(""), WithGroup(""), WithConsumer(""), WithPromoteSize(0), WithClaimMinIdle(-time.Second))
+	q := NewQueue(
+		nil,
+		WithPrefix(""),
+		WithGroup(""),
+		WithConsumer(""),
+		WithPromoteSize(0),
+		WithClaimMinIdle(-time.Second),
+		WithStreamMaxLen(0),
+		WithDeadLetterMaxLen(0),
+	)
 
 	assert.Equal(t, "queue:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "queue:critical:delayed", q.delayedKey("critical"))
@@ -306,12 +315,23 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	assert.True(t, strings.HasPrefix(q.consumer, "worker-"))
 	assert.Equal(t, 100, q.promoteSize)
 	assert.Equal(t, 5*time.Minute, q.claimMinIdle)
+	assert.Zero(t, q.streamMaxLen)
+	assert.Zero(t, q.deadLetterMaxLen)
 }
 
 func TestQueue_Options(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10), WithClaimMinIdle(30*time.Second))
+	q := NewQueue(
+		nil,
+		WithPrefix("app:"),
+		WithGroup("workers"),
+		WithConsumer("worker-1"),
+		WithPromoteSize(10),
+		WithClaimMinIdle(30*time.Second),
+		WithStreamMaxLen(1000),
+		WithDeadLetterMaxLen(100),
+	)
 
 	assert.Equal(t, "app:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "app:critical:delayed", q.delayedKey("critical"))
@@ -320,6 +340,8 @@ func TestQueue_Options(t *testing.T) {
 	assert.Equal(t, "worker-1", q.consumer)
 	assert.Equal(t, 10, q.promoteSize)
 	assert.Equal(t, 30*time.Second, q.claimMinIdle)
+	assert.Equal(t, int64(1000), q.streamMaxLen)
+	assert.Equal(t, int64(100), q.deadLetterMaxLen)
 }
 
 func TestQueue_NoopOperations(t *testing.T) {

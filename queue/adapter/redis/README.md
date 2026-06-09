@@ -54,6 +54,10 @@ The adapter generates a process-unique default Redis consumer name. Use
 `WithConsumer` or worker-level `queue.WithConsumerName` when you need a stable
 consumer identity for operations and debugging.
 
+Ready and dead-letter streams are not trimmed by default. Use
+`WithStreamMaxLen` and `WithDeadLetterMaxLen` to enable approximate Redis stream
+trimming for long-running deployments.
+
 `WithClaimMinIdle` controls how long a pending stream message must remain idle
 before a consumer can claim it for redelivery. Set it to `0` to disable pending
 message claims during receive.

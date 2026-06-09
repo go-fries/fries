@@ -8,11 +8,13 @@ import (
 )
 
 type config struct {
-	prefix       string
-	group        string
-	consumer     string
-	promoteSize  int
-	claimMinIdle time.Duration
+	prefix           string
+	group            string
+	consumer         string
+	promoteSize      int
+	claimMinIdle     time.Duration
+	streamMaxLen     int64
+	deadLetterMaxLen int64
 }
 
 // Option configures a Redis queue.
@@ -69,6 +71,24 @@ func WithClaimMinIdle(minIdle time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if minIdle >= 0 {
 			c.claimMinIdle = minIdle
+		}
+	})
+}
+
+// WithStreamMaxLen sets approximate max length trimming for ready streams.
+func WithStreamMaxLen(maxLen int64) Option {
+	return optionFunc(func(c *config) {
+		if maxLen > 0 {
+			c.streamMaxLen = maxLen
+		}
+	})
+}
+
+// WithDeadLetterMaxLen sets approximate max length trimming for dead-letter streams.
+func WithDeadLetterMaxLen(maxLen int64) Option {
+	return optionFunc(func(c *config) {
+		if maxLen > 0 {
+			c.deadLetterMaxLen = maxLen
 		}
 	})
 }
