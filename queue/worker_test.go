@@ -22,6 +22,38 @@ func (q dequeueErrorQueue) NewConsumer(context.Context, ConsumerConfig) (Consume
 	return nil, q.err
 }
 
+type recordingDelivery struct {
+	task       *Task
+	ack        func(context.Context) error
+	retry      func(context.Context, time.Duration) error
+	deadLetter func(context.Context, string) error
+}
+
+func (d *recordingDelivery) Task() *Task {
+	return d.task
+}
+
+func (d *recordingDelivery) Ack(ctx context.Context) error {
+	if d.ack != nil {
+		return d.ack(ctx)
+	}
+	return nil
+}
+
+func (d *recordingDelivery) Retry(ctx context.Context, delay time.Duration) error {
+	if d.retry != nil {
+		return d.retry(ctx, delay)
+	}
+	return nil
+}
+
+func (d *recordingDelivery) DeadLetter(ctx context.Context, reason string) error {
+	if d.deadLetter != nil {
+		return d.deadLetter(ctx, reason)
+	}
+	return nil
+}
+
 func TestWorker_ConfigDefaults(t *testing.T) {
 	t.Parallel()
 
@@ -40,6 +72,7 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	assert.Empty(t, config.consumerName)
 	assert.Equal(t, 1, config.concurrency)
 	assert.Zero(t, config.handlerTimeout)
+	assert.Equal(t, defaultSettlementTimeout, config.settlementTimeout)
 	assert.NotNil(t, config.retryPolicy)
 	assert.Empty(t, config.middleware)
 	assert.Empty(t, config.handlers)
@@ -57,6 +90,7 @@ func TestWorker_ConfigOptions(t *testing.T) {
 		WithConsumerName("worker-1"),
 		WithConcurrency(4),
 		WithHandlerTimeout(time.Second),
+		WithSettlementTimeout(2*time.Second),
 		WithRetryPolicy(retryPolicy),
 		WithMiddleware(middleware),
 		Handle("send_email", handler),
@@ -66,6 +100,7 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	assert.Equal(t, "worker-1", config.consumerName)
 	assert.Equal(t, 4, config.concurrency)
 	assert.Equal(t, time.Second, config.handlerTimeout)
+	assert.Equal(t, 2*time.Second, config.settlementTimeout)
 	assert.Equal(t, retryPolicy, config.retryPolicy)
 	assert.Len(t, config.middleware, 1)
 	assert.NotNil(t, config.handlers["send_email"])
@@ -257,6 +292,85 @@ func TestWorker_HandlerTimeout(t *testing.T) {
 		<-ctx.Done()
 		return ctx.Err()
 	}), &Task{})
+
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestWorker_HandlerTimeoutRetriesWithSettlementContext(t *testing.T) {
+	t.Parallel()
+
+	retried := make(chan time.Duration, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})),
+		WithHandlerTimeout(time.Millisecond),
+		WithRetryPolicy(FixedRetry(2, 0)),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "slow", Attempt: 1},
+		retry: func(ctx context.Context, delay time.Duration) error {
+			require.NoError(t, ctx.Err())
+			retried <- delay
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Equal(t, time.Duration(0), <-retried)
+}
+
+func TestWorker_HandlerTimeoutDeadLettersWithSettlementContext(t *testing.T) {
+	t.Parallel()
+
+	deadLettered := make(chan string, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})),
+		WithHandlerTimeout(time.Millisecond),
+		WithRetryPolicy(NoRetry()),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "slow", Attempt: 1},
+		deadLetter: func(ctx context.Context, reason string) error {
+			require.NoError(t, ctx.Err())
+			deadLettered <- reason
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Contains(t, <-deadLettered, ErrRetryExhausted.Error())
+}
+
+func TestWorker_SettlementTimeout(t *testing.T) {
+	t.Parallel()
+
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("ok", HandlerFunc(func(context.Context, *Task) error {
+			return nil
+		})),
+		WithSettlementTimeout(time.Millisecond),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "ok"},
+		ack: func(ctx context.Context) error {
+			<-ctx.Done()
+			return ctx.Err()
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
 
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }

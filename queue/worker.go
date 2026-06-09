@@ -11,19 +11,21 @@ import (
 )
 
 const (
-	defaultConcurrency      = 1
-	defaultRetryMaxAttempts = 3
-	defaultRetryDelay       = time.Second
+	defaultConcurrency       = 1
+	defaultRetryMaxAttempts  = 3
+	defaultRetryDelay        = time.Second
+	defaultSettlementTimeout = 30 * time.Second
 )
 
 type workerConfig struct {
-	queue          string
-	consumerName   string
-	concurrency    int
-	handlerTimeout time.Duration
-	retryPolicy    RetryPolicy
-	middleware     []Middleware
-	handlers       map[string]Handler
+	queue             string
+	consumerName      string
+	concurrency       int
+	handlerTimeout    time.Duration
+	settlementTimeout time.Duration
+	retryPolicy       RetryPolicy
+	middleware        []Middleware
+	handlers          map[string]Handler
 }
 
 // WorkerOption configures a Worker.
@@ -69,6 +71,15 @@ func WithHandlerTimeout(timeout time.Duration) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if timeout > 0 {
 			c.handlerTimeout = timeout
+		}
+	})
+}
+
+// WithSettlementTimeout sets the timeout for Ack, Retry, and DeadLetter operations.
+func WithSettlementTimeout(timeout time.Duration) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if timeout > 0 {
+			c.settlementTimeout = timeout
 		}
 	})
 }
@@ -137,10 +148,11 @@ func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
 
 func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	c := &workerConfig{
-		queue:       DefaultQueue,
-		concurrency: defaultConcurrency,
-		retryPolicy: FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
-		handlers:    make(map[string]Handler),
+		queue:             DefaultQueue,
+		concurrency:       defaultConcurrency,
+		settlementTimeout: defaultSettlementTimeout,
+		retryPolicy:       FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
+		handlers:          make(map[string]Handler),
 	}
 	for _, opt := range opts {
 		opt.apply(c)
@@ -337,20 +349,48 @@ func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 	task := delivery.Task()
 	handler, ok := w.config.handlers[task.Type]
 	if !ok {
-		return delivery.DeadLetter(ctx, ErrHandlerNotFound.Error())
+		return w.deadLetter(ctx, delivery, ErrHandlerNotFound.Error())
 	}
 
 	err := w.handle(ctx, handler, task)
 	if err == nil {
-		return delivery.Ack(ctx)
+		return w.ack(ctx, delivery)
 	}
 
 	delay, ok := w.config.retryPolicy.NextDelay(task, err)
 	if !ok {
-		return delivery.DeadLetter(ctx, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
+		return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
 	}
 
-	return delivery.Retry(ctx, delay)
+	return w.retry(ctx, delivery, delay)
+}
+
+func (w *Worker) ack(ctx context.Context, delivery Delivery) error {
+	return w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.Ack(ctx)
+	})
+}
+
+func (w *Worker) retry(ctx context.Context, delivery Delivery, delay time.Duration) error {
+	return w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.Retry(ctx, delay)
+	})
+}
+
+func (w *Worker) deadLetter(ctx context.Context, delivery Delivery, reason string) error {
+	return w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.DeadLetter(ctx, reason)
+	})
+}
+
+func (w *Worker) withSettlementContext(ctx context.Context, fn func(context.Context) error) error {
+	if w.config.settlementTimeout <= 0 {
+		return fn(ctx)
+	}
+
+	settlementCtx, cancel := context.WithTimeout(ctx, w.config.settlementTimeout)
+	defer cancel()
+	return fn(settlementCtx)
 }
 
 func (w *Worker) handle(ctx context.Context, handler Handler, task *Task) error {
