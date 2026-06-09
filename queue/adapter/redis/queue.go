@@ -69,32 +69,36 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	return q.addToStream(ctx, task.Queue, data)
 }
 
-// NewConsumer creates a Redis Streams consumer for name.
-func (q *Queue) NewConsumer(ctx context.Context, name string) (queue.Consumer, error) {
+// NewConsumer creates a Redis Streams consumer using config.
+func (q *Queue) NewConsumer(ctx context.Context, config queue.ConsumerConfig) (queue.Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if name == "" {
-		name = queue.DefaultQueue
+	config = config.Normalize()
+	consumerName := config.Name
+	if consumerName == "" {
+		consumerName = q.consumer
 	}
-	if err := q.ensureGroup(ctx, name); err != nil {
+	if err := q.ensureGroup(ctx, config.Queue); err != nil {
 		return nil, err
 	}
 
 	consumerCtx, cancel := context.WithCancel(context.Background())
 	return &consumer{
-		queue:  q,
-		name:   name,
-		ctx:    consumerCtx,
-		cancel: cancel,
+		queue:        q,
+		name:         config.Queue,
+		consumerName: consumerName,
+		ctx:          consumerCtx,
+		cancel:       cancel,
 	}, nil
 }
 
 type consumer struct {
-	queue  *Queue
-	name   string
-	ctx    context.Context
-	cancel context.CancelFunc
+	queue        *Queue
+	name         string
+	consumerName string
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
@@ -106,7 +110,7 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 	}()
 
 	for {
-		delivery, err := c.queue.receive(receiveCtx, c.name)
+		delivery, err := c.queue.receiveForConsumer(receiveCtx, c.name, c.consumerName)
 		if errors.Is(err, queue.ErrNoTask) {
 			continue
 		}
@@ -120,12 +124,16 @@ func (c *consumer) Close() error {
 }
 
 func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error) {
+	return q.receiveForConsumer(ctx, name, q.consumer)
+}
+
+func (q *Queue) receiveForConsumer(ctx context.Context, name, consumerName string) (queue.Delivery, error) {
 	if err := q.promoteDue(ctx, name); err != nil {
 		return nil, err
 	}
 
 	if q.claimMinIdle > 0 {
-		delivery, err := q.claimPending(ctx, name, q.claimMinIdle)
+		delivery, err := q.claimPendingForConsumer(ctx, name, consumerName, q.claimMinIdle)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +144,7 @@ func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error
 
 	streams, err := q.redis.XReadGroup(ctx, &goredis.XReadGroupArgs{
 		Group:    q.group,
-		Consumer: q.consumer,
+		Consumer: consumerName,
 		Streams:  []string{q.streamKey(name), ">"},
 		Count:    1,
 		Block:    receiveBlock,

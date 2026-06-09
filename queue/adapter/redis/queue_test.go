@@ -531,7 +531,7 @@ func TestQueue_DelayedTaskPromotion(t *testing.T) {
 }
 
 func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
-	consumer, err := q.NewConsumer(ctx, queueName)
+	consumer, err := q.NewConsumer(ctx, queue.ConsumerConfig{Queue: queueName})
 	if err != nil {
 		return nil, err
 	}

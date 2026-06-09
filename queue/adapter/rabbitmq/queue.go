@@ -80,20 +80,18 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	return q.publishTask(ctx, task, delayFromAvailableAt(time.Now().UTC(), task.AvailableAt))
 }
 
-// NewConsumer creates a RabbitMQ consumer for queueName.
-func (q *Queue) NewConsumer(ctx context.Context, queueName string) (queue.Consumer, error) {
+// NewConsumer creates a RabbitMQ consumer using config.
+func (q *Queue) NewConsumer(ctx context.Context, config queue.ConsumerConfig) (queue.Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if queueName == "" {
-		queueName = queue.DefaultQueue
-	}
+	config = config.Normalize()
 
 	ch, err := q.openChannel(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := q.ensureReadyQueue(ch, queueName); err != nil {
+	if err := q.ensureReadyQueue(ch, config.Queue); err != nil {
 		_ = ch.Close()
 		return nil, err
 	}
@@ -102,7 +100,7 @@ func (q *Queue) NewConsumer(ctx context.Context, queueName string) (queue.Consum
 		return nil, err
 	}
 
-	deliveries, err := ch.Consume(q.readyQueueName(queueName), "", false, false, false, false, nil)
+	deliveries, err := ch.Consume(q.readyQueueName(config.Queue), config.Name, false, false, false, false, nil)
 	if err != nil {
 		_ = ch.Close()
 		return nil, err

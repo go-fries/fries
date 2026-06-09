@@ -137,7 +137,7 @@ func TestQueue_MethodsReturnContextError(t *testing.T) {
 	task := &queue.Task{ID: "task-1", Type: "send_email"}
 
 	require.ErrorIs(t, q.Enqueue(ctx, task), context.Canceled)
-	consumer, err := q.NewConsumer(t.Context(), queue.DefaultQueue)
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{Queue: queue.DefaultQueue})
 	require.NoError(t, err)
 	_, err = consumer.Receive(ctx)
 	require.ErrorIs(t, err, context.Canceled)
@@ -163,7 +163,7 @@ func TestQueue_NilDeliveryOperationsAreNoop(t *testing.T) {
 }
 
 func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
-	consumer, err := q.NewConsumer(ctx, queueName)
+	consumer, err := q.NewConsumer(ctx, queue.ConsumerConfig{Queue: queueName})
 	if err != nil {
 		return nil, err
 	}

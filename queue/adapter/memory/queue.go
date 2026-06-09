@@ -49,17 +49,15 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 	return nil
 }
 
-// NewConsumer creates a consumer for queueName.
-func (q *Queue) NewConsumer(ctx context.Context, queueName string) (queue.Consumer, error) {
+// NewConsumer creates a consumer using config.
+func (q *Queue) NewConsumer(ctx context.Context, config queue.ConsumerConfig) (queue.Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if queueName == "" {
-		queueName = queue.DefaultQueue
-	}
+	config = config.Normalize()
 	return &consumer{
 		queue: q,
-		name:  queueName,
+		name:  config.Queue,
 		done:  make(chan struct{}),
 	}, nil
 }

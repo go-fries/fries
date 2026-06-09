@@ -29,8 +29,8 @@ func (c ConsumerConfig) Normalize() ConsumerConfig {
 type Queue interface {
 	// Enqueue stores a task for future delivery.
 	Enqueue(ctx context.Context, task *Task) error
-	// NewConsumer creates a consumer for queue.
-	NewConsumer(ctx context.Context, queue string) (Consumer, error)
+	// NewConsumer creates a consumer using config.
+	NewConsumer(ctx context.Context, config ConsumerConfig) (Consumer, error)
 }
 
 // Consumer receives task deliveries from a queue.

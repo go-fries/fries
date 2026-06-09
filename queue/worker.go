@@ -18,6 +18,7 @@ const (
 
 type workerConfig struct {
 	queue          string
+	consumerName   string
 	concurrency    int
 	handlerTimeout time.Duration
 	retryPolicy    RetryPolicy
@@ -41,6 +42,15 @@ func WithWorkerQueue(name string) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if name != "" {
 			c.queue = name
+		}
+	})
+}
+
+// WithConsumerName sets the backend consumer identity used by the worker.
+func WithConsumerName(name string) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if name != "" {
+			c.consumerName = name
 		}
 	})
 }
@@ -272,7 +282,10 @@ func (w *Worker) finish(done chan struct{}) {
 }
 
 func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
-	consumer, err := w.queue.NewConsumer(pollCtx, w.config.queue)
+	consumer, err := w.queue.NewConsumer(pollCtx, ConsumerConfig{
+		Queue: w.config.queue,
+		Name:  w.config.consumerName,
+	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil

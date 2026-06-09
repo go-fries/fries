@@ -13,10 +13,14 @@ import (
 )
 
 func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
+	return q.claimPendingForConsumer(ctx, name, q.consumer, minIdle)
+}
+
+func (q *Queue) claimPendingForConsumer(ctx context.Context, name, consumerName string, minIdle time.Duration) (queue.Delivery, error) {
 	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   q.streamKey(name),
 		Group:    q.group,
-		Consumer: q.consumer,
+		Consumer: consumerName,
 		MinIdle:  minIdle,
 		Start:    "0-0",
 		Count:    1,
@@ -28,12 +32,12 @@ func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Dura
 		return nil, err
 	}
 	if len(messages) == 0 {
-		return q.claimPendingWithXClaim(ctx, name, minIdle)
+		return q.claimPendingWithXClaim(ctx, name, consumerName, minIdle)
 	}
 	return q.leaseFromClaimedMessage(ctx, name, messages[0])
 }
 
-func (q *Queue) claimPendingWithXClaim(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
+func (q *Queue) claimPendingWithXClaim(ctx context.Context, name, consumerName string, minIdle time.Duration) (queue.Delivery, error) {
 	pending, err := q.redis.XPendingExt(ctx, &goredis.XPendingExtArgs{
 		Stream: q.streamKey(name),
 		Group:  q.group,
@@ -55,7 +59,7 @@ func (q *Queue) claimPendingWithXClaim(ctx context.Context, name string, minIdle
 	messages, err := q.redis.XClaim(ctx, &goredis.XClaimArgs{
 		Stream:   q.streamKey(name),
 		Group:    q.group,
-		Consumer: q.consumer,
+		Consumer: consumerName,
 		MinIdle:  minIdle,
 		Messages: []string{pending[0].ID},
 	}).Result()

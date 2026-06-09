@@ -18,7 +18,7 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) NewConsumer(context.Context, string) (Consumer, error) {
+func (q dequeueErrorQueue) NewConsumer(context.Context, ConsumerConfig) (Consumer, error) {
 	return nil, q.err
 }
 
@@ -27,6 +27,7 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 
 	config := newWorkerConfig(
 		WithWorkerQueue(""),
+		WithConsumerName(""),
 		WithConcurrency(0),
 		WithHandlerTimeout(0),
 		WithRetryPolicy(nil),
@@ -36,6 +37,7 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	)
 
 	assert.Equal(t, DefaultQueue, config.queue)
+	assert.Empty(t, config.consumerName)
 	assert.Equal(t, 1, config.concurrency)
 	assert.Zero(t, config.handlerTimeout)
 	assert.NotNil(t, config.retryPolicy)
@@ -52,6 +54,7 @@ func TestWorker_ConfigOptions(t *testing.T) {
 
 	config := newWorkerConfig(
 		WithWorkerQueue("critical"),
+		WithConsumerName("worker-1"),
 		WithConcurrency(4),
 		WithHandlerTimeout(time.Second),
 		WithRetryPolicy(retryPolicy),
@@ -60,6 +63,7 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	)
 
 	assert.Equal(t, "critical", config.queue)
+	assert.Equal(t, "worker-1", config.consumerName)
 	assert.Equal(t, 4, config.concurrency)
 	assert.Equal(t, time.Second, config.handlerTimeout)
 	assert.Equal(t, retryPolicy, config.retryPolicy)
