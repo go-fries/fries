@@ -431,17 +431,9 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[0])
 	assert.Equal(t, 0, stored.Attempt)
 
-	var claimed queue.Delivery
 	claimer := q.withConsumer("worker-2")
-	require.Eventually(t, func() bool {
-		got, err := receiveCriticalWithTimeout(ctx, claimer, 50*time.Millisecond)
-		if errors.Is(err, context.DeadlineExceeded) {
-			return false
-		}
-		require.NoError(t, err)
-		claimed = got
-		return true
-	}, time.Second, 10*time.Millisecond)
+	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
 	require.NotNil(t, claimed.Task())
@@ -478,17 +470,9 @@ func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[1])
 	assert.Equal(t, 1, stored.Attempt)
 
-	var claimed queue.Delivery
 	claimer := q.withConsumer("worker-2")
-	require.Eventually(t, func() bool {
-		got, err := receiveCriticalWithTimeout(ctx, claimer, 50*time.Millisecond)
-		if errors.Is(err, context.DeadlineExceeded) {
-			return false
-		}
-		require.NoError(t, err)
-		claimed = got
-		return true
-	}, time.Second, 10*time.Millisecond)
+	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
 	require.NotNil(t, claimed.Task())
