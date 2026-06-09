@@ -426,23 +426,17 @@ func TestQueue_DelayedTasksWithSamePayloadAreNotCollapsed(t *testing.T) {
 	require.NoError(t, q.Enqueue(ctx, task))
 	require.NoError(t, q.Enqueue(ctx, task))
 
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		delivery, err := receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
-		if err != nil {
-			assert.NoError(c, err)
-			return
-		}
-		assert.NotNil(c, delivery)
-		assert.NoError(c, delivery.Ack(ctx))
-
-		delivery, err = receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
-		if err != nil {
-			assert.NoError(c, err)
-			return
-		}
-		assert.NotNil(c, delivery)
-		assert.NoError(c, delivery.Ack(ctx))
-	}, time.Second, 10*time.Millisecond)
+	for range 2 {
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			delivery, err := receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
+			if err != nil {
+				assert.NoError(c, err)
+				return
+			}
+			assert.NotNil(c, delivery)
+			assert.NoError(c, delivery.Ack(ctx))
+		}, time.Second, 10*time.Millisecond)
+	}
 }
 
 func TestQueue_RetryReenqueuesAndAcksDelivery(t *testing.T) {
