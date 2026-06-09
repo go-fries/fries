@@ -412,7 +412,7 @@ func TestQueue_EnqueueDoesNotMutateTask(t *testing.T) {
 func TestQueue_DelayedTasksWithSamePayloadAreNotCollapsed(t *testing.T) {
 	t.Parallel()
 
-	q, _ := newRedisTestQueue(t)
+	q, client := newRedisTestQueue(t)
 	ctx := t.Context()
 	task := &queue.Task{
 		ID:          "task-1",
@@ -426,17 +426,22 @@ func TestQueue_DelayedTasksWithSamePayloadAreNotCollapsed(t *testing.T) {
 	require.NoError(t, q.Enqueue(ctx, task))
 	require.NoError(t, q.Enqueue(ctx, task))
 
-	for range 2 {
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			delivery, err := receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
-			if err != nil {
-				assert.NoError(c, err)
-				return
-			}
-			assert.NotNil(c, delivery)
-			assert.NoError(c, delivery.Ack(ctx))
-		}, time.Second, 10*time.Millisecond)
-	}
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.NoError(c, q.promoteDue(ctx, "critical"))
+
+		length, err := client.XLen(ctx, q.streamKey("critical")).Result()
+		if err != nil {
+			assert.NoError(c, err)
+			return
+		}
+		assert.Equal(c, int64(2), length)
+	}, time.Second, 10*time.Millisecond)
+
+	messages, err := client.XRange(ctx, q.streamKey("critical"), "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, messages, 2)
+	assert.Equal(t, "send_email", taskFromMessage(t, messages[0]).Type)
+	assert.Equal(t, "send_email", taskFromMessage(t, messages[1]).Type)
 }
 
 func TestQueue_RetryReenqueuesAndAcksDelivery(t *testing.T) {
