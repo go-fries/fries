@@ -17,4 +17,8 @@
 // Handlers normally return an error to let the Worker's RetryPolicy decide the
 // next action. For explicit business decisions, handlers may return ErrDiscard,
 // RetryAfter, or DeadLetter.
+//
+// Producers and workers can emit low-sensitivity Observer events for metrics,
+// tracing, and logging. Observer events omit task payload and metadata by
+// default so instrumentation does not accidentally record business data.
 package queue

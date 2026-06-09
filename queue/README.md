@@ -148,3 +148,33 @@ worker := queue.NewWorker(
 	)),
 )
 ```
+
+## Observability
+
+Use an `Observer` to connect queue events to logging, metrics, or tracing
+without wrapping every handler manually. Observer events intentionally include
+only low-sensitivity task fields such as ID, type, queue, and attempt. Payload
+and metadata are not included.
+
+```go
+observer := queue.ObserverFunc(func(ctx context.Context, event queue.Event) {
+	switch event.Kind {
+	case queue.EventEnqueued:
+		// record enqueue metric
+	case queue.EventHandlerFailed:
+		// record handler error
+	case queue.EventTaskRetried:
+		// record retry delay
+	}
+})
+
+producer := queue.NewProducer(q, queue.WithProducerObserver(observer))
+worker := queue.NewWorker(
+	q,
+	queue.WithWorkerObserver(observer),
+	queue.Handle("send_email", handler),
+)
+```
+
+The core package stays logger- and tracing-agnostic. OpenTelemetry integration,
+if needed, should be provided by a separate package built on top of `Observer`.
