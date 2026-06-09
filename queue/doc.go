@@ -9,4 +9,12 @@
 // the receive context error, ErrConsumerClosed when the consumer is closed, or a
 // backend error. Malformed backend messages are returned as backend errors so
 // adapters can make their own acknowledgement or rejection decision.
+//
+// Workers expose the current delivery attempt through Task.Attempt. Queue
+// implementations increment the attempt before handler execution, so the first
+// handler invocation sees Attempt equal to 1.
+//
+// Handlers normally return an error to let the Worker's RetryPolicy decide the
+// next action. For explicit business decisions, handlers may return ErrDiscard,
+// RetryAfter, or DeadLetter.
 package queue

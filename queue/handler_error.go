@@ -10,6 +10,9 @@ const defaultDeadLetterReason = "queue: dead letter requested"
 
 // ErrDiscard tells a Worker to acknowledge the task without retrying or
 // dead-lettering it.
+//
+// Use ErrDiscard when the task was intentionally ignored and should not be
+// delivered again.
 var ErrDiscard = errors.New("queue: discard task")
 
 type retryAfterError struct {
@@ -44,6 +47,9 @@ type deadLetterError struct {
 }
 
 // DeadLetter tells a Worker to move the task to dead-letter storage immediately.
+//
+// Use DeadLetter for non-retryable business failures that should remain
+// inspectable outside the normal processing path.
 func DeadLetter(reason string) error {
 	if reason == "" {
 		reason = defaultDeadLetterReason
