@@ -23,7 +23,7 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 		return nil, ctx.Err()
 	case delivery, ok := <-c.deliveries:
 		if !ok {
-			return nil, context.Canceled
+			return nil, queue.ErrConsumerClosed
 		}
 		leased, err := deliveryFromAMQP(delivery)
 		if err != nil {

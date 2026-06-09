@@ -148,6 +148,20 @@ func TestQueue_MethodsReturnContextError(t *testing.T) {
 	require.ErrorIs(t, delivery.DeadLetter(ctx, "failed"), context.Canceled)
 }
 
+func TestQueue_ReceiveReturnsConsumerClosed(t *testing.T) {
+	t.Parallel()
+
+	q := NewQueue()
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
+	require.NoError(t, err)
+	require.NoError(t, consumer.Close())
+
+	delivery, err := consumer.Receive(t.Context())
+
+	require.ErrorIs(t, err, queue.ErrConsumerClosed)
+	assert.Nil(t, delivery)
+}
+
 func TestQueue_NilDeliveryOperationsAreNoop(t *testing.T) {
 	t.Parallel()
 

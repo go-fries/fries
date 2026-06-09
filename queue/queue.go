@@ -35,7 +35,11 @@ type Queue interface {
 
 // Consumer receives task deliveries from a queue.
 type Consumer interface {
-	// Receive blocks until a delivery is available or ctx is canceled.
+	// Receive blocks until a delivery is available, ctx is canceled, the consumer
+	// is closed, or the backend returns an error.
+	//
+	// Implementations return ErrConsumerClosed when the consumer is closed before
+	// a delivery is available.
 	Receive(ctx context.Context) (Delivery, error)
 	// Close stops the consumer and releases backend resources.
 	Close() error

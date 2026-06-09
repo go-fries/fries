@@ -89,7 +89,7 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 			return nil, ctx.Err()
 		case <-c.done:
 			stopTimer(timer)
-			return nil, context.Canceled
+			return nil, queue.ErrConsumerClosed
 		case <-notify:
 			stopTimer(timer)
 		case <-timerC:

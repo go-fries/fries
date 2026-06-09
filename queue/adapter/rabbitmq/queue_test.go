@@ -277,7 +277,7 @@ func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
 	}()
 	delivery, err := consumer.Receive(t.Context())
 
-	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorIs(t, err, queue.ErrConsumerClosed)
 	assert.Nil(t, delivery)
 	require.Len(t, ch.declares, 1)
 	assert.Equal(t, "default", ch.declares[0].name)

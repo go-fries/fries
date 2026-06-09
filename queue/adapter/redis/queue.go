@@ -111,6 +111,9 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 
 	for {
 		delivery, err := c.queue.receiveForConsumer(receiveCtx, c.name, c.consumerName)
+		if err != nil && errors.Is(err, context.Canceled) && ctx.Err() == nil && c.ctx.Err() != nil {
+			return nil, queue.ErrConsumerClosed
+		}
 		if errors.Is(err, queue.ErrNoTask) {
 			continue
 		}

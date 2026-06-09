@@ -92,7 +92,7 @@ func (c *testConsumer) Receive(ctx context.Context) (Delivery, error) {
 			return nil, ctx.Err()
 		case <-c.done:
 			stopTestTimer(timer)
-			return nil, context.Canceled
+			return nil, ErrConsumerClosed
 		case <-notify:
 			stopTestTimer(timer)
 		case <-timerC:

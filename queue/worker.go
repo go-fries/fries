@@ -194,7 +194,7 @@ func (w *Worker) Run(ctx context.Context) error {
 
 	for i := 0; i < w.config.concurrency; i++ {
 		wg.Go(func() {
-			if err := w.loop(pollCtx, handlerCtx); err != nil {
+			if err := w.loop(ctx, pollCtx, handlerCtx); err != nil {
 				errs <- err
 				stop()
 				interrupt()
@@ -281,13 +281,13 @@ func (w *Worker) finish(done chan struct{}) {
 	w.mu.Unlock()
 }
 
-func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
+func (w *Worker) loop(runCtx, pollCtx, handlerCtx context.Context) error {
 	consumer, err := w.queue.NewConsumer(pollCtx, ConsumerConfig{
 		Queue: w.config.queue,
 		Name:  w.config.consumerName,
 	})
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if isStopError(err) {
 			return nil
 		}
 		return err
@@ -305,7 +305,7 @@ func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 
 		delivery, err := consumer.Receive(pollCtx)
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if isStopError(err) {
 				return nil
 			}
 			return err
@@ -319,9 +319,18 @@ func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 		}
 
 		if err := w.process(handlerCtx, delivery); err != nil {
+			if runCtx.Err() != nil && isStopError(err) {
+				return nil
+			}
 			return err
 		}
 	}
+}
+
+func isStopError(err error) bool {
+	return errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, ErrConsumerClosed)
 }
 
 func (w *Worker) process(ctx context.Context, delivery Delivery) error {
