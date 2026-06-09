@@ -183,7 +183,7 @@ func TestQueue_ClaimPendingReturnsXAutoClaimError(t *testing.T) {
 	wantErr := errors.New("xautoclaim failed")
 	q := NewQueue(&redisClientStub{xAutoClaimErr: wantErr})
 
-	_, err := q.claimPending(t.Context(), "critical", time.Second)
+	_, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.ErrorIs(t, err, wantErr)
 }
@@ -208,7 +208,7 @@ func TestQueue_ClaimPendingFallsBackToXClaim(t *testing.T) {
 	}
 	q := NewQueue(client)
 
-	delivery, err := q.claimPending(t.Context(), "critical", time.Second)
+	delivery, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.NoError(t, err)
 	require.NotNil(t, delivery)
@@ -228,7 +228,7 @@ func TestQueue_ClaimPendingReturnsXClaimError(t *testing.T) {
 		xClaimErr: wantErr,
 	})
 
-	_, err := q.claimPending(t.Context(), "critical", time.Second)
+	_, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.ErrorIs(t, err, wantErr)
 }
@@ -295,21 +295,40 @@ func TestQueue_DeliveryFromMessageErrors(t *testing.T) {
 func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix(""), WithGroup(""), WithConsumer(""), WithPromoteSize(0), WithClaimMinIdle(-time.Second))
+	q := NewQueue(
+		nil,
+		WithPrefix(""),
+		WithGroup(""),
+		WithConsumer(""),
+		WithPromoteSize(0),
+		WithClaimMinIdle(-time.Second),
+		WithDeadLetterMaxLen(0),
+	)
 
 	assert.Equal(t, "queue:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "queue:critical:delayed", q.delayedKey("critical"))
 	assert.Equal(t, "queue:critical:dead", q.deadLetterKey("critical"))
 	assert.Equal(t, "queue", q.group)
-	assert.Equal(t, "worker", q.consumer)
+	assert.NotEmpty(t, q.consumer)
+	assert.NotEqual(t, "worker", q.consumer)
+	assert.True(t, strings.HasPrefix(q.consumer, "worker-"))
 	assert.Equal(t, 100, q.promoteSize)
 	assert.Equal(t, 5*time.Minute, q.claimMinIdle)
+	assert.Zero(t, q.deadLetterMaxLen)
 }
 
 func TestQueue_Options(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue(nil, WithPrefix("app:"), WithGroup("workers"), WithConsumer("worker-1"), WithPromoteSize(10), WithClaimMinIdle(30*time.Second))
+	q := NewQueue(
+		nil,
+		WithPrefix("app:"),
+		WithGroup("workers"),
+		WithConsumer("worker-1"),
+		WithPromoteSize(10),
+		WithClaimMinIdle(30*time.Second),
+		WithDeadLetterMaxLen(100),
+	)
 
 	assert.Equal(t, "app:critical:stream", q.streamKey("critical"))
 	assert.Equal(t, "app:critical:delayed", q.delayedKey("critical"))
@@ -318,6 +337,7 @@ func TestQueue_Options(t *testing.T) {
 	assert.Equal(t, "worker-1", q.consumer)
 	assert.Equal(t, 10, q.promoteSize)
 	assert.Equal(t, 30*time.Second, q.claimMinIdle)
+	assert.Equal(t, int64(100), q.deadLetterMaxLen)
 }
 
 func TestQueue_NoopOperations(t *testing.T) {
@@ -389,6 +409,41 @@ func TestQueue_EnqueueDoesNotMutateTask(t *testing.T) {
 	assert.Equal(t, queue.DefaultQueue, delivery.Task().Queue)
 }
 
+func TestQueue_DelayedTasksWithSamePayloadAreNotCollapsed(t *testing.T) {
+	t.Parallel()
+
+	q, client := newRedisTestQueue(t)
+	ctx := t.Context()
+	task := &queue.Task{
+		ID:          "task-1",
+		Type:        "send_email",
+		Queue:       "critical",
+		Payload:     []byte("hello"),
+		CreatedAt:   time.Unix(1, 0).UTC(),
+		AvailableAt: time.Now().UTC().Add(20 * time.Millisecond),
+	}
+
+	require.NoError(t, q.Enqueue(ctx, task))
+	require.NoError(t, q.Enqueue(ctx, task))
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.NoError(c, q.promoteDue(ctx, "critical"))
+
+		length, err := client.XLen(ctx, q.streamKey("critical")).Result()
+		if err != nil {
+			assert.NoError(c, err)
+			return
+		}
+		assert.Equal(c, int64(2), length)
+	}, time.Second, 10*time.Millisecond)
+
+	messages, err := client.XRange(ctx, q.streamKey("critical"), "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, messages, 2)
+	assert.Equal(t, "send_email", taskFromMessage(t, messages[0]).Type)
+	assert.Equal(t, "send_email", taskFromMessage(t, messages[1]).Type)
+}
+
 func TestQueue_RetryReenqueuesAndAcksDelivery(t *testing.T) {
 	t.Parallel()
 
@@ -431,8 +486,7 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[0])
 	assert.Equal(t, 0, stored.Attempt)
 
-	claimer := q.withConsumer("worker-2")
-	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	claimed, err := q.claimPendingForConsumer(ctx, "critical", "worker-2", 0)
 	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
@@ -470,8 +524,7 @@ func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[1])
 	assert.Equal(t, 1, stored.Attempt)
 
-	claimer := q.withConsumer("worker-2")
-	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	claimed, err := q.claimPendingForConsumer(ctx, "critical", "worker-2", 0)
 	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
@@ -530,8 +583,30 @@ func TestQueue_DelayedTaskPromotion(t *testing.T) {
 	assert.Equal(t, "send_email", delivery.Task().Type)
 }
 
+func TestQueue_ReceiveAcksMalformedStreamMessage(t *testing.T) {
+	t.Parallel()
+
+	q, client := newRedisTestQueue(t)
+	ctx := t.Context()
+	require.NoError(t, q.ensureGroup(ctx, "critical"))
+	require.NoError(t, client.XAdd(ctx, &goredis.XAddArgs{
+		Stream: q.streamKey("critical"),
+		Values: map[string]any{
+			taskField: "{",
+		},
+	}).Err())
+
+	delivery, err := receive(ctx, q, "critical")
+
+	require.Error(t, err)
+	assert.Nil(t, delivery)
+	pending, err := client.XPending(ctx, q.streamKey("critical"), q.group).Result()
+	require.NoError(t, err)
+	assert.Zero(t, pending.Count)
+}
+
 func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
-	consumer, err := q.NewConsumer(ctx, queueName)
+	consumer, err := q.NewConsumer(ctx, queue.ConsumerConfig{Queue: queueName})
 	if err != nil {
 		return nil, err
 	}
@@ -545,12 +620,6 @@ func receiveCriticalWithTimeout(ctx context.Context, q *Queue, timeout time.Dura
 	receiveCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	return receive(receiveCtx, q, "critical")
-}
-
-func (q *Queue) withConsumer(consumer string) *Queue {
-	clone := *q
-	clone.consumer = consumer
-	return &clone
 }
 
 func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {

@@ -27,7 +27,7 @@ func (q *blockingQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *blockingQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
+func (q *blockingQueue) NewConsumer(context.Context, queue.ConsumerConfig) (queue.Consumer, error) {
 	return blockingConsumer{queue: q}, nil
 }
 
@@ -39,7 +39,7 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
+func (q dequeueErrorQueue) NewConsumer(context.Context, queue.ConsumerConfig) (queue.Consumer, error) {
 	return nil, q.err
 }
 
@@ -58,7 +58,7 @@ func (q *singleTaskQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *singleTaskQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
+func (q *singleTaskQueue) NewConsumer(context.Context, queue.ConsumerConfig) (queue.Consumer, error) {
 	return &singleTaskConsumer{queue: q}, nil
 }
 

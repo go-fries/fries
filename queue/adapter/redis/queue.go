@@ -2,8 +2,11 @@ package redis
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/go-fries/fries/queue/v3"
@@ -16,14 +19,20 @@ const (
 	receiveBlock    = time.Second
 )
 
+type delayedEntry struct {
+	ID   string `json:"id"`
+	Task string `json:"task"`
+}
+
 // Queue stores and consumes queue tasks with Redis Streams.
 type Queue struct {
-	redis        goredis.UniversalClient
-	prefix       string
-	group        string
-	consumer     string
-	promoteSize  int
-	claimMinIdle time.Duration
+	redis            goredis.UniversalClient
+	prefix           string
+	group            string
+	consumer         string
+	promoteSize      int
+	claimMinIdle     time.Duration
+	deadLetterMaxLen int64
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -32,12 +41,13 @@ var _ queue.Queue = (*Queue)(nil)
 func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
 	c := newConfig(opts...)
 	q := &Queue{
-		redis:        redis,
-		prefix:       c.prefix,
-		group:        c.group,
-		consumer:     c.consumer,
-		promoteSize:  c.promoteSize,
-		claimMinIdle: c.claimMinIdle,
+		redis:            redis,
+		prefix:           c.prefix,
+		group:            c.group,
+		consumer:         c.consumer,
+		promoteSize:      c.promoteSize,
+		claimMinIdle:     c.claimMinIdle,
+		deadLetterMaxLen: c.deadLetterMaxLen,
 	}
 	return q
 }
@@ -60,41 +70,64 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 
 	now := time.Now().UTC()
 	if task.AvailableAt.After(now) {
+		entry, err := newDelayedEntry(data)
+		if err != nil {
+			return err
+		}
 		return q.redis.ZAdd(ctx, q.delayedKey(task.Queue), goredis.Z{
 			Score:  float64(task.AvailableAt.UnixNano()),
-			Member: string(data),
+			Member: entry,
 		}).Err()
 	}
 
 	return q.addToStream(ctx, task.Queue, data)
 }
 
-// NewConsumer creates a Redis Streams consumer for name.
-func (q *Queue) NewConsumer(ctx context.Context, name string) (queue.Consumer, error) {
+func newDelayedEntry(data []byte) (string, error) {
+	token := make([]byte, 16)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+	entry, err := json.Marshal(delayedEntry{
+		ID:   hex.EncodeToString(token) + "-" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		Task: string(data),
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(entry), nil
+}
+
+// NewConsumer creates a Redis Streams consumer using config.
+func (q *Queue) NewConsumer(ctx context.Context, config queue.ConsumerConfig) (queue.Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if name == "" {
-		name = queue.DefaultQueue
+	config = config.Normalize()
+	consumerName := config.Name
+	if consumerName == "" {
+		consumerName = q.consumer
 	}
-	if err := q.ensureGroup(ctx, name); err != nil {
+	if err := q.ensureGroup(ctx, config.Queue); err != nil {
 		return nil, err
 	}
 
 	consumerCtx, cancel := context.WithCancel(context.Background())
 	return &consumer{
-		queue:  q,
-		name:   name,
-		ctx:    consumerCtx,
-		cancel: cancel,
+		queue:        q,
+		name:         config.Queue,
+		consumerName: consumerName,
+		ctx:          consumerCtx,
+		cancel:       cancel,
 	}, nil
 }
 
 type consumer struct {
-	queue  *Queue
-	name   string
-	ctx    context.Context
-	cancel context.CancelFunc
+	queue        *Queue
+	name         string
+	consumerName string
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
@@ -106,7 +139,10 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 	}()
 
 	for {
-		delivery, err := c.queue.receive(receiveCtx, c.name)
+		delivery, err := c.queue.receiveForConsumer(receiveCtx, c.name, c.consumerName)
+		if err != nil && errors.Is(err, context.Canceled) && ctx.Err() == nil && c.ctx.Err() != nil {
+			return nil, queue.ErrConsumerClosed
+		}
 		if errors.Is(err, queue.ErrNoTask) {
 			continue
 		}
@@ -119,14 +155,17 @@ func (c *consumer) Close() error {
 	return nil
 }
 
-func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error) {
+func (q *Queue) receiveForConsumer(ctx context.Context, name, consumerName string) (queue.Delivery, error) {
 	if err := q.promoteDue(ctx, name); err != nil {
 		return nil, err
 	}
 
 	if q.claimMinIdle > 0 {
-		delivery, err := q.claimPending(ctx, name, q.claimMinIdle)
+		delivery, err := q.claimPendingForConsumer(ctx, name, consumerName, q.claimMinIdle)
 		if err != nil {
+			if isMalformedMessage(err) {
+				_ = q.ackMalformed(ctx, name, malformedMessageID(err))
+			}
 			return nil, err
 		}
 		if delivery != nil {
@@ -136,7 +175,7 @@ func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error
 
 	streams, err := q.redis.XReadGroup(ctx, &goredis.XReadGroupArgs{
 		Group:    q.group,
-		Consumer: q.consumer,
+		Consumer: consumerName,
 		Streams:  []string{q.streamKey(name), ">"},
 		Count:    1,
 		Block:    receiveBlock,
@@ -151,5 +190,19 @@ func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error
 		return nil, queue.ErrNoTask
 	}
 
-	return q.leaseFromMessage(streams[0].Messages[0])
+	message := streams[0].Messages[0]
+	delivery, err := q.leaseFromMessage(message)
+	if err != nil && isMalformedMessage(err) {
+		_ = q.ackMalformed(ctx, name, message.ID)
+	}
+	return delivery, err
+}
+
+func (q *Queue) ackMalformed(ctx context.Context, name, messageID string) error {
+	if messageID == "" {
+		return nil
+	}
+	ackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	return q.redis.XAck(ackCtx, q.streamKey(name), q.group, messageID).Err()
 }

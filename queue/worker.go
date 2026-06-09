@@ -11,18 +11,22 @@ import (
 )
 
 const (
-	defaultConcurrency      = 1
-	defaultRetryMaxAttempts = 3
-	defaultRetryDelay       = time.Second
+	defaultConcurrency       = 1
+	defaultRetryMaxAttempts  = 3
+	defaultRetryDelay        = time.Second
+	defaultSettlementTimeout = 30 * time.Second
 )
 
 type workerConfig struct {
-	queue          string
-	concurrency    int
-	handlerTimeout time.Duration
-	retryPolicy    RetryPolicy
-	middleware     []Middleware
-	handlers       map[string]Handler
+	queue             string
+	consumerName      string
+	concurrency       int
+	handlerTimeout    time.Duration
+	settlementTimeout time.Duration
+	retryPolicy       RetryPolicy
+	observer          Observer
+	middleware        []Middleware
+	handlers          map[string]Handler
 }
 
 // WorkerOption configures a Worker.
@@ -45,6 +49,15 @@ func WithWorkerQueue(name string) WorkerOption {
 	})
 }
 
+// WithConsumerName sets the backend consumer identity used by the worker.
+func WithConsumerName(name string) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if name != "" {
+			c.consumerName = name
+		}
+	})
+}
+
 // WithConcurrency sets the number of concurrent worker loops.
 func WithConcurrency(concurrency int) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
@@ -63,12 +76,28 @@ func WithHandlerTimeout(timeout time.Duration) WorkerOption {
 	})
 }
 
+// WithSettlementTimeout sets the timeout for Ack, Retry, and DeadLetter operations.
+func WithSettlementTimeout(timeout time.Duration) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if timeout > 0 {
+			c.settlementTimeout = timeout
+		}
+	})
+}
+
 // WithRetryPolicy sets the retry policy used after handler errors.
 func WithRetryPolicy(policy RetryPolicy) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
 		if policy != nil {
 			c.retryPolicy = policy
 		}
+	})
+}
+
+// WithWorkerObserver sets the observer used for worker events.
+func WithWorkerObserver(observer Observer) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		c.observer = observer
 	})
 }
 
@@ -127,10 +156,11 @@ func HandleTasker[T any](tasker Tasker[T]) WorkerOption {
 
 func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 	c := &workerConfig{
-		queue:       DefaultQueue,
-		concurrency: defaultConcurrency,
-		retryPolicy: FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
-		handlers:    make(map[string]Handler),
+		queue:             DefaultQueue,
+		concurrency:       defaultConcurrency,
+		settlementTimeout: defaultSettlementTimeout,
+		retryPolicy:       FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
+		handlers:          make(map[string]Handler),
 	}
 	for _, opt := range opts {
 		opt.apply(c)
@@ -158,7 +188,10 @@ func NewWorker(q Queue, opts ...WorkerOption) *Worker {
 }
 
 // Run starts worker loops and blocks until ctx is canceled or a queue operation fails.
-func (w *Worker) Run(ctx context.Context) error {
+//
+// Queue operation errors stop the worker and are returned to the caller unless
+// they are normal stop signals caused by worker shutdown.
+func (w *Worker) Run(ctx context.Context) (err error) {
 	pollCtx, stop := context.WithCancel(ctx)
 	handlerCtx, interrupt := context.WithCancel(context.WithoutCancel(ctx))
 	lifecycleDone := make(chan struct{})
@@ -167,10 +200,21 @@ func (w *Worker) Run(ctx context.Context) error {
 		interrupt()
 		return errors.New("queue: worker already running")
 	}
+	w.observe(ctx, Event{
+		Kind:         EventWorkerStarted,
+		Queue:        w.config.queue,
+		ConsumerName: w.config.consumerName,
+	})
 	defer func() {
 		stop()
 		interrupt()
 		w.finish(lifecycleDone)
+		w.observe(context.WithoutCancel(ctx), Event{
+			Kind:         EventWorkerStopped,
+			Queue:        w.config.queue,
+			ConsumerName: w.config.consumerName,
+			Err:          err,
+		})
 	}()
 
 	stopWatchingRun := context.AfterFunc(ctx, func() {
@@ -184,7 +228,7 @@ func (w *Worker) Run(ctx context.Context) error {
 
 	for i := 0; i < w.config.concurrency; i++ {
 		wg.Go(func() {
-			if err := w.loop(pollCtx, handlerCtx); err != nil {
+			if err := w.loop(ctx, pollCtx, handlerCtx); err != nil {
 				errs <- err
 				stop()
 				interrupt()
@@ -271,10 +315,13 @@ func (w *Worker) finish(done chan struct{}) {
 	w.mu.Unlock()
 }
 
-func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
-	consumer, err := w.queue.NewConsumer(pollCtx, w.config.queue)
+func (w *Worker) loop(runCtx, pollCtx, handlerCtx context.Context) error {
+	consumer, err := w.queue.NewConsumer(pollCtx, ConsumerConfig{
+		Queue: w.config.queue,
+		Name:  w.config.consumerName,
+	})
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if isNormalStopError(pollCtx, err) {
 			return nil
 		}
 		return err
@@ -292,7 +339,7 @@ func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 
 		delivery, err := consumer.Receive(pollCtx)
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if isNormalStopError(pollCtx, err) {
 				return nil
 			}
 			return err
@@ -304,31 +351,117 @@ func (w *Worker) loop(pollCtx, handlerCtx context.Context) error {
 		if task == nil {
 			continue
 		}
+		w.observe(handlerCtx, w.event(EventTaskReceived, task))
 
 		if err := w.process(handlerCtx, delivery); err != nil {
+			if runCtx.Err() != nil && isStopError(err) {
+				return nil
+			}
 			return err
 		}
 	}
+}
+
+func isStopError(err error) bool {
+	return errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded)
+}
+
+func isNormalStopError(ctx context.Context, err error) bool {
+	return isStopError(err) ||
+		(errors.Is(err, ErrConsumerClosed) && ctx.Err() != nil)
 }
 
 func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 	task := delivery.Task()
 	handler, ok := w.config.handlers[task.Type]
 	if !ok {
-		return delivery.DeadLetter(ctx, ErrHandlerNotFound.Error())
+		return w.deadLetter(ctx, delivery, ErrHandlerNotFound.Error())
 	}
 
+	w.observe(ctx, w.event(EventHandlerStarted, task))
 	err := w.handle(ctx, handler, task)
 	if err == nil {
-		return delivery.Ack(ctx)
+		w.observe(ctx, w.event(EventHandlerSucceeded, task))
+		return w.ack(ctx, delivery)
+	}
+	failedEvent := w.event(EventHandlerFailed, task)
+	failedEvent.Err = err
+	w.observe(ctx, failedEvent)
+	if errors.Is(err, ErrDiscard) {
+		return w.ack(ctx, delivery)
+	}
+	if reason, ok := deadLetterReason(err); ok {
+		return w.deadLetter(ctx, delivery, reason)
+	}
+	if retryAfter, ok := retryAfterDelay(err); ok {
+		if _, ok := w.config.retryPolicy.NextDelay(task, err); !ok {
+			return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
+		}
+		return w.retry(ctx, delivery, retryAfter)
 	}
 
 	delay, ok := w.config.retryPolicy.NextDelay(task, err)
 	if !ok {
-		return delivery.DeadLetter(ctx, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
+		return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
 	}
 
-	return delivery.Retry(ctx, delay)
+	return w.retry(ctx, delivery, delay)
+}
+
+func (w *Worker) ack(ctx context.Context, delivery Delivery) error {
+	err := w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.Ack(ctx)
+	})
+	task := delivery.Task()
+	if err != nil {
+		w.observe(ctx, w.settlementFailedEvent(task, SettlementAck, 0, "", err))
+		return err
+	}
+	w.observe(ctx, w.event(EventTaskAcked, task))
+	return nil
+}
+
+func (w *Worker) retry(ctx context.Context, delivery Delivery, delay time.Duration) error {
+	err := w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.Retry(ctx, delay)
+	})
+	task := delivery.Task()
+	if err != nil {
+		w.observe(ctx, w.settlementFailedEvent(task, SettlementRetry, delay, "", err))
+		return err
+	}
+	event := w.event(EventTaskRetried, task)
+	event.Settlement = SettlementRetry
+	event.Delay = delay
+	w.observe(ctx, event)
+	return nil
+}
+
+func (w *Worker) deadLetter(ctx context.Context, delivery Delivery, reason string) error {
+	err := w.withSettlementContext(ctx, func(ctx context.Context) error {
+		return delivery.DeadLetter(ctx, reason)
+	})
+	task := delivery.Task()
+	if err != nil {
+		w.observe(ctx, w.settlementFailedEvent(task, SettlementDeadLetter, 0, reason, err))
+		return err
+	}
+	event := w.event(EventTaskDeadLettered, task)
+	event.Settlement = SettlementDeadLetter
+	event.Reason = reason
+	w.observe(ctx, event)
+	return nil
+}
+
+func (w *Worker) withSettlementContext(ctx context.Context, fn func(context.Context) error) error {
+	if w.config.settlementTimeout <= 0 {
+		return fn(ctx)
+	}
+
+	settlementCtx, cancel := context.WithTimeout(ctx, w.config.settlementTimeout)
+	defer cancel()
+	return fn(settlementCtx)
 }
 
 func (w *Worker) handle(ctx context.Context, handler Handler, task *Task) error {
@@ -340,4 +473,35 @@ func (w *Worker) handle(ctx context.Context, handler Handler, task *Task) error 
 	handlerCtx, cancel := context.WithTimeout(ctx, w.config.handlerTimeout)
 	defer cancel()
 	return handler.Handle(handlerCtx, task)
+}
+
+func (w *Worker) observe(ctx context.Context, event Event) {
+	if w == nil || w.config == nil || w.config.observer == nil {
+		return
+	}
+	w.config.observer.ObserveQueue(ctx, event)
+}
+
+func (w *Worker) event(kind EventKind, task *Task) Event {
+	return Event{
+		Kind:         kind,
+		Queue:        w.config.queue,
+		ConsumerName: w.config.consumerName,
+		Task:         taskInfo(task),
+	}
+}
+
+func (w *Worker) settlementFailedEvent(
+	task *Task,
+	settlement SettlementAction,
+	delay time.Duration,
+	reason string,
+	err error,
+) Event {
+	event := w.event(EventTaskSettlementFailed, task)
+	event.Settlement = settlement
+	event.Delay = delay
+	event.Reason = reason
+	event.Err = err
+	return event
 }

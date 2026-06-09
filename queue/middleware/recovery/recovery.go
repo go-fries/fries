@@ -14,7 +14,19 @@ type HandlerFunc func(ctx context.Context, task *queue.Task, recovered any, stac
 
 // DefaultHandler logs recovered panics and stack traces.
 var DefaultHandler HandlerFunc = func(_ context.Context, task *queue.Task, recovered any, stack []byte) {
-	log.Printf("queue panic recovered: task=%v recovered=%v\nstack trace:\n%s", task, recovered, stack)
+	if task == nil {
+		log.Printf("queue panic recovered: task=<nil> recovered=%v\nstack trace:\n%s", recovered, stack)
+		return
+	}
+	log.Printf(
+		"queue panic recovered: task_id=%s task_type=%s queue=%s attempt=%d recovered=%v\nstack trace:\n%s",
+		task.ID,
+		task.Type,
+		task.Queue,
+		task.Attempt,
+		recovered,
+		stack,
+	)
 }
 
 type config struct {

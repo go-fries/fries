@@ -1,6 +1,6 @@
 # Memory Queue
 
-An in-memory queue implementation for `github.com/go-fries/fries/queue/v3`.
+In-memory adapter for `github.com/go-fries/fries/queue/v3`.
 
 ## Installation
 
@@ -20,13 +20,23 @@ import (
 	"github.com/go-fries/fries/queue/v3"
 )
 
-func main() {
+func enqueue(ctx context.Context) error {
 	q := memory.NewQueue()
 	producer := queue.NewProducer(q)
 
-	_, _ = producer.Enqueue(context.Background(), "send_email", []byte("hello"))
+	_, err := producer.Enqueue(ctx, "send_email", []byte("hello"))
+	return err
 }
 ```
 
-The memory adapter is useful for tests, examples, and local development. It does
-not persist tasks across process restarts.
+## Semantics
+
+This adapter is for tests, examples, and local development. It is not durable
+and should not be used as production task storage.
+
+Tasks are stored in process memory. Once a task is delivered, it is removed from
+the ready queue. If the process exits before the handler retries or
+dead-letters the task, that in-flight task is lost.
+
+The adapter intentionally does not simulate backend redelivery after worker
+crashes. Keeping it simple makes unit tests and examples predictable.

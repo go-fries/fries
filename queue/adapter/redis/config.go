@@ -1,16 +1,19 @@
 package redis
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"time"
 )
 
 type config struct {
-	prefix       string
-	group        string
-	consumer     string
-	promoteSize  int
-	claimMinIdle time.Duration
+	prefix           string
+	group            string
+	consumer         string
+	promoteSize      int
+	claimMinIdle     time.Duration
+	deadLetterMaxLen int64
 }
 
 // Option configures a Redis queue.
@@ -71,11 +74,20 @@ func WithClaimMinIdle(minIdle time.Duration) Option {
 	})
 }
 
+// WithDeadLetterMaxLen sets approximate max length trimming for dead-letter streams.
+func WithDeadLetterMaxLen(maxLen int64) Option {
+	return optionFunc(func(c *config) {
+		if maxLen > 0 {
+			c.deadLetterMaxLen = maxLen
+		}
+	})
+}
+
 func newConfig(opts ...Option) *config {
 	c := &config{
 		prefix:       "queue",
 		group:        "queue",
-		consumer:     "worker",
+		consumer:     defaultConsumerName(),
 		promoteSize:  100,
 		claimMinIdle: 5 * time.Minute,
 	}
@@ -83,4 +95,12 @@ func newConfig(opts ...Option) *config {
 		opt.apply(c)
 	}
 	return c
+}
+
+func defaultConsumerName() string {
+	hostname, err := os.Hostname()
+	if err != nil || hostname == "" {
+		hostname = "localhost"
+	}
+	return fmt.Sprintf("worker-%s-%d-%d", hostname, os.Getpid(), time.Now().UnixNano())
 }

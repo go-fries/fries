@@ -42,22 +42,20 @@ func (q *testQueue) Enqueue(ctx context.Context, task *Task) error {
 	return nil
 }
 
-func (q *testQueue) NewConsumer(ctx context.Context, queueName string) (Consumer, error) {
+func (q *testQueue) NewConsumer(ctx context.Context, config ConsumerConfig) (Consumer, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if queueName == "" {
-		queueName = DefaultQueue
-	}
+	config = config.Normalize()
 	return &testConsumer{
 		queue: q,
-		name:  queueName,
+		name:  config.Queue,
 		done:  make(chan struct{}),
 	}, nil
 }
 
 func (q *testQueue) Receive(ctx context.Context, queueName string) (Delivery, error) {
-	consumer, err := q.NewConsumer(ctx, queueName)
+	consumer, err := q.NewConsumer(ctx, ConsumerConfig{Queue: queueName})
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +92,7 @@ func (c *testConsumer) Receive(ctx context.Context) (Delivery, error) {
 			return nil, ctx.Err()
 		case <-c.done:
 			stopTestTimer(timer)
-			return nil, context.Canceled
+			return nil, ErrConsumerClosed
 		case <-notify:
 			stopTestTimer(timer)
 		case <-timerC:

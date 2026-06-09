@@ -5,17 +5,41 @@ import (
 	"time"
 )
 
+// ConsumerConfig configures a consumer created by a Queue.
+type ConsumerConfig struct {
+	// Queue is the logical queue name to consume. Empty values are treated as
+	// DefaultQueue.
+	Queue string
+
+	// Name identifies the consumer instance when a backend supports or requires
+	// consumer identity. Empty values let the queue implementation choose its
+	// default behavior.
+	Name string
+}
+
+// Normalize returns a copy of c with shared queue defaults applied.
+func (c ConsumerConfig) Normalize() ConsumerConfig {
+	if c.Queue == "" {
+		c.Queue = DefaultQueue
+	}
+	return c
+}
+
 // Queue stores tasks and creates consumers for task delivery.
 type Queue interface {
 	// Enqueue stores a task for future delivery.
 	Enqueue(ctx context.Context, task *Task) error
-	// NewConsumer creates a consumer for queue.
-	NewConsumer(ctx context.Context, queue string) (Consumer, error)
+	// NewConsumer creates a consumer using config.
+	NewConsumer(ctx context.Context, config ConsumerConfig) (Consumer, error)
 }
 
 // Consumer receives task deliveries from a queue.
 type Consumer interface {
-	// Receive blocks until a delivery is available or ctx is canceled.
+	// Receive blocks until a delivery is available, ctx is canceled, the consumer
+	// is closed, or the backend returns an error.
+	//
+	// Implementations return ErrConsumerClosed when the consumer is closed before
+	// a delivery is available.
 	Receive(ctx context.Context) (Delivery, error)
 	// Close stops the consumer and releases backend resources.
 	Close() error

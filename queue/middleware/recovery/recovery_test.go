@@ -1,13 +1,19 @@
 package recovery
 
 import (
+	"bytes"
 	"context"
+	"log"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-fries/fries/queue/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var defaultLoggerMu sync.Mutex
 
 func TestNewRecoversPanic(t *testing.T) {
 	t.Parallel()
@@ -52,4 +58,33 @@ func TestWithStackSizeIgnoresInvalidSize(t *testing.T) {
 
 	assert.NotNil(t, c.handler)
 	assert.Positive(t, c.stackSize)
+}
+
+func TestDefaultHandlerDoesNotLogTaskPayload(t *testing.T) {
+	defaultLoggerMu.Lock()
+	defer defaultLoggerMu.Unlock()
+
+	var out bytes.Buffer
+	original := log.Writer()
+	log.SetOutput(&out)
+	defer log.SetOutput(original)
+
+	DefaultHandler(
+		t.Context(),
+		&queue.Task{
+			ID:      "task-1",
+			Type:    "send_email",
+			Queue:   "critical",
+			Attempt: 2,
+			Payload: []byte("secret-payload"),
+		},
+		"panic",
+		[]byte("stack"),
+	)
+
+	logged := out.String()
+	assert.Contains(t, logged, "task_id=task-1")
+	assert.Contains(t, logged, "task_type=send_email")
+	assert.NotContains(t, logged, "secret-payload")
+	assert.False(t, strings.Contains(logged, "Payload"))
 }

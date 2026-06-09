@@ -11,7 +11,12 @@ import (
 const promoteScript = `
 local tasks = redis.call("zrangebyscore", KEYS[1], "-inf", ARGV[1], "limit", 0, ARGV[2])
 for _, task in ipairs(tasks) do
-	redis.call("xadd", KEYS[2], "*", ARGV[3], task)
+	local payload = task
+	local ok, decoded = pcall(cjson.decode, task)
+	if ok and type(decoded) == "table" and decoded["task"] then
+		payload = decoded["task"]
+	end
+	redis.call("xadd", KEYS[2], "*", ARGV[3], payload)
 	redis.call("zrem", KEYS[1], task)
 end
 return #tasks

@@ -23,7 +23,7 @@ func (c *consumer) Receive(ctx context.Context) (queue.Delivery, error) {
 		return nil, ctx.Err()
 	case delivery, ok := <-c.deliveries:
 		if !ok {
-			return nil, context.Canceled
+			return nil, queue.ErrConsumerClosed
 		}
 		leased, err := deliveryFromAMQP(delivery)
 		if err != nil {
@@ -107,7 +107,7 @@ func (d *delivery) DeadLetter(ctx context.Context, reason string) error {
 		if err := d.queue.ensureDeadLetterQueue(ch, task.Queue); err != nil {
 			return err
 		}
-		return ch.PublishWithContext(ctx, defaultExchange, d.queue.deadLetterQueueName(task.Queue), false, false, msg)
+		return d.queue.publish(ctx, ch, defaultExchange, d.queue.deadLetterQueueName(task.Queue), msg)
 	})
 	if err != nil {
 		return err

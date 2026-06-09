@@ -2,6 +2,8 @@ package queue
 
 import (
 	"errors"
+	"math"
+	"sync"
 	"testing"
 	"time"
 
@@ -148,4 +150,67 @@ func TestRetryPolicy_ExponentialRetry(t *testing.T) {
 			assert.Equal(t, tt.wantDelay, delay)
 		})
 	}
+}
+
+func TestRetryPolicy_JitterRetry(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(FixedRetry(3, time.Second), 100*time.Millisecond).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.True(t, retry)
+	assert.GreaterOrEqual(t, delay, time.Second)
+	assert.LessOrEqual(t, delay, 1100*time.Millisecond)
+}
+
+func TestRetryPolicy_JitterRetryNoRetry(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(NoRetry(), time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.False(t, retry)
+	assert.Zero(t, delay)
+}
+
+func TestRetryPolicy_JitterRetryNormalizesInputs(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(FixedRetry(3, time.Second), -time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.True(t, retry)
+	assert.Equal(t, time.Second, delay)
+
+	delay, retry = JitterRetry(nil, time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.False(t, retry)
+	assert.Zero(t, delay)
+}
+
+func TestRetryPolicy_JitterRetryAllowsMaxDuration(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(FixedRetry(3, 0), time.Duration(math.MaxInt64)).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.True(t, retry)
+	assert.GreaterOrEqual(t, delay, time.Duration(0))
+}
+
+func TestRetryPolicy_JitterRetryConcurrent(t *testing.T) {
+	t.Parallel()
+
+	policy := JitterRetry(FixedRetry(3, time.Second), time.Millisecond)
+	var wg sync.WaitGroup
+	for range 32 {
+		wg.Go(func() {
+			delay, retry := policy.NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+			assert.True(t, retry)
+			assert.GreaterOrEqual(t, delay, time.Second)
+			assert.LessOrEqual(t, delay, time.Second+time.Millisecond)
+		})
+	}
+	wg.Wait()
 }

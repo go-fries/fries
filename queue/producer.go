@@ -18,6 +18,10 @@ type enqueueConfig struct {
 	delay    time.Duration
 }
 
+type producerConfig struct {
+	observer Observer
+}
+
 // EnqueueOption configures task enqueue behavior.
 type EnqueueOption interface {
 	apply(*enqueueConfig)
@@ -90,14 +94,45 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	return c
 }
 
+// ProducerOption configures a Producer.
+type ProducerOption interface {
+	applyProducer(*producerConfig)
+}
+
+type producerOptionFunc func(*producerConfig)
+
+func (f producerOptionFunc) applyProducer(c *producerConfig) {
+	f(c)
+}
+
+// WithProducerObserver sets the observer used for producer enqueue events.
+func WithProducerObserver(observer Observer) ProducerOption {
+	return producerOptionFunc(func(c *producerConfig) {
+		c.observer = observer
+	})
+}
+
+func newProducerConfig(opts ...ProducerOption) *producerConfig {
+	c := &producerConfig{}
+	for _, opt := range opts {
+		opt.applyProducer(c)
+	}
+	return c
+}
+
 // Producer creates tasks in a queue.
 type Producer struct {
-	queue Queue
+	queue    Queue
+	observer Observer
 }
 
 // NewProducer creates a producer that writes to q.
-func NewProducer(q Queue) *Producer {
-	return &Producer{queue: q}
+func NewProducer(q Queue, opts ...ProducerOption) *Producer {
+	c := newProducerConfig(opts...)
+	return &Producer{
+		queue:    q,
+		observer: c.observer,
+	}
 }
 
 // Enqueue creates a task with a byte payload and stores it in the queue.
@@ -117,10 +152,36 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		CreatedAt:   now,
 		AvailableAt: now.Add(c.delay),
 	}
+	p.observe(ctx, Event{
+		Kind:  EventEnqueueStarted,
+		Queue: task.Queue,
+		Task:  taskInfo(task),
+		Delay: c.delay,
+	})
 	if err := p.queue.Enqueue(ctx, task); err != nil {
+		p.observe(ctx, Event{
+			Kind:  EventEnqueueFailed,
+			Queue: task.Queue,
+			Task:  taskInfo(task),
+			Delay: c.delay,
+			Err:   err,
+		})
 		return nil, err
 	}
+	p.observe(ctx, Event{
+		Kind:  EventEnqueued,
+		Queue: task.Queue,
+		Task:  taskInfo(task),
+		Delay: c.delay,
+	})
 	return task.clone(), nil
+}
+
+func (p *Producer) observe(ctx context.Context, event Event) {
+	if p == nil || p.observer == nil {
+		return
+	}
+	p.observer.ObserveQueue(ctx, event)
 }
 
 // TaskProducer enqueues one task type with a structured payload.

@@ -36,17 +36,30 @@ type qosCall struct {
 	global        bool
 }
 
+type consumeCall struct {
+	queue    string
+	consumer string
+}
+
 type fakeChannel struct {
-	declareErr error
-	publishErr error
-	qosErr     error
-	consumeErr error
-	closeErr   error
-	deliveries []amqp.Delivery
-	declares   []declareCall
-	publishes  []publishCall
-	qoses      []qosCall
-	closed     int
+	declareErr         error
+	confirmErr         error
+	publishErr         error
+	qosErr             error
+	consumeErr         error
+	closeErr           error
+	publishHook        func()
+	deliveries         []amqp.Delivery
+	confirms           []amqp.Confirmation
+	suppressConfirm    bool
+	closeConfirm       bool
+	declares           []declareCall
+	publishes          []publishCall
+	qoses              []qosCall
+	consumes           []consumeCall
+	confirmCalls       int
+	notifyPublishCalls int
+	closed             int
 }
 
 func (c *fakeChannel) QueueDeclare(
@@ -71,6 +84,26 @@ func (c *fakeChannel) QueueDeclare(
 	return amqp.Queue{Name: name}, nil
 }
 
+func (c *fakeChannel) Confirm(bool) error {
+	c.confirmCalls++
+	return c.confirmErr
+}
+
+func (c *fakeChannel) NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation {
+	c.notifyPublishCalls++
+	if len(c.confirms) == 0 && !c.suppressConfirm && !c.closeConfirm {
+		confirm <- amqp.Confirmation{Ack: true}
+		return confirm
+	}
+	for _, confirmation := range c.confirms {
+		confirm <- confirmation
+	}
+	if c.closeConfirm {
+		close(confirm)
+	}
+	return confirm
+}
+
 func (c *fakeChannel) PublishWithContext(
 	_ context.Context,
 	exchange string,
@@ -86,6 +119,9 @@ func (c *fakeChannel) PublishWithContext(
 		immediate: immediate,
 		msg:       msg,
 	})
+	if c.publishHook != nil {
+		c.publishHook()
+	}
 	return c.publishErr
 }
 
@@ -99,14 +135,18 @@ func (c *fakeChannel) Qos(prefetchCount, prefetchSize int, global bool) error {
 }
 
 func (c *fakeChannel) Consume(
-	string,
-	string,
-	bool,
-	bool,
-	bool,
-	bool,
-	amqp.Table,
+	queueName string,
+	consumer string,
+	_ bool,
+	_ bool,
+	_ bool,
+	_ bool,
+	_ amqp.Table,
 ) (<-chan amqp.Delivery, error) {
+	c.consumes = append(c.consumes, consumeCall{
+		queue:    queueName,
+		consumer: consumer,
+	})
 	if c.consumeErr != nil {
 		return nil, c.consumeErr
 	}
@@ -192,6 +232,10 @@ func TestQueue_ConfigDefaultsAndOptions(t *testing.T) {
 	assert.False(t, q.durable)
 	assert.Equal(t, 2*time.Hour, q.delayQueueTTL)
 	assert.Equal(t, 7, q.prefetch)
+	assert.True(t, q.publisherConfirm)
+
+	q = newTestQueue(&fakeChannelOpener{}, WithPublisherConfirm(false))
+	assert.False(t, q.publisherConfirm)
 }
 
 func TestQueue_EnqueuePublishesReadyTask(t *testing.T) {
@@ -254,24 +298,84 @@ func TestQueue_EnqueuePublishesDelayedTask(t *testing.T) {
 	assert.Equal(t, 1, ch.closed)
 }
 
+func TestQueue_EnqueueWithPublisherConfirmWaitsForAck(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{confirms: []amqp.Confirmation{{Ack: true}}}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+
+	err := q.Enqueue(t.Context(), &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, ch.confirmCalls)
+	assert.Equal(t, 1, ch.notifyPublishCalls)
+	require.Len(t, ch.publishes, 1)
+	assert.Equal(t, "emails", ch.publishes[0].key)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_EnqueueWithPublisherConfirmReturnsNack(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{confirms: []amqp.Confirmation{{Ack: false}}}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+
+	err := q.Enqueue(t.Context(), &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+
+	require.ErrorIs(t, err, errPublishNacked)
+	assert.Equal(t, 1, ch.confirmCalls)
+	assert.Equal(t, 1, ch.notifyPublishCalls)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_EnqueueWithPublisherConfirmReturnsContextError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	ch := &fakeChannel{publishHook: cancel, suppressConfirm: true}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+
+	err := q.Enqueue(ctx, &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Equal(t, 1, ch.confirmCalls)
+	assert.Equal(t, 1, ch.notifyPublishCalls)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_EnqueueWithPublisherConfirmReturnsClosedConfirmation(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{closeConfirm: true}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+
+	err := q.Enqueue(t.Context(), &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+
+	require.ErrorIs(t, err, errPublishConfirmClosed)
+	assert.Equal(t, 1, ch.confirmCalls)
+	assert.Equal(t, 1, ch.notifyPublishCalls)
+	assert.Equal(t, 1, ch.closed)
+}
+
 func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
 	t.Parallel()
 
 	ch := &fakeChannel{}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
 
-	consumer, err := q.NewConsumer(t.Context(), "")
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
 	require.NoError(t, err)
 	defer func() {
 		_ = consumer.Close()
 	}()
 	delivery, err := consumer.Receive(t.Context())
 
-	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorIs(t, err, queue.ErrConsumerClosed)
 	assert.Nil(t, delivery)
 	require.Len(t, ch.declares, 1)
 	assert.Equal(t, "default", ch.declares[0].name)
 	assert.Equal(t, []qosCall{{prefetchCount: defaultPrefetch}}, ch.qoses)
+	assert.Equal(t, []consumeCall{{queue: "default"}}, ch.consumes)
 }
 
 func TestQueue_NewConsumerConfiguresPrefetch(t *testing.T) {
@@ -280,13 +384,17 @@ func TestQueue_NewConsumerConfiguresPrefetch(t *testing.T) {
 	ch := &fakeChannel{}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefetch(3))
 
-	consumer, err := q.NewConsumer(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{
+		Queue: "emails",
+		Name:  "worker-1",
+	})
 	require.NoError(t, err)
 	defer func() {
 		_ = consumer.Close()
 	}()
 
 	assert.Equal(t, []qosCall{{prefetchCount: 3}}, ch.qoses)
+	assert.Equal(t, []consumeCall{{queue: "emails", consumer: "worker-1"}}, ch.consumes)
 }
 
 func TestQueue_NewConsumerReturnsQosError(t *testing.T) {
@@ -296,7 +404,7 @@ func TestQueue_NewConsumerReturnsQosError(t *testing.T) {
 	ch := &fakeChannel{qosErr: wantErr}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
 
-	consumer, err := q.NewConsumer(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{Queue: "emails"})
 
 	require.ErrorIs(t, err, wantErr)
 	assert.Nil(t, consumer)
@@ -319,7 +427,7 @@ func TestQueue_ReceiveDecodesTaskAndAck(t *testing.T) {
 	}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefix("app"))
 
-	consumer, err := q.NewConsumer(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{Queue: "emails"})
 	require.NoError(t, err)
 	defer func() {
 		_ = consumer.Close()
@@ -347,7 +455,7 @@ func TestQueue_ReceiveRejectsMalformedDelivery(t *testing.T) {
 	}
 	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
 
-	consumer, err := q.NewConsumer(t.Context(), "emails")
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{Queue: "emails"})
 	require.NoError(t, err)
 	defer func() {
 		_ = consumer.Close()

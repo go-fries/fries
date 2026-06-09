@@ -11,10 +11,11 @@ const (
 )
 
 type config struct {
-	prefix        string
-	durable       bool
-	delayQueueTTL time.Duration
-	prefetch      int
+	prefix           string
+	durable          bool
+	delayQueueTTL    time.Duration
+	prefetch         int
+	publisherConfirm bool
 }
 
 // Option configures a RabbitMQ queue adapter.
@@ -64,11 +65,19 @@ func WithPrefetch(prefetch int) Option {
 	})
 }
 
+// WithPublisherConfirm sets whether publish operations wait for broker confirms.
+func WithPublisherConfirm(confirm bool) Option {
+	return optionFunc(func(c *config) {
+		c.publisherConfirm = confirm
+	})
+}
+
 func newConfig(opts ...Option) *config {
 	c := &config{
-		durable:       true,
-		delayQueueTTL: defaultDelayQueueTTL,
-		prefetch:      defaultPrefetch,
+		durable:          true,
+		delayQueueTTL:    defaultDelayQueueTTL,
+		prefetch:         defaultPrefetch,
+		publisherConfirm: true,
 	}
 	for _, opt := range opts {
 		opt.apply(c)
