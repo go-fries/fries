@@ -64,6 +64,9 @@ the original stream message. If the acknowledgement fails or the process exits
 between those steps, Redis may deliver the original task again, so handlers must
 remain idempotent.
 
+Malformed Redis stream entries are acknowledged and discarded during receive,
+and the receive call returns the parse error to the worker.
+
 `WithClaimMinIdle` controls how long a pending stream message must remain idle
 before a consumer can claim it for redelivery. Set it to `0` to disable pending
 message claims during receive.

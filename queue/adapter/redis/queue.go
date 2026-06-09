@@ -169,6 +169,9 @@ func (q *Queue) receiveForConsumer(ctx context.Context, name, consumerName strin
 	if q.claimMinIdle > 0 {
 		delivery, err := q.claimPendingForConsumer(ctx, name, consumerName, q.claimMinIdle)
 		if err != nil {
+			if isMalformedMessage(err) {
+				_ = q.ackMalformed(ctx, name, malformedMessageID(err))
+			}
 			return nil, err
 		}
 		if delivery != nil {
@@ -193,5 +196,17 @@ func (q *Queue) receiveForConsumer(ctx context.Context, name, consumerName strin
 		return nil, queue.ErrNoTask
 	}
 
-	return q.leaseFromMessage(streams[0].Messages[0])
+	message := streams[0].Messages[0]
+	delivery, err := q.leaseFromMessage(message)
+	if err != nil && isMalformedMessage(err) {
+		_ = q.ackMalformed(ctx, name, message.ID)
+	}
+	return delivery, err
+}
+
+func (q *Queue) ackMalformed(ctx context.Context, name, messageID string) error {
+	if messageID == "" {
+		return nil
+	}
+	return q.redis.XAck(ctx, q.streamKey(name), q.group, messageID).Err()
 }

@@ -590,6 +590,28 @@ func TestQueue_DelayedTaskPromotion(t *testing.T) {
 	assert.Equal(t, "send_email", delivery.Task().Type)
 }
 
+func TestQueue_ReceiveAcksMalformedStreamMessage(t *testing.T) {
+	t.Parallel()
+
+	q, client := newRedisTestQueue(t)
+	ctx := t.Context()
+	require.NoError(t, q.ensureGroup(ctx, "critical"))
+	require.NoError(t, client.XAdd(ctx, &goredis.XAddArgs{
+		Stream: q.streamKey("critical"),
+		Values: map[string]any{
+			taskField: "{",
+		},
+	}).Err())
+
+	delivery, err := receive(ctx, q, "critical")
+
+	require.Error(t, err)
+	assert.Nil(t, delivery)
+	pending, err := client.XPending(ctx, q.streamKey("critical"), q.group).Result()
+	require.NoError(t, err)
+	assert.Zero(t, pending.Count)
+}
+
 func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
 	consumer, err := q.NewConsumer(ctx, queue.ConsumerConfig{Queue: queueName})
 	if err != nil {

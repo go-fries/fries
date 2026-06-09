@@ -12,6 +12,36 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
+type malformedMessageError struct {
+	messageID string
+	err       error
+}
+
+func (e malformedMessageError) Error() string {
+	return e.err.Error()
+}
+
+func (e malformedMessageError) Unwrap() error {
+	return e.err
+}
+
+func malformedMessage(messageID string, err error) error {
+	return malformedMessageError{messageID: messageID, err: err}
+}
+
+func isMalformedMessage(err error) bool {
+	var target malformedMessageError
+	return errors.As(err, &target)
+}
+
+func malformedMessageID(err error) string {
+	var target malformedMessageError
+	if !errors.As(err, &target) {
+		return ""
+	}
+	return target.messageID
+}
+
 func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
 	return q.claimPendingForConsumer(ctx, name, q.consumer, minIdle)
 }
@@ -110,7 +140,7 @@ func (q *Queue) deliveryCount(ctx context.Context, name, messageID string) (int6
 func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deliveryCount int64) (queue.Delivery, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
-		return nil, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField)
+		return nil, malformedMessage(message.ID, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField))
 	}
 
 	var data []byte
@@ -120,12 +150,12 @@ func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deli
 	case []byte:
 		data = v
 	default:
-		return nil, fmt.Errorf("queue/adapter/redis: message %s has unsupported %q field", message.ID, taskField)
+		return nil, malformedMessage(message.ID, fmt.Errorf("queue/adapter/redis: message %s has unsupported %q field", message.ID, taskField))
 	}
 
 	var task queue.Task
 	if err := json.Unmarshal(data, &task); err != nil {
-		return nil, err
+		return nil, malformedMessage(message.ID, err)
 	}
 	task.Attempt = attemptWithDeliveryCount(task.Attempt, deliveryCount)
 	return &redisDelivery{
