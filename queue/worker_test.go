@@ -375,6 +375,104 @@ func TestWorker_SettlementTimeout(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+func TestWorker_DiscardsTask(t *testing.T) {
+	t.Parallel()
+
+	acked := make(chan struct{}, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("discard", HandlerFunc(func(context.Context, *Task) error {
+			return ErrDiscard
+		})),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "discard"},
+		ack: func(context.Context) error {
+			acked <- struct{}{}
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Len(t, acked, 1)
+}
+
+func TestWorker_DeadLetterErrorDeadLettersTask(t *testing.T) {
+	t.Parallel()
+
+	deadLettered := make(chan string, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("invalid", HandlerFunc(func(context.Context, *Task) error {
+			return DeadLetter("invalid payload")
+		})),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "invalid"},
+		deadLetter: func(_ context.Context, reason string) error {
+			deadLettered <- reason
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Equal(t, "invalid payload", <-deadLettered)
+}
+
+func TestWorker_RetryAfterOverridesRetryDelay(t *testing.T) {
+	t.Parallel()
+
+	retried := make(chan time.Duration, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("rate_limited", HandlerFunc(func(context.Context, *Task) error {
+			return RetryAfter(5 * time.Second)
+		})),
+		WithRetryPolicy(FixedRetry(2, time.Second)),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "rate_limited", Attempt: 1},
+		retry: func(_ context.Context, delay time.Duration) error {
+			retried <- delay
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Equal(t, 5*time.Second, <-retried)
+}
+
+func TestWorker_RetryAfterRespectsRetryPolicyBudget(t *testing.T) {
+	t.Parallel()
+
+	deadLettered := make(chan string, 1)
+	worker := NewWorker(
+		newTestQueue(),
+		Handle("rate_limited", HandlerFunc(func(context.Context, *Task) error {
+			return RetryAfter(time.Second)
+		})),
+		WithRetryPolicy(FixedRetry(1, 0)),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{Type: "rate_limited", Attempt: 1},
+		deadLetter: func(_ context.Context, reason string) error {
+			deadLettered <- reason
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Contains(t, <-deadLettered, ErrRetryExhausted.Error())
+}
+
 func TestWorker_RunContextCancellationCancelsInFlightTask(t *testing.T) {
 	t.Parallel()
 

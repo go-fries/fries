@@ -359,6 +359,18 @@ func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 	if err == nil {
 		return w.ack(ctx, delivery)
 	}
+	if errors.Is(err, ErrDiscard) {
+		return w.ack(ctx, delivery)
+	}
+	if reason, ok := deadLetterReason(err); ok {
+		return w.deadLetter(ctx, delivery, reason)
+	}
+	if retryAfter, ok := retryAfterDelay(err); ok {
+		if _, ok := w.config.retryPolicy.NextDelay(task, err); !ok {
+			return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
+		}
+		return w.retry(ctx, delivery, retryAfter)
+	}
 
 	delay, ok := w.config.retryPolicy.NextDelay(task, err)
 	if !ok {
