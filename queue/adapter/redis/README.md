@@ -62,9 +62,10 @@ The default Redis consumer name is process-unique. Use `WithConsumer` or
 worker-level `queue.WithConsumerName` when a stable identity is useful for
 operations and debugging.
 
-Ready and dead-letter streams are not trimmed by default. Use
-`WithStreamMaxLen` and `WithDeadLetterMaxLen` to enable approximate stream
-trimming. Monitor delayed sorted set size for long-running workloads.
+Ready streams are not trimmed by the adapter because Redis consumer groups need
+the stream entry to reclaim pending deliveries after a worker exits. Use
+`WithDeadLetterMaxLen` to enable approximate trimming for dead-letter streams.
+Monitor ready streams and delayed sorted sets for long-running workloads.
 
 Connection pooling, reconnect behavior, and command retry behavior come from
 the `go-redis` client passed to `NewQueue`.

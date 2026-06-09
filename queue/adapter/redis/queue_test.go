@@ -302,7 +302,6 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 		WithConsumer(""),
 		WithPromoteSize(0),
 		WithClaimMinIdle(-time.Second),
-		WithStreamMaxLen(0),
 		WithDeadLetterMaxLen(0),
 	)
 
@@ -315,7 +314,6 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	assert.True(t, strings.HasPrefix(q.consumer, "worker-"))
 	assert.Equal(t, 100, q.promoteSize)
 	assert.Equal(t, 5*time.Minute, q.claimMinIdle)
-	assert.Zero(t, q.streamMaxLen)
 	assert.Zero(t, q.deadLetterMaxLen)
 }
 
@@ -329,7 +327,6 @@ func TestQueue_Options(t *testing.T) {
 		WithConsumer("worker-1"),
 		WithPromoteSize(10),
 		WithClaimMinIdle(30*time.Second),
-		WithStreamMaxLen(1000),
 		WithDeadLetterMaxLen(100),
 	)
 
@@ -340,7 +337,6 @@ func TestQueue_Options(t *testing.T) {
 	assert.Equal(t, "worker-1", q.consumer)
 	assert.Equal(t, 10, q.promoteSize)
 	assert.Equal(t, 30*time.Second, q.claimMinIdle)
-	assert.Equal(t, int64(1000), q.streamMaxLen)
 	assert.Equal(t, int64(100), q.deadLetterMaxLen)
 }
 

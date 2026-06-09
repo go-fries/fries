@@ -22,6 +22,30 @@ func (q dequeueErrorQueue) NewConsumer(context.Context, ConsumerConfig) (Consume
 	return nil, q.err
 }
 
+type receiveErrorQueue struct {
+	err error
+}
+
+func (q receiveErrorQueue) Enqueue(context.Context, *Task) error {
+	return nil
+}
+
+func (q receiveErrorQueue) NewConsumer(context.Context, ConsumerConfig) (Consumer, error) {
+	return receiveErrorConsumer(q), nil
+}
+
+type receiveErrorConsumer struct {
+	err error
+}
+
+func (c receiveErrorConsumer) Receive(context.Context) (Delivery, error) {
+	return nil, c.err
+}
+
+func (receiveErrorConsumer) Close() error {
+	return nil
+}
+
 type recordingDelivery struct {
 	task       *Task
 	ack        func(context.Context) error
@@ -238,6 +262,16 @@ func TestWorker_RunReturnsQueueErrors(t *testing.T) {
 	err := worker.Run(t.Context())
 
 	require.ErrorIs(t, err, wantErr)
+}
+
+func TestWorker_RunReturnsUnexpectedConsumerClosed(t *testing.T) {
+	t.Parallel()
+
+	worker := NewWorker(receiveErrorQueue{err: ErrConsumerClosed})
+
+	err := worker.Run(t.Context())
+
+	require.ErrorIs(t, err, ErrConsumerClosed)
 }
 
 func TestWorker_RunStopsOnContextQueueErrors(t *testing.T) {

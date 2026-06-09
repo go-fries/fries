@@ -5,12 +5,15 @@ import (
 	"context"
 	"log"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-fries/fries/queue/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var defaultLoggerMu sync.Mutex
 
 func TestNewRecoversPanic(t *testing.T) {
 	t.Parallel()
@@ -58,6 +61,9 @@ func TestWithStackSizeIgnoresInvalidSize(t *testing.T) {
 }
 
 func TestDefaultHandlerDoesNotLogTaskPayload(t *testing.T) {
+	defaultLoggerMu.Lock()
+	defer defaultLoggerMu.Unlock()
+
 	var out bytes.Buffer
 	original := log.Writer()
 	log.SetOutput(&out)

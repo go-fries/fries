@@ -32,7 +32,6 @@ type Queue struct {
 	consumer         string
 	promoteSize      int
 	claimMinIdle     time.Duration
-	streamMaxLen     int64
 	deadLetterMaxLen int64
 }
 
@@ -48,7 +47,6 @@ func NewQueue(redis goredis.UniversalClient, opts ...Option) *Queue {
 		consumer:         c.consumer,
 		promoteSize:      c.promoteSize,
 		claimMinIdle:     c.claimMinIdle,
-		streamMaxLen:     c.streamMaxLen,
 		deadLetterMaxLen: c.deadLetterMaxLen,
 	}
 	return q
@@ -204,5 +202,7 @@ func (q *Queue) ackMalformed(ctx context.Context, name, messageID string) error 
 	if messageID == "" {
 		return nil
 	}
-	return q.redis.XAck(ctx, q.streamKey(name), q.group, messageID).Err()
+	ackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	return q.redis.XAck(ackCtx, q.streamKey(name), q.group, messageID).Err()
 }

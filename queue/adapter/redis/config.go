@@ -13,7 +13,6 @@ type config struct {
 	consumer         string
 	promoteSize      int
 	claimMinIdle     time.Duration
-	streamMaxLen     int64
 	deadLetterMaxLen int64
 }
 
@@ -71,15 +70,6 @@ func WithClaimMinIdle(minIdle time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if minIdle >= 0 {
 			c.claimMinIdle = minIdle
-		}
-	})
-}
-
-// WithStreamMaxLen sets approximate max length trimming for ready streams.
-func WithStreamMaxLen(maxLen int64) Option {
-	return optionFunc(func(c *config) {
-		if maxLen > 0 {
-			c.streamMaxLen = maxLen
 		}
 	})
 }

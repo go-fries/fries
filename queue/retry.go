@@ -2,7 +2,10 @@ package queue
 
 import (
 	"errors"
-	"math/rand"
+	"math"
+	"math/rand/v2"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,7 +21,11 @@ type RetryPolicy interface {
 type jitterRetry struct {
 	policy    RetryPolicy
 	maxJitter time.Duration
+	mu        sync.Mutex
+	rand      *rand.Rand
 }
+
+var jitterSeed atomic.Uint64
 
 // JitterRetry wraps policy and adds bounded random jitter to retry delays.
 func JitterRetry(policy RetryPolicy, maxJitter time.Duration) RetryPolicy {
@@ -28,18 +35,31 @@ func JitterRetry(policy RetryPolicy, maxJitter time.Duration) RetryPolicy {
 	if maxJitter < 0 {
 		maxJitter = 0
 	}
-	return jitterRetry{
+	return &jitterRetry{
 		policy:    policy,
 		maxJitter: maxJitter,
+		rand:      newJitterRand(),
 	}
 }
 
-func (r jitterRetry) NextDelay(task *Task, err error) (time.Duration, bool) {
+func newJitterRand() *rand.Rand {
+	seed := uint64(time.Now().UnixNano())
+	sequence := jitterSeed.Add(1)
+	return rand.New(rand.NewPCG(seed, seed^sequence))
+}
+
+func (r *jitterRetry) NextDelay(task *Task, err error) (time.Duration, bool) {
 	delay, retry := r.policy.NextDelay(task, err)
 	if !retry || r.maxJitter <= 0 {
 		return delay, retry
 	}
-	return delay + time.Duration(rand.Int63n(int64(r.maxJitter)+1)), true
+	r.mu.Lock()
+	jitter := time.Duration(r.rand.Uint64N(uint64(r.maxJitter) + 1))
+	r.mu.Unlock()
+	if jitter > 0 && delay > time.Duration(math.MaxInt64)-jitter {
+		return time.Duration(math.MaxInt64), true
+	}
+	return delay + jitter, true
 }
 
 type noRetry struct{}

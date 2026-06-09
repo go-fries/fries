@@ -190,7 +190,7 @@ func NewWorker(q Queue, opts ...WorkerOption) *Worker {
 // Run starts worker loops and blocks until ctx is canceled or a queue operation fails.
 //
 // Queue operation errors stop the worker and are returned to the caller unless
-// they are normal stop signals such as context cancellation or ErrConsumerClosed.
+// they are normal stop signals caused by worker shutdown.
 func (w *Worker) Run(ctx context.Context) (err error) {
 	pollCtx, stop := context.WithCancel(ctx)
 	handlerCtx, interrupt := context.WithCancel(context.WithoutCancel(ctx))
@@ -321,7 +321,7 @@ func (w *Worker) loop(runCtx, pollCtx, handlerCtx context.Context) error {
 		Name:  w.config.consumerName,
 	})
 	if err != nil {
-		if isStopError(err) {
+		if isNormalStopError(pollCtx, err) {
 			return nil
 		}
 		return err
@@ -339,7 +339,7 @@ func (w *Worker) loop(runCtx, pollCtx, handlerCtx context.Context) error {
 
 		delivery, err := consumer.Receive(pollCtx)
 		if err != nil {
-			if isStopError(err) {
+			if isNormalStopError(pollCtx, err) {
 				return nil
 			}
 			return err
@@ -364,8 +364,12 @@ func (w *Worker) loop(runCtx, pollCtx, handlerCtx context.Context) error {
 
 func isStopError(err error) bool {
 	return errors.Is(err, context.Canceled) ||
-		errors.Is(err, context.DeadlineExceeded) ||
-		errors.Is(err, ErrConsumerClosed)
+		errors.Is(err, context.DeadlineExceeded)
+}
+
+func isNormalStopError(ctx context.Context, err error) bool {
+	return isStopError(err) ||
+		(errors.Is(err, ErrConsumerClosed) && ctx.Err() != nil)
 }
 
 func (w *Worker) process(ctx context.Context, delivery Delivery) error {
