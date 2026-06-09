@@ -107,7 +107,7 @@ func (d *delivery) DeadLetter(ctx context.Context, reason string) error {
 		if err := d.queue.ensureDeadLetterQueue(ch, task.Queue); err != nil {
 			return err
 		}
-		return ch.PublishWithContext(ctx, defaultExchange, d.queue.deadLetterQueueName(task.Queue), false, false, msg)
+		return d.queue.publish(ctx, ch, defaultExchange, d.queue.deadLetterQueueName(task.Queue), msg)
 	})
 	if err != nil {
 		return err

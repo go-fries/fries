@@ -14,13 +14,17 @@ import (
 const defaultExchange = ""
 
 var (
-	errNilConnection    = errors.New("queue/adapter/rabbitmq: connection is nil")
-	errNilChannelOpener = errors.New("queue/adapter/rabbitmq: channel opener is nil")
-	errNilChannel       = errors.New("queue/adapter/rabbitmq: channel is nil")
+	errNilConnection        = errors.New("queue/adapter/rabbitmq: connection is nil")
+	errNilChannelOpener     = errors.New("queue/adapter/rabbitmq: channel opener is nil")
+	errNilChannel           = errors.New("queue/adapter/rabbitmq: channel is nil")
+	errPublishNacked        = errors.New("queue/adapter/rabbitmq: publish not acknowledged")
+	errPublishConfirmClosed = errors.New("queue/adapter/rabbitmq: publish confirmation channel closed")
 )
 
 type channel interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	Confirm(noWait bool) error
+	NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation
 	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	Qos(prefetchCount, prefetchSize int, global bool) error
 	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
@@ -31,11 +35,12 @@ type channelOpener func(ctx context.Context) (channel, error)
 
 // Queue stores and consumes queue tasks with RabbitMQ.
 type Queue struct {
-	opener        channelOpener
-	prefix        string
-	durable       bool
-	delayQueueTTL time.Duration
-	prefetch      int
+	opener           channelOpener
+	prefix           string
+	durable          bool
+	delayQueueTTL    time.Duration
+	prefetch         int
+	publisherConfirm bool
 }
 
 var _ queue.Queue = (*Queue)(nil)
@@ -56,11 +61,12 @@ func NewQueue(connection *amqp.Connection, opts ...Option) *Queue {
 func newQueue(opener channelOpener, opts ...Option) *Queue {
 	c := newConfig(opts...)
 	return &Queue{
-		opener:        opener,
-		prefix:        c.prefix,
-		durable:       c.durable,
-		delayQueueTTL: c.delayQueueTTL,
-		prefetch:      c.prefetch,
+		opener:           opener,
+		prefix:           c.prefix,
+		durable:          c.durable,
+		delayQueueTTL:    c.delayQueueTTL,
+		prefetch:         c.prefetch,
+		publisherConfirm: c.publisherConfirm,
 	}
 }
 
@@ -130,8 +136,35 @@ func (q *Queue) publishTask(ctx context.Context, task *queue.Task, delay time.Du
 				return err
 			}
 		}
-		return ch.PublishWithContext(ctx, defaultExchange, target, false, false, msg)
+		return q.publish(ctx, ch, defaultExchange, target, msg)
 	})
+}
+
+func (q *Queue) publish(ctx context.Context, ch channel, exchange, key string, msg amqp.Publishing) error {
+	if !q.publisherConfirm {
+		return ch.PublishWithContext(ctx, exchange, key, false, false, msg)
+	}
+
+	if err := ch.Confirm(false); err != nil {
+		return err
+	}
+	confirms := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
+	if err := ch.PublishWithContext(ctx, exchange, key, false, false, msg); err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case confirmation, ok := <-confirms:
+		if !ok {
+			return errPublishConfirmClosed
+		}
+		if !confirmation.Ack {
+			return errPublishNacked
+		}
+		return nil
+	}
 }
 
 func (q *Queue) ensureReadyQueue(ch channel, name string) error {
