@@ -82,7 +82,7 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	t.Parallel()
 
 	config := newWorkerConfig(
-		WithWorkerQueue(""),
+		WithQueue(""),
 		WithConsumerName(""),
 		WithConcurrency(0),
 		WithHandlerTimeout(0),
@@ -110,7 +110,7 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	retryPolicy := NoRetry()
 
 	config := newWorkerConfig(
-		WithWorkerQueue("critical"),
+		WithQueue("critical"),
 		WithConsumerName("worker-1"),
 		WithConcurrency(4),
 		WithHandlerTimeout(time.Second),
@@ -232,7 +232,7 @@ func TestWorker_ConsumesConfiguredQueue(t *testing.T) {
 			handled <- struct{}{}
 			return nil
 		})),
-		WithWorkerQueue("critical"),
+		WithQueue("critical"),
 	)
 
 	errs := make(chan error, 1)

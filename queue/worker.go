@@ -31,22 +31,13 @@ type workerConfig struct {
 
 // WorkerOption configures a Worker.
 type WorkerOption interface {
-	apply(*workerConfig)
+	applyWorker(*workerConfig)
 }
 
 type workerOptionFunc func(*workerConfig)
 
-func (f workerOptionFunc) apply(c *workerConfig) {
+func (f workerOptionFunc) applyWorker(c *workerConfig) {
 	f(c)
-}
-
-// WithWorkerQueue sets the queue name consumed by the worker.
-func WithWorkerQueue(name string) WorkerOption {
-	return workerOptionFunc(func(c *workerConfig) {
-		if name != "" {
-			c.queue = name
-		}
-	})
 }
 
 // WithConsumerName sets the backend consumer identity used by the worker.
@@ -163,7 +154,7 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 		handlers:          make(map[string]Handler),
 	}
 	for _, opt := range opts {
-		opt.apply(c)
+		opt.applyWorker(c)
 	}
 	return c
 }

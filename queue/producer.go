@@ -24,12 +24,12 @@ type producerConfig struct {
 
 // EnqueueOption configures task enqueue behavior.
 type EnqueueOption interface {
-	apply(*enqueueConfig)
+	applyEnqueue(*enqueueConfig)
 }
 
 type enqueueOptionFunc func(*enqueueConfig)
 
-func (f enqueueOptionFunc) apply(c *enqueueConfig) {
+func (f enqueueOptionFunc) applyEnqueue(c *enqueueConfig) {
 	f(c)
 }
 
@@ -37,15 +37,6 @@ func (f enqueueOptionFunc) apply(c *enqueueConfig) {
 func WithID(id string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		c.id = id
-	})
-}
-
-// WithQueue sets the queue name for a task.
-func WithQueue(name string) EnqueueOption {
-	return enqueueOptionFunc(func(c *enqueueConfig) {
-		if name != "" {
-			c.queue = name
-		}
 	})
 }
 
@@ -86,7 +77,7 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 		queue: DefaultQueue,
 	}
 	for _, opt := range opts {
-		opt.apply(c)
+		opt.applyEnqueue(c)
 	}
 	if c.id == "" {
 		c.id = newID()

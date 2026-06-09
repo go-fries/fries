@@ -88,7 +88,7 @@ func TestWorker_ObserverEventsForSuccessfulTask(t *testing.T) {
 	observer := &recordingObserver{}
 	worker := NewWorker(
 		newTestQueue(),
-		WithWorkerQueue("critical"),
+		WithQueue("critical"),
 		WithConsumerName("worker-1"),
 		WithWorkerObserver(observer),
 		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
