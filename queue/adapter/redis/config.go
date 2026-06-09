@@ -1,12 +1,16 @@
 package redis
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type config struct {
-	prefix      string
-	group       string
-	consumer    string
-	promoteSize int
+	prefix       string
+	group        string
+	consumer     string
+	promoteSize  int
+	claimMinIdle time.Duration
 }
 
 // Option configures a Redis queue.
@@ -47,7 +51,7 @@ func WithConsumer(consumer string) Option {
 	})
 }
 
-// WithPromoteSize sets the maximum delayed tasks promoted before each dequeue.
+// WithPromoteSize sets the maximum delayed tasks promoted before each receive attempt.
 func WithPromoteSize(size int) Option {
 	return optionFunc(func(c *config) {
 		if size > 0 {
@@ -56,12 +60,24 @@ func WithPromoteSize(size int) Option {
 	})
 }
 
+// WithClaimMinIdle sets how long a pending stream message must remain idle before a consumer can claim it.
+//
+// Set minIdle to 0 to disable pending message claims during receive.
+func WithClaimMinIdle(minIdle time.Duration) Option {
+	return optionFunc(func(c *config) {
+		if minIdle >= 0 {
+			c.claimMinIdle = minIdle
+		}
+	})
+}
+
 func newConfig(opts ...Option) *config {
 	c := &config{
-		prefix:      "queue",
-		group:       "queue",
-		consumer:    "worker",
-		promoteSize: 100,
+		prefix:       "queue",
+		group:        "queue",
+		consumer:     "worker",
+		promoteSize:  100,
+		claimMinIdle: 5 * time.Minute,
 	}
 	for _, opt := range opts {
 		opt.apply(c)

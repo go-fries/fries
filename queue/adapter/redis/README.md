@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-fries/fries/queue/v3"
 	"github.com/go-fries/fries/queue/adapter/redis/v3"
@@ -28,6 +29,7 @@ func main() {
 		redis.WithPrefix("app"),
 		redis.WithGroup("workers"),
 		redis.WithConsumer("worker-1"),
+		redis.WithClaimMinIdle(5*time.Minute),
 	)
 
 	producer := queue.NewProducer(q)
@@ -47,3 +49,7 @@ func main() {
 The queue stores ready tasks in Redis Streams, delayed tasks in a sorted set,
 and exhausted tasks in a dead-letter stream. Consumer groups are created lazily
 with `XGROUP CREATE ... MKSTREAM`.
+
+`WithClaimMinIdle` controls how long a pending stream message must remain idle
+before a consumer can claim it for redelivery. Set it to `0` to disable pending
+message claims during receive.

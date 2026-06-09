@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"maps"
 	"time"
 )
@@ -65,27 +66,31 @@ func (t *Task) Clone() *Task {
 	return &cloned
 }
 
-// Lease represents one delivery attempt of a task.
-//
-// Queue implementations may attach backend-specific acknowledgement state to a
-// lease. That delivery state is intentionally separate from Task.Metadata.
-type Lease interface {
-	// Task returns the delivered task envelope.
-	Task() *Task
-}
-
-type taskLease struct {
+type noopDelivery struct {
 	task *Task
 }
 
-// NewLease creates a basic lease for queue implementations that do not need extra delivery state.
-func NewLease(task *Task) Lease {
-	return &taskLease{task: task}
+// NewDelivery creates a basic delivery for tests and queue implementations that
+// do not need backend-specific acknowledgement state.
+func NewDelivery(task *Task) Delivery {
+	return &noopDelivery{task: task}
 }
 
-func (l *taskLease) Task() *Task {
-	if l == nil {
+func (d *noopDelivery) Task() *Task {
+	if d == nil {
 		return nil
 	}
-	return l.task
+	return d.task
+}
+
+func (*noopDelivery) Ack(ctx context.Context) error {
+	return ctx.Err()
+}
+
+func (*noopDelivery) Retry(ctx context.Context, _ time.Duration) error {
+	return ctx.Err()
+}
+
+func (*noopDelivery) DeadLetter(ctx context.Context, _ string) error {
+	return ctx.Err()
 }

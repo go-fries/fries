@@ -3,7 +3,7 @@ package queue
 import "errors"
 
 var (
-	// ErrNoTask is returned when a queue has no task available for dequeue.
+	// ErrNoTask is returned by queue implementations when no task is immediately available.
 	ErrNoTask = errors.New("queue: no task available")
 	// ErrInvalidTaskType is returned when enqueueing a task without a type.
 	ErrInvalidTaskType = errors.New("queue: task type is required")

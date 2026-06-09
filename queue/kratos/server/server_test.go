@@ -27,24 +27,8 @@ func (q *blockingQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *blockingQueue) Dequeue(ctx context.Context, _ string, _ time.Duration) (queue.Lease, error) {
-	q.once.Do(func() {
-		close(q.started)
-	})
-	<-ctx.Done()
-	return nil, ctx.Err()
-}
-
-func (q *blockingQueue) Ack(context.Context, queue.Lease) error {
-	return nil
-}
-
-func (q *blockingQueue) Retry(context.Context, queue.Lease, time.Duration) error {
-	return nil
-}
-
-func (q *blockingQueue) DeadLetter(context.Context, queue.Lease, string) error {
-	return nil
+func (q *blockingQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
+	return blockingConsumer{queue: q}, nil
 }
 
 type dequeueErrorQueue struct {
@@ -55,20 +39,8 @@ func (q dequeueErrorQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q dequeueErrorQueue) Dequeue(context.Context, string, time.Duration) (queue.Lease, error) {
+func (q dequeueErrorQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
 	return nil, q.err
-}
-
-func (q dequeueErrorQueue) Ack(context.Context, queue.Lease) error {
-	return nil
-}
-
-func (q dequeueErrorQueue) Retry(context.Context, queue.Lease, time.Duration) error {
-	return nil
-}
-
-func (q dequeueErrorQueue) DeadLetter(context.Context, queue.Lease, string) error {
-	return nil
 }
 
 type singleTaskQueue struct {
@@ -86,28 +58,65 @@ func (q *singleTaskQueue) Enqueue(context.Context, *queue.Task) error {
 	return nil
 }
 
-func (q *singleTaskQueue) Dequeue(ctx context.Context, _ string, _ time.Duration) (queue.Lease, error) {
+func (q *singleTaskQueue) NewConsumer(context.Context, string) (queue.Consumer, error) {
+	return &singleTaskConsumer{queue: q}, nil
+}
+
+type blockingConsumer struct {
+	queue *blockingQueue
+}
+
+func (c blockingConsumer) Receive(ctx context.Context) (queue.Delivery, error) {
+	c.queue.once.Do(func() {
+		close(c.queue.started)
+	})
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func (blockingConsumer) Close() error {
+	return nil
+}
+
+type singleTaskConsumer struct {
+	queue *singleTaskQueue
+}
+
+func (c *singleTaskConsumer) Receive(ctx context.Context) (queue.Delivery, error) {
+	q := c.queue
 	q.mu.Lock()
 	task := q.task
 	q.task = nil
 	q.mu.Unlock()
 	if task != nil {
-		return queue.NewLease(task), nil
+		return noopDelivery{task: task}, nil
 	}
 
 	<-ctx.Done()
 	return nil, ctx.Err()
 }
 
-func (q *singleTaskQueue) Ack(context.Context, queue.Lease) error {
+func (c *singleTaskConsumer) Close() error {
 	return nil
 }
 
-func (q *singleTaskQueue) Retry(context.Context, queue.Lease, time.Duration) error {
+type noopDelivery struct {
+	task *queue.Task
+}
+
+func (d noopDelivery) Task() *queue.Task {
+	return d.task
+}
+
+func (noopDelivery) Ack(context.Context) error {
 	return nil
 }
 
-func (q *singleTaskQueue) DeadLetter(context.Context, queue.Lease, string) error {
+func (noopDelivery) Retry(context.Context, time.Duration) error {
+	return nil
+}
+
+func (noopDelivery) DeadLetter(context.Context, string) error {
 	return nil
 }
 

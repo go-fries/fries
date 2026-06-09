@@ -26,18 +26,18 @@ func TestQueue_EnqueueDefaultsQueueAndClonesTask(t *testing.T) {
 	task.Payload[0] = 'x'
 	task.Metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, "", time.Minute)
+	delivery, err := receive(ctx, q, "")
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task())
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
 
-	assert.Equal(t, queue.DefaultQueue, lease.Task().Queue)
-	assert.Equal(t, 1, lease.Task().Attempt)
-	assert.Equal(t, "hello", string(lease.Task().Payload))
-	assert.Equal(t, "1", lease.Task().Metadata["trace"])
+	assert.Equal(t, queue.DefaultQueue, delivery.Task().Queue)
+	assert.Equal(t, 1, delivery.Task().Attempt)
+	assert.Equal(t, "hello", string(delivery.Task().Payload))
+	assert.Equal(t, "1", delivery.Task().Metadata["trace"])
 }
 
-func TestQueue_DequeueHonorsAvailability(t *testing.T) {
+func TestQueue_ReceiveHonorsAvailability(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -49,8 +49,10 @@ func TestQueue_DequeueHonorsAvailability(t *testing.T) {
 		AvailableAt: now.Add(time.Minute),
 	}))
 
-	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
-	require.ErrorIs(t, err, queue.ErrNoTask)
+	receiveCtx, cancel := context.WithTimeout(ctx, time.Millisecond)
+	_, err := receive(receiveCtx, q, queue.DefaultQueue)
+	cancel()
+	require.ErrorIs(t, err, context.DeadlineExceeded)
 
 	require.NoError(t, q.Enqueue(ctx, &queue.Task{
 		ID:          "ready",
@@ -58,12 +60,12 @@ func TestQueue_DequeueHonorsAvailability(t *testing.T) {
 		AvailableAt: now.Add(-time.Minute),
 	}))
 
-	lease, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	delivery, err := receive(ctx, q, queue.DefaultQueue)
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task())
-	assert.Equal(t, "ready", lease.Task().ID)
-	assert.Equal(t, 1, lease.Task().Attempt)
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
+	assert.Equal(t, "ready", delivery.Task().ID)
+	assert.Equal(t, 1, delivery.Task().Attempt)
 }
 
 func TestQueue_RetryReenqueuesTask(t *testing.T) {
@@ -77,16 +79,16 @@ func TestQueue_RetryReenqueuesTask(t *testing.T) {
 		Queue: "critical",
 	}))
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	delivery, err := receive(ctx, q, "critical")
 	require.NoError(t, err)
-	require.NoError(t, q.Retry(ctx, lease, 0))
+	require.NoError(t, delivery.Retry(ctx, 0))
 
-	lease, err = q.Dequeue(ctx, "critical", time.Minute)
+	delivery, err = receive(ctx, q, "critical")
 	require.NoError(t, err)
-	require.NotNil(t, lease)
-	require.NotNil(t, lease.Task())
-	assert.Equal(t, "task-1", lease.Task().ID)
-	assert.Equal(t, 2, lease.Task().Attempt)
+	require.NotNil(t, delivery)
+	require.NotNil(t, delivery.Task())
+	assert.Equal(t, "task-1", delivery.Task().ID)
+	assert.Equal(t, 2, delivery.Task().Attempt)
 }
 
 func TestQueue_DeadLettersClonesTask(t *testing.T) {
@@ -106,9 +108,9 @@ func TestQueue_DeadLettersClonesTask(t *testing.T) {
 	task.Payload[0] = 'x'
 	task.Metadata["trace"] = "2"
 
-	lease, err := q.Dequeue(ctx, "critical", time.Minute)
+	delivery, err := receive(ctx, q, "critical")
 	require.NoError(t, err)
-	require.NoError(t, q.DeadLetter(ctx, lease, "failed"))
+	require.NoError(t, delivery.DeadLetter(ctx, "failed"))
 
 	dead := q.DeadLetters("critical")
 	require.Len(t, dead, 1)
@@ -135,22 +137,38 @@ func TestQueue_MethodsReturnContextError(t *testing.T) {
 	task := &queue.Task{ID: "task-1", Type: "send_email"}
 
 	require.ErrorIs(t, q.Enqueue(ctx, task), context.Canceled)
-	_, err := q.Dequeue(ctx, queue.DefaultQueue, time.Minute)
+	consumer, err := q.NewConsumer(t.Context(), queue.DefaultQueue)
+	require.NoError(t, err)
+	_, err = consumer.Receive(ctx)
 	require.ErrorIs(t, err, context.Canceled)
-	require.ErrorIs(t, q.Ack(ctx, nil), context.Canceled)
-	require.ErrorIs(t, q.Retry(ctx, queue.NewLease(task), 0), context.Canceled)
-	require.ErrorIs(t, q.DeadLetter(ctx, queue.NewLease(task), "failed"), context.Canceled)
+
+	delivery := &delivery{queue: q, task: task}
+	require.ErrorIs(t, delivery.Ack(ctx), context.Canceled)
+	require.ErrorIs(t, delivery.Retry(ctx, 0), context.Canceled)
+	require.ErrorIs(t, delivery.DeadLetter(ctx, "failed"), context.Canceled)
 }
 
-func TestQueue_NilLeaseOperationsAreNoop(t *testing.T) {
+func TestQueue_NilDeliveryOperationsAreNoop(t *testing.T) {
 	t.Parallel()
 
 	q := NewQueue()
+	var nilDelivery *delivery
 
 	require.NoError(t, q.Enqueue(t.Context(), nil))
-	require.NoError(t, q.Retry(t.Context(), nil, 0))
-	require.NoError(t, q.Retry(t.Context(), queue.NewLease(nil), 0))
-	require.NoError(t, q.DeadLetter(t.Context(), nil, "failed"))
-	require.NoError(t, q.DeadLetter(t.Context(), queue.NewLease(nil), "failed"))
+	require.NoError(t, nilDelivery.Retry(t.Context(), 0))
+	require.NoError(t, nilDelivery.DeadLetter(t.Context(), "failed"))
+	require.NoError(t, (&delivery{queue: q}).Retry(t.Context(), 0))
+	require.NoError(t, (&delivery{queue: q}).DeadLetter(t.Context(), "failed"))
 	assert.Empty(t, q.DeadLetters(queue.DefaultQueue))
+}
+
+func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
+	consumer, err := q.NewConsumer(ctx, queueName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = consumer.Close()
+	}()
+	return consumer.Receive(ctx)
 }

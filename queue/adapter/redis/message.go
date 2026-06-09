@@ -12,14 +12,52 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout time.Duration) (queue.Lease, error) {
+func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
 	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   q.streamKey(name),
 		Group:    q.group,
 		Consumer: q.consumer,
-		MinIdle:  visibilityTimeout,
+		MinIdle:  minIdle,
 		Start:    "0-0",
 		Count:    1,
+	}).Result()
+	if errors.Is(err, goredis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(messages) == 0 {
+		return q.claimPendingWithXClaim(ctx, name, minIdle)
+	}
+	return q.leaseFromClaimedMessage(ctx, name, messages[0])
+}
+
+func (q *Queue) claimPendingWithXClaim(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
+	pending, err := q.redis.XPendingExt(ctx, &goredis.XPendingExtArgs{
+		Stream: q.streamKey(name),
+		Group:  q.group,
+		Idle:   minIdle,
+		Start:  "-",
+		End:    "+",
+		Count:  1,
+	}).Result()
+	if errors.Is(err, goredis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(pending) == 0 {
+		return nil, nil
+	}
+
+	messages, err := q.redis.XClaim(ctx, &goredis.XClaimArgs{
+		Stream:   q.streamKey(name),
+		Group:    q.group,
+		Consumer: q.consumer,
+		MinIdle:  minIdle,
+		Messages: []string{pending[0].ID},
 	}).Result()
 	if errors.Is(err, goredis.Nil) {
 		return nil, nil
@@ -33,11 +71,11 @@ func (q *Queue) claimPending(ctx context.Context, name string, visibilityTimeout
 	return q.leaseFromClaimedMessage(ctx, name, messages[0])
 }
 
-func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Lease, error) {
+func (q *Queue) leaseFromMessage(message goredis.XMessage) (queue.Delivery, error) {
 	return q.leaseFromMessageWithDeliveryCount(message, 0)
 }
 
-func (q *Queue) leaseFromClaimedMessage(ctx context.Context, name string, message goredis.XMessage) (queue.Lease, error) {
+func (q *Queue) leaseFromClaimedMessage(ctx context.Context, name string, message goredis.XMessage) (queue.Delivery, error) {
 	deliveryCount, err := q.deliveryCount(ctx, name, message.ID)
 	if err != nil {
 		return nil, err
@@ -65,7 +103,7 @@ func (q *Queue) deliveryCount(ctx context.Context, name, messageID string) (int6
 	return pending[0].RetryCount, nil
 }
 
-func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deliveryCount int64) (queue.Lease, error) {
+func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deliveryCount int64) (queue.Delivery, error) {
 	value, ok := message.Values[taskField]
 	if !ok {
 		return nil, fmt.Errorf("queue/adapter/redis: message %s missing %q field", message.ID, taskField)
@@ -86,7 +124,8 @@ func (q *Queue) leaseFromMessageWithDeliveryCount(message goredis.XMessage, deli
 		return nil, err
 	}
 	task.Attempt = attemptWithDeliveryCount(task.Attempt, deliveryCount)
-	return &redisLease{
+	return &redisDelivery{
+		queue:    q,
 		task:     &task,
 		streamID: message.ID,
 	}, nil

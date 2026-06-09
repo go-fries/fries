@@ -1,0 +1,461 @@
+package rabbitmq
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/go-fries/fries/queue/v3"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+type declareCall struct {
+	name       string
+	durable    bool
+	autoDelete bool
+	exclusive  bool
+	noWait     bool
+	args       amqp.Table
+}
+
+type publishCall struct {
+	exchange  string
+	key       string
+	mandatory bool
+	immediate bool
+	msg       amqp.Publishing
+}
+
+type qosCall struct {
+	prefetchCount int
+	prefetchSize  int
+	global        bool
+}
+
+type fakeChannel struct {
+	declareErr error
+	publishErr error
+	qosErr     error
+	consumeErr error
+	closeErr   error
+	deliveries []amqp.Delivery
+	declares   []declareCall
+	publishes  []publishCall
+	qoses      []qosCall
+	closed     int
+}
+
+func (c *fakeChannel) QueueDeclare(
+	name string,
+	durable bool,
+	autoDelete bool,
+	exclusive bool,
+	noWait bool,
+	args amqp.Table,
+) (amqp.Queue, error) {
+	c.declares = append(c.declares, declareCall{
+		name:       name,
+		durable:    durable,
+		autoDelete: autoDelete,
+		exclusive:  exclusive,
+		noWait:     noWait,
+		args:       args,
+	})
+	if c.declareErr != nil {
+		return amqp.Queue{}, c.declareErr
+	}
+	return amqp.Queue{Name: name}, nil
+}
+
+func (c *fakeChannel) PublishWithContext(
+	_ context.Context,
+	exchange string,
+	key string,
+	mandatory bool,
+	immediate bool,
+	msg amqp.Publishing,
+) error {
+	c.publishes = append(c.publishes, publishCall{
+		exchange:  exchange,
+		key:       key,
+		mandatory: mandatory,
+		immediate: immediate,
+		msg:       msg,
+	})
+	return c.publishErr
+}
+
+func (c *fakeChannel) Qos(prefetchCount, prefetchSize int, global bool) error {
+	c.qoses = append(c.qoses, qosCall{
+		prefetchCount: prefetchCount,
+		prefetchSize:  prefetchSize,
+		global:        global,
+	})
+	return c.qosErr
+}
+
+func (c *fakeChannel) Consume(
+	string,
+	string,
+	bool,
+	bool,
+	bool,
+	bool,
+	amqp.Table,
+) (<-chan amqp.Delivery, error) {
+	if c.consumeErr != nil {
+		return nil, c.consumeErr
+	}
+	deliveries := make(chan amqp.Delivery, len(c.deliveries))
+	for _, delivery := range c.deliveries {
+		deliveries <- delivery
+	}
+	close(deliveries)
+	return deliveries, nil
+}
+
+func (c *fakeChannel) Close() error {
+	c.closed++
+	return c.closeErr
+}
+
+type fakeChannelOpener struct {
+	channels []*fakeChannel
+	err      error
+	opened   []*fakeChannel
+}
+
+func (o *fakeChannelOpener) openChannel(context.Context) (channel, error) {
+	if o.err != nil {
+		return nil, o.err
+	}
+	var ch *fakeChannel
+	if len(o.channels) > 0 {
+		ch = o.channels[0]
+		o.channels = o.channels[1:]
+	} else {
+		ch = &fakeChannel{}
+	}
+	if ch == nil {
+		return nil, nil
+	}
+	o.opened = append(o.opened, ch)
+	return ch, nil
+}
+
+func newTestQueue(opener *fakeChannelOpener, opts ...Option) *Queue {
+	return newQueue(opener.openChannel, opts...)
+}
+
+type fakeAcknowledger struct {
+	acks    []uint64
+	rejects []rejectCall
+}
+
+type rejectCall struct {
+	tag     uint64
+	requeue bool
+}
+
+func (a *fakeAcknowledger) Ack(tag uint64, _ bool) error {
+	a.acks = append(a.acks, tag)
+	return nil
+}
+
+func (*fakeAcknowledger) Nack(uint64, bool, bool) error {
+	return nil
+}
+
+func (a *fakeAcknowledger) Reject(tag uint64, requeue bool) error {
+	a.rejects = append(a.rejects, rejectCall{tag: tag, requeue: requeue})
+	return nil
+}
+
+func TestQueue_ConfigDefaultsAndOptions(t *testing.T) {
+	t.Parallel()
+
+	q := newTestQueue(
+		&fakeChannelOpener{},
+		WithPrefix("app."),
+		WithDurable(false),
+		WithDelayQueueTTL(2*time.Hour),
+		WithPrefetch(7),
+	)
+
+	assert.Equal(t, "app.critical", q.readyQueueName("critical"))
+	assert.Equal(t, "app.critical.dead", q.deadLetterQueueName("critical"))
+	assert.Equal(t, "app.critical.delay.1500", q.delayQueueName("critical", 1500*time.Millisecond))
+	assert.False(t, q.durable)
+	assert.Equal(t, 2*time.Hour, q.delayQueueTTL)
+	assert.Equal(t, 7, q.prefetch)
+}
+
+func TestQueue_EnqueuePublishesReadyTask(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefix("app"))
+	task := &queue.Task{
+		ID:      "task-1",
+		Type:    "send_email",
+		Queue:   "emails",
+		Payload: []byte("hello"),
+	}
+
+	err := q.Enqueue(t.Context(), task)
+	require.NoError(t, err)
+
+	require.Len(t, ch.declares, 1)
+	assert.Equal(t, "app.emails", ch.declares[0].name)
+	assert.True(t, ch.declares[0].durable)
+
+	require.Len(t, ch.publishes, 1)
+	assert.Equal(t, "", ch.publishes[0].exchange)
+	assert.Equal(t, "app.emails", ch.publishes[0].key)
+	assert.Equal(t, amqp.Persistent, ch.publishes[0].msg.DeliveryMode)
+	assert.Equal(t, contentTypeJSON, ch.publishes[0].msg.ContentType)
+	assert.Equal(t, "task-1", ch.publishes[0].msg.MessageId)
+
+	var stored queue.Task
+	require.NoError(t, json.Unmarshal(ch.publishes[0].msg.Body, &stored))
+	assert.Equal(t, "send_email", stored.Type)
+	assert.Equal(t, []byte("hello"), stored.Payload)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_EnqueuePublishesDelayedTask(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithDelayQueueTTL(2*time.Second))
+	task := &queue.Task{
+		ID:    "task-1",
+		Type:  "send_email",
+		Queue: "emails",
+	}
+
+	err := q.publishTask(t.Context(), task, 1500*time.Millisecond)
+	require.NoError(t, err)
+
+	require.Len(t, ch.declares, 2)
+	assert.Equal(t, "emails", ch.declares[0].name)
+	assert.Equal(t, "emails.delay.1500", ch.declares[1].name)
+	assert.Equal(t, int64(1500), ch.declares[1].args["x-message-ttl"])
+	assert.Equal(t, int64(3500), ch.declares[1].args["x-expires"])
+	assert.Equal(t, "", ch.declares[1].args["x-dead-letter-exchange"])
+	assert.Equal(t, "emails", ch.declares[1].args["x-dead-letter-routing-key"])
+
+	require.Len(t, ch.publishes, 1)
+	assert.Equal(t, "emails.delay.1500", ch.publishes[0].key)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+
+	consumer, err := q.NewConsumer(t.Context(), "")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, delivery)
+	require.Len(t, ch.declares, 1)
+	assert.Equal(t, "default", ch.declares[0].name)
+	assert.Equal(t, []qosCall{{prefetchCount: defaultPrefetch}}, ch.qoses)
+}
+
+func TestQueue_NewConsumerConfiguresPrefetch(t *testing.T) {
+	t.Parallel()
+
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefetch(3))
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+
+	assert.Equal(t, []qosCall{{prefetchCount: 3}}, ch.qoses)
+}
+
+func TestQueue_NewConsumerReturnsQosError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("qos failed")
+	ch := &fakeChannel{qosErr: wantErr}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+
+	require.ErrorIs(t, err, wantErr)
+	assert.Nil(t, consumer)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_ReceiveDecodesTaskAndAck(t *testing.T) {
+	t.Parallel()
+
+	task := &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails", Attempt: 2}
+	body, err := json.Marshal(task)
+	require.NoError(t, err)
+	ack := &fakeAcknowledger{}
+	ch := &fakeChannel{
+		deliveries: []amqp.Delivery{{
+			Body:         body,
+			DeliveryTag:  42,
+			Acknowledger: ack,
+		}},
+	}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPrefix("app"))
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, 3, delivery.Task().Attempt)
+
+	require.NoError(t, delivery.Ack(t.Context()))
+	assert.Equal(t, []uint64{42}, ack.acks)
+	assert.Zero(t, ch.closed)
+}
+
+func TestQueue_ReceiveRejectsMalformedDelivery(t *testing.T) {
+	t.Parallel()
+
+	ack := &fakeAcknowledger{}
+	ch := &fakeChannel{
+		deliveries: []amqp.Delivery{{
+			Body:         []byte("{"),
+			DeliveryTag:  43,
+			Acknowledger: ack,
+		}},
+	}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+
+	consumer, err := q.NewConsumer(t.Context(), "emails")
+	require.NoError(t, err)
+	defer func() {
+		_ = consumer.Close()
+	}()
+	delivery, err := consumer.Receive(t.Context())
+
+	require.Error(t, err)
+	assert.Nil(t, delivery)
+	assert.Empty(t, ack.acks)
+	assert.Equal(t, []rejectCall{{tag: 43, requeue: false}}, ack.rejects)
+}
+
+func TestQueue_RetryPublishesDelayedTaskAndAcksOriginal(t *testing.T) {
+	t.Parallel()
+
+	ack := &fakeAcknowledger{}
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+	delivery := &delivery{
+		queue: q,
+		task: &queue.Task{
+			ID:    "task-1",
+			Type:  "send_email",
+			Queue: "emails",
+		},
+		delivery: amqp.Delivery{DeliveryTag: 7, Acknowledger: ack},
+	}
+
+	err := delivery.Retry(t.Context(), 2*time.Second)
+	require.NoError(t, err)
+
+	require.Len(t, ch.declares, 2)
+	assert.Equal(t, "emails", ch.declares[0].name)
+	assert.Equal(t, "emails.delay.2000", ch.declares[1].name)
+	assert.Equal(t, int64(2000), ch.declares[1].args["x-message-ttl"])
+	require.Len(t, ch.publishes, 1)
+	assert.Equal(t, "emails.delay.2000", ch.publishes[0].key)
+	assert.Equal(t, []uint64{7}, ack.acks)
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_DeadLetterPublishesReasonAndAcksOriginal(t *testing.T) {
+	t.Parallel()
+
+	ack := &fakeAcknowledger{}
+	ch := &fakeChannel{}
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}})
+	delivery := &delivery{
+		queue: q,
+		task: &queue.Task{
+			ID:    "task-1",
+			Type:  "send_email",
+			Queue: "emails",
+		},
+		delivery: amqp.Delivery{DeliveryTag: 8, Acknowledger: ack},
+	}
+
+	err := delivery.DeadLetter(t.Context(), "retry exhausted")
+	require.NoError(t, err)
+
+	require.Len(t, ch.declares, 1)
+	assert.Equal(t, "emails.dead", ch.declares[0].name)
+	require.Len(t, ch.publishes, 1)
+	assert.Equal(t, "emails.dead", ch.publishes[0].key)
+	assert.Equal(t, "retry exhausted", ch.publishes[0].msg.Headers[deadReasonKey])
+	assert.Equal(t, []uint64{8}, ack.acks)
+
+	var stored queue.Task
+	require.NoError(t, json.Unmarshal(ch.publishes[0].msg.Body, &stored))
+	assert.Equal(t, "retry exhausted", stored.Metadata[deadReasonKey])
+	assert.Equal(t, 1, ch.closed)
+}
+
+func TestQueue_AckWithCanceledContextDoesNotAck(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	ack := &fakeAcknowledger{}
+	delivery := &delivery{
+		task:     &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"},
+		delivery: amqp.Delivery{DeliveryTag: 9, Acknowledger: ack},
+	}
+
+	err := delivery.Ack(ctx)
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Empty(t, ack.acks)
+}
+
+func TestQueue_NilChannelReturnsError(t *testing.T) {
+	t.Parallel()
+
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{nil}})
+
+	err := q.Enqueue(t.Context(), &queue.Task{Type: "send_email"})
+
+	require.ErrorIs(t, err, errNilChannel)
+}
+
+func TestQueue_PropagatesChannelErrors(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("declare failed")
+	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{{declareErr: wantErr}}})
+
+	err := q.Enqueue(t.Context(), &queue.Task{Type: "send_email"})
+
+	require.ErrorIs(t, err, wantErr)
+}

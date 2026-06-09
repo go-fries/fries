@@ -106,6 +106,7 @@ module-sets:
       # Queue
       - github.com/go-fries/fries/queue/v3
       - github.com/go-fries/fries/queue/adapter/memory/v3
+      - github.com/go-fries/fries/queue/adapter/rabbitmq/v3
       - github.com/go-fries/fries/queue/adapter/redis/v3
       - github.com/go-fries/fries/queue/kratos/server/v3
       - github.com/go-fries/fries/queue/middleware/recovery/v3
