@@ -11,12 +11,25 @@ go get github.com/go-fries/fries/queue/middleware/recovery/v3
 ## Usage
 
 ```go
-worker := queue.NewWorker(
-	q,
-	queue.Handle("send_email", handler),
-	queue.WithMiddleware(recovery.New()),
+package main
+
+import (
+	"github.com/go-fries/fries/queue/middleware/recovery/v3"
+	"github.com/go-fries/fries/queue/v3"
 )
+
+func newWorker(q queue.Queue, handler queue.Handler) *queue.Worker {
+	return queue.NewWorker(
+		q,
+		queue.Handle("send_email", handler),
+		queue.WithMiddleware(recovery.New()),
+	)
+}
 ```
 
 Recovered panics are converted to handler errors so the worker can use its
 configured retry or dead-letter policy.
+
+The default recovery handler logs task ID, type, queue, and attempt. It does not
+log task payload or metadata. Use `WithHandler` when an application needs custom
+panic reporting.

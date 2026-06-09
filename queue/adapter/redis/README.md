@@ -1,6 +1,6 @@
 # Redis Queue
 
-A Redis Streams queue implementation for `github.com/go-fries/fries/queue/v3`.
+Redis Streams adapter for `github.com/go-fries/fries/queue/v3`.
 
 ## Installation
 
@@ -14,80 +14,57 @@ go get github.com/go-fries/fries/queue/adapter/redis/v3
 package main
 
 import (
-	"context"
 	"time"
 
-	"github.com/go-fries/fries/queue/v3"
-	"github.com/go-fries/fries/queue/adapter/redis/v3"
+	redis "github.com/go-fries/fries/queue/adapter/redis/v3"
 	goredis "github.com/redis/go-redis/v9"
 )
 
-func main() {
+func newQueue() *redis.Queue {
 	client := goredis.NewClient(&goredis.Options{Addr: "127.0.0.1:6379"})
-	q := redis.NewQueue(
+	return redis.NewQueue(
 		client,
 		redis.WithPrefix("app"),
 		redis.WithGroup("workers"),
 		redis.WithConsumer("worker-1"),
 		redis.WithClaimMinIdle(5*time.Minute),
 	)
-
-	producer := queue.NewProducer(q)
-	worker := queue.NewWorker(
-		q,
-		queue.Handle("send_email", queue.HandlerFunc(func(ctx context.Context, task *queue.Task) error {
-			// process task
-			return nil
-		})),
-	)
-
-	_, _ = producer.Enqueue(context.Background(), "send_email", []byte("hello"))
-	_ = worker.Run(context.Background())
 }
 ```
 
-## Storage
+Use `queue.NewProducer(q)` and `queue.NewWorker(q, ...)` from the core package
+to enqueue and process tasks.
 
-The queue stores ready tasks in Redis Streams, delayed tasks in a sorted set,
-and exhausted tasks in a dead-letter stream. Consumer groups are created lazily
-with `XGROUP CREATE ... MKSTREAM`.
+## Storage Model
 
-Delayed tasks are stored as unique sorted set members, so two delayed tasks with
-the same payload are still promoted independently.
+Ready tasks are stored in Redis Streams. Delayed tasks are stored in a sorted
+set and promoted to the ready stream when due. Dead-lettered tasks are stored in
+a separate Redis Stream.
 
-## Consumers
+Consumer groups are created lazily with `XGROUP CREATE ... MKSTREAM`.
 
-The adapter generates a process-unique default Redis consumer name. Use
-`WithConsumer` or worker-level `queue.WithConsumerName` when you need a stable
-consumer identity for operations and debugging.
+## Delivery
 
-`WithClaimMinIdle` controls how long a pending stream message must remain idle
-before a consumer can claim it for redelivery. Set it to `0` to disable pending
-message claims during receive.
+The adapter follows the queue package's at-least-once contract. Retry and
+dead-letter settlement write the new entry first, then acknowledge the original
+stream message. If the process exits or `XACK` fails between those operations,
+Redis may deliver the original task again.
 
-## Retention
+`WithClaimMinIdle` enables pending message claiming during receive. Set it to
+`0` to disable that behavior.
+
+Malformed stream entries are acknowledged and discarded during receive, and the
+receive call returns the parse error.
+
+## Operations
+
+The default Redis consumer name is process-unique. Use `WithConsumer` or
+worker-level `queue.WithConsumerName` when a stable identity is useful for
+operations and debugging.
 
 Ready and dead-letter streams are not trimmed by default. Use
-`WithStreamMaxLen` and `WithDeadLetterMaxLen` to enable approximate Redis stream
-trimming for long-running deployments.
+`WithStreamMaxLen` and `WithDeadLetterMaxLen` to enable approximate stream
+trimming. Monitor delayed sorted set size for long-running workloads.
 
-## Delivery Semantics
-
-Retry and dead-letter handling follows the queue package's at-least-once
-contract. The adapter writes the retry or dead-letter entry before acknowledging
-the original stream message. If the acknowledgement fails or the process exits
-between those steps, Redis may deliver the original task again, so handlers must
-remain idempotent.
-
-Malformed Redis stream entries are acknowledged and discarded during receive,
-and the receive call returns the parse error to the worker.
-
-## Connections and Limits
-
-The adapter uses the `go-redis` client supplied to `NewQueue`; connection
-pooling, retries, and reconnect behavior are controlled by that client.
-
-Redis Streams and dead-letter streams grow until trimmed. Delayed tasks live in
-a sorted set until promoted. For long-running deployments, configure stream
-retention with `WithStreamMaxLen` and `WithDeadLetterMaxLen`, and monitor the
-delayed sorted set size.
+Connection pooling, reconnect behavior, and command retry behavior come from
+the `go-redis` client passed to `NewQueue`.

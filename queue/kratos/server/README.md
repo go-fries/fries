@@ -11,17 +11,27 @@ go get github.com/go-fries/fries/queue/kratos/server/v3
 ## Usage
 
 ```go
-worker := queue.NewWorker(
-	q,
-	queue.HandleTasker[SendEmail](sendEmailTasker),
+package main
+
+import (
+	server "github.com/go-fries/fries/queue/kratos/server/v3"
+	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-kratos/kratos/v2"
 )
 
-app := kratos.New(
-	kratos.Server(server.New(worker)),
-)
+func newApp(q queue.Queue, handler queue.Handler) *kratos.App {
+	worker := queue.NewWorker(
+		q,
+		queue.Handle("send_email", handler),
+	)
+
+	return kratos.New(
+		kratos.Server(server.New(worker)),
+	)
+}
 ```
 
-`Start` runs the worker and blocks until the worker exits. `Stop` stops polling
-for new tasks and waits for in-flight tasks to finish. If the Kratos stop
-context expires before the worker exits, the worker cancels running task
-handlers and returns the stop context error.
+`Start` runs the worker and blocks until it exits. `Stop` delegates to
+`Worker.Stop(ctx)`: it stops polling for new tasks and waits for in-flight
+handlers. If the Kratos stop context expires first, the worker cancels running
+handler contexts and returns the stop context error.
