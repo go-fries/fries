@@ -183,7 +183,7 @@ func TestQueue_ClaimPendingReturnsXAutoClaimError(t *testing.T) {
 	wantErr := errors.New("xautoclaim failed")
 	q := NewQueue(&redisClientStub{xAutoClaimErr: wantErr})
 
-	_, err := q.claimPending(t.Context(), "critical", time.Second)
+	_, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.ErrorIs(t, err, wantErr)
 }
@@ -208,7 +208,7 @@ func TestQueue_ClaimPendingFallsBackToXClaim(t *testing.T) {
 	}
 	q := NewQueue(client)
 
-	delivery, err := q.claimPending(t.Context(), "critical", time.Second)
+	delivery, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.NoError(t, err)
 	require.NotNil(t, delivery)
@@ -228,7 +228,7 @@ func TestQueue_ClaimPendingReturnsXClaimError(t *testing.T) {
 		xClaimErr: wantErr,
 	})
 
-	_, err := q.claimPending(t.Context(), "critical", time.Second)
+	_, err := q.claimPendingForConsumer(t.Context(), "critical", q.consumer, time.Second)
 
 	require.ErrorIs(t, err, wantErr)
 }
@@ -491,8 +491,7 @@ func TestQueue_ClaimPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[0])
 	assert.Equal(t, 0, stored.Attempt)
 
-	claimer := q.withConsumer("worker-2")
-	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	claimed, err := q.claimPendingForConsumer(ctx, "critical", "worker-2", 0)
 	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
@@ -530,8 +529,7 @@ func TestQueue_ClaimRetriedPendingIncrementsAttempt(t *testing.T) {
 	stored := taskFromMessage(t, messages[1])
 	assert.Equal(t, 1, stored.Attempt)
 
-	claimer := q.withConsumer("worker-2")
-	claimed, err := claimer.claimPending(ctx, "critical", 0)
+	claimed, err := q.claimPendingForConsumer(ctx, "critical", "worker-2", 0)
 	require.NoError(t, err)
 
 	require.NotNil(t, claimed)
@@ -627,12 +625,6 @@ func receiveCriticalWithTimeout(ctx context.Context, q *Queue, timeout time.Dura
 	receiveCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	return receive(receiveCtx, q, "critical")
-}
-
-func (q *Queue) withConsumer(consumer string) *Queue {
-	clone := *q
-	clone.consumer = consumer
-	return &clone
 }
 
 func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {

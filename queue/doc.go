@@ -1,4 +1,4 @@
-// Package queue provides durable task queue primitives.
+// Package queue provides backend-agnostic task queue primitives.
 //
 // The package defines producer, consumer, worker, retry, and middleware
 // contracts that can be backed by concrete queue implementations. Delivery is

@@ -157,10 +157,6 @@ func (c *consumer) Close() error {
 	return nil
 }
 
-func (q *Queue) receive(ctx context.Context, name string) (queue.Delivery, error) {
-	return q.receiveForConsumer(ctx, name, q.consumer)
-}
-
 func (q *Queue) receiveForConsumer(ctx context.Context, name, consumerName string) (queue.Delivery, error) {
 	if err := q.promoteDue(ctx, name); err != nil {
 		return nil, err

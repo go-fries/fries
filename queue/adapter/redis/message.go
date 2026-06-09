@@ -42,10 +42,6 @@ func malformedMessageID(err error) string {
 	return target.messageID
 }
 
-func (q *Queue) claimPending(ctx context.Context, name string, minIdle time.Duration) (queue.Delivery, error) {
-	return q.claimPendingForConsumer(ctx, name, q.consumer, minIdle)
-}
-
 func (q *Queue) claimPendingForConsumer(ctx context.Context, name, consumerName string, minIdle time.Duration) (queue.Delivery, error) {
 	messages, _, err := q.redis.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   q.streamKey(name),
