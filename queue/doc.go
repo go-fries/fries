@@ -21,4 +21,10 @@
 // Producers and workers can emit low-sensitivity Observer events for metrics,
 // tracing, and logging. Observer events omit task payload and metadata by
 // default so instrumentation does not accidentally record business data.
+//
+// Production services should choose an adapter that matches their durability
+// requirements, configure bounded retry policies, and use Worker.Stop for
+// graceful shutdown. The in-memory adapter is intended for tests and local
+// development, while Redis and RabbitMQ adapters provide durable backends with
+// backend-specific operational tradeoffs documented in their package READMEs.
 package queue

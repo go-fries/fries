@@ -81,3 +81,13 @@ remain idempotent.
 
 Malformed Redis stream entries are acknowledged and discarded during receive,
 and the receive call returns the parse error to the worker.
+
+## Connections and Limits
+
+The adapter uses the `go-redis` client supplied to `NewQueue`; connection
+pooling, retries, and reconnect behavior are controlled by that client.
+
+Redis Streams and dead-letter streams grow until trimmed. Delayed tasks live in
+a sorted set until promoted. For long-running deployments, configure stream
+retention with `WithStreamMaxLen` and `WithDeadLetterMaxLen`, and monitor the
+delayed sorted set size.

@@ -106,3 +106,12 @@ The underlying `github.com/rabbitmq/amqp091-go` client does not automatically
 reconnect a closed connection or channel. When the connection is closed, publish
 and receive operations return errors; applications should recreate the
 connection and queue adapter outside this package.
+
+## Known Limits
+
+Delayed retries create one TTL queue per queue name and delay value. Keep retry
+delays bounded or bucketed in production.
+
+The adapter-managed dead-letter queue is separate from broker-native DLX
+configuration. Use broker-native policies outside this package when the
+deployment requires central RabbitMQ dead-letter routing.

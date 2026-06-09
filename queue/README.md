@@ -178,3 +178,55 @@ worker := queue.NewWorker(
 
 The core package stays logger- and tracing-agnostic. OpenTelemetry integration,
 if needed, should be provided by a separate package built on top of `Observer`.
+
+## Production Use
+
+Choose an adapter based on the durability and operations model you need:
+
+| Adapter | Use for | Notes |
+| --- | --- | --- |
+| `adapter/memory` | tests, examples, local development | In-flight tasks are lost when the process exits. Do not use it as production storage. |
+| `adapter/redis` | Redis-backed background jobs | Uses Redis Streams, consumer groups, delayed sorted sets, pending message claims, and optional stream trimming. |
+| `adapter/rabbitmq` | RabbitMQ-backed background jobs | Uses durable queues, publisher confirms by default, per-consumer channels, QoS prefetch, and TTL delay queues. |
+
+Queue processing is at-least-once. Production handlers should be idempotent and
+should use a business idempotency key when external side effects matter. A task
+can be delivered again after a worker crash, a backend redelivery, a settlement
+failure, or a retry.
+
+Use a bounded retry policy for production workloads. `ExponentialRetry` keeps
+short failures cheap, `JitterRetry` spreads retry bursts, and `NoRetry` is useful
+for tasks that should go directly to dead-letter storage when they fail.
+
+```go
+worker := queue.NewWorker(
+	q,
+	queue.WithConcurrency(8),
+	queue.WithHandlerTimeout(30*time.Second),
+	queue.WithSettlementTimeout(10*time.Second),
+	queue.WithRetryPolicy(queue.JitterRetry(
+		queue.ExponentialRetry(5, time.Second, time.Minute),
+		500*time.Millisecond,
+	)),
+	queue.Handle("send_email", handler),
+)
+```
+
+For graceful shutdown, let `Worker.Stop(ctx)` drain in-flight handlers. In a
+Kratos application, use `queue/kratos/server` so the framework calls `Stop(ctx)`
+with the same shutdown deadline as other servers. Canceling the context passed
+to `Run` is the force-stop path and cancels running handlers immediately.
+
+Keep observability low-sensitive by default. `Observer` events do not include
+payload or metadata, and the recovery middleware default logger records only
+task ID, type, queue, and attempt. Custom middleware or observers can opt into
+more detail when the application owns the data-safety tradeoff.
+
+Review the adapter README before production rollout:
+
+- [memory](adapter/memory): storage is process-local and non-durable.
+- [redis](adapter/redis): configure consumer identity, pending claim policy,
+  and stream retention for long-running deployments.
+- [rabbitmq](adapter/rabbitmq): configure connection recovery outside this
+  package, prefetch for backpressure, and bounded retry delays to avoid
+  unbounded delay queue growth.

@@ -28,9 +28,15 @@ func main() {
 }
 ```
 
+## Production Fit
+
 The memory adapter is useful for tests, examples, and local development. It is
 not a production adapter.
 
 Tasks are not persisted across process restarts. A task is removed from the
 in-memory queue before it is delivered to a handler, so an in-flight task is not
 recovered if the process exits before the handler retries or dead-letters it.
+
+The adapter does not simulate backend redelivery for crashed workers. It keeps
+the implementation intentionally small so unit tests and examples stay
+predictable.
