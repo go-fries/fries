@@ -1,7 +1,7 @@
 package multidriver
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"sync/atomic"
 
 	"entgo.io/ent/dialect"
@@ -34,6 +34,6 @@ func StrictRoundRobinPolicy() Policy {
 
 func RandomPolicy() Policy {
 	return PolicyFunc(func(drivers []dialect.Driver) dialect.Driver {
-		return drivers[rand.Intn(len(drivers))]
+		return drivers[rand.IntN(len(drivers))]
 	})
 }
