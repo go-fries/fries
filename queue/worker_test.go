@@ -375,6 +375,45 @@ func TestWorker_SettlementTimeout(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+func TestWorker_RunContextCancellationCancelsInFlightTask(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	q := newTestQueue()
+	_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
+	require.NoError(t, err)
+
+	handlerStarted := make(chan struct{})
+	handlerDone := make(chan error, 1)
+	worker := NewWorker(
+		q,
+		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+			close(handlerStarted)
+			<-ctx.Done()
+			err := ctx.Err()
+			handlerDone <- err
+			return err
+		})),
+	)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- worker.Run(ctx)
+	}()
+
+	select {
+	case <-handlerStarted:
+	case <-time.After(time.Second):
+		require.Fail(t, "timeout waiting for handler start")
+	}
+
+	cancel()
+	require.ErrorIs(t, <-handlerDone, context.Canceled)
+	require.NoError(t, <-errs)
+}
+
 func TestWorker_StopDrainsInFlightTask(t *testing.T) {
 	t.Parallel()
 
