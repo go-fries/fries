@@ -16,7 +16,7 @@ type config struct {
 	deadLetterMaxLen int64
 }
 
-// Option configures a Redis queue.
+// Option is an option that configures a Redis queue.
 type Option interface {
 	apply(*config)
 }

@@ -41,7 +41,7 @@ func TestProducer_ObserverEvents(t *testing.T) {
 	t.Parallel()
 
 	observer := &recordingObserver{}
-	producer := NewProducer(newTestQueue(), WithProducerObserver(observer))
+	producer := NewProducer(newTestQueue(), WithObserver(observer))
 
 	task, err := producer.Enqueue(
 		t.Context(),
@@ -70,7 +70,7 @@ func TestProducer_ObserverFailureEvent(t *testing.T) {
 
 	wantErr := errors.New("enqueue failed")
 	observer := &recordingObserver{}
-	producer := NewProducer(enqueueErrorQueue{err: wantErr}, WithProducerObserver(observer))
+	producer := NewProducer(enqueueErrorQueue{err: wantErr}, WithObserver(observer))
 
 	task, err := producer.Enqueue(t.Context(), "send_email", nil, WithID("task-1"))
 
@@ -88,9 +88,9 @@ func TestWorker_ObserverEventsForSuccessfulTask(t *testing.T) {
 	observer := &recordingObserver{}
 	worker := NewWorker(
 		newTestQueue(),
-		WithWorkerQueue("critical"),
+		WithQueue("critical"),
 		WithConsumerName("worker-1"),
-		WithWorkerObserver(observer),
+		WithObserver(observer),
 		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
 			return nil
 		})),
@@ -132,7 +132,7 @@ func TestWorker_ObserverEventsForSettlementFailure(t *testing.T) {
 	observer := &recordingObserver{}
 	worker := NewWorker(
 		newTestQueue(),
-		WithWorkerObserver(observer),
+		WithObserver(observer),
 		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
 			return nil
 		})),
@@ -167,7 +167,7 @@ func TestWorker_ObserverEventsForRunLifecycleAndReceive(t *testing.T) {
 	observer := &recordingObserver{}
 	worker := NewWorker(
 		q,
-		WithWorkerObserver(observer),
+		WithObserver(observer),
 		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
 			return nil
 		})),

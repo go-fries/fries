@@ -22,14 +22,14 @@ type producerConfig struct {
 	observer Observer
 }
 
-// EnqueueOption configures task enqueue behavior.
+// EnqueueOption is an option that configures how a task is enqueued.
 type EnqueueOption interface {
-	apply(*enqueueConfig)
+	applyEnqueue(*enqueueConfig)
 }
 
 type enqueueOptionFunc func(*enqueueConfig)
 
-func (f enqueueOptionFunc) apply(c *enqueueConfig) {
+func (f enqueueOptionFunc) applyEnqueue(c *enqueueConfig) {
 	f(c)
 }
 
@@ -37,15 +37,6 @@ func (f enqueueOptionFunc) apply(c *enqueueConfig) {
 func WithID(id string) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
 		c.id = id
-	})
-}
-
-// WithQueue sets the queue name for a task.
-func WithQueue(name string) EnqueueOption {
-	return enqueueOptionFunc(func(c *enqueueConfig) {
-		if name != "" {
-			c.queue = name
-		}
 	})
 }
 
@@ -86,7 +77,7 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 		queue: DefaultQueue,
 	}
 	for _, opt := range opts {
-		opt.apply(c)
+		opt.applyEnqueue(c)
 	}
 	if c.id == "" {
 		c.id = newID()
@@ -94,22 +85,9 @@ func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
 	return c
 }
 
-// ProducerOption configures a Producer.
+// ProducerOption is an option that configures a Producer.
 type ProducerOption interface {
 	applyProducer(*producerConfig)
-}
-
-type producerOptionFunc func(*producerConfig)
-
-func (f producerOptionFunc) applyProducer(c *producerConfig) {
-	f(c)
-}
-
-// WithProducerObserver sets the observer used for producer enqueue events.
-func WithProducerObserver(observer Observer) ProducerOption {
-	return producerOptionFunc(func(c *producerConfig) {
-		c.observer = observer
-	})
 }
 
 func newProducerConfig(opts ...ProducerOption) *producerConfig {
