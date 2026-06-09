@@ -149,3 +149,40 @@ func TestRetryPolicy_ExponentialRetry(t *testing.T) {
 		})
 	}
 }
+
+func TestRetryPolicy_JitterRetry(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(FixedRetry(3, time.Second), 100*time.Millisecond).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.True(t, retry)
+	assert.GreaterOrEqual(t, delay, time.Second)
+	assert.LessOrEqual(t, delay, 1100*time.Millisecond)
+}
+
+func TestRetryPolicy_JitterRetryNoRetry(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(NoRetry(), time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.False(t, retry)
+	assert.Zero(t, delay)
+}
+
+func TestRetryPolicy_JitterRetryNormalizesInputs(t *testing.T) {
+	t.Parallel()
+
+	delay, retry := JitterRetry(FixedRetry(3, time.Second), -time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.True(t, retry)
+	assert.Equal(t, time.Second, delay)
+
+	delay, retry = JitterRetry(nil, time.Second).
+		NextDelay(&Task{Attempt: 1}, errors.New("failed"))
+
+	assert.False(t, retry)
+	assert.Zero(t, delay)
+}

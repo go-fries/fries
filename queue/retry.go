@@ -2,6 +2,7 @@ package queue
 
 import (
 	"errors"
+	"math/rand"
 	"time"
 )
 
@@ -12,6 +13,33 @@ var ErrRetryExhausted = errors.New("queue: retry exhausted")
 type RetryPolicy interface {
 	// NextDelay returns the next retry delay and whether another retry should happen.
 	NextDelay(task *Task, err error) (time.Duration, bool)
+}
+
+type jitterRetry struct {
+	policy    RetryPolicy
+	maxJitter time.Duration
+}
+
+// JitterRetry wraps policy and adds bounded random jitter to retry delays.
+func JitterRetry(policy RetryPolicy, maxJitter time.Duration) RetryPolicy {
+	if policy == nil {
+		policy = NoRetry()
+	}
+	if maxJitter < 0 {
+		maxJitter = 0
+	}
+	return jitterRetry{
+		policy:    policy,
+		maxJitter: maxJitter,
+	}
+}
+
+func (r jitterRetry) NextDelay(task *Task, err error) (time.Duration, bool) {
+	delay, retry := r.policy.NextDelay(task, err)
+	if !retry || r.maxJitter <= 0 {
+		return delay, retry
+	}
+	return delay + time.Duration(rand.Int63n(int64(r.maxJitter)+1)), true
 }
 
 type noRetry struct{}
