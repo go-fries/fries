@@ -170,8 +170,8 @@ func withObserver(q queue.Queue, handler queue.Handler) (*queue.Producer, *queue
 		// Record metrics, logs, or spans.
 	})
 
-	producer := queue.NewProducer(q, queue.WithProducerObserver(observer))
-	worker := queue.NewWorker(q, queue.WithWorkerObserver(observer), queue.Handle("send_email", handler))
+	producer := queue.NewProducer(q, queue.WithObserver(observer))
+	worker := queue.NewWorker(q, queue.WithObserver(observer), queue.Handle("send_email", handler))
 	return producer, worker
 }
 ```

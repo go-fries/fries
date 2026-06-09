@@ -85,13 +85,6 @@ func WithRetryPolicy(policy RetryPolicy) WorkerOption {
 	})
 }
 
-// WithWorkerObserver sets the observer used for worker events.
-func WithWorkerObserver(observer Observer) WorkerOption {
-	return workerOptionFunc(func(c *workerConfig) {
-		c.observer = observer
-	})
-}
-
 // WithMiddleware appends worker middleware around task handlers.
 func WithMiddleware(middleware ...Middleware) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {

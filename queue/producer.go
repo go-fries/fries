@@ -90,19 +90,6 @@ type ProducerOption interface {
 	applyProducer(*producerConfig)
 }
 
-type producerOptionFunc func(*producerConfig)
-
-func (f producerOptionFunc) applyProducer(c *producerConfig) {
-	f(c)
-}
-
-// WithProducerObserver sets the observer used for producer enqueue events.
-func WithProducerObserver(observer Observer) ProducerOption {
-	return producerOptionFunc(func(c *producerConfig) {
-		c.observer = observer
-	})
-}
-
 func newProducerConfig(opts ...ProducerOption) *producerConfig {
 	c := &producerConfig{}
 	for _, opt := range opts {
