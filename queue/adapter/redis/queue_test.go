@@ -635,7 +635,7 @@ func (q *Queue) withConsumer(consumer string) *Queue {
 	return &clone
 }
 
-func newRedisTestQueue(t testing.TB, opts ...Option) (*Queue, *goredis.Client) {
+func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {
 	t.Helper()
 
 	addr := os.Getenv("REDIS_ADDR")
@@ -668,9 +668,6 @@ func newRedisTestQueue(t testing.TB, opts ...Option) (*Queue, *goredis.Client) {
 			q.streamKey(queue.DefaultQueue),
 			q.delayedKey(queue.DefaultQueue),
 			q.deadLetterKey(queue.DefaultQueue),
-			q.streamKey("contract"),
-			q.delayedKey("contract"),
-			q.deadLetterKey("contract"),
 			q.streamKey("critical"),
 			q.delayedKey("critical"),
 			q.deadLetterKey("critical"),
