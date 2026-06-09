@@ -10,8 +10,18 @@ import (
 
 const promoteScript = `
 local tasks = redis.call("zrangebyscore", KEYS[1], "-inf", ARGV[1], "limit", 0, ARGV[2])
+local maxLen = tonumber(ARGV[4])
 for _, task in ipairs(tasks) do
-	redis.call("xadd", KEYS[2], "*", ARGV[3], task)
+	local payload = task
+	local ok, decoded = pcall(cjson.decode, task)
+	if ok and decoded and decoded["task"] then
+		payload = decoded["task"]
+	end
+	if maxLen and maxLen > 0 then
+		redis.call("xadd", KEYS[2], "maxlen", "~", maxLen, "*", ARGV[3], payload)
+	else
+		redis.call("xadd", KEYS[2], "*", ARGV[3], payload)
+	end
 	redis.call("zrem", KEYS[1], task)
 end
 return #tasks
@@ -42,5 +52,6 @@ func (q *Queue) promoteDue(ctx context.Context, name string) error {
 		time.Now().UTC().UnixNano(),
 		q.promoteSize,
 		taskField,
+		q.streamMaxLen,
 	).Err()
 }

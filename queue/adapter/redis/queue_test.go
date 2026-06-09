@@ -413,6 +413,42 @@ func TestQueue_EnqueueDoesNotMutateTask(t *testing.T) {
 	assert.Equal(t, queue.DefaultQueue, delivery.Task().Queue)
 }
 
+func TestQueue_DelayedTasksWithSamePayloadAreNotCollapsed(t *testing.T) {
+	t.Parallel()
+
+	q, _ := newRedisTestQueue(t)
+	ctx := t.Context()
+	task := &queue.Task{
+		ID:          "task-1",
+		Type:        "send_email",
+		Queue:       "critical",
+		Payload:     []byte("hello"),
+		CreatedAt:   time.Unix(1, 0).UTC(),
+		AvailableAt: time.Now().UTC().Add(20 * time.Millisecond),
+	}
+
+	require.NoError(t, q.Enqueue(ctx, task))
+	require.NoError(t, q.Enqueue(ctx, task))
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		delivery, err := receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
+		if err != nil {
+			assert.NoError(c, err)
+			return
+		}
+		assert.NotNil(c, delivery)
+		assert.NoError(c, delivery.Ack(ctx))
+
+		delivery, err = receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
+		if err != nil {
+			assert.NoError(c, err)
+			return
+		}
+		assert.NotNil(c, delivery)
+		assert.NoError(c, delivery.Ack(ctx))
+	}, time.Second, 10*time.Millisecond)
+}
+
 func TestQueue_RetryReenqueuesAndAcksDelivery(t *testing.T) {
 	t.Parallel()
 

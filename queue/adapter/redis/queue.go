@@ -2,8 +2,11 @@ package redis
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/go-fries/fries/queue/v3"
@@ -15,6 +18,11 @@ const (
 	deadReasonField = "reason"
 	receiveBlock    = time.Second
 )
+
+type delayedEntry struct {
+	ID   string `json:"id"`
+	Task string `json:"task"`
+}
 
 // Queue stores and consumes queue tasks with Redis Streams.
 type Queue struct {
@@ -64,13 +72,32 @@ func (q *Queue) Enqueue(ctx context.Context, task *queue.Task) error {
 
 	now := time.Now().UTC()
 	if task.AvailableAt.After(now) {
+		entry, err := newDelayedEntry(data)
+		if err != nil {
+			return err
+		}
 		return q.redis.ZAdd(ctx, q.delayedKey(task.Queue), goredis.Z{
 			Score:  float64(task.AvailableAt.UnixNano()),
-			Member: string(data),
+			Member: entry,
 		}).Err()
 	}
 
 	return q.addToStream(ctx, task.Queue, data)
+}
+
+func newDelayedEntry(data []byte) (string, error) {
+	token := make([]byte, 16)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+	entry, err := json.Marshal(delayedEntry{
+		ID:   hex.EncodeToString(token) + "-" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		Task: string(data),
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(entry), nil
 }
 
 // NewConsumer creates a Redis Streams consumer using config.

@@ -58,6 +58,12 @@ Ready and dead-letter streams are not trimmed by default. Use
 `WithStreamMaxLen` and `WithDeadLetterMaxLen` to enable approximate Redis stream
 trimming for long-running deployments.
 
+Retry and dead-letter handling follows the queue package's at-least-once
+contract. The adapter writes the retry or dead-letter entry before acknowledging
+the original stream message. If the acknowledgement fails or the process exits
+between those steps, Redis may deliver the original task again, so handlers must
+remain idempotent.
+
 `WithClaimMinIdle` controls how long a pending stream message must remain idle
 before a consumer can claim it for redelivery. Set it to `0` to disable pending
 message claims during receive.
