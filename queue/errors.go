@@ -4,6 +4,10 @@ import "errors"
 
 var (
 	// ErrNoTask is returned by queue implementations when no task is immediately available.
+	//
+	// The default worker uses blocking Consumer.Receive calls and does not rely on
+	// ErrNoTask. Queue implementations may still use it internally or in tests
+	// when adapting a non-blocking backend operation.
 	ErrNoTask = errors.New("queue: no task available")
 	// ErrConsumerClosed is returned by Consumer.Receive after the consumer is closed.
 	ErrConsumerClosed = errors.New("queue: consumer closed")
