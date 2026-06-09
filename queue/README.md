@@ -119,3 +119,32 @@ See [examples/tasker](examples/tasker) for a runnable Tasker example.
 Workers ACK tasks only when handlers return `nil`. Handler errors are retried
 according to the configured retry policy. When a task exhausts its retry budget,
 the queue moves it to a dead-letter queue.
+
+Handlers can return control errors for explicit business decisions:
+
+```go
+queue.Handle("sync_user", queue.HandlerFunc(func(ctx context.Context, task *queue.Task) error {
+	switch {
+	case rateLimited:
+		return queue.RetryAfter(30 * time.Second)
+	case invalidPayload:
+		return queue.DeadLetter("invalid payload")
+	case alreadyHandled:
+		return queue.ErrDiscard
+	default:
+		return errors.New("temporary failure") // handled by the retry policy
+	}
+}))
+```
+
+Use `JitterRetry` to add bounded jitter to any retry policy:
+
+```go
+worker := queue.NewWorker(
+	q,
+	queue.WithRetryPolicy(queue.JitterRetry(
+		queue.ExponentialRetry(5, time.Second, time.Minute),
+		500*time.Millisecond,
+	)),
+)
+```
