@@ -301,7 +301,9 @@ func TestQueue_OptionsUseDefaultsAndIgnoreInvalidValues(t *testing.T) {
 	assert.Equal(t, "queue:critical:delayed", q.delayedKey("critical"))
 	assert.Equal(t, "queue:critical:dead", q.deadLetterKey("critical"))
 	assert.Equal(t, "queue", q.group)
-	assert.Equal(t, "worker", q.consumer)
+	assert.NotEmpty(t, q.consumer)
+	assert.NotEqual(t, "worker", q.consumer)
+	assert.True(t, strings.HasPrefix(q.consumer, "worker-"))
 	assert.Equal(t, 100, q.promoteSize)
 	assert.Equal(t, 5*time.Minute, q.claimMinIdle)
 }

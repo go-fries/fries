@@ -50,6 +50,10 @@ The queue stores ready tasks in Redis Streams, delayed tasks in a sorted set,
 and exhausted tasks in a dead-letter stream. Consumer groups are created lazily
 with `XGROUP CREATE ... MKSTREAM`.
 
+The adapter generates a process-unique default Redis consumer name. Use
+`WithConsumer` or worker-level `queue.WithConsumerName` when you need a stable
+consumer identity for operations and debugging.
+
 `WithClaimMinIdle` controls how long a pending stream message must remain idle
 before a consumer can claim it for redelivery. Set it to `0` to disable pending
 message claims during receive.
