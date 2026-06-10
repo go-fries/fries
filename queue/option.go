@@ -15,6 +15,12 @@ type ObserverOption interface {
 	WorkerOption
 }
 
+// MetadataOption is an option that applies to both producers and task enqueueing.
+type MetadataOption interface {
+	ProducerOption
+	EnqueueOption
+}
+
 type queueOption struct {
 	name string
 }
@@ -64,7 +70,7 @@ type metadataOption struct {
 }
 
 // WithMetadata adds default or task-specific metadata values.
-func WithMetadata(metadata map[string]string) metadataOption {
+func WithMetadata(metadata map[string]string) MetadataOption {
 	return metadataOption{metadata: metadata}
 }
 
