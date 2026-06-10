@@ -1,15 +1,10 @@
 package queue
 
-type queueOption struct {
-	name string
-}
+import "maps"
 
-type observerOption struct {
-	observer Observer
-}
-
-// QueueOption is an option that applies to both task enqueueing and worker consumption.
+// QueueOption is an option that applies to producers, task enqueueing, and worker consumption.
 type QueueOption interface {
+	ProducerOption
 	EnqueueOption
 	WorkerOption
 }
@@ -20,17 +15,28 @@ type ObserverOption interface {
 	WorkerOption
 }
 
+// MetadataOption is an option that applies to both producers and task enqueueing.
+type MetadataOption interface {
+	ProducerOption
+	EnqueueOption
+}
+
+type queueOption struct {
+	name string
+}
+
 // WithQueue returns an option that selects the queue used to enqueue or consume tasks.
 func WithQueue(name string) QueueOption {
 	return queueOption{name: name}
 }
 
-// WithObserver returns an option that sets the observer used by producers or workers.
-func WithObserver(observer Observer) ObserverOption {
-	return observerOption{observer: observer}
+func (o queueOption) applyEnqueue(c *enqueueConfig) {
+	if o.name != "" {
+		c.queue = o.name
+	}
 }
 
-func (o queueOption) applyEnqueue(c *enqueueConfig) {
+func (o queueOption) applyProducer(c *producerConfig) {
 	if o.name != "" {
 		c.queue = o.name
 	}
@@ -42,10 +48,48 @@ func (o queueOption) applyWorker(c *workerConfig) {
 	}
 }
 
+type observerOption struct {
+	observer Observer
+}
+
+// WithObserver returns an option that sets the observer used by producers or workers.
+func WithObserver(observer Observer) ObserverOption {
+	return observerOption{observer: observer}
+}
+
 func (o observerOption) applyProducer(c *producerConfig) {
 	c.observer = o.observer
 }
 
 func (o observerOption) applyWorker(c *workerConfig) {
 	c.observer = o.observer
+}
+
+type metadataOption struct {
+	metadata map[string]string
+}
+
+// WithMetadata adds default or task-specific metadata values.
+func WithMetadata(metadata map[string]string) MetadataOption {
+	return metadataOption{metadata: metadata}
+}
+
+func (o metadataOption) applyProducer(c *producerConfig) {
+	if len(o.metadata) == 0 {
+		return
+	}
+	if c.metadata == nil {
+		c.metadata = make(map[string]string, len(o.metadata))
+	}
+	maps.Copy(c.metadata, o.metadata)
+}
+
+func (o metadataOption) applyEnqueue(c *enqueueConfig) {
+	if len(o.metadata) == 0 {
+		return
+	}
+	if c.metadata == nil {
+		c.metadata = make(map[string]string, len(o.metadata))
+	}
+	maps.Copy(c.metadata, o.metadata)
 }
