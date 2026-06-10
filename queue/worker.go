@@ -363,7 +363,7 @@ func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 		return w.deadLetter(ctx, delivery, ErrHandlerNotFound.Error())
 	}
 
-	w.observe(ctx, w.event(EventHandlerStarted, task))
+	ctx = w.observe(ctx, w.event(EventHandlerStarted, task))
 	err := w.handle(ctx, handler, task)
 	if err == nil {
 		w.observe(ctx, w.event(EventHandlerSucceeded, task))
@@ -459,11 +459,15 @@ func (w *Worker) handle(ctx context.Context, handler Handler, task *Task) error 
 	return handler.Handle(handlerCtx, task)
 }
 
-func (w *Worker) observe(ctx context.Context, event Event) {
+func (w *Worker) observe(ctx context.Context, event Event) context.Context {
 	if w == nil || w.config == nil || w.config.observer == nil {
-		return
+		return ctx
 	}
-	w.config.observer.ObserveQueue(ctx, event)
+	observedCtx := w.config.observer.ObserveQueue(ctx, event)
+	if observedCtx == nil {
+		return ctx
+	}
+	return observedCtx
 }
 
 func (w *Worker) event(kind EventKind, task *Task) Event {

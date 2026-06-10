@@ -166,8 +166,9 @@ import (
 )
 
 func withObserver(q queue.Queue, handler queue.Handler) (*queue.Producer, *queue.Worker) {
-	observer := queue.ObserverFunc(func(ctx context.Context, event queue.Event) {
+	observer := queue.ObserverFunc(func(ctx context.Context, event queue.Event) context.Context {
 		// Record metrics, logs, or spans.
+		return ctx
 	})
 
 	producer := queue.NewProducer(q, queue.WithObserver(observer))
