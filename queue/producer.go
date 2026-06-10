@@ -20,6 +20,7 @@ type enqueueConfig struct {
 
 type producerConfig struct {
 	queue    string
+	metadata map[string]string
 	observer Observer
 }
 
@@ -51,19 +52,6 @@ func WithMetadataValue(key, value string) EnqueueOption {
 	})
 }
 
-// WithMetadata adds task metadata values.
-func WithMetadata(metadata map[string]string) EnqueueOption {
-	return enqueueOptionFunc(func(c *enqueueConfig) {
-		if len(metadata) == 0 {
-			return
-		}
-		if c.metadata == nil {
-			c.metadata = make(map[string]string, len(metadata))
-		}
-		maps.Copy(c.metadata, metadata)
-	})
-}
-
 // WithDelay delays task availability.
 func WithDelay(delay time.Duration) EnqueueOption {
 	return enqueueOptionFunc(func(c *enqueueConfig) {
@@ -73,12 +61,15 @@ func WithDelay(delay time.Duration) EnqueueOption {
 	})
 }
 
-func newEnqueueConfig(queueName string, opts ...EnqueueOption) *enqueueConfig {
+func newEnqueueConfig(queueName string, metadata map[string]string, opts ...EnqueueOption) *enqueueConfig {
 	if queueName == "" {
 		queueName = DefaultQueue
 	}
 	c := &enqueueConfig{
 		queue: queueName,
+	}
+	if len(metadata) > 0 {
+		c.metadata = maps.Clone(metadata)
 	}
 	for _, opt := range opts {
 		opt.applyEnqueue(c)
@@ -108,6 +99,7 @@ func newProducerConfig(opts ...ProducerOption) *producerConfig {
 type Producer struct {
 	queue     Queue
 	queueName string
+	metadata  map[string]string
 	observer  Observer
 }
 
@@ -117,6 +109,7 @@ func NewProducer(q Queue, opts ...ProducerOption) *Producer {
 	return &Producer{
 		queue:     q,
 		queueName: c.queue,
+		metadata:  c.metadata,
 		observer:  c.observer,
 	}
 }
@@ -127,7 +120,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		return nil, ErrInvalidTaskType
 	}
 
-	c := newEnqueueConfig(p.queueName, opts...)
+	c := newEnqueueConfig(p.queueName, p.metadata, opts...)
 	now := time.Now().UTC()
 	task := &Task{
 		ID:          c.id,

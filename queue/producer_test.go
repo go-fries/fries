@@ -127,6 +127,36 @@ func TestProducer_EnqueueQueueOverridesProducerQueue(t *testing.T) {
 	assert.Equal(t, "bulk", delivery.Task().Queue)
 }
 
+func TestProducer_WithMetadataSetsDefaultMetadata(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := newTestQueue()
+	metadata := map[string]string{
+		"source": "api",
+		"tenant": "default",
+	}
+	producer := NewProducer(q, WithMetadata(metadata))
+	metadata["source"] = "mutated"
+
+	task, err := producer.Enqueue(ctx, "send_email", nil, WithMetadata(map[string]string{
+		"tenant": "acme",
+		"trace":  "1",
+	}))
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, map[string]string{
+		"source": "api",
+		"tenant": "acme",
+		"trace":  "1",
+	}, task.Metadata)
+
+	delivery, err := q.Receive(ctx, DefaultQueue)
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, task.Metadata, delivery.Task().Metadata)
+}
+
 func TestProducer_OptionsIgnoreEmptyOrInvalidValues(t *testing.T) {
 	t.Parallel()
 
