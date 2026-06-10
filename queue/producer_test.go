@@ -91,10 +91,46 @@ func TestProducer_EnqueueSetsDefaultsAndOptions(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+func TestProducer_WithQueueSetsDefaultQueue(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := newTestQueue()
+	producer := NewProducer(q, WithQueue("critical"))
+
+	task, err := producer.Enqueue(ctx, "send_email", nil)
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "critical", task.Queue)
+
+	delivery, err := q.Receive(ctx, "critical")
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, "critical", delivery.Task().Queue)
+}
+
+func TestProducer_EnqueueQueueOverridesProducerQueue(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := newTestQueue()
+	producer := NewProducer(q, WithQueue("critical"))
+
+	task, err := producer.Enqueue(ctx, "send_email", nil, WithQueue("bulk"))
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "bulk", task.Queue)
+
+	delivery, err := q.Receive(ctx, "bulk")
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, "bulk", delivery.Task().Queue)
+}
+
 func TestProducer_OptionsIgnoreEmptyOrInvalidValues(t *testing.T) {
 	t.Parallel()
 
-	task, err := NewProducer(newTestQueue()).Enqueue(
+	task, err := NewProducer(newTestQueue(), WithQueue("")).Enqueue(
 		t.Context(),
 		"send_email",
 		nil,

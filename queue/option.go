@@ -8,8 +8,9 @@ type observerOption struct {
 	observer Observer
 }
 
-// QueueOption is an option that applies to both task enqueueing and worker consumption.
+// QueueOption is an option that applies to producers, task enqueueing, and worker consumption.
 type QueueOption interface {
+	ProducerOption
 	EnqueueOption
 	WorkerOption
 }
@@ -31,6 +32,12 @@ func WithObserver(observer Observer) ObserverOption {
 }
 
 func (o queueOption) applyEnqueue(c *enqueueConfig) {
+	if o.name != "" {
+		c.queue = o.name
+	}
+}
+
+func (o queueOption) applyProducer(c *producerConfig) {
 	if o.name != "" {
 		c.queue = o.name
 	}

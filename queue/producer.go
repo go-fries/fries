@@ -19,6 +19,7 @@ type enqueueConfig struct {
 }
 
 type producerConfig struct {
+	queue    string
 	observer Observer
 }
 
@@ -72,9 +73,12 @@ func WithDelay(delay time.Duration) EnqueueOption {
 	})
 }
 
-func newEnqueueConfig(opts ...EnqueueOption) *enqueueConfig {
+func newEnqueueConfig(queueName string, opts ...EnqueueOption) *enqueueConfig {
+	if queueName == "" {
+		queueName = DefaultQueue
+	}
 	c := &enqueueConfig{
-		queue: DefaultQueue,
+		queue: queueName,
 	}
 	for _, opt := range opts {
 		opt.applyEnqueue(c)
@@ -91,7 +95,9 @@ type ProducerOption interface {
 }
 
 func newProducerConfig(opts ...ProducerOption) *producerConfig {
-	c := &producerConfig{}
+	c := &producerConfig{
+		queue: DefaultQueue,
+	}
 	for _, opt := range opts {
 		opt.applyProducer(c)
 	}
@@ -100,16 +106,18 @@ func newProducerConfig(opts ...ProducerOption) *producerConfig {
 
 // Producer creates tasks in a queue.
 type Producer struct {
-	queue    Queue
-	observer Observer
+	queue     Queue
+	queueName string
+	observer  Observer
 }
 
 // NewProducer creates a producer that writes to q.
 func NewProducer(q Queue, opts ...ProducerOption) *Producer {
 	c := newProducerConfig(opts...)
 	return &Producer{
-		queue:    q,
-		observer: c.observer,
+		queue:     q,
+		queueName: c.queue,
+		observer:  c.observer,
 	}
 }
 
@@ -119,7 +127,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		return nil, ErrInvalidTaskType
 	}
 
-	c := newEnqueueConfig(opts...)
+	c := newEnqueueConfig(p.queueName, opts...)
 	now := time.Now().UTC()
 	task := &Task{
 		ID:          c.id,
