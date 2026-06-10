@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/codec/json/v3 v3.14.0
-	github.com/go-fries/fries/codec/v3 v3.14.0
+	github.com/go-fries/fries/codec/json/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
 	github.com/google/uuid v1.6.0
 )
 

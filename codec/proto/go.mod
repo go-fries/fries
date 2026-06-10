@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/codec/v3 => ../
 
 require (
-	github.com/go-fries/fries/codec/v3 v3.14.0
+	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )
