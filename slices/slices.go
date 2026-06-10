@@ -258,6 +258,15 @@ func IsNotEmpty[S ~[]E, E any](s S) bool {
 	return len(s) > 0
 }
 
+// Contains reports whether e is present in s.
+// Contains is an alias for the standard library [slices.Contains].
+//
+//	Contains([]int{1, 2, 3}, 2) // true
+//	Contains([]string{"a", "b", "c"}, "d") // false
+func Contains[S ~[]E, E comparable](s S, e E) bool {
+	return slices.Contains(s, e)
+}
+
 // IndexOf returns the index of the first occurrence of e in s, or -1 if e is
 // not present.
 //
