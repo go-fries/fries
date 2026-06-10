@@ -130,14 +130,14 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		CreatedAt:   now,
 		AvailableAt: now.Add(c.delay),
 	}
-	p.observe(ctx, Event{
+	observeCtx := p.observe(ctx, Event{
 		Kind:  EventEnqueueStarted,
 		Queue: task.Queue,
 		Task:  taskInfo(task),
 		Delay: c.delay,
 	})
-	if err := p.queue.Enqueue(ctx, task); err != nil {
-		p.observe(ctx, Event{
+	if err := p.queue.Enqueue(observeCtx, task); err != nil {
+		p.observe(observeCtx, Event{
 			Kind:  EventEnqueueFailed,
 			Queue: task.Queue,
 			Task:  taskInfo(task),
@@ -146,7 +146,7 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 		})
 		return nil, err
 	}
-	p.observe(ctx, Event{
+	p.observe(observeCtx, Event{
 		Kind:  EventEnqueued,
 		Queue: task.Queue,
 		Task:  taskInfo(task),
@@ -155,11 +155,15 @@ func (p *Producer) Enqueue(ctx context.Context, taskType string, payload []byte,
 	return task.clone(), nil
 }
 
-func (p *Producer) observe(ctx context.Context, event Event) {
+func (p *Producer) observe(ctx context.Context, event Event) context.Context {
 	if p == nil || p.observer == nil {
-		return
+		return ctx
 	}
-	p.observer.ObserveQueue(ctx, event)
+	observedCtx := p.observer.ObserveQueue(ctx, event)
+	if observedCtx == nil {
+		return ctx
+	}
+	return observedCtx
 }
 
 // TaskProducer enqueues one task type with a structured payload.

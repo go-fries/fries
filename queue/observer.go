@@ -75,19 +75,23 @@ type Event struct {
 // Observer receives queue producer and worker events.
 //
 // Observer implementations should return quickly and avoid blocking queue
-// processing. The default observer is nil and emits no events.
+// processing. Started events may return a lifecycle context used by later
+// events in the same operation. Completion events may also return a context
+// used by following settlement events. Returning nil keeps using the input
+// context. The default observer is nil and emits no events.
 type Observer interface {
-	ObserveQueue(ctx context.Context, event Event)
+	ObserveQueue(ctx context.Context, event Event) context.Context
 }
 
 // ObserverFunc adapts a function to Observer.
-type ObserverFunc func(ctx context.Context, event Event)
+type ObserverFunc func(ctx context.Context, event Event) context.Context
 
 // ObserveQueue calls f(ctx, event).
-func (f ObserverFunc) ObserveQueue(ctx context.Context, event Event) {
+func (f ObserverFunc) ObserveQueue(ctx context.Context, event Event) context.Context {
 	if f != nil {
-		f(ctx, event)
+		return f(ctx, event)
 	}
+	return ctx
 }
 
 func taskInfo(task *Task) TaskInfo {
