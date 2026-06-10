@@ -282,6 +282,20 @@ func TestIsEmptyAndIsNotEmpty(t *testing.T) {
 	assert.False(t, IsNotEmpty(s6))
 }
 
+func TestContains(t *testing.T) {
+	s1 := []int{1, 2, 3}
+	assert.True(t, Contains(s1, 1))
+	assert.False(t, Contains(s1, 4))
+
+	s2 := []string{"1", "2", "3"}
+	assert.True(t, Contains(s2, "1"))
+	assert.False(t, Contains(s2, "4"))
+
+	s3 := []T{{"1"}, {"2"}, {"3"}}
+	assert.True(t, Contains(s3, T{"1"}))
+	assert.False(t, Contains(s3, T{"4"}))
+}
+
 func TestIndexOf(t *testing.T) {
 	s1 := []int{1, 2, 3}
 	assert.Equal(t, 0, IndexOf(s1, 1))
