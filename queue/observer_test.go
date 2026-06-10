@@ -46,6 +46,15 @@ func (o *recordingObserver) Contexts() []context.Context {
 	return append([]context.Context(nil), o.contexts...)
 }
 
+func TestObserverFuncNilReturnsOriginalContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	var observer ObserverFunc
+
+	assert.Same(t, ctx, observer.ObserveQueue(ctx, Event{}))
+}
+
 func TestProducer_ObserverEvents(t *testing.T) {
 	t.Parallel()
 
@@ -189,12 +198,14 @@ func TestWorker_ObserverPassesHandlerLifecycleContext(t *testing.T) {
 	key := contextValueKey("handler-lifecycle")
 	var handlerValue any
 	var succeededValue any
+	var ackValue any
 	observer := ObserverFunc(func(ctx context.Context, event Event) context.Context {
 		switch event.Kind {
 		case EventHandlerStarted:
 			return context.WithValue(ctx, key, "handler")
 		case EventHandlerSucceeded:
 			succeededValue = ctx.Value(key)
+			return context.WithValue(ctx, key, "settlement")
 		}
 		return ctx
 	})
@@ -208,6 +219,10 @@ func TestWorker_ObserverPassesHandlerLifecycleContext(t *testing.T) {
 	)
 	delivery := &recordingDelivery{
 		task: &Task{ID: "task-1", Type: "send_email"},
+		ack: func(ctx context.Context) error {
+			ackValue = ctx.Value(key)
+			return nil
+		},
 	}
 
 	err := worker.process(t.Context(), delivery)
@@ -215,6 +230,7 @@ func TestWorker_ObserverPassesHandlerLifecycleContext(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "handler", handlerValue)
 	assert.Equal(t, "handler", succeededValue)
+	assert.Equal(t, "settlement", ackValue)
 }
 
 func TestWorker_ObserverNilContextFallsBackToOriginalContext(t *testing.T) {
@@ -250,6 +266,42 @@ func TestWorker_ObserverNilContextFallsBackToOriginalContext(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "original", handlerValue)
 	assert.Equal(t, "original", succeededValue)
+}
+
+func TestWorker_ObserverPassesFailedContextToSettlement(t *testing.T) {
+	t.Parallel()
+
+	key := contextValueKey("handler-failed")
+	var ackValue any
+	observer := ObserverFunc(func(ctx context.Context, event Event) context.Context {
+		switch event.Kind {
+		case EventHandlerStarted:
+			return context.WithValue(ctx, key, "handler")
+		case EventHandlerFailed:
+			assert.Equal(t, "handler", ctx.Value(key))
+			return context.WithValue(ctx, key, "settlement")
+		}
+		return ctx
+	})
+	worker := NewWorker(
+		newTestQueue(),
+		WithObserver(observer),
+		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
+			return ErrDiscard
+		})),
+	)
+	delivery := &recordingDelivery{
+		task: &Task{ID: "task-1", Type: "send_email"},
+		ack: func(ctx context.Context) error {
+			ackValue = ctx.Value(key)
+			return nil
+		},
+	}
+
+	err := worker.process(t.Context(), delivery)
+
+	require.NoError(t, err)
+	assert.Equal(t, "settlement", ackValue)
 }
 
 func TestWorker_ObserverEventsForSettlementFailure(t *testing.T) {
@@ -315,6 +367,60 @@ func TestWorker_ObserverEventsForRunLifecycleAndReceive(t *testing.T) {
 	assert.True(t, hasEventKind(events, EventWorkerStarted))
 	assert.True(t, hasEventKind(events, EventTaskReceived))
 	assert.True(t, hasEventKind(events, EventWorkerStopped))
+}
+
+func TestWorker_ObserverPassesRunLifecycleContext(t *testing.T) {
+	t.Parallel()
+
+	key := contextValueKey("worker-lifecycle")
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	q := newTestQueue()
+	started := make(chan struct{}, 1)
+	stopped := make(chan struct{}, 1)
+	observer := ObserverFunc(func(ctx context.Context, event Event) context.Context {
+		switch event.Kind {
+		case EventWorkerStarted:
+			started <- struct{}{}
+			return context.WithValue(ctx, key, "worker")
+		case EventWorkerStopped:
+			assert.Equal(t, "worker", ctx.Value(key))
+			stopped <- struct{}{}
+		}
+		return ctx
+	})
+	worker := NewWorker(
+		q,
+		WithObserver(observer),
+		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
+			return nil
+		})),
+	)
+
+	errs := make(chan error, 1)
+	go func() {
+		errs <- worker.Run(ctx)
+	}()
+
+	require.Eventually(t, func() bool {
+		select {
+		case <-started:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+	require.NoError(t, worker.Stop(t.Context()))
+	require.NoError(t, <-errs)
+	require.Eventually(t, func() bool {
+		select {
+		case <-stopped:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
 }
 
 type enqueueErrorQueue struct {

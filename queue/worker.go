@@ -184,7 +184,7 @@ func (w *Worker) Run(ctx context.Context) (err error) {
 		interrupt()
 		return errors.New("queue: worker already running")
 	}
-	w.observe(ctx, Event{
+	runObserveCtx := w.observe(ctx, Event{
 		Kind:         EventWorkerStarted,
 		Queue:        w.config.queue,
 		ConsumerName: w.config.consumerName,
@@ -193,7 +193,7 @@ func (w *Worker) Run(ctx context.Context) (err error) {
 		stop()
 		interrupt()
 		w.finish(lifecycleDone)
-		w.observe(context.WithoutCancel(ctx), Event{
+		w.observe(context.WithoutCancel(runObserveCtx), Event{
 			Kind:         EventWorkerStopped,
 			Queue:        w.config.queue,
 			ConsumerName: w.config.consumerName,
@@ -366,12 +366,12 @@ func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 	ctx = w.observe(ctx, w.event(EventHandlerStarted, task))
 	err := w.handle(ctx, handler, task)
 	if err == nil {
-		w.observe(ctx, w.event(EventHandlerSucceeded, task))
+		ctx = w.observe(ctx, w.event(EventHandlerSucceeded, task))
 		return w.ack(ctx, delivery)
 	}
 	failedEvent := w.event(EventHandlerFailed, task)
 	failedEvent.Err = err
-	w.observe(ctx, failedEvent)
+	ctx = w.observe(ctx, failedEvent)
 	if errors.Is(err, ErrDiscard) {
 		return w.ack(ctx, delivery)
 	}

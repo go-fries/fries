@@ -76,8 +76,9 @@ type Event struct {
 //
 // Observer implementations should return quickly and avoid blocking queue
 // processing. Started events may return a lifecycle context used by later
-// events in the same operation. The default observer is nil and emits no
-// events.
+// events in the same operation. Completion events may also return a context
+// used by following settlement events. Returning nil keeps using the input
+// context. The default observer is nil and emits no events.
 type Observer interface {
 	ObserveQueue(ctx context.Context, event Event) context.Context
 }
