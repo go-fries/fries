@@ -18,7 +18,7 @@ require (
 	github.com/bytedance/sonic v1.15.2 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/cloudwego/eino v0.9.5 // indirect
+	github.com/cloudwego/eino v0.9.6 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eino-contrib/jsonschema v1.0.3 // indirect
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
