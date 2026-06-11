@@ -40,7 +40,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	golang.org/x/arch v0.28.0 // indirect
-	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
+	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
