@@ -1,2 +1,2 @@
-// Package crontab adapts cron schedulers to the Kratos transport server lifecycle.
+// Package crontab adapts go-cron schedulers to the Kratos server lifecycle.
 package crontab
