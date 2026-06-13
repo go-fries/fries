@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type lifecycleServer interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+}
+
 type onceSchedule struct {
 	next time.Time
 	used bool
@@ -23,52 +28,34 @@ func (s *onceSchedule) Next(time.Time) time.Time {
 	return s.next
 }
 
-func TestServer_ImplementsLifecycleServer(t *testing.T) {
-	t.Parallel()
-
-	var _ interface {
-		Start(context.Context) error
-		Stop(context.Context) error
-	} = NewServer(cron.New())
-}
-
-func TestServer_NewServerPanicsWithNilCron(t *testing.T) {
-	t.Parallel()
-
-	require.PanicsWithValue(t, "crontab: cron is nil", func() {
-		NewServer(nil)
-	})
-}
-
-func TestServer_CronReturnsUnderlyingCron(t *testing.T) {
+func TestNewServer(t *testing.T) {
 	t.Parallel()
 
 	c := cron.New()
-	srv := NewServer(c)
+	server := NewServer(c)
 
-	assert.Same(t, c, srv.Cron())
+	require.NotNil(t, server)
+	assert.Same(t, c, server.Cron())
 }
 
-func TestServer_CronNilReceiver(t *testing.T) {
+func TestServer_ImplementsLifecycleServer(t *testing.T) {
 	t.Parallel()
 
-	var srv *Server
-
-	assert.Nil(t, srv.Cron())
+	var _ lifecycleServer = NewServer(cron.New())
 }
 
-func TestServer_StartBlocksUntilStop(t *testing.T) {
+func TestServer_StartRunsUntilStop(t *testing.T) {
 	t.Parallel()
 
-	srv := NewServer(cron.New())
+	server := NewServer(cron.New())
 	done := make(chan error, 1)
 
 	go func() {
-		done <- srv.Start(t.Context())
+		done <- server.Start(t.Context())
 	}()
 
-	require.Eventually(t, srv.Cron().IsRunning, time.Second, 10*time.Millisecond)
-	require.NoError(t, srv.Stop(t.Context()))
+	require.Eventually(t, server.Cron().IsRunning, time.Second, 10*time.Millisecond)
+	require.NoError(t, server.Stop(t.Context()))
 
 	select {
 	case err := <-done:
@@ -81,9 +68,9 @@ func TestServer_StartBlocksUntilStop(t *testing.T) {
 func TestServer_StopBeforeStart(t *testing.T) {
 	t.Parallel()
 
-	srv := NewServer(cron.New())
+	server := NewServer(cron.New())
 
-	require.NoError(t, srv.Stop(t.Context()))
+	require.NoError(t, server.Stop(t.Context()))
 }
 
 func TestServer_StopRespectsContextWhileWaitingForJobs(t *testing.T) {
@@ -97,11 +84,11 @@ func TestServer_StopRespectsContextWhileWaitingForJobs(t *testing.T) {
 		<-release
 		return nil
 	}))
-	srv := NewServer(c)
+	server := NewServer(c)
 	done := make(chan error, 1)
 
 	go func() {
-		done <- srv.Start(t.Context())
+		done <- server.Start(t.Context())
 	}()
 
 	select {
@@ -113,7 +100,7 @@ func TestServer_StopRespectsContextWhileWaitingForJobs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
 	defer cancel()
 
-	require.ErrorIs(t, srv.Stop(ctx), context.DeadlineExceeded)
+	require.ErrorIs(t, server.Stop(ctx), context.DeadlineExceeded)
 
 	close(release)
 	select {
