@@ -28,7 +28,7 @@ require (
 	buf.build/go/spdx v0.2.0 // indirect
 	buf.build/go/standard v0.1.0 // indirect
 	cel.dev/expr v0.25.2 // indirect
-	charm.land/lipgloss/v2 v2.0.3 // indirect
+	charm.land/lipgloss/v2 v2.0.4 // indirect
 	codeberg.org/chavacava/garif v0.2.1 // indirect
 	codeberg.org/polyfloyd/go-errorlint v1.9.0 // indirect
 	connectrpc.com/connect v1.20.0 // indirect
