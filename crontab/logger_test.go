@@ -1,7 +1,7 @@
 package crontab
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -9,61 +9,92 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testLogger struct {
-	ch chan string
+type recordingLogger struct {
+	entries []logEntry
+	err     error
 }
 
-func newTestLogger() *testLogger {
-	return &testLogger{
-		ch: make(chan string, 1),
+type logEntry struct {
+	level   log.Level
+	keyvals []any
+}
+
+func (l *recordingLogger) Log(level log.Level, keyvals ...any) error {
+	l.entries = append(l.entries, logEntry{
+		level:   level,
+		keyvals: append([]any(nil), keyvals...),
+	})
+	return l.err
+}
+
+func TestNewLogger_Defaults(t *testing.T) {
+	t.Parallel()
+
+	logger := NewLogger()
+
+	require.NotNil(t, logger)
+	assert.NotNil(t, logger.logger)
+}
+
+func TestNewLogger_Options(t *testing.T) {
+	t.Parallel()
+
+	custom := &recordingLogger{}
+
+	tests := []struct {
+		name string
+		opts []LoggerOption
+		want log.Logger
+	}{
+		{
+			name: "uses custom logger",
+			opts: []LoggerOption{WithLogger(custom)},
+			want: custom,
+		},
+		{
+			name: "ignores nil logger",
+			opts: []LoggerOption{WithLogger(nil)},
+			want: log.DefaultLogger,
+		},
+		{
+			name: "ignores nil option",
+			opts: []LoggerOption{nil},
+			want: log.DefaultLogger,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			logger := NewLogger(tt.opts...)
+
+			assert.Same(t, tt.want, logger.logger)
+		})
 	}
 }
 
-func (t *testLogger) Log(level log.Level, keyvals ...any) error {
-	t.ch <- fmt.Sprintf("level: %s, keyvals: %v", level, keyvals)
-	return nil
-}
-
-func TestLogger(t *testing.T) {
-	_, ok := any(NewLogger()).(interface{ Printf(string, ...any) })
-	assert.True(t, ok)
-
-	logger := newTestLogger()
-	l := NewLogger(WithLogger(logger))
-	l.Printf("test %s", "logger")
-	assert.Equal(t, "level: INFO, keyvals: [msg test logger]", <-logger.ch)
-}
-
-func TestLogger_UsesDefaultLogger(t *testing.T) {
+func TestLogger_Printf(t *testing.T) {
 	t.Parallel()
 
-	require.NotPanics(t, func() {
-		NewLogger().Printf("test %s", "logger")
-	})
+	backend := &recordingLogger{}
+	logger := NewLogger(WithLogger(backend))
+
+	logger.Printf("job %s finished in %dms", "sync", 12)
+
+	require.Len(t, backend.entries, 1)
+	assert.Equal(t, log.LevelInfo, backend.entries[0].level)
+	assert.Equal(t, []any{"msg", "job sync finished in 12ms"}, backend.entries[0].keyvals)
 }
 
-func TestLogger_WithLoggerIgnoresNilLogger(t *testing.T) {
+func TestLogger_PrintfIgnoresBackendError(t *testing.T) {
 	t.Parallel()
 
-	require.NotPanics(t, func() {
-		NewLogger(WithLogger(nil)).Printf("test %s", "logger")
-	})
-}
-
-func TestLogger_IgnoresNilOption(t *testing.T) {
-	t.Parallel()
+	backend := &recordingLogger{err: errors.New("write failed")}
+	logger := NewLogger(WithLogger(backend))
 
 	require.NotPanics(t, func() {
-		NewLogger(nil).Printf("test %s", "logger")
+		logger.Printf("job failed")
 	})
-}
-
-func TestLogger_ZeroValueDoesNotPanic(t *testing.T) {
-	t.Parallel()
-
-	var logger Logger
-
-	require.NotPanics(t, func() {
-		logger.Printf("test %s", "logger")
-	})
+	require.Len(t, backend.entries, 1)
 }
