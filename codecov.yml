@@ -36,7 +36,6 @@ fixes:
   - github.com/go-fries/fries/constraints/v3::constraints/
   - github.com/go-fries/fries/contract/v3::contract/
   - github.com/go-fries/fries/coroutines/v3::coroutines/
-  - github.com/go-fries/fries/crontab/example/v3::crontab/example/
   - github.com/go-fries/fries/crontab/v3::crontab/
   - github.com/go-fries/fries/encrypter/v3::encrypter/
   - github.com/go-fries/fries/ent/v3::ent/

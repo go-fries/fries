@@ -26,6 +26,7 @@ func main() {
 		cron.WithSeconds(),
 		// cron.WithMiddleware( ... ),
 	)
+	srv := crontab.NewServer(c)
 
 	_, _ = c.AddFunc("* * * * * *", func(context.Context) error {
 		// do something
@@ -35,7 +36,7 @@ func main() {
 	// kratos app start
 	app := kratos.New(
 		kratos.Server(
-			crontab.NewServer(c),
+			srv,
 		),
 	)
 
