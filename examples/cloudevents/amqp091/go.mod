@@ -8,7 +8,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 v3.15.0-rc.1
 	github.com/google/uuid v1.6.0
-	github.com/rabbitmq/amqp091-go v1.11.0
+	github.com/rabbitmq/amqp091-go v1.12.0
 )
 
 require (
