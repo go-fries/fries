@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v3
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/bufbuild/buf v1.65.0
@@ -278,10 +278,10 @@ require (
 	go-simpler.org/sloglint v0.12.0 // indirect
 	go.augendre.info/arangolint v0.4.0 // indirect
 	go.augendre.info/fatcontext v0.9.0 // indirect
-	go.lsp.dev/jsonrpc2 v0.10.0 // indirect
+	go.lsp.dev/jsonrpc2 v1.0.0 // indirect
 	go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 // indirect
-	go.lsp.dev/protocol v0.12.0 // indirect
-	go.lsp.dev/uri v0.3.0 // indirect
+	go.lsp.dev/protocol v1.0.0 // indirect
+	go.lsp.dev/uri v1.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/build-tools v0.30.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
