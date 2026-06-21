@@ -656,6 +656,7 @@ go.lsp.dev/protocol v0.12.0 h1:tNprUI9klQW5FAFVM4Sa+AbPFuVQByWhP1ttNUAjIWg=
 go.lsp.dev/protocol v0.12.0/go.mod h1:Qb11/HgZQ72qQbeyPfJbu3hZBH23s1sr4st8czGeDMQ=
 go.lsp.dev/uri v0.3.0 h1:KcZJmh6nFIBeJzTugn5JTU6OOyG0lDOo3R9KwTxTYbo=
 go.lsp.dev/uri v0.3.0/go.mod h1:P5sbO1IQR+qySTWOCnhnK7phBx+W3zbLqSMDJNTw88I=
+go.lsp.dev/uri v1.0.0/go.mod h1:06a0ghafs4PuqkLsJGUmlgPHw6+kH79edRXjOT/rA8s=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/build-tools v0.30.0 h1:rzIeZciImFTlEaqUHR1FCbK/34hLSSUgjsFzE+Gb0dY=
