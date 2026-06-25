@@ -115,7 +115,7 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/ghostiam/protogetter v0.3.21 // indirect
 	github.com/go-chi/chi/v5 v5.3.0 // indirect
-	github.com/go-critic/go-critic v0.14.3 // indirect
+	github.com/go-critic/go-critic v0.14.4 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20241228213128-52e213351497 // indirect
 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
 	github.com/go-git/go-git/v5 v5.19.1 // indirect
