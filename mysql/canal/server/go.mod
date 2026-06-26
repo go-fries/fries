@@ -7,6 +7,7 @@ replace github.com/go-fries/fries/mysql/canal/v3 => ../
 require (
 	github.com/go-fries/fries/mysql/canal/v3 v3.15.0-rc.1
 	github.com/go-kratos/kratos/v2 v2.9.2
+	github.com/go-kratos/kratos/v3 v3.0.0
 )
 
 require (
