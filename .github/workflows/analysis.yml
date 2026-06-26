@@ -3,10 +3,10 @@ name: Go Static Analysis
 on:
   push:
     branches:
-      - 3.x
+      - 4.x
   pull_request:
     branches:
-      - 3.x
+      - 4.x
 
 jobs:
   golangci:
