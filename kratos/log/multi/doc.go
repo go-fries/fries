@@ -6,7 +6,7 @@
 //	import (
 //		"os"
 //
-//		"github.com/go-fries/fries/kratos/log/multi/v3"
+//		"github.com/go-fries/fries/kratos/log/multi/v4"
 //		"github.com/go-kratos/kratos/v2/log"
 //	)
 //

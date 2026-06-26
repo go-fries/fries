@@ -83,7 +83,7 @@ const file_codec_proto_internal_proto_test_proto_rawDesc = "" +
 	"\vTestMessage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x05R\x05valueB\x81\x01\n" +
-	"\tcom.protoB\tTestProtoP\x01Z5github.com/flc/go-fries/fries/codec/v3/internal/proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
+	"\tcom.protoB\tTestProtoP\x01Z7github.com/go-fries/fries/codec/proto/v4/internal/proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
 
 var (
 	file_codec_proto_internal_proto_test_proto_rawDescOnce sync.Once

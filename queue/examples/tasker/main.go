@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-fries/fries/queue/adapter/memory/v3"
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/adapter/memory/v4"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 const sendEmailTaskType = "send_email"

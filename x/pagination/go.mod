@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/x/pagination/v3
+module github.com/go-fries/fries/x/pagination/v4
 
 go 1.25.0
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"

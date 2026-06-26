@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/cloudwego/eino/components/embedding"
-	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3"
-	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
+	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4"
+	"github.com/go-fries/fries/eino/components/embedding/cached/v4"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/otel/otlp/v3
+module github.com/go-fries/fries/otel/otlp/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/foundation/v3 => ../../foundation
+replace github.com/go-fries/fries/foundation/v4 => ../../foundation
 
 require (
-	github.com/go-fries/fries/foundation/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/foundation/v4 v4.0.0
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/host v0.69.0

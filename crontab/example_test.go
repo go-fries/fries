@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-fries/fries/crontab/v3"
+	"github.com/go-fries/fries/crontab/v4"
 )
 
 func ExampleNewServer() {

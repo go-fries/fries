@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 )
 
 var (

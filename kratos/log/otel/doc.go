@@ -5,7 +5,7 @@
 //
 //	import (
 //		kratoslog "github.com/go-kratos/kratos/v2/log"
-//		otelkratos "github.com/go-fries/fries/kratos/log/otel/v3"
+//		otelkratos "github.com/go-fries/fries/kratos/log/otel/v4"
 //		"go.opentelemetry.io/otel/attribute"
 //		"go.opentelemetry.io/otel/log/global"
 //	)

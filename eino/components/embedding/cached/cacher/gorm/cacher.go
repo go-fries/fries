@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
+	"github.com/go-fries/fries/eino/components/embedding/cached/v4"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

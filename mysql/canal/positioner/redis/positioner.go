@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-fries/fries/codec/json/v3"
-	"github.com/go-fries/fries/codec/v3"
-	"github.com/go-fries/fries/mysql/canal/v3"
+	"github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/codec/v4"
+	"github.com/go-fries/fries/mysql/canal/v4"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/redis/go-redis/v9"
 )

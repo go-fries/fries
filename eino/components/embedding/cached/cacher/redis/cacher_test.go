@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/codec/v3"
-	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
+	"github.com/go-fries/fries/codec/v4"
+	"github.com/go-fries/fries/eino/components/embedding/cached/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

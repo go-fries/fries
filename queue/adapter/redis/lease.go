@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 	goredis "github.com/redis/go-redis/v9"
 )
 

@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/kratos/log/syslog/v3
+module github.com/go-fries/fries/kratos/log/syslog/v4
 
 go 1.25.0
 

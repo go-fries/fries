@@ -1,21 +1,21 @@
-module github.com/go-fries/fries/coroutines/v3
+module github.com/go-fries/fries/coroutines/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/constraints/v3 => ./../constraints
-	github.com/go-fries/fries/errors/v3 => ./../errors
-	github.com/go-fries/fries/support/v3 => ./../support
+	github.com/go-fries/fries/constraints/v4 => ./../constraints
+	github.com/go-fries/fries/errors/v4 => ./../errors
+	github.com/go-fries/fries/support/v4 => ./../support
 )
 
 require (
-	github.com/go-fries/fries/support/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/support/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-fries/fries/errors/v3 v3.15.0-rc.1 // indirect
+	github.com/go-fries/fries/errors/v4 v4.0.0 // indirect
 	github.com/go-kratos/kratos/v2 v2.9.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect

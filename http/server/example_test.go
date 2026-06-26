@@ -3,7 +3,7 @@ package server_test
 import (
 	"net/http"
 
-	"github.com/go-fries/fries/http/server/v3"
+	"github.com/go-fries/fries/http/server/v4"
 	"github.com/go-kratos/kratos/v2"
 )
 

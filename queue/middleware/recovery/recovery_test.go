@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

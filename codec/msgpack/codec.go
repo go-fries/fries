@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/v4"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

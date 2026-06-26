@@ -6,7 +6,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/event/v4"
 )
 
 // HandlerFunc defines a function to handle panic recovery

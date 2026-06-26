@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/cache/v3
+module github.com/go-fries/fries/cache/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/locker/v3 => ../locker
+replace github.com/go-fries/fries/locker/v4 => ../locker
 
 require (
-	github.com/go-fries/fries/locker/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/locker/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

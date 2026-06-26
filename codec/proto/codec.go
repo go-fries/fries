@@ -3,7 +3,7 @@ package proto
 import (
 	"fmt"
 
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/v4"
 	"google.golang.org/protobuf/proto"
 )
 

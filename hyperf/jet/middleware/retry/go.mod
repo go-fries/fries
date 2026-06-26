@@ -1,15 +1,15 @@
-module github.com/go-fries/fries/hyperf/jet/middleware/retry/v3
+module github.com/go-fries/fries/hyperf/jet/middleware/retry/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3 => ../timeout
-	github.com/go-fries/fries/hyperf/jet/v3 => ../../
+	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4 => ../timeout
+	github.com/go-fries/fries/hyperf/jet/v4 => ../../
 )
 
 require (
-	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/hyperf/jet/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4 v4.0.0
+	github.com/go-fries/fries/hyperf/jet/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

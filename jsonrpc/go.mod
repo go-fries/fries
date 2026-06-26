@@ -1,15 +1,15 @@
-module github.com/go-fries/fries/jsonrpc/v3
+module github.com/go-fries/fries/jsonrpc/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/codec/json/v3 => ../codec/json
-	github.com/go-fries/fries/codec/v3 => ../codec
+	github.com/go-fries/fries/codec/json/v4 => ../codec/json
+	github.com/go-fries/fries/codec/v4 => ../codec
 )
 
 require (
-	github.com/go-fries/fries/codec/json/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/codec/json/v4 v4.0.0
+	github.com/go-fries/fries/codec/v4 v4.0.0
 	github.com/google/uuid v1.6.0
 )
 

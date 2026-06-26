@@ -1,12 +1,12 @@
-module github.com/go-fries/fries/examples/cloudevents/amqp091/v3
+module github.com/go-fries/fries/examples/cloudevents/amqp091/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 => ../../../cloudevents/protocol/amqp091/
+replace github.com/go-fries/fries/cloudevents/protocol/amqp091/v4 => ../../../cloudevents/protocol/amqp091/
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/go-fries/fries/cloudevents/protocol/amqp091/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/cloudevents/protocol/amqp091/v4 v4.0.0
 	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.12.0
 )

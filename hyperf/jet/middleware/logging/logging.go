@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 	"github.com/go-kratos/kratos/v2/log"
 )
 

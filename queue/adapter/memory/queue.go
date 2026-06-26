@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 // Queue is an in-memory queue implementation for tests and local use.

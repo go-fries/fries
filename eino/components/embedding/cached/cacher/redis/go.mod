@@ -1,17 +1,17 @@
-module github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3
+module github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/codec/sonic/v3 => ./../../../../../../codec/sonic
-	github.com/go-fries/fries/codec/v3 => ./../../../../../../codec
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../../
+	github.com/go-fries/fries/codec/sonic/v4 => ./../../../../../../codec/sonic
+	github.com/go-fries/fries/codec/v4 => ./../../../../../../codec
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 => ../../
 )
 
 require (
-	github.com/go-fries/fries/codec/sonic/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/codec/sonic/v4 v4.0.0
+	github.com/go-fries/fries/codec/v4 v4.0.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1
 )

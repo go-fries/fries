@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/go-fries/fries/mysql/canal/v3"
+	"github.com/go-fries/fries/mysql/canal/v4"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport"
 )
