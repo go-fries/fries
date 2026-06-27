@@ -10,7 +10,7 @@ This module provides a cache embedder for Eino, which is designed to store and r
 ## Installation
 
 ```shell
-go get github.com/go-fries/fries/eino/components/embedding/cached/v3
+go get github.com/go-fries/fries/eino/components/embedding/cached/v4
 ```
 
 ## Usage
@@ -25,8 +25,8 @@ import (
 	"log"
 
 	"github.com/cloudwego/eino/components/embedding"
-	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3"
-	"github.com/go-fries/fries/eino/components/embedding/cached/v3"
+	cachedredis "github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4"
+	"github.com/go-fries/fries/eino/components/embedding/cached/v4"
 	"github.com/redis/go-redis/v9"
 )
 

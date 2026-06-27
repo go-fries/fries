@@ -1,11 +1,11 @@
 # Queue Recovery Middleware
 
-Panic recovery middleware for `github.com/go-fries/fries/queue/v3`.
+Panic recovery middleware for `github.com/go-fries/fries/queue/v4`.
 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/middleware/recovery/v3
+go get github.com/go-fries/fries/queue/middleware/recovery/v4
 ```
 
 ## Usage
@@ -14,8 +14,8 @@ go get github.com/go-fries/fries/queue/middleware/recovery/v3
 package main
 
 import (
-	"github.com/go-fries/fries/queue/middleware/recovery/v3"
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/middleware/recovery/v4"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 func newWorker(q queue.Queue, handler queue.Handler) *queue.Worker {

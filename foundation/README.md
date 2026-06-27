@@ -5,7 +5,7 @@ The core kernel of the Fries framework, responsible for managing the application
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/foundation/v3
+go get github.com/go-fries/fries/foundation/v4
 ```
 
 ## Usage
@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-fries/fries/foundation/v3"
+	"github.com/go-fries/fries/foundation/v4"
 )
 
 // ExampleProvider implements the foundation.Provider interface

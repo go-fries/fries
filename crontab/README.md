@@ -10,7 +10,7 @@ locations, middleware, and loggers on `*cron.Cron`, then pass that scheduler to
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/crontab/v3
+go get github.com/go-fries/fries/crontab/v4
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-fries/fries/crontab/v3"
+	"github.com/go-fries/fries/crontab/v4"
 	"github.com/go-kratos/kratos/v2"
 )
 

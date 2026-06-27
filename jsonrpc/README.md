@@ -5,7 +5,7 @@ A lightweight JSON-RPC 2.0 client implementation in Go.
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/jsonrpc/v3
+go get github.com/go-fries/fries/jsonrpc/v4
 ```
 
 ## Quick Start
@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-fries/fries/jsonrpc/v3"
+	"github.com/go-fries/fries/jsonrpc/v4"
 )
 
 func Logger() jsonrpc.Middleware {

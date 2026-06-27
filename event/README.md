@@ -5,7 +5,7 @@ A strongly-typed event dispatcher with middleware support, allowing you to decou
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/event/v3
+go get github.com/go-fries/fries/event/v4
 ```
 
 ## Usage
@@ -17,8 +17,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/event/middleware/recovery/v3"
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/event/middleware/recovery/v4"
+	"github.com/go-fries/fries/event/v4"
 )
 
 type UserEvent struct {
