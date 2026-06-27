@@ -11,6 +11,7 @@ import (
 )
 
 const modulesPrefix = "github.com/go-fries/fries/"
+const rootModule = modulesPrefix + "v4"
 
 var excludedDirs = []string{
 	"internal",
@@ -26,10 +27,16 @@ func main() {
 
 	var modules []string
 	err = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		// skip excluded directories
-		for _, dir := range excludedDirs {
-			if strings.Contains(path, dir) {
-				return filepath.SkipDir
+		if info.IsDir() && path != root {
+			for _, dir := range excludedDirs {
+				if info.Name() == dir {
+					return filepath.SkipDir
+				}
 			}
 		}
 
@@ -60,6 +67,11 @@ func main() {
 
 	// Print the "fixes" content of the codecov configuration for each module
 	for _, module := range modules {
+		if module == rootModule {
+			fmt.Printf("%s::./\n", module)
+			continue
+		}
+
 		matches := moduleRegex.FindStringSubmatch(module)
 		if len(matches) == 2 {
 			moduleName := matches[1]
