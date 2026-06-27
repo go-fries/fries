@@ -3,8 +3,8 @@ package retry
 import (
 	"errors"
 
-	"github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3"
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 )
 
 var DefaultAllow AllowFunc = func(err error) bool {

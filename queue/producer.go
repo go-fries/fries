@@ -8,7 +8,7 @@ import (
 	"maps"
 	"time"
 
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/v4"
 )
 
 type enqueueConfig struct {

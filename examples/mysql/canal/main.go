@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	positionerredis "github.com/go-fries/fries/mysql/canal/positioner/redis/v3"
-	"github.com/go-fries/fries/mysql/canal/v3"
+	positionerredis "github.com/go-fries/fries/mysql/canal/positioner/redis/v4"
+	"github.com/go-fries/fries/mysql/canal/v4"
 )
 
 type Listener struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/event/v4"
 	"github.com/stretchr/testify/assert"
 )
 

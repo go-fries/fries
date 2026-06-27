@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/cloudevents/eventdispatcher/v3
+module github.com/go-fries/fries/cloudevents/eventdispatcher/v4
 
 go 1.25.0
 

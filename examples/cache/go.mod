@@ -1,28 +1,28 @@
-module github.com/go-fries/fries/examples/cache/v3
+module github.com/go-fries/fries/examples/cache/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/cache/redis/v3 => ../../cache/redis/
-	github.com/go-fries/fries/cache/v3 => ../../cache/
-	github.com/go-fries/fries/codec/json/v3 => ../../codec/json/
-	github.com/go-fries/fries/codec/v3 => ../../codec/
-	github.com/go-fries/fries/locker/redis/v3 => ../../locker/redis/
-	github.com/go-fries/fries/locker/v3 => ../../locker/
+	github.com/go-fries/fries/cache/redis/v4 => ../../cache/redis/
+	github.com/go-fries/fries/cache/v4 => ../../cache/
+	github.com/go-fries/fries/codec/json/v4 => ../../codec/json/
+	github.com/go-fries/fries/codec/v4 => ../../codec/
+	github.com/go-fries/fries/locker/redis/v4 => ../../locker/redis/
+	github.com/go-fries/fries/locker/v4 => ../../locker/
 )
 
 require (
-	github.com/go-fries/fries/cache/redis/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/cache/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/cache/redis/v4 v4.0.0
+	github.com/go-fries/fries/cache/v4 v4.0.0
 	github.com/redis/go-redis/v9 v9.21.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-fries/fries/codec/json/v3 v3.15.0-rc.1 // indirect
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1 // indirect
-	github.com/go-fries/fries/locker/redis/v3 v3.15.0-rc.1 // indirect
-	github.com/go-fries/fries/locker/v3 v3.15.0-rc.1 // indirect
+	github.com/go-fries/fries/codec/json/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/locker/redis/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/locker/v4 v4.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 )

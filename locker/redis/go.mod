@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/locker/redis/v3
+module github.com/go-fries/fries/locker/redis/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/locker/v3 => ../
+replace github.com/go-fries/fries/locker/v4 => ../
 
 require (
-	github.com/go-fries/fries/locker/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/locker/v4 v4.0.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1

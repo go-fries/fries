@@ -4,7 +4,7 @@ import (
 	"math/rand/v2"
 	"slices"
 
-	"github.com/go-fries/fries/constraints/v3"
+	"github.com/go-fries/fries/constraints/v4"
 )
 
 func indexSet[S ~[]E, E comparable](s S) map[E]struct{} {

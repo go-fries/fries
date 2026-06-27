@@ -7,8 +7,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	redisStore "github.com/go-fries/fries/cache/redis/v3"
-	"github.com/go-fries/fries/cache/v3"
+	redisStore "github.com/go-fries/fries/cache/redis/v4"
+	"github.com/go-fries/fries/cache/v4"
 )
 
 var ctx = context.Background()

@@ -1,4 +1,4 @@
-package multi // import "github.com/go-fries/fries/kratos/log/multi/v3"
+package multi // import "github.com/go-fries/fries/kratos/log/multi/v4"
 
 import (
 	"errors"

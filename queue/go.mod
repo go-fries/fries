@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/queue/v3
+module github.com/go-fries/fries/queue/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/codec/v3 => ../codec
+replace github.com/go-fries/fries/codec/v4 => ../codec
 
 require (
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/codec/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

@@ -1,12 +1,12 @@
-module github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v3
+module github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/cloudevents/eventdispatcher/v3 => ../../../cloudevents/eventdispatcher/
+replace github.com/go-fries/fries/cloudevents/eventdispatcher/v4 => ../../../cloudevents/eventdispatcher/
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/go-fries/fries/cloudevents/eventdispatcher/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/cloudevents/eventdispatcher/v4 v4.0.0
 )
 
 require (

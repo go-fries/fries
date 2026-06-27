@@ -3,7 +3,7 @@ package canal
 import (
 	"context"
 
-	"github.com/go-fries/fries/mysql/canal/v3/internal"
+	"github.com/go-fries/fries/mysql/canal/v4/internal"
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"

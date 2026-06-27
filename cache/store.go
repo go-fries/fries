@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-fries/fries/locker/v3"
+	"github.com/go-fries/fries/locker/v4"
 )
 
 var ErrNotFound = errors.New("cache: the key is not found")

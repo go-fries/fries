@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-const scopeName = "github.com/go-fries/fries/gorm/logger/otel/v3"
+const scopeName = "github.com/go-fries/fries/gorm/logger/otel/v4"
 
 var (
 	_ logger.Interface  = (*Logger)(nil)

@@ -1,17 +1,17 @@
-module github.com/go-fries/fries/mysql/canal/positioner/redis/v3
+module github.com/go-fries/fries/mysql/canal/positioner/redis/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/codec/json/v3 => ./../../../../codec/json
-	github.com/go-fries/fries/codec/v3 => ./../../../../codec
-	github.com/go-fries/fries/mysql/canal/v3 => ../../
+	github.com/go-fries/fries/codec/json/v4 => ./../../../../codec/json
+	github.com/go-fries/fries/codec/v4 => ./../../../../codec
+	github.com/go-fries/fries/mysql/canal/v4 => ../../
 )
 
 require (
-	github.com/go-fries/fries/codec/json/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/mysql/canal/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/codec/json/v4 v4.0.0
+	github.com/go-fries/fries/codec/v4 v4.0.0
+	github.com/go-fries/fries/mysql/canal/v4 v4.0.0
 	github.com/go-mysql-org/go-mysql v1.13.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1

@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/go-fries/fries/gorm/logger/otel/v3"
+	"github.com/go-fries/fries/gorm/logger/otel/v4"
 	"github.com/stretchr/testify/assert"
 )
 

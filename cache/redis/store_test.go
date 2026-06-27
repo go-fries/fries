@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/cache/v3"
-	"github.com/go-fries/fries/codec/json/v3"
-	"github.com/go-fries/fries/locker/v3"
+	"github.com/go-fries/fries/cache/v4"
+	"github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/locker/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )

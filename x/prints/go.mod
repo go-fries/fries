@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/x/prints/v3
+module github.com/go-fries/fries/x/prints/v4
 
 go 1.25.0
 

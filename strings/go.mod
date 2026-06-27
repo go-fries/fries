@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/strings/v3
+module github.com/go-fries/fries/strings/v4
 
 go 1.25.0
 

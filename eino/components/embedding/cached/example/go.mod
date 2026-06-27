@@ -1,18 +1,18 @@
-module github.com/go-fries/fries/eino/components/embedding/cached/example/v3
+module github.com/go-fries/fries/eino/components/embedding/cached/example/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/codec/sonic/v3 => ../../../../../codec/sonic
-	github.com/go-fries/fries/codec/v3 => ../../../../../codec
-	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 => ./../cacher/redis/
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 => ../
+	github.com/go-fries/fries/codec/sonic/v4 => ../../../../../codec/sonic
+	github.com/go-fries/fries/codec/v4 => ../../../../../codec
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4 => ./../cacher/redis/
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 => ../
 )
 
 require (
 	github.com/cloudwego/eino v0.9.10
-	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/eino/components/embedding/cached/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4 v4.0.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0
 	github.com/redis/go-redis/v9 v9.21.0
 )
 
@@ -26,8 +26,8 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eino-contrib/jsonschema v1.0.3 // indirect
-	github.com/go-fries/fries/codec/sonic/v3 v3.15.0-rc.1 // indirect
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1 // indirect
+	github.com/go-fries/fries/codec/sonic/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect

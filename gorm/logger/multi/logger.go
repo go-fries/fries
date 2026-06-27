@@ -1,4 +1,4 @@
-package multi // import "github.com/go-fries/fries/gorm/logger/multi/v3"
+package multi // import "github.com/go-fries/fries/gorm/logger/multi/v4"
 
 import (
 	"context"

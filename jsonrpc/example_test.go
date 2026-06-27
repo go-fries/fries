@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-fries/fries/jsonrpc/v3"
+	"github.com/go-fries/fries/jsonrpc/v4"
 )
 
 func Logger() jsonrpc.Middleware {

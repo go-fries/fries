@@ -1,11 +1,11 @@
-module github.com/go-fries/fries/slices/v3
+module github.com/go-fries/fries/slices/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/constraints/v3 => ../constraints
+replace github.com/go-fries/fries/constraints/v4 => ../constraints
 
 require (
-	github.com/go-fries/fries/constraints/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/constraints/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

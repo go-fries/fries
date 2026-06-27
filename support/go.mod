@@ -1,12 +1,12 @@
-module github.com/go-fries/fries/support/v3
+module github.com/go-fries/fries/support/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/errors/v3 => ../errors
+replace github.com/go-fries/fries/errors/v4 => ../errors
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-fries/fries/errors/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/errors/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

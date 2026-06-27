@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/gin/v3
+module github.com/go-fries/fries/gin/v4
 
 go 1.25.0
 

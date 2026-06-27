@@ -1,4 +1,4 @@
-package otel // import "github.com/go-fries/fries/kratos/log/otel/v3"
+package otel // import "github.com/go-fries/fries/kratos/log/otel/v4"
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type Logger struct {
 	logger log.Logger
 }
 
-const scopeName = "github.com/go-fries/fries/kratos/log/otel/v3"
+const scopeName = "github.com/go-fries/fries/kratos/log/otel/v4"
 
 var _ kratoslog.Logger = (*Logger)(nil)
 

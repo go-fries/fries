@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/kratos/middleware/otel/v3/internal/semconv"
+	"github.com/go-fries/fries/kratos/middleware/otel/v4/internal/semconv"
 	"github.com/go-kratos/kratos/v2/errors"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const scopeName = "github.com/go-fries/fries/kratos/middleware/otel/v3"
+const scopeName = "github.com/go-fries/fries/kratos/middleware/otel/v4"
 
 type tracer struct {
 	tracer     trace.Tracer

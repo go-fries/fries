@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/go-fries/fries/kratos/middleware/otel/v3"
+	"github.com/go-fries/fries/kratos/middleware/otel/v4"
 	"github.com/stretchr/testify/assert"
 )
 

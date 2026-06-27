@@ -1,17 +1,17 @@
-module github.com/go-fries/fries/examples/mysql/canal/v3
+module github.com/go-fries/fries/examples/mysql/canal/v4
 
 go 1.25.0
 
 replace (
-	github.com/go-fries/fries/codec/json/v3 => ../../../codec/json
-	github.com/go-fries/fries/codec/v3 => ../../../codec
-	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 => ./../../../mysql/canal/positioner/redis/
-	github.com/go-fries/fries/mysql/canal/v3 => ../../../mysql/canal/
+	github.com/go-fries/fries/codec/json/v4 => ../../../codec/json
+	github.com/go-fries/fries/codec/v4 => ../../../codec
+	github.com/go-fries/fries/mysql/canal/positioner/redis/v4 => ./../../../mysql/canal/positioner/redis/
+	github.com/go-fries/fries/mysql/canal/v4 => ../../../mysql/canal/
 )
 
 require (
-	github.com/go-fries/fries/mysql/canal/positioner/redis/v3 v3.15.0-rc.1
-	github.com/go-fries/fries/mysql/canal/v3 v3.15.0-rc.1
+	github.com/go-fries/fries/mysql/canal/positioner/redis/v4 v4.0.0
+	github.com/go-fries/fries/mysql/canal/v4 v4.0.0
 )
 
 require (
@@ -19,8 +19,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
-	github.com/go-fries/fries/codec/json/v3 v3.15.0-rc.1 // indirect
-	github.com/go-fries/fries/codec/v3 v3.15.0-rc.1 // indirect
+	github.com/go-fries/fries/codec/json/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0 // indirect
 	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
