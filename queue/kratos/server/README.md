@@ -1,11 +1,11 @@
 # Queue Kratos Server
 
-Kratos server adapter for `github.com/go-fries/fries/queue/v3` workers.
+Kratos server adapter for `github.com/go-fries/fries/queue/v4` workers.
 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/kratos/server/v3
+go get github.com/go-fries/fries/queue/kratos/server/v4
 ```
 
 ## Usage
@@ -14,8 +14,8 @@ go get github.com/go-fries/fries/queue/kratos/server/v3
 package main
 
 import (
-	server "github.com/go-fries/fries/queue/kratos/server/v3"
-	"github.com/go-fries/fries/queue/v3"
+	server "github.com/go-fries/fries/queue/kratos/server/v4"
+	"github.com/go-fries/fries/queue/v4"
 	"github.com/go-kratos/kratos/v2"
 )
 

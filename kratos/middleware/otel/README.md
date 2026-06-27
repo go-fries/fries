@@ -7,7 +7,7 @@ The package is forked from [tracing](https://github.com/go-kratos/kratos/tree/8b
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/kratos/middleware/otel/v3
+go get github.com/go-fries/fries/kratos/middleware/otel/v4
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/transport/http"
 
-	kratosotel "github.com/go-fries/fries/kratos/middleware/otel/v3"
+	kratosotel "github.com/go-fries/fries/kratos/middleware/otel/v4"
 )
 
 func main() {

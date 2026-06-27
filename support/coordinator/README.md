@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-fries/fries/support/v3/coordinator"
+	"github.com/go-fries/fries/support/v4/coordinator"
 )
 
 func main() {

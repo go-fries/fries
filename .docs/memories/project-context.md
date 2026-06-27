@@ -4,8 +4,8 @@
 
 - Repository: `go-fries/fries`.
 - Project type: multi-module Go repository.
-- Root module: `github.com/go-fries/fries/v3`.
-- Default local branch observed: `3.x`.
+- Root module on the v4 branch: `github.com/go-fries/fries/v4`.
+- Default repository branch observed: `3.x`.
 - Root Go version in `go.mod`: `1.25.0`.
 
 ## Module Layout

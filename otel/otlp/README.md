@@ -5,7 +5,7 @@ This package provides a configuration for the OpenTelemetry Protocol (OTLP) expo
 ## Installation
 
 ```shell
-go get github.com/go-fries/fries/otel/otlp/v3
+go get github.com/go-fries/fries/otel/otlp/v4
 ```
 
 ## Defaults
@@ -25,7 +25,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/otel/otlp/v3"
+	"github.com/go-fries/fries/otel/otlp/v4"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -70,7 +70,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/otel/otlp/v3"
+	"github.com/go-fries/fries/otel/otlp/v4"
 )
 
 func main() {
@@ -122,7 +122,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/otel/otlp/v3"
+	"github.com/go-fries/fries/otel/otlp/v4"
 )
 
 func main() {

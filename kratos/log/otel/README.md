@@ -5,7 +5,7 @@ This package provides a Kratos `log.Logger` implementation backed by the OpenTel
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/kratos/log/otel/v3
+go get github.com/go-fries/fries/kratos/log/otel/v4
 ```
 
 ## Usage
@@ -15,7 +15,7 @@ package main
 
 import (
 	kratoslog "github.com/go-kratos/kratos/v2/log"
-	otelkratos "github.com/go-fries/fries/kratos/log/otel/v3"
+	otelkratos "github.com/go-fries/fries/kratos/log/otel/v4"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log/global"
 )
@@ -49,5 +49,5 @@ OpenTelemetry span from the log context.
 The instrumentation scope name is fixed to the module import path:
 
 ```text
-github.com/go-fries/fries/kratos/log/otel/v3
+github.com/go-fries/fries/kratos/log/otel/v4
 ```

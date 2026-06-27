@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This is a multi-module Go repository. The root module is `github.com/go-fries/fries/v3` in `./go.mod`, and many component directories have their own `go.mod` files. Common packages live in top-level folders such as `foundation/`, `event/`, `cache/`, `codec/`, `env/`, `http/`, `redis/`, `mysql/`, `otel/`, `kratos/`, `gin/`, and `chi/`. Runnable samples and integration demos are under `examples/`. Protobuf contracts live in `contract/`, with root Buf configuration in `buf.yaml` and `buf.gen.yaml`. Developer tools are pinned in `internal/tools/`.
+This is a multi-module Go repository. The root module is `github.com/go-fries/fries/v4` in `./go.mod`, and many component directories have their own `go.mod` files. Common packages live in top-level folders such as `foundation/`, `event/`, `cache/`, `codec/`, `env/`, `http/`, `redis/`, `mysql/`, `otel/`, `kratos/`, `gin/`, and `chi/`. Runnable samples and integration demos are under `examples/`. Protobuf contracts live in `contract/`, with root Buf configuration in `buf.yaml` and `buf.gen.yaml`. Developer tools are pinned in `internal/tools/`.
 
 Project working notes live under `.docs/`. Use `.docs/plans/` for task plans, phased checklists, and execution notes that coordinate longer work. The `.docs/plans/` directory is tracked, but individual plan files are local-only and should stay ignored. Use `.docs/memories/` for reusable project context that should survive across long-running tasks.
 

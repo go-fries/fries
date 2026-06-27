@@ -6,7 +6,7 @@ code.
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/slices/v3
+go get github.com/go-fries/fries/slices/v4
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-fries/fries/slices/v3"
+	"github.com/go-fries/fries/slices/v4"
 )
 
 func main() {

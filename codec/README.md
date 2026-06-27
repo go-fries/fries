@@ -5,9 +5,9 @@ Unified interface for encoding and decoding data, with support for multiple form
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/codec/v3
+go get github.com/go-fries/fries/codec/v4
 # Install specific codecs as needed, e.g.:
-go get github.com/go-fries/fries/codec/json/v3
+go get github.com/go-fries/fries/codec/json/v4
 ```
 
 ## Usage
@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-fries/fries/codec/json/v3"
+	"github.com/go-fries/fries/codec/json/v4"
 )
 
 var j = json.Codec

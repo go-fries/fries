@@ -5,7 +5,7 @@ A unified filesystem abstraction layer for Go, supporting Local, S3, and OSS sto
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/filesystem/v3
+go get github.com/go-fries/fries/filesystem/v4
 ```
 
 ## Usage
@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-fries/fries/filesystem/local/v3"
-	"github.com/go-fries/fries/filesystem/v3"
+	"github.com/go-fries/fries/filesystem/local/v4"
+	"github.com/go-fries/fries/filesystem/v4"
 )
 
 func main() {

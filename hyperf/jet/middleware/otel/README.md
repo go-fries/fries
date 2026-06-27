@@ -18,8 +18,8 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v3"
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v4"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 	"go.opentelemetry.io/otel/attribute"
 )
 

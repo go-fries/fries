@@ -5,7 +5,7 @@ This package provides string helper functions for common application code.
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/strings/v3
+go get github.com/go-fries/fries/strings/v4
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-fries/fries/strings/v3"
+	"github.com/go-fries/fries/strings/v4"
 )
 
 func main() {

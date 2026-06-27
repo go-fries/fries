@@ -5,7 +5,7 @@ A simple, type-safe utility for propagating configuration values through `contex
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/config/v3
+go get github.com/go-fries/fries/config/v4
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/config/v3"
+	"github.com/go-fries/fries/config/v4"
 )
 
 type AppConfig struct {
