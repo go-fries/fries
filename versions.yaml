@@ -1,157 +1,157 @@
 module-sets:
   stable:
-    version: v3.15.0-rc.1
+    version: v4.0.0
     modules:
-      - github.com/go-fries/fries/v3
-      - github.com/go-fries/fries/errors/v3
-      - github.com/go-fries/fries/coroutines/v3
-      - github.com/go-fries/fries/constraints/v3
-      - github.com/go-fries/fries/contract/v3
+      - github.com/go-fries/fries/v4
+      - github.com/go-fries/fries/errors/v4
+      - github.com/go-fries/fries/coroutines/v4
+      - github.com/go-fries/fries/constraints/v4
+      - github.com/go-fries/fries/contract/v4
 
       # Cache
-      - github.com/go-fries/fries/cache/v3
-      - github.com/go-fries/fries/cache/redis/v3
+      - github.com/go-fries/fries/cache/v4
+      - github.com/go-fries/fries/cache/redis/v4
 
       ## Crontab
-      - github.com/go-fries/fries/crontab/v3
+      - github.com/go-fries/fries/crontab/v4
 
       # Codec
-      - github.com/go-fries/fries/codec/v3
-      - github.com/go-fries/fries/codec/json/v3
-      - github.com/go-fries/fries/codec/msgpack/v3
-      - github.com/go-fries/fries/codec/sonic/v3
-      - github.com/go-fries/fries/codec/proto/v3
-      - github.com/go-fries/fries/codec/xml/v3
-      - github.com/go-fries/fries/codec/yaml/v3
+      - github.com/go-fries/fries/codec/v4
+      - github.com/go-fries/fries/codec/json/v4
+      - github.com/go-fries/fries/codec/msgpack/v4
+      - github.com/go-fries/fries/codec/sonic/v4
+      - github.com/go-fries/fries/codec/proto/v4
+      - github.com/go-fries/fries/codec/xml/v4
+      - github.com/go-fries/fries/codec/yaml/v4
 
       # Config
-      - github.com/go-fries/fries/config/v3
+      - github.com/go-fries/fries/config/v4
 
       # Chi
-      - github.com/go-fries/fries/chi/v3
+      - github.com/go-fries/fries/chi/v4
 
       # CloudEvents
-      - github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
-      - github.com/go-fries/fries/cloudevents/eventdispatcher/v3
+      - github.com/go-fries/fries/cloudevents/protocol/amqp091/v4
+      - github.com/go-fries/fries/cloudevents/eventdispatcher/v4
 
       # Env
-      - github.com/go-fries/fries/env/v3
+      - github.com/go-fries/fries/env/v4
 
       # Encrypter
-      - github.com/go-fries/fries/encrypter/v3
+      - github.com/go-fries/fries/encrypter/v4
 
       # Ent
-      - github.com/go-fries/fries/ent/v3
-      - github.com/go-fries/fries/ent/multidriver/v3
+      - github.com/go-fries/fries/ent/v4
+      - github.com/go-fries/fries/ent/multidriver/v4
 
       # Event & EventBus
-      - github.com/go-fries/fries/event/v3
-      - github.com/go-fries/fries/event/middleware/recovery/v3
-      - github.com/go-fries/fries/eventbus/v3
+      - github.com/go-fries/fries/event/v4
+      - github.com/go-fries/fries/event/middleware/recovery/v4
+      - github.com/go-fries/fries/eventbus/v4
 
       # Eino
-      - github.com/go-fries/fries/eino/components/embedding/cached/v3
-      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v3
-      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v3
+      - github.com/go-fries/fries/eino/components/embedding/cached/v4
+      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4
+      - github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v4
 
       # Foundation
-      - github.com/go-fries/fries/foundation/v3
+      - github.com/go-fries/fries/foundation/v4
 
       # Filesystem
-      - github.com/go-fries/fries/filesystem/v3
-      - github.com/go-fries/fries/filesystem/s3/v3
-      - github.com/go-fries/fries/filesystem/local/v3
-      - github.com/go-fries/fries/filesystem/oss/v3
+      - github.com/go-fries/fries/filesystem/v4
+      - github.com/go-fries/fries/filesystem/s3/v4
+      - github.com/go-fries/fries/filesystem/local/v4
+      - github.com/go-fries/fries/filesystem/oss/v4
 
       # Gin
-      - github.com/go-fries/fries/gin/v3
+      - github.com/go-fries/fries/gin/v4
 
       # Gorm
-      - github.com/go-fries/fries/gorm/logger/multi/v3
-      - github.com/go-fries/fries/gorm/logger/otel/v3
-      - github.com/go-fries/fries/gorm/scope/v3
+      - github.com/go-fries/fries/gorm/logger/multi/v4
+      - github.com/go-fries/fries/gorm/logger/otel/v4
+      - github.com/go-fries/fries/gorm/scope/v4
 
       # Hyperf
-      - github.com/go-fries/fries/hyperf/jet/v3
-      - github.com/go-fries/fries/hyperf/jet/middleware/logging/v3
-      - github.com/go-fries/fries/hyperf/jet/middleware/recovery/v3
-      - github.com/go-fries/fries/hyperf/jet/middleware/retry/v3
-      - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v3
-      - github.com/go-fries/fries/hyperf/jet/middleware/otel/v3
+      - github.com/go-fries/fries/hyperf/jet/v4
+      - github.com/go-fries/fries/hyperf/jet/middleware/logging/v4
+      - github.com/go-fries/fries/hyperf/jet/middleware/recovery/v4
+      - github.com/go-fries/fries/hyperf/jet/middleware/retry/v4
+      - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4
+      - github.com/go-fries/fries/hyperf/jet/middleware/otel/v4
 
       # Hashing
-      - github.com/go-fries/fries/hashing/v3
-      - github.com/go-fries/fries/hashing/md5/v3
+      - github.com/go-fries/fries/hashing/v4
+      - github.com/go-fries/fries/hashing/md5/v4
 
       # Http
-      - github.com/go-fries/fries/http/server/v3
+      - github.com/go-fries/fries/http/server/v4
 
       # JSON-RPC
-      - github.com/go-fries/fries/jsonrpc/v3
+      - github.com/go-fries/fries/jsonrpc/v4
 
       # Kratos
-      - github.com/go-fries/fries/kratos/log/multi/v3
-      - github.com/go-fries/fries/kratos/log/syslog/v3
-      - github.com/go-fries/fries/kratos/log/otel/v3
+      - github.com/go-fries/fries/kratos/log/multi/v4
+      - github.com/go-fries/fries/kratos/log/syslog/v4
+      - github.com/go-fries/fries/kratos/log/otel/v4
 
-      - github.com/go-fries/fries/kratos/middleware/cors/v3
-      - github.com/go-fries/fries/kratos/middleware/protovalidate/v3
-      - github.com/go-fries/fries/kratos/middleware/slowlog/v3
-      - github.com/go-fries/fries/kratos/middleware/otel/v3
+      - github.com/go-fries/fries/kratos/middleware/cors/v4
+      - github.com/go-fries/fries/kratos/middleware/protovalidate/v4
+      - github.com/go-fries/fries/kratos/middleware/slowlog/v4
+      - github.com/go-fries/fries/kratos/middleware/otel/v4
 
       # Locker
-      - github.com/go-fries/fries/locker/v3
-      - github.com/go-fries/fries/locker/redis/v3
+      - github.com/go-fries/fries/locker/v4
+      - github.com/go-fries/fries/locker/redis/v4
 
       # Queue
-      - github.com/go-fries/fries/queue/v3
-      - github.com/go-fries/fries/queue/adapter/memory/v3
-      - github.com/go-fries/fries/queue/adapter/rabbitmq/v3
-      - github.com/go-fries/fries/queue/adapter/redis/v3
-      - github.com/go-fries/fries/queue/kratos/server/v3
-      - github.com/go-fries/fries/queue/middleware/recovery/v3
+      - github.com/go-fries/fries/queue/v4
+      - github.com/go-fries/fries/queue/adapter/memory/v4
+      - github.com/go-fries/fries/queue/adapter/rabbitmq/v4
+      - github.com/go-fries/fries/queue/adapter/redis/v4
+      - github.com/go-fries/fries/queue/kratos/server/v4
+      - github.com/go-fries/fries/queue/middleware/recovery/v4
 
       # MySQL
-      - github.com/go-fries/fries/mysql/canal/v3
-      - github.com/go-fries/fries/mysql/canal/positioner/redis/v3
-      - github.com/go-fries/fries/mysql/canal/server/v3
+      - github.com/go-fries/fries/mysql/canal/v4
+      - github.com/go-fries/fries/mysql/canal/positioner/redis/v4
+      - github.com/go-fries/fries/mysql/canal/server/v4
 
       # Otel
-      - github.com/go-fries/fries/otel/otlp/v3
+      - github.com/go-fries/fries/otel/otlp/v4
 
       # Recovery
-      - github.com/go-fries/fries/recovery/v3
+      - github.com/go-fries/fries/recovery/v4
 
       # Signal
-      - github.com/go-fries/fries/signal/v3
+      - github.com/go-fries/fries/signal/v4
 
       # Slices
-      - github.com/go-fries/fries/slices/v3
+      - github.com/go-fries/fries/slices/v4
 
       # Strings
-      - github.com/go-fries/fries/strings/v3
+      - github.com/go-fries/fries/strings/v4
 
       # Support
-      - github.com/go-fries/fries/support/v3
+      - github.com/go-fries/fries/support/v4
 
       # Timezone
-      - github.com/go-fries/fries/timezone/v3
+      - github.com/go-fries/fries/timezone/v4
 
       # UDP
-      - github.com/go-fries/fries/udp/v3
+      - github.com/go-fries/fries/udp/v4
 
       # X (Extra)
-      - github.com/go-fries/fries/x/pagination/v3
-      - github.com/go-fries/fries/x/prints/v3
-      - github.com/go-fries/fries/x/container/v3
+      - github.com/go-fries/fries/x/pagination/v4
+      - github.com/go-fries/fries/x/prints/v4
+      - github.com/go-fries/fries/x/container/v4
 excluded-modules:
-  - github.com/go-fries/fries/internal/tools/v3
+  - github.com/go-fries/fries/internal/tools/v4
 
   # examples
-  - github.com/go-fries/fries/examples/cache/v3
-  - github.com/go-fries/fries/event/example/v3 # todo: migrate to /examples
-  - github.com/go-fries/fries/examples/cloudevents/amqp091/v3
-  - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v3
-  - github.com/go-fries/fries/examples/mysql/canal/v3
-  - github.com/go-fries/fries/queue/examples/tasker/v3
-  - github.com/go-fries/fries/eino/components/embedding/cached/example/v3
+  - github.com/go-fries/fries/examples/cache/v4
+  - github.com/go-fries/fries/event/example/v4 # todo: migrate to /examples
+  - github.com/go-fries/fries/examples/cloudevents/amqp091/v4
+  - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v4
+  - github.com/go-fries/fries/examples/mysql/canal/v4
+  - github.com/go-fries/fries/queue/examples/tasker/v4
+  - github.com/go-fries/fries/eino/components/embedding/cached/example/v4
