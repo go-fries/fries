@@ -16,7 +16,7 @@ var excludedDirs = []string{
 	"internal",
 }
 
-var moduleRegex = regexp.MustCompile(`^github\.com/go-fries/fries/(.+)/v3$`)
+var moduleRegex = regexp.MustCompile(`^github\.com/go-fries/fries/(.+)/v4$`)
 
 func main() {
 	root, err := os.Getwd()
