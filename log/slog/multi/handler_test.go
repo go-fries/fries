@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandlerDispatchesEnabledRecordsToMultipleHandlers(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	first := newRecordingHandler(true)
 	second := newRecordingHandler(true)
 	disabled := newRecordingHandler(false)
@@ -35,7 +35,7 @@ func TestHandlerDispatchesEnabledRecordsToMultipleHandlers(t *testing.T) {
 func TestHandlerEnabledReturnsFalseWhenNoChildHandlerIsEnabled(t *testing.T) {
 	handler := NewHandler(nil, newRecordingHandler(false), newRecordingHandler(false))
 
-	assert.False(t, handler.Enabled(context.Background(), slog.LevelWarn))
+	assert.False(t, handler.Enabled(t.Context(), slog.LevelWarn))
 }
 
 func TestHandlerJoinsChildHandlerErrors(t *testing.T) {
@@ -47,7 +47,7 @@ func TestHandlerJoinsChildHandlerErrors(t *testing.T) {
 	second.err = secondErr
 	handler := NewHandler(first, second)
 
-	err := handler.Handle(context.Background(), slog.NewRecord(timeNow(), slog.LevelError, "failed", 0))
+	err := handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelError, "failed", 0))
 
 	require.Error(t, err)
 	assert.ErrorIs(t, err, firstErr)
@@ -61,7 +61,7 @@ func TestHandlerWithAttrsReturnsHandlerWithChildAttributes(t *testing.T) {
 		slog.Int("attempt", 2),
 	})
 
-	require.NoError(t, handler.Handle(context.Background(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
+	require.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
 
 	require.Len(t, *child.records, 1)
 	assert.Equal(t, []slog.Attr{slog.String("service", "api"), slog.Int("attempt", 2)}, (*child.records)[0].handlerAttrs)
@@ -71,7 +71,7 @@ func TestHandlerWithGroupReturnsHandlerWithChildGroup(t *testing.T) {
 	child := newRecordingHandler(true)
 	handler := NewHandler(child).WithGroup("queue")
 
-	require.NoError(t, handler.Handle(context.Background(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
+	require.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
 
 	require.Len(t, *child.records, 1)
 	assert.Equal(t, []string{"queue"}, (*child.records)[0].groups)
@@ -82,8 +82,8 @@ func TestHandlerWithAttrsAndWithGroupDoNotMutateOriginalHandler(t *testing.T) {
 	handler := NewHandler(child)
 	derived := handler.WithAttrs([]slog.Attr{slog.String("component", "worker")}).WithGroup("job")
 
-	require.NoError(t, handler.Handle(context.Background(), slog.NewRecord(timeNow(), slog.LevelInfo, "base", 0)))
-	require.NoError(t, derived.Handle(context.Background(), slog.NewRecord(timeNow(), slog.LevelInfo, "derived", 0)))
+	require.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "base", 0)))
+	require.NoError(t, derived.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "derived", 0)))
 
 	require.Len(t, *child.records, 2)
 	assert.Empty(t, (*child.records)[0].handlerAttrs)
