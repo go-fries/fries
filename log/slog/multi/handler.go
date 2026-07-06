@@ -38,6 +38,17 @@ func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle dispatches the record to every enabled child handler. Errors returned
 // by child handlers are combined with [errors.Join].
 func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
+	switch len(h.handlers) {
+	case 0:
+		return nil
+	case 1:
+		handler := h.handlers[0]
+		if !handler.Enabled(ctx, record.Level) {
+			return nil
+		}
+		return handler.Handle(ctx, record.Clone())
+	}
+
 	var errs []error
 	for _, handler := range h.handlers {
 		if !handler.Enabled(ctx, record.Level) {
@@ -53,11 +64,18 @@ func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 // WithAttrs returns a new handler whose child handlers include the provided
 // attributes.
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if len(attrs) == 0 {
+		return h
+	}
+
 	clone := &Handler{
 		handlers: make([]slog.Handler, 0, len(h.handlers)),
 	}
 	for _, handler := range h.handlers {
-		clone.handlers = append(clone.handlers, handler.WithAttrs(attrs))
+		next := handler.WithAttrs(attrs)
+		if next != nil {
+			clone.handlers = append(clone.handlers, next)
+		}
 	}
 	return clone
 }
@@ -65,11 +83,18 @@ func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 // WithGroup returns a new handler whose child handlers include the provided
 // group.
 func (h *Handler) WithGroup(name string) slog.Handler {
+	if name == "" {
+		return h
+	}
+
 	clone := &Handler{
 		handlers: make([]slog.Handler, 0, len(h.handlers)),
 	}
 	for _, handler := range h.handlers {
-		clone.handlers = append(clone.handlers, handler.WithGroup(name))
+		next := handler.WithGroup(name)
+		if next != nil {
+			clone.handlers = append(clone.handlers, next)
+		}
 	}
 	return clone
 }

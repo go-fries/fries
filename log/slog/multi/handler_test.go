@@ -67,6 +67,24 @@ func TestHandlerWithAttrsReturnsHandlerWithChildAttributes(t *testing.T) {
 	assert.Equal(t, []slog.Attr{slog.String("service", "api"), slog.Int("attempt", 2)}, (*child.records)[0].handlerAttrs)
 }
 
+func TestHandlerWithAttrsReturnsReceiverWhenAttrsEmpty(t *testing.T) {
+	handler := NewHandler(newRecordingHandler(true))
+
+	assert.Same(t, handler, handler.WithAttrs(nil))
+	assert.Same(t, handler, handler.WithAttrs([]slog.Attr{}))
+}
+
+func TestHandlerWithAttrsIgnoresNilDerivedChildHandlers(t *testing.T) {
+	handler := NewHandler(&nilDerivedHandler{}).WithAttrs([]slog.Attr{slog.String("service", "api")})
+
+	require.NotPanics(t, func() {
+		assert.False(t, handler.Enabled(t.Context(), slog.LevelInfo))
+	})
+	require.NotPanics(t, func() {
+		assert.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
+	})
+}
+
 func TestHandlerWithGroupReturnsHandlerWithChildGroup(t *testing.T) {
 	child := newRecordingHandler(true)
 	handler := NewHandler(child).WithGroup("queue")
@@ -75,6 +93,23 @@ func TestHandlerWithGroupReturnsHandlerWithChildGroup(t *testing.T) {
 
 	require.Len(t, *child.records, 1)
 	assert.Equal(t, []string{"queue"}, (*child.records)[0].groups)
+}
+
+func TestHandlerWithGroupReturnsReceiverWhenNameEmpty(t *testing.T) {
+	handler := NewHandler(newRecordingHandler(true))
+
+	assert.Same(t, handler, handler.WithGroup(""))
+}
+
+func TestHandlerWithGroupIgnoresNilDerivedChildHandlers(t *testing.T) {
+	handler := NewHandler(&nilDerivedHandler{}).WithGroup("queue")
+
+	require.NotPanics(t, func() {
+		assert.False(t, handler.Enabled(t.Context(), slog.LevelInfo))
+	})
+	require.NotPanics(t, func() {
+		assert.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "hello", 0)))
+	})
 }
 
 func TestHandlerWithAttrsAndWithGroupDoNotMutateOriginalHandler(t *testing.T) {
@@ -141,6 +176,24 @@ func (h *recordingHandler) WithGroup(name string) slog.Handler {
 	clone := *h
 	clone.groups = append(slices.Clone(h.groups), name)
 	return &clone
+}
+
+type nilDerivedHandler struct{}
+
+func (h *nilDerivedHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *nilDerivedHandler) Handle(context.Context, slog.Record) error {
+	return nil
+}
+
+func (h *nilDerivedHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return nil
+}
+
+func (h *nilDerivedHandler) WithGroup(string) slog.Handler {
+	return nil
 }
 
 func timeNow() time.Time {
