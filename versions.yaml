@@ -94,10 +94,6 @@ module-sets:
       - github.com/go-fries/fries/log/slog/syslog/v4
 
       # Kratos
-      - github.com/go-fries/fries/kratos/log/multi/v4
-      - github.com/go-fries/fries/kratos/log/syslog/v4
-      - github.com/go-fries/fries/kratos/log/otel/v4
-
       - github.com/go-fries/fries/kratos/middleware/cors/v4
       - github.com/go-fries/fries/kratos/middleware/protovalidate/v4
       - github.com/go-fries/fries/kratos/middleware/slowlog/v4
