@@ -15,9 +15,13 @@ var _ slog.Handler = (*Handler)(nil)
 
 // Writer writes syslog messages at a selected priority.
 type Writer interface {
+	// Debug writes a debug-priority syslog message.
 	Debug(string) error
+	// Info writes an info-priority syslog message.
 	Info(string) error
+	// Warning writes a warning-priority syslog message.
 	Warning(string) error
+	// Err writes an error-priority syslog message.
 	Err(string) error
 }
 
@@ -29,7 +33,7 @@ type attrEntry struct {
 // Handler writes slog records to syslog.
 type Handler struct {
 	writer Writer
-	config *config
+	level  slog.Leveler
 	attrs  []attrEntry
 	groups []string
 }
@@ -42,7 +46,7 @@ func NewHandler(writer Writer, opts ...Option) *Handler {
 func newHandler(writer Writer, cfg *config) *Handler {
 	return &Handler{
 		writer: writer,
-		config: cfg,
+		level:  cfg.level,
 	}
 }
 
@@ -51,10 +55,10 @@ func (h *Handler) Enabled(_ context.Context, level slog.Level) bool {
 	if h.writer == nil {
 		return false
 	}
-	if h.config.level == nil {
+	if h.level == nil {
 		return true
 	}
-	return level >= h.config.level.Level()
+	return level >= h.level.Level()
 }
 
 // Handle writes record to syslog.
@@ -115,7 +119,7 @@ func (h *Handler) Close() error {
 func (h *Handler) clone() *Handler {
 	clone := &Handler{
 		writer: h.writer,
-		config: h.config,
+		level:  h.level,
 		attrs:  slices.Clone(h.attrs),
 		groups: slices.Clone(h.groups),
 	}

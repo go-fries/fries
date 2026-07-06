@@ -16,11 +16,11 @@ package main
 import (
 	"log/slog"
 
-	slogsyslog "github.com/go-fries/fries/log/slog/syslog/v4"
+	"github.com/go-fries/fries/log/slog/syslog/v4"
 )
 
 func main() {
-	handler, err := slogsyslog.Dial("", "", slogsyslog.WithTag("api"))
+	handler, err := syslog.Dial("", "", syslog.WithTag("api"))
 	if err != nil {
 		panic(err)
 	}
