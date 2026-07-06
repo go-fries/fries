@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
+	"strconv"
+	"sync"
+	"time"
 )
 
 var _ slog.Handler = (*Handler)(nil)
@@ -34,6 +36,7 @@ type attrEntry struct {
 type Handler struct {
 	writer Writer
 	level  slog.Leveler
+	mu     *sync.Mutex
 	attrs  []attrEntry
 	groups []string
 }
@@ -47,6 +50,7 @@ func newHandler(writer Writer, cfg *config) *Handler {
 	return &Handler{
 		writer: writer,
 		level:  cfg.level,
+		mu:     &sync.Mutex{},
 	}
 }
 
@@ -68,6 +72,9 @@ func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 	}
 
 	message := h.formatRecord(record)
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	switch {
 	case record.Level < slog.LevelInfo:
 		return h.writer.Debug(message)
@@ -113,6 +120,9 @@ func (h *Handler) Close() error {
 	if !ok {
 		return nil
 	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	return closer.Close()
 }
 
@@ -120,6 +130,7 @@ func (h *Handler) clone() *Handler {
 	clone := &Handler{
 		writer: h.writer,
 		level:  h.level,
+		mu:     h.mu,
 		attrs:  slices.Clone(h.attrs),
 		groups: slices.Clone(h.groups),
 	}
@@ -164,14 +175,54 @@ func appendAttr(buf *bytes.Buffer, groups []string, attr slog.Attr) {
 	}
 
 	buf.WriteByte(' ')
-	buf.WriteString(qualifiedKey(groups, attr.Key))
+	writeQualifiedKey(buf, groups, attr.Key)
 	buf.WriteByte('=')
-	buf.WriteString(fmt.Sprint(attr.Value.Any()))
+	appendValue(buf, attr.Value)
 }
 
-func qualifiedKey(groups []string, key string) string {
-	if len(groups) == 0 {
-		return key
+func writeQualifiedKey(buf *bytes.Buffer, groups []string, key string) {
+	for _, group := range groups {
+		buf.WriteString(group)
+		buf.WriteByte('.')
 	}
-	return strings.Join(append(slices.Clone(groups), key), ".")
+	buf.WriteString(key)
+}
+
+func appendValue(buf *bytes.Buffer, value slog.Value) {
+	switch value.Kind() {
+	case slog.KindString:
+		s := value.String()
+		if needsQuoting(s) {
+			buf.WriteString(strconv.Quote(s))
+		} else {
+			buf.WriteString(s)
+		}
+	case slog.KindInt64:
+		buf.WriteString(strconv.FormatInt(value.Int64(), 10))
+	case slog.KindUint64:
+		buf.WriteString(strconv.FormatUint(value.Uint64(), 10))
+	case slog.KindFloat64:
+		buf.WriteString(strconv.FormatFloat(value.Float64(), 'g', -1, 64))
+	case slog.KindBool:
+		buf.WriteString(strconv.FormatBool(value.Bool()))
+	case slog.KindDuration:
+		buf.WriteString(value.Duration().String())
+	case slog.KindTime:
+		buf.WriteString(value.Time().Format(time.RFC3339))
+	default:
+		buf.WriteString(fmt.Sprint(value.Any()))
+	}
+}
+
+func needsQuoting(s string) bool {
+	if s == "" {
+		return true
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c <= ' ' || c == '=' || c == '"' {
+			return true
+		}
+	}
+	return false
 }

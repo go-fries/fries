@@ -5,6 +5,9 @@ package syslog
 import (
 	"errors"
 	"log/slog"
+	stdsyslog "log/syslog"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -68,6 +71,75 @@ func TestHandlerWithAttrsAndWithGroupQualifiesAttributes(t *testing.T) {
 	assert.Equal(t, "warning", writer.records[0].priority)
 	assert.Contains(t, writer.records[0].message, "service=api")
 	assert.Contains(t, writer.records[0].message, "worker.attempt=3")
+}
+
+func TestHandlerWritesGroupAttributes(t *testing.T) {
+	writer := &recordingWriter{}
+	handler := NewHandler(writer)
+	record := slog.NewRecord(timeNow(), slog.LevelInfo, "job finished", 0)
+	record.AddAttrs(slog.Group(
+		"worker",
+		slog.String("name", "syncer"),
+		slog.Group("job", slog.Int("attempt", 3)),
+		slog.Group("empty"),
+	))
+
+	require.NoError(t, handler.Handle(t.Context(), record))
+
+	require.Len(t, writer.records, 1)
+	assert.Contains(t, writer.records[0].message, "worker.name=syncer")
+	assert.Contains(t, writer.records[0].message, "worker.job.attempt=3")
+	assert.NotContains(t, writer.records[0].message, "empty")
+}
+
+func TestHandlerQuotesStringAttributesWhenNeeded(t *testing.T) {
+	writer := &recordingWriter{}
+	handler := NewHandler(writer)
+	record := slog.NewRecord(timeNow(), slog.LevelInfo, "service started", 0)
+	record.AddAttrs(
+		slog.String("plain", "api"),
+		slog.String("empty", ""),
+		slog.String("space", "api worker"),
+		slog.String("equals", "a=b"),
+		slog.String("quote", `say "hello"`),
+	)
+
+	require.NoError(t, handler.Handle(t.Context(), record))
+
+	require.Len(t, writer.records, 1)
+	assert.Contains(t, writer.records[0].message, "plain=api")
+	assert.Contains(t, writer.records[0].message, `empty=""`)
+	assert.Contains(t, writer.records[0].message, `space="api worker"`)
+	assert.Contains(t, writer.records[0].message, `equals="a=b"`)
+	assert.Contains(t, writer.records[0].message, `quote="say \"hello\""`)
+}
+
+func TestHandlerSerializesConcurrentWrites(t *testing.T) {
+	writer := &serialWriter{}
+	handler := NewHandler(writer)
+	derived := handler.WithGroup("worker")
+
+	var wg sync.WaitGroup
+	for range 64 {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "base", 0)))
+		}()
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, derived.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "derived", 0)))
+		}()
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(128), writer.count.Load())
+}
+
+func TestWithFacilityMasksSeverityBits(t *testing.T) {
+	cfg := newConfig(WithFacility(stdsyslog.LOG_LOCAL0 | stdsyslog.LOG_INFO))
+
+	assert.Equal(t, stdsyslog.LOG_LOCAL0, cfg.facility)
 }
 
 func TestHandlerEnabledHonorsMinimumLevel(t *testing.T) {
@@ -141,4 +213,37 @@ func (w *recordingWriter) record(priority, message string) error {
 
 func timeNow() time.Time {
 	return time.Unix(1710000000, 0)
+}
+
+type serialWriter struct {
+	active atomic.Int32
+	count  atomic.Int32
+}
+
+func (w *serialWriter) Debug(string) error {
+	return w.record()
+}
+
+func (w *serialWriter) Info(string) error {
+	return w.record()
+}
+
+func (w *serialWriter) Warning(string) error {
+	return w.record()
+}
+
+func (w *serialWriter) Err(string) error {
+	return w.record()
+}
+
+func (w *serialWriter) record() error {
+	if w.active.Add(1) != 1 {
+		w.active.Add(-1)
+		return errors.New("concurrent write")
+	}
+	defer w.active.Add(-1)
+
+	time.Sleep(time.Millisecond)
+	w.count.Add(1)
+	return nil
 }

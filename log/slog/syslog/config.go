@@ -7,15 +7,17 @@ import (
 	stdsyslog "log/syslog"
 )
 
+const severityMask stdsyslog.Priority = 0x7
+
 type config struct {
 	level    slog.Leveler
-	priority stdsyslog.Priority
+	facility stdsyslog.Priority
 	tag      string
 }
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		priority: stdsyslog.LOG_USER,
+		facility: stdsyslog.LOG_USER,
 	}
 	for _, opt := range opts {
 		if opt == nil {
@@ -44,10 +46,11 @@ func WithLevel(level slog.Leveler) Option {
 	})
 }
 
-// WithPriority sets the syslog facility used by [Dial].
-func WithPriority(priority stdsyslog.Priority) Option {
+// WithFacility sets the syslog facility used by [Dial]. Severity bits are
+// derived from the slog record level and ignored when facility is stored.
+func WithFacility(facility stdsyslog.Priority) Option {
 	return optionFunc(func(c *config) {
-		c.priority = priority
+		c.facility = facility &^ severityMask
 	})
 }
 
