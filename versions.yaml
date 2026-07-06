@@ -89,6 +89,9 @@ module-sets:
       # JSON-RPC
       - github.com/go-fries/fries/jsonrpc/v4
 
+      # Log
+      - github.com/go-fries/fries/log/slog/multi/v4
+
       # Kratos
       - github.com/go-fries/fries/kratos/log/multi/v4
       - github.com/go-fries/fries/kratos/log/syslog/v4
