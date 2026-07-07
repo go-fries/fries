@@ -15,15 +15,8 @@ type Logger struct {
 //
 // NewLogger uses slog's default logger unless opts replace it.
 func NewLogger(opts ...LoggerOption) *Logger {
-	c := &loggerConfig{
-		logger: slog.Default(),
-	}
-	for _, opt := range opts {
-		if opt != nil {
-			opt.applyLogger(c)
-		}
-	}
-	return &Logger{logger: c.logger}
+	cfg := newLoggerConfig(opts...)
+	return &Logger{logger: cfg.logger}
 }
 
 // Printf writes a formatted message at info level.

@@ -18,14 +18,7 @@ type Server struct {
 // The cron scheduler must be configured by the caller before it is passed to
 // NewServer.
 func NewServer(c *cron.Cron, opts ...ServerOption) *Server {
-	cfg := &serverConfig{
-		logger: slog.Default(),
-	}
-	for _, opt := range opts {
-		if opt != nil {
-			opt.applyServer(cfg)
-		}
-	}
+	cfg := newServerConfig(opts...)
 	return &Server{
 		cron:   c,
 		logger: cfg.logger,

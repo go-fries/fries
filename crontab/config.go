@@ -6,6 +6,23 @@ type loggerConfig struct {
 	logger *slog.Logger
 }
 
+// LoggerOption is an option that configures a Logger.
+type LoggerOption interface {
+	applyLogger(*loggerConfig)
+}
+
+func newLoggerConfig(opts ...LoggerOption) *loggerConfig {
+	cfg := &loggerConfig{
+		logger: slog.Default(),
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt.applyLogger(cfg)
+		}
+	}
+	return cfg
+}
+
 type serverConfig struct {
 	logger *slog.Logger
 }
@@ -15,9 +32,16 @@ type ServerOption interface {
 	applyServer(*serverConfig)
 }
 
-// LoggerOption is an option that configures a Logger.
-type LoggerOption interface {
-	applyLogger(*loggerConfig)
+func newServerConfig(opts ...ServerOption) *serverConfig {
+	cfg := &serverConfig{
+		logger: slog.Default(),
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt.applyServer(cfg)
+		}
+	}
+	return cfg
 }
 
 // LoggerServerOption is an option that configures both Logger and Server.
