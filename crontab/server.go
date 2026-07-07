@@ -2,23 +2,33 @@ package crontab
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Server adapts a cron scheduler to the Kratos server lifecycle.
 type Server struct {
-	cron *cron.Cron
+	cron   *cron.Cron
+	logger *slog.Logger
 }
 
 // NewServer creates a Server for c.
 //
 // The cron scheduler must be configured by the caller before it is passed to
 // NewServer.
-func NewServer(c *cron.Cron) *Server {
+func NewServer(c *cron.Cron, opts ...ServerOption) *Server {
+	cfg := &serverConfig{
+		logger: slog.Default(),
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt.applyServer(cfg)
+		}
+	}
 	return &Server{
-		cron: c,
+		cron:   c,
+		logger: cfg.logger,
 	}
 }
 
@@ -29,7 +39,7 @@ func (s *Server) Cron() *cron.Cron {
 
 // Start runs the cron scheduler and blocks until Stop is called.
 func (s *Server) Start(ctx context.Context) error {
-	log.Context(ctx).Info("[Crontab] server starting")
+	s.logger.InfoContext(ctx, "[Crontab] server starting")
 	s.cron.Run()
 	return nil
 }
@@ -38,7 +48,7 @@ func (s *Server) Start(ctx context.Context) error {
 //
 // Stop returns ctx.Err if ctx is canceled before all running jobs finish.
 func (s *Server) Stop(ctx context.Context) error {
-	log.Context(ctx).Info("[Crontab] server stopping")
+	s.logger.InfoContext(ctx, "[Crontab] server stopping")
 
 	select {
 	case <-ctx.Done():

@@ -73,18 +73,19 @@ _, err := server.Cron().AddFunc("@every 1m", func(context.Context) error {
 
 ## Logging
 
-`NewLogger` adapts a Kratos logger to cron's `Printf` logger shape. Use
+`NewLogger` adapts a slog logger to cron's `Printf` logger shape. Use
 `cron.PrintfLogger` or `cron.VerbosePrintfLogger` to pass it to go-cron.
 
 ```go
+logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 c := cron.New(
 	cron.WithLogger(
 		cron.VerbosePrintfLogger(
-			crontab.NewLogger(crontab.WithLogger(log.DefaultLogger)),
+			crontab.NewLogger(crontab.WithLogger(logger)),
 		),
 	),
 )
 ```
 
-`NewLogger()` uses Kratos' default logger. `WithLogger(nil)` leaves the current
+`NewLogger()` uses `slog.Default()`. `WithLogger(nil)` leaves the current
 logger unchanged.
