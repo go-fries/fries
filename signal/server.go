@@ -2,12 +2,11 @@ package signal
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/signal"
 	"reflect"
 	"sync"
-
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Server routes operating system signals to registered handlers.
@@ -16,7 +15,7 @@ type Server struct {
 	stopped  chan struct{}
 	stopOnce sync.Once
 	mu       sync.RWMutex
-	recovery RecoveryHandler
+	logger   *slog.Logger
 }
 
 // NewServer creates a Server with the supplied options.
@@ -26,7 +25,7 @@ func NewServer(opts ...Option) *Server {
 	server := &Server{
 		handlers: cfg.handlers,
 		stopped:  make(chan struct{}),
-		recovery: cfg.recovery,
+		logger:   cfg.logger,
 	}
 
 	return server
@@ -36,7 +35,7 @@ func NewServer(opts ...Option) *Server {
 func (s *Server) Start(ctx context.Context) error {
 	handlers, signals := buildHandlers(s.snapshotHandlers())
 
-	log.Context(ctx).Infof("[Signal] server starting")
+	s.logger.InfoContext(ctx, "[Signal] server starting")
 
 	if len(signals) == 0 {
 		return s.wait(ctx)
@@ -81,7 +80,7 @@ func (s *Server) Register(handlers ...Handler) {
 // Stop stops the Server and unblocks Start.
 func (s *Server) Stop(ctx context.Context) error {
 	s.stopOnce.Do(func() {
-		log.Context(ctx).Infof("[Signal] server stopping")
+		s.logger.InfoContext(ctx, "[Signal] server stopping")
 		close(s.stopped)
 	})
 	return nil
@@ -89,10 +88,12 @@ func (s *Server) Stop(ctx context.Context) error {
 
 func (s *Server) handle(ctx context.Context, sig os.Signal, handler Handler) {
 	defer func() {
-		if s.recovery != nil {
-			if err := recover(); err != nil {
-				s.recovery(ctx, sig, handler, err)
-			}
+		if recovered := recover(); recovered != nil {
+			s.logger.ErrorContext(
+				ctx, "[Signal] handler panic",
+				slog.String("signal", sig.String()),
+				slog.Any("panic", recovered),
+			)
 		}
 	}()
 
