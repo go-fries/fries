@@ -45,12 +45,12 @@ func NewWithHandler(handler http.Handler, opts ...Option) *Server {
 	return New(srv, opts...)
 }
 
-func (s *Server) Start(_ context.Context) error {
-	s.logger.Info("[" + s.name + "] server listening on: " + s.server.Addr)
+func (s *Server) Start(ctx context.Context) error {
+	s.logger.InfoContext(ctx, "["+s.name+"] server listening on: "+s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	s.logger.Info("[" + s.name + "] server stopping")
+	s.logger.InfoContext(ctx, "["+s.name+"] server stopping")
 	return s.server.Shutdown(ctx)
 }
