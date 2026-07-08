@@ -1,8 +1,42 @@
-# go-chi server
+# Chi Server
 
 - https://github.com/go-chi/chi
 
-## Example
+`chi` wraps a configured `*chi.Mux` as a Kratos-compatible server.
+
+## Direct use
+
+```go
+package main
+
+import (
+	"context"
+	"errors"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+
+	chis "github.com/go-fries/fries/chi/v4"
+)
+
+func main() {
+	router := chi.NewRouter()
+	router.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("hello world"))
+	})
+
+	cs := chis.NewServer(
+		router,
+		chis.WithAddr(":8001"),
+	)
+
+	if err := cs.Start(context.Background()); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		panic(err)
+	}
+}
+```
+
+## Use with Kratos
 
 ```go
 package main
@@ -17,14 +51,15 @@ import (
 )
 
 func main() {
-	cs := chis.NewServer(
-		chi.NewRouter(),
-		chis.Addr(":8001"),
-	)
-
-	cs.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+	router := chi.NewRouter()
+	router.Get("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("hello world"))
 	})
+
+	cs := chis.NewServer(
+		router,
+		chis.WithAddr(":8001"),
+	)
 
 	app := kratos.New(
 		kratos.Server(cs),
@@ -35,3 +70,5 @@ func main() {
 	}
 }
 ```
+
+Configure routes and middleware on `router` before passing it to `NewServer`.
