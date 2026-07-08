@@ -12,15 +12,15 @@ type Server interface {
 	Stop(context.Context) error
 }
 
-var _ Server = (*HTTPServer)(nil)
+var _ Server = (*server)(nil)
 
-type HTTPServer struct {
+type server struct {
 	name   string
 	server *http.Server
 	logger *slog.Logger
 }
 
-func New(srv *http.Server, opts ...Option) *HTTPServer {
+func New(srv *http.Server, opts ...Option) Server {
 	cfg := newConfig(opts...)
 	if srv == nil {
 		srv = &http.Server{}
@@ -29,7 +29,7 @@ func New(srv *http.Server, opts ...Option) *HTTPServer {
 		srv.Addr = cfg.addr
 	}
 
-	s := &HTTPServer{
+	s := &server{
 		name:   cfg.name,
 		server: srv,
 		logger: cfg.logger,
@@ -37,7 +37,7 @@ func New(srv *http.Server, opts ...Option) *HTTPServer {
 	return s
 }
 
-func NewWithHandler(handler http.Handler, opts ...Option) *HTTPServer {
+func NewWithHandler(handler http.Handler, opts ...Option) Server {
 	srv := &http.Server{
 		Handler: handler,
 		Addr:    ":8080",
@@ -46,12 +46,12 @@ func NewWithHandler(handler http.Handler, opts ...Option) *HTTPServer {
 	return New(srv, opts...)
 }
 
-func (s *HTTPServer) Start(ctx context.Context) error {
+func (s *server) Start(ctx context.Context) error {
 	s.logger.InfoContext(ctx, "["+s.name+"] server listening on: "+s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
-func (s *HTTPServer) Stop(ctx context.Context) error {
+func (s *server) Stop(ctx context.Context) error {
 	s.logger.InfoContext(ctx, "["+s.name+"] server stopping")
 	return s.server.Shutdown(ctx)
 }

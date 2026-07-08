@@ -13,7 +13,7 @@ import (
 )
 
 func TestServerDoesNotExposeHTTPServer(t *testing.T) {
-	serverType := reflect.TypeFor[HTTPServer]()
+	serverType := reflect.TypeFor[server]()
 	httpServerType := reflect.TypeFor[*http.Server]()
 
 	for i := range serverType.NumField() {
@@ -22,8 +22,12 @@ func TestServerDoesNotExposeHTTPServer(t *testing.T) {
 	}
 }
 
+func TestNewReturnsServerInterface(t *testing.T) {
+	requireServer(t, New(&http.Server{}))
+}
+
 func TestNewUsesConfiguredHTTPServer(t *testing.T) {
-	srv := New(&http.Server{
+	srv := newTestServer(t, &http.Server{
 		Addr: ":8081",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "server", r.URL.Query().Get("name"))
@@ -46,16 +50,18 @@ func TestNewWithHandlerBuildsHTTPServer(t *testing.T) {
 	srv := NewWithHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("hello world"))
 	}), WithAddr(":8082"))
+	httpServer, ok := srv.(*server)
+	require.True(t, ok)
 
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 
 	recorder := httptest.NewRecorder()
-	srv.server.Handler.ServeHTTP(recorder, req)
+	httpServer.server.Handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "hello world", recorder.Body.String())
-	assert.Equal(t, ":8082", srv.server.Addr)
+	assert.Equal(t, ":8082", httpServer.server.Addr)
 }
 
 func TestNewDefaultsToSlogDefaultLogger(t *testing.T) {
@@ -64,14 +70,14 @@ func TestNewDefaultsToSlogDefaultLogger(t *testing.T) {
 	slog.SetDefault(logger)
 	defer slog.SetDefault(previous)
 
-	srv := New(&http.Server{}, WithLogger(nil))
+	srv := newTestServer(t, &http.Server{}, WithLogger(nil))
 
 	assert.Same(t, logger, srv.logger)
 }
 
 func TestWithLoggerConfiguresServerLogger(t *testing.T) {
 	logger := slog.New(&recordingHandler{})
-	srv := New(&http.Server{}, WithLogger(logger))
+	srv := newTestServer(t, &http.Server{}, WithLogger(logger))
 
 	assert.Same(t, logger, srv.logger)
 }
@@ -89,7 +95,7 @@ func TestServerStartWritesToConfiguredLogger(t *testing.T) {
 }
 
 func TestServerStartReturnsServerClosed(t *testing.T) {
-	srv := New(&http.Server{Addr: "127.0.0.1:0"})
+	srv := newTestServer(t, &http.Server{Addr: "127.0.0.1:0"})
 	require.NoError(t, srv.server.Close())
 
 	err := srv.Start(t.Context())
@@ -107,6 +113,20 @@ func TestServerStopWritesToConfiguredLogger(t *testing.T) {
 	require.Len(t, handler.records, 1)
 	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
 	assert.Equal(t, "[HTTP] server stopping", handler.records[0].Message)
+}
+
+func newTestServer(t *testing.T, srv *http.Server, opts ...Option) *server {
+	t.Helper()
+
+	httpServer, ok := New(srv, opts...).(*server)
+	require.True(t, ok)
+	return httpServer
+}
+
+func requireServer(t *testing.T, srv Server) {
+	t.Helper()
+
+	require.NotNil(t, srv)
 }
 
 type recordingHandler struct {
