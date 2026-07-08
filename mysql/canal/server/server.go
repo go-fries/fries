@@ -2,30 +2,37 @@ package server
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/go-fries/fries/mysql/canal/v4"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/transport"
 )
 
 type Server struct {
-	canal *canal.Canal
+	canal  *canal.Canal
+	logger *slog.Logger
 }
 
-var _ transport.Server = (*Server)(nil)
+type server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+}
 
-func New(canal *canal.Canal) *Server {
+var _ server = (*Server)(nil)
+
+func New(canal *canal.Canal, opts ...Option) *Server {
+	cfg := newConfig(opts...)
 	return &Server{
-		canal: canal,
+		canal:  canal,
+		logger: cfg.logger,
 	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	log.Infof("[Canal] server starting")
+	s.logger.InfoContext(ctx, "[Canal] server starting")
 	return s.canal.Start(ctx)
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	log.Infof("[Canal] server stopping")
+	s.logger.InfoContext(ctx, "[Canal] server stopping")
 	return s.canal.Stop(ctx)
 }
