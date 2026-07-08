@@ -52,7 +52,7 @@ func main() {
 	)
 
 	app := kratos.New(
-		kratos.Server(srv),
+		kratos.Server(server.IgnoreServerClosed(srv)),
 	)
 
 	if err := app.Run(); err != nil {

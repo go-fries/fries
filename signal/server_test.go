@@ -100,7 +100,7 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 		assert.NoError(t, err)
 	case <-time.After(time.Second):
 		close(release)
-		t.Fatal("server did not stop while async handler was running")
+		require.FailNow(t, "server did not stop while async handler was running")
 	}
 	close(release)
 }
@@ -267,7 +267,7 @@ func TestServer_StartStopsPromptly(t *testing.T) {
 	case err := <-done:
 		assert.NoError(t, err)
 	case <-time.After(time.Second):
-		t.Fatal("server did not stop")
+		require.FailNow(t, "server did not stop")
 	}
 }
 
@@ -278,7 +278,7 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 	case value := <-ch:
 		return value
 	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for channel receive")
+		require.FailNow(t, "timed out waiting for channel receive")
 		var zero T
 		return zero
 	}

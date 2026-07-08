@@ -88,6 +88,15 @@ func TestServerStartWritesToConfiguredLogger(t *testing.T) {
 	assert.Equal(t, "[HTTP] server listening on: invalid addr", handler.records[0].Message)
 }
 
+func TestServerStartReturnsServerClosed(t *testing.T) {
+	srv := New(&http.Server{Addr: "127.0.0.1:0"})
+	require.NoError(t, srv.server.Close())
+
+	err := srv.Start(t.Context())
+
+	require.ErrorIs(t, err, http.ErrServerClosed)
+}
+
 func TestServerStopWritesToConfiguredLogger(t *testing.T) {
 	handler := &recordingHandler{}
 	srv := New(&http.Server{}, WithLogger(slog.New(handler)))
