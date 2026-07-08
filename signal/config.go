@@ -43,7 +43,7 @@ func WithHandlers(handlers ...Handler) Option {
 	})
 }
 
-// WithLogger configures the slog logger used by Server lifecycle logs.
+// WithLogger configures the slog logger used by server logs.
 func WithLogger(logger *slog.Logger) Option {
 	return optionFunc(func(cfg *config) {
 		if logger != nil {

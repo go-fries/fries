@@ -117,7 +117,7 @@ func TestLogger_Printf(t *testing.T) {
 	assert.Equal(t, "job sync finished in 12ms", backend.records[0].Message)
 }
 
-func TestLogger_PrintfIgnoresBackendError(t *testing.T) {
+func TestLogger_PrintfDoesNotPanicWhenHandlerFails(t *testing.T) {
 	t.Parallel()
 
 	backend := &recordingLogger{err: errors.New("write failed")}
