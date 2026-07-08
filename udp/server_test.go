@@ -36,7 +36,7 @@ func TestServer(t *testing.T) {
 		case err := <-startErr:
 			require.ErrorIs(t, err, net.ErrClosed)
 		case <-time.After(time.Second):
-			t.Fatal("server did not stop")
+			require.FailNow(t, "server did not stop")
 		}
 	})
 
@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 
 		select {
 		case err := <-recoveryErr:
-			t.Fatalf("recovery handler called: %v", err)
+			require.FailNowf(t, "recovery handler called", "%v", err)
 		case buf := <-done:
 			return string(buf) == "test"
 		default:
