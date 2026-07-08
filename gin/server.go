@@ -37,12 +37,12 @@ func NewServer(e *gin.Engine, opts ...Option) *Server {
 	return srv
 }
 
-func (s *Server) Start(_ context.Context) error {
-	s.logger.Info("[GIN] server listening on: " + s.server.Addr)
+func (s *Server) Start(ctx context.Context) error {
+	s.logger.InfoContext(ctx, "[GIN] server listening on: "+s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	s.logger.Info("[GIN] server stopping")
+	s.logger.InfoContext(ctx, "[GIN] server stopping")
 	return s.server.Shutdown(ctx)
 }
