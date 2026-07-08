@@ -1,20 +1,24 @@
 package ent
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/go-kratos/kratos/v2/log"
+	"log/slog"
 )
 
 type Logger func(...any)
 
-func NewLogger(logger log.Logger, levels ...log.Level) Logger {
-	level := log.LevelDebug
+func NewLogger(logger *slog.Logger, levels ...slog.Level) Logger {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	level := slog.LevelDebug
 	if len(levels) > 0 {
 		level = levels[0]
 	}
 
 	return func(args ...any) {
-		_ = logger.Log(level, "msg", fmt.Sprint(args...))
+		logger.Log(context.Background(), level, fmt.Sprint(args...))
 	}
 }
