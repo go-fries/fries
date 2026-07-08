@@ -3,7 +3,7 @@ package semconv
 import (
 	"testing"
 
-	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-kratos/kratos/v3/transport"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"

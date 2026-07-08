@@ -16,7 +16,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v3"
 
 	"github.com/go-fries/fries/signal/v4"
 )

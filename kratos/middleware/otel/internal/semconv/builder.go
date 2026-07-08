@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-kratos/kratos/v2/metadata"
-	"github.com/go-kratos/kratos/v2/transport"
-	khttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/go-kratos/kratos/v3/metadata"
+	"github.com/go-kratos/kratos/v3/transport"
+	khttp "github.com/go-kratos/kratos/v3/transport/http"
 	"go.opentelemetry.io/otel/attribute"
 	"google.golang.org/grpc/peer"
 )

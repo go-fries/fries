@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/go-fries/fries/kratos/middleware/otel/v4/internal/semconv"
-	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-kratos/kratos/v3/middleware"
+	"github.com/go-kratos/kratos/v3/transport"
 	"go.opentelemetry.io/otel/trace"
 )
 

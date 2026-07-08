@@ -16,7 +16,7 @@ package main
 import (
 	server "github.com/go-fries/fries/queue/kratos/server/v4"
 	"github.com/go-fries/fries/queue/v4"
-	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v3"
 )
 
 func newApp(q queue.Queue, handler queue.Handler) *kratos.App {

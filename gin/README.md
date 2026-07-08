@@ -43,7 +43,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v3"
 
 	gins "github.com/go-fries/fries/gin/v4"
 )

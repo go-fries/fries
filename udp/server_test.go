@@ -2,58 +2,73 @@ package udp
 
 import (
 	"net"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestServer(t *testing.T) {
-	var (
-		server *Server
-		wg     sync.WaitGroup
-		done   = make(chan []byte, 1)
+	addr := newUDPAddr(t)
+	done := make(chan []byte, 1)
+	recoveryErr := make(chan any, 1)
+
+	server := NewServer(
+		addr,
+		WithHandler(func(msg *Message) {
+			done <- append([]byte(nil), msg.Body...)
+		}),
+		WithRecoveryHandler(func(_ *Message, err any) {
+			recoveryErr <- err
+		}),
+		WithBufSize(1024),
 	)
 
-	wg.Add(2)
-
+	startErr := make(chan error, 1)
 	go func() {
-		defer wg.Done()
-
-		server = NewServer(":12190", WithHandler(func(msg *Message) {
-			done <- msg.Body
-		}), WithRecoveryHandler(func(_ *Message, err any) {
-			t.Log(err)
-		}), WithBufSize(1024))
-
-		go server.Start(t.Context()) //nolint:errcheck
-
-		time.Sleep(time.Second * 5)
-		_ = server.Stop(t.Context())
+		startErr <- server.Start(t.Context())
 	}()
 
-	go func() {
-		defer wg.Done()
+	t.Cleanup(func() {
+		require.NoError(t, server.Stop(t.Context()))
 
-		time.Sleep(time.Second * 3)
+		select {
+		case err := <-startErr:
+			require.ErrorIs(t, err, net.ErrClosed)
+		case <-time.After(time.Second):
+			require.FailNow(t, "server did not stop")
+		}
+	})
 
-		c, err := net.Dial("udp", ":12190")
+	require.Eventually(t, func() bool {
+		c, err := net.Dial("udp", addr)
 		if err != nil {
-			t.Error(err)
-			return
+			return false
 		}
 		defer c.Close() //nolint:errcheck
 
-		_, err = c.Write([]byte("test"))
-		if err != nil {
-			t.Error(err)
-			return
+		if _, err = c.Write([]byte("test")); err != nil {
+			return false
 		}
-	}()
 
-	wg.Wait()
+		select {
+		case err := <-recoveryErr:
+			require.FailNowf(t, "recovery handler called", "%v", err)
+		case buf := <-done:
+			return string(buf) == "test"
+		default:
+			return false
+		}
+		return false
+	}, 3*time.Second, 10*time.Millisecond)
+}
 
-	buf := <-done
-	if string(buf) != "test" {
-		t.Fatal("buf not equal test")
-	}
+func newUDPAddr(t *testing.T) string {
+	t.Helper()
+
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer conn.Close() //nolint:errcheck
+
+	return conn.LocalAddr().String()
 }
