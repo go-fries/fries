@@ -2,6 +2,7 @@ package otlp
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -17,10 +18,13 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	cfg := newConfig(allSignals)
+	cfgWithNilLogger := newConfig(allSignals, WithLogger(nil))
 
 	assert.True(t, cfg.signalEnabled(TraceSignal))
 	assert.True(t, cfg.signalEnabled(MetricSignal))
 	assert.True(t, cfg.signalEnabled(LogSignal))
+	assert.Same(t, slog.Default(), cfg.logger)
+	assert.Same(t, slog.Default(), cfgWithNilLogger.logger)
 	assert.Equal(t, defaultTraceBatchTimeout, cfg.traceBatchTimeout)
 	assert.Equal(t, defaultTraceExportTimeout, cfg.traceExportTimeout)
 	assert.Equal(t, defaultMetricInterval, cfg.metricInterval)
@@ -79,6 +83,7 @@ func TestConfigCoreOptions(t *testing.T) {
 	tracerProvider := sdktrace.NewTracerProvider()
 	meterProvider := sdkmetric.NewMeterProvider()
 	loggerProvider := sdklog.NewLoggerProvider()
+	logger := slog.New(&recordingHandler{})
 	sampler := sdktrace.NeverSample()
 
 	ctx := t.Context()
@@ -95,6 +100,7 @@ func TestConfigCoreOptions(t *testing.T) {
 		WithTracerProvider(tracerProvider),
 		WithMeterProvider(meterProvider),
 		WithLoggerProvider(loggerProvider),
+		WithLogger(logger),
 		WithTraceSampler(sampler),
 	)
 
@@ -103,6 +109,7 @@ func TestConfigCoreOptions(t *testing.T) {
 	assert.Same(t, tracerProvider, cfg.tracerProvider)
 	assert.Same(t, meterProvider, cfg.meterProvider)
 	assert.Same(t, loggerProvider, cfg.loggerProvider)
+	assert.Same(t, logger, cfg.logger)
 	assert.Equal(t, sampler, cfg.traceSampler)
 }
 
