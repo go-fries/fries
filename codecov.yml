@@ -73,7 +73,6 @@ fixes:
   - github.com/go-fries/fries/log/slog/syslog/v4::log/slog/syslog/
   - github.com/go-fries/fries/kratos/middleware/cors/v4::kratos/middleware/cors/
   - github.com/go-fries/fries/kratos/middleware/protovalidate/v4::kratos/middleware/protovalidate/
-  - github.com/go-fries/fries/kratos/middleware/slowlog/v4::kratos/middleware/slowlog/
   - github.com/go-fries/fries/kratos/middleware/otel/v4::kratos/middleware/otel/
   - github.com/go-fries/fries/locker/v4::locker/
   - github.com/go-fries/fries/locker/redis/v4::locker/redis/
