@@ -14,8 +14,8 @@ import (
 	"log"
 
 	"github.com/bufbuild/protovalidate-go"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/go-kratos/kratos/v3"
+	"github.com/go-kratos/kratos/v3/transport/http"
 	
 	middlewareprotovalidate "github.com/go-kratos-ecosystem/components/v2/middleware/protovalidate"
 )

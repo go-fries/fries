@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/go-fries/fries/queue/v4"
-	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-kratos/kratos/v3/transport"
 )
 
 // Server adapts a queue worker to the Kratos transport server lifecycle.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-fries/fries/kratos/middleware/otel/v4/internal/semconv"
-	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v3/errors"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
