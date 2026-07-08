@@ -2,61 +2,121 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestServer(t *testing.T) {
-	ctx := t.Context()
-	srv := NewWithHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "server", r.URL.Query().Get("name"))
+func TestServerDoesNotExposeHTTPServer(t *testing.T) {
+	serverType := reflect.TypeFor[Server]()
+	httpServerType := reflect.TypeFor[*http.Server]()
 
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("hello world"))
-	}), WithHTTPServerAddr(":8081"))
-
-	go func(ctx context.Context) {
-		_ = srv.Start(ctx)
-	}(ctx)
-	defer func(ctx context.Context) {
-		assert.NoError(t, srv.Stop(ctx))
-	}(ctx)
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
-	defer cancel()
-
-	for {
-		select {
-		case <-ctx.Done():
-			t.Error("failed to start server")
-		default:
-			resp, err := http.Get("http://localhost:8081?name=server")
-			if err == nil && resp.StatusCode == http.StatusOK {
-				_ = resp.Body.Close()
-				t.Log("server started")
-				return
-			}
-		}
+	for i := range serverType.NumField() {
+		field := serverType.Field(i)
+		assert.False(t, field.Anonymous && field.Type == httpServerType)
 	}
 }
 
-func TestServer_Name(t *testing.T) {
-	tests := []struct {
-		name string
-		want string
-	}{
-		{"", "HTTP"},
-		{"test", "test"},
-		{"gin", "gin"},
-	}
+func TestNewUsesConfiguredHTTPServer(t *testing.T) {
+	srv := New(&http.Server{
+		Addr: ":8081",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "server", r.URL.Query().Get("name"))
+			_, _ = w.Write([]byte("hello world"))
+		}),
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			srv := New(&http.Server{}, WithName(tt.name))
-			assert.Equal(t, tt.want, srv.name)
-		})
-	}
+	req, err := http.NewRequest(http.MethodGet, "/?name=server", nil)
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	srv.server.Handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "hello world", recorder.Body.String())
+	assert.Equal(t, ":8081", srv.server.Addr)
+}
+
+func TestNewWithHandlerBuildsHTTPServer(t *testing.T) {
+	srv := NewWithHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("hello world"))
+	}), WithAddr(":8082"))
+
+	req, err := http.NewRequest(http.MethodGet, "/", nil)
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	srv.server.Handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "hello world", recorder.Body.String())
+	assert.Equal(t, ":8082", srv.server.Addr)
+}
+
+func TestNewDefaultsToSlogDefaultLogger(t *testing.T) {
+	logger := slog.New(&recordingHandler{})
+	previous := slog.Default()
+	slog.SetDefault(logger)
+	defer slog.SetDefault(previous)
+
+	srv := New(&http.Server{}, WithLogger(nil))
+
+	assert.Same(t, logger, srv.logger)
+}
+
+func TestWithLoggerConfiguresServerLogger(t *testing.T) {
+	logger := slog.New(&recordingHandler{})
+	srv := New(&http.Server{}, WithLogger(logger))
+
+	assert.Same(t, logger, srv.logger)
+}
+
+func TestServerStartWritesToConfiguredLogger(t *testing.T) {
+	handler := &recordingHandler{}
+	srv := New(&http.Server{Addr: "invalid addr"}, WithLogger(slog.New(handler)))
+
+	err := srv.Start(t.Context())
+
+	require.Error(t, err)
+	require.Len(t, handler.records, 1)
+	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
+	assert.Equal(t, "[HTTP] server listening on: invalid addr", handler.records[0].Message)
+}
+
+func TestServerStopWritesToConfiguredLogger(t *testing.T) {
+	handler := &recordingHandler{}
+	srv := New(&http.Server{}, WithLogger(slog.New(handler)))
+
+	err := srv.Stop(t.Context())
+
+	require.NoError(t, err)
+	require.Len(t, handler.records, 1)
+	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
+	assert.Equal(t, "[HTTP] server stopping", handler.records[0].Message)
+}
+
+type recordingHandler struct {
+	records []slog.Record
+}
+
+func (h *recordingHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *recordingHandler) Handle(_ context.Context, record slog.Record) error {
+	h.records = append(h.records, record.Clone())
+	return nil
+}
+
+func (h *recordingHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *recordingHandler) WithGroup(string) slog.Handler {
+	return h
 }
