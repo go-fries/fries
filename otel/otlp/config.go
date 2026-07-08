@@ -2,6 +2,7 @@ package otlp
 
 import (
 	"context"
+	"log/slog"
 	"runtime"
 	"time"
 
@@ -51,6 +52,9 @@ type config struct {
 	tracerProvider trace.TracerProvider
 	meterProvider  metric.MeterProvider
 	loggerProvider log.LoggerProvider
+
+	// internal logging
+	logger *slog.Logger
 
 	// resource options
 	serviceName               string
@@ -136,6 +140,17 @@ func WithMeterProvider(provider metric.MeterProvider) Option {
 func WithLoggerProvider(provider log.LoggerProvider) Option {
 	return optionFunc(func(c *config) {
 		c.loggerProvider = provider
+	})
+}
+
+// WithLogger sets the logger used for client lifecycle logs.
+//
+// When logger is nil, the client uses [slog.Default].
+func WithLogger(logger *slog.Logger) Option {
+	return optionFunc(func(c *config) {
+		if logger != nil {
+			c.logger = logger
+		}
 	})
 }
 
@@ -266,6 +281,7 @@ func newConfig(signals Signal, opts ...Option) *config {
 		logExportInterval:  defaultLogExportInterval,
 		logExportTimeout:   defaultLogExportTimeout,
 		batchQueueSize:     queueSize(),
+		logger:             slog.Default(),
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
