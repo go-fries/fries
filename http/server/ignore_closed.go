@@ -6,22 +6,16 @@ import (
 	"net/http"
 )
 
-// IgnoreServerClosed returns a server that treats [http.ErrServerClosed] from Start as nil.
-func IgnoreServerClosed(srv interface {
-	Start(context.Context) error
-	Stop(context.Context) error
-},
-) IgnoreClosed {
-	return IgnoreClosed{srv: srv}
+// IgnoreServerClosed returns a [Server] that treats [http.ErrServerClosed] from Start as nil.
+func IgnoreServerClosed(srv Server) Server {
+	return ignoreClosed{srv: srv}
 }
 
-// IgnoreClosed wraps a server and ignores [http.ErrServerClosed] returned by Start.
-type IgnoreClosed struct {
-	srv server
+type ignoreClosed struct {
+	srv Server
 }
 
-// Start starts the wrapped server and returns nil for [http.ErrServerClosed].
-func (s IgnoreClosed) Start(ctx context.Context) error {
+func (s ignoreClosed) Start(ctx context.Context) error {
 	err := s.srv.Start(ctx)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
@@ -29,7 +23,6 @@ func (s IgnoreClosed) Start(ctx context.Context) error {
 	return err
 }
 
-// Stop stops the wrapped server.
-func (s IgnoreClosed) Stop(ctx context.Context) error {
+func (s ignoreClosed) Stop(ctx context.Context) error {
 	return s.srv.Stop(ctx)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func TestServerDoesNotExposeHTTPServer(t *testing.T) {
-	serverType := reflect.TypeFor[Server]()
+	serverType := reflect.TypeFor[HTTPServer]()
 	httpServerType := reflect.TypeFor[*http.Server]()
 
 	for i := range serverType.NumField() {
