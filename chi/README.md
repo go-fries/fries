@@ -17,14 +17,15 @@ import (
 )
 
 func main() {
-	cs := chis.NewServer(
-		chi.NewRouter(),
-		chis.Addr(":8001"),
-	)
-
-	cs.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+	router := chi.NewRouter()
+	router.Get("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("hello world"))
 	})
+
+	cs := chis.NewServer(
+		router,
+		chis.WithAddr(":8001"),
+	)
 
 	app := kratos.New(
 		kratos.Server(cs),

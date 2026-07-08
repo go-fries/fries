@@ -2,38 +2,36 @@ package chi
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 type Server struct {
-	*chi.Mux
 	server *http.Server
-	addr   string
+	logger *slog.Logger
 }
 
-type Option func(*Server)
-
-func Addr(addr string) Option {
-	return func(s *Server) {
-		s.addr = addr
-	}
+type server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
 }
+
+var _ server = (*Server)(nil)
 
 func NewServer(c *chi.Mux, opts ...Option) *Server {
-	srv := &Server{
-		Mux:  c,
-		addr: ":8080",
+	cfg := newConfig(opts...)
+	if c == nil {
+		c = chi.NewRouter()
 	}
 
-	for _, opt := range opts {
-		opt(srv)
+	srv := &Server{
+		logger: cfg.logger,
 	}
 
 	srv.server = &http.Server{
-		Addr:    srv.addr,
+		Addr:    cfg.addr,
 		Handler: c,
 	}
 
@@ -41,11 +39,11 @@ func NewServer(c *chi.Mux, opts ...Option) *Server {
 }
 
 func (s *Server) Start(_ context.Context) error {
-	log.Infof("[go-chi] server listening on: %s", s.addr)
+	s.logger.Info("[go-chi] server listening on: " + s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	log.Info("[go-chi] server stopping")
+	s.logger.Info("[go-chi] server stopping")
 	return s.server.Shutdown(ctx)
 }
