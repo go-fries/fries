@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/propagation"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	otelsemconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var _ transport.Transporter = (*mockTransport)(nil)
@@ -167,6 +170,32 @@ func TestServer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, childSpanID)
 	assert.Empty(t, childTraceID)
+}
+
+func TestServerAddsPeerServiceFromMetadataCarrier(t *testing.T) {
+	recorder := tracetest.NewSpanRecorder()
+	provider := tracesdk.NewTracerProvider(tracesdk.WithSpanProcessor(recorder))
+
+	tr := &mockTransport{
+		kind:      transport.KindHTTP,
+		operation: "/test.server/hello",
+		header: headerCarrier{
+			"X-Md-Service-Name": []string{"caller-service"},
+		},
+	}
+	next := func(_ context.Context, req any) (any, error) {
+		return req, nil
+	}
+
+	_, err := Server(WithTracerProvider(provider))(next)(
+		transport.NewServerContext(t.Context(), tr),
+		&emptypb.Empty{},
+	)
+
+	require.NoError(t, err)
+	ended := recorder.Ended()
+	require.Len(t, ended, 1)
+	assert.Contains(t, ended[0].Attributes(), otelsemconv.ServicePeerName("caller-service"))
 }
 
 func TestClient(t *testing.T) {

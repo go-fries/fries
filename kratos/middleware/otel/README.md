@@ -35,7 +35,7 @@ func main() {
 				http.Address(":8001"),
 				http.Middleware(kratosotel.Server(
 					kratosotel.WithTracerProvider(tracerProvider),
-					kratosotel.WithSchemaURL("https://opentelemetry.io/schemas/1.37.0"),
+					kratosotel.WithSchemaURL("https://opentelemetry.io/schemas/1.41.0"),
 					kratosotel.WithAttributes(attribute.String("component", "kratos")),
 				)),
 			),
@@ -51,6 +51,12 @@ func main() {
 The instrumentation scope name is fixed to this package path. Use
 `WithVersion`, `WithSchemaURL`, and `WithAttributes` to configure the
 OpenTelemetry instrumentation scope metadata.
+
+The middleware emits traces only. It does not create metrics instruments, so
+histogram naming rules such as `_bucket` suffix handling are outside this
+package. For `log/slog` to OpenTelemetry log records, use the official
+`go.opentelemetry.io/contrib/bridges/otelslog` package instead of this
+middleware.
 
 ## License
 
