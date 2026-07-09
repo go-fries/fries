@@ -60,5 +60,5 @@ middleware.
 
 ## License
 
-- The MIT License ([MIT](https://github.com/go-kratos-ecosystem/components/blob/2.x/LICENSE)). 
+- The MIT License ([MIT](https://github.com/go-fries/fries/blob/4.x/LICENSE)).
 - [Kratos](https://github.com/go-kratos/kratos) License File: [License File](https://github.com/go-kratos/kratos/blob/8b8dc4b0f8bebb76939780f59734c20c265669c5/LICENSE)

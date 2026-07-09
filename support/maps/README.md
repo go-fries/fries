@@ -8,7 +8,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-kratos-ecosystem/components/v2/maps"
+	"github.com/go-fries/fries/support/v4/maps"
 )
 
 func main() {

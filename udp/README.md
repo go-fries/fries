@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-kratos/kratos/v3"
 
-	"github.com/go-kratos-ecosystem/components/v2/udp"
+	"github.com/go-fries/fries/udp/v4"
 )
 
 func main() {
