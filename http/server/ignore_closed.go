@@ -4,23 +4,21 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
+	"github.com/go-fries/fries/contract/v4"
 )
 
 // IgnoreServerClosed returns a server that treats [http.ErrServerClosed] from Start as nil.
-func IgnoreServerClosed(srv interface {
-	Start(context.Context) error
-	Stop(context.Context) error
-},
-) *IgnoreClosedServer {
+func IgnoreServerClosed(srv contract.Server) *IgnoreClosedServer {
 	return &IgnoreClosedServer{srv: srv}
 }
 
 // IgnoreClosedServer wraps a server and ignores [http.ErrServerClosed] returned by Start.
 type IgnoreClosedServer struct {
-	srv server
+	srv contract.Server
 }
 
-var _ server = (*IgnoreClosedServer)(nil)
+var _ contract.Server = (*IgnoreClosedServer)(nil)
 
 // Start starts the wrapped server and returns nil for [http.ErrServerClosed].
 func (s *IgnoreClosedServer) Start(ctx context.Context) error {
