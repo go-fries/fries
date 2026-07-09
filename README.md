@@ -14,7 +14,6 @@
 > [!IMPORTANT]
 > The v4 line may include breaking changes compared with v3, please use with caution.
 > Backward compatibility is the default behavior within v4, and any incompatibilities will be noted in the release.
-> See [MIGRATION.md](MIGRATION.md) for the 3.x to 4.x migration guide.
 
 ## Installation
 
