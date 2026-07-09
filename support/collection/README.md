@@ -5,7 +5,7 @@
 ```go
 package main
 
-import "github.com/go-kratos-ecosystem/components/v2/collection"
+import "github.com/go-fries/fries/support/v4/collection"
 
 func main() {
 	// int

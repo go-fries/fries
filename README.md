@@ -14,6 +14,18 @@
 > [!IMPORTANT]
 > The v4 line may include breaking changes compared with v3, please use with caution.
 > Backward compatibility is the default behavior within v4, and any incompatibilities will be noted in the release.
+> See [MIGRATION.md](MIGRATION.md) for the 4.x migration guide.
+
+## 4.x Notes
+
+Fries 4.x targets Kratos v3 and standard library `log/slog`.
+
+- Fries import paths use `/v4`.
+- Kratos integrations use `github.com/go-kratos/kratos/v3`.
+- Component lifecycle loggers use `*slog.Logger`.
+- Kratos-specific log modules moved to `log/slog/*`; OpenTelemetry logs should
+  use the official `otelslog` bridge.
+- The shared interface module moved from `contract/v4` to `capability/v4`.
 
 ## Installation
 

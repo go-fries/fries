@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-kratos-ecosystem/components/v2/prints"
+	"github.com/go-fries/fries/x/prints/v4"
 )
 
 func main() {

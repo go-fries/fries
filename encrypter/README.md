@@ -5,7 +5,7 @@
 ```go
 package main
 
-import "github.com/go-kratos-ecosystem/components/v2/encrypter"
+import "github.com/go-fries/fries/encrypter/v4"
 
 func main() {
 	e := encrypter.New("EAFBSPAXDCIOGRUVNERQGXPYGPNKYATM")

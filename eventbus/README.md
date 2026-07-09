@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-kratos-ecosystem/components/v2/eventbus"
+	"github.com/go-fries/fries/eventbus/v4"
 )
 
 type Event struct {
