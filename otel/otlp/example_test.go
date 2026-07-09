@@ -3,7 +3,7 @@ package otlp_test
 import (
 	"context"
 
-	"github.com/go-fries/fries/otel/otlp/v3"
+	"github.com/go-fries/fries/otel/otlp/v4"
 	"go.opentelemetry.io/otel/attribute"
 )
 

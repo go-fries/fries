@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v3"
+	"github.com/go-fries/fries/hyperf/jet/middleware/otel/v4"
 )
 
 // regex taken from https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string

@@ -13,8 +13,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/retry"
+	"github.com/go-fries/fries/hyperf/jet/v4"
+	"github.com/go-fries/fries/hyperf/jet/middleware/retry/v4"
 )
 
 var customErr = errors.New("custom error")

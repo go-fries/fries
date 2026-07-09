@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/errors/v3"
+	"github.com/go-fries/fries/errors/v4"
 	"github.com/stretchr/testify/assert"
 )
 

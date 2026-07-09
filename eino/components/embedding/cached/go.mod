@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/eino/components/embedding/cached/v3
+module github.com/go-fries/fries/eino/components/embedding/cached/v4
 
 go 1.25.0
 

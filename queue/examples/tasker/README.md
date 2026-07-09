@@ -1,6 +1,6 @@
 # Queue Tasker Example
 
-Typed tasker example for `github.com/go-fries/fries/queue/v3`.
+Typed tasker example for `github.com/go-fries/fries/queue/v4`.
 
 ```bash
 go run .

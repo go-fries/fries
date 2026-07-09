@@ -6,7 +6,7 @@ This package provides a GORM logger that dispatches each log call to multiple
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/gorm/logger/multi/v3
+go get github.com/go-fries/fries/gorm/logger/multi/v4
 ```
 
 ## Usage
@@ -15,8 +15,8 @@ go get github.com/go-fries/fries/gorm/logger/multi/v3
 package main
 
 import (
-	"github.com/go-fries/fries/gorm/logger/multi/v3"
-	"github.com/go-fries/fries/gorm/logger/otel/v3"
+	"github.com/go-fries/fries/gorm/logger/multi/v4"
+	"github.com/go-fries/fries/gorm/logger/otel/v4"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

@@ -5,7 +5,7 @@ This package provides a GORM logger implementation backed by the [OpenTelemetry 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/gorm/logger/otel/v3
+go get github.com/go-fries/fries/gorm/logger/otel/v4
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-fries/fries/gorm/logger/otel/v3"
+	"github.com/go-fries/fries/gorm/logger/otel/v4"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"

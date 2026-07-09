@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/cloudevents/protocol/amqp091/v3
+module github.com/go-fries/fries/cloudevents/protocol/amqp091/v4
 
 go 1.25.0
 

@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-fries/fries/cache/v3"
-	"github.com/go-fries/fries/codec/json/v3"
-	"github.com/go-fries/fries/codec/v3"
-	lockerredis "github.com/go-fries/fries/locker/redis/v3"
-	"github.com/go-fries/fries/locker/v3"
+	"github.com/go-fries/fries/cache/v4"
+	"github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/codec/v4"
+	lockerredis "github.com/go-fries/fries/locker/redis/v4"
+	"github.com/go-fries/fries/locker/v4"
 	"github.com/redis/go-redis/v9"
 )
 

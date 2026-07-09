@@ -1,8 +1,11 @@
 syntax = "proto3";
 
+// Internal test proto kept inside the component package.
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
 package proto;
 
-option go_package = "github.com/flc/go-fries/fries/codec/v3/internal/proto";
+option go_package = "github.com/go-fries/fries/codec/proto/v4/internal/proto";
 
 message TestMessage {
   string name = 1;

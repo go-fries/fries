@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sync"
 
-	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 )
@@ -142,7 +141,7 @@ func (c *Client) Configure(ctx context.Context) error {
 	}
 	c.configured = true
 
-	kratoslog.Info("OTLP client configured")
+	c.config.logger.InfoContext(ctx, "OTLP client configured")
 
 	return nil
 }
@@ -219,7 +218,7 @@ func (c *Client) Shutdown(ctx context.Context) (err error) {
 	}
 	c.mu.Unlock()
 
-	kratoslog.Infof("OTLP client is shutting down")
+	c.config.logger.InfoContext(ctx, "OTLP client is shutting down")
 
 	for _, provider := range providers {
 		if provider == nil {

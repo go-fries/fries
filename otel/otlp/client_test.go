@@ -3,6 +3,7 @@ package otlp
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -248,6 +249,32 @@ func TestClientLifecycle(t *testing.T) {
 		assert.Equal(t, int32(1), metricExporter.shutdownCount.Load())
 		assert.Equal(t, int32(1), logExporter.shutdownCount.Load())
 	})
+
+	t.Run("writes lifecycle logs to configured logger", func(t *testing.T) {
+		restoreGlobals := saveGlobalProviders(t)
+		defer restoreGlobals()
+
+		logHandler := &recordingHandler{}
+		client := newTestClient(
+			t,
+			&testTransport{
+				traceExporter:  &testTraceExporter{},
+				metricExporter: &testMetricExporter{},
+				logExporter:    &testLogExporter{},
+			},
+			WithHooks(noopHook{}),
+			WithLogger(slog.New(logHandler)),
+		)
+
+		require.NoError(t, client.Configure(t.Context()))
+		require.NoError(t, client.Shutdown(t.Context()))
+
+		require.Len(t, logHandler.records, 2)
+		assert.Equal(t, slog.LevelInfo, logHandler.records[0].Level)
+		assert.Equal(t, "OTLP client configured", logHandler.records[0].Message)
+		assert.Equal(t, slog.LevelInfo, logHandler.records[1].Level)
+		assert.Equal(t, "OTLP client is shutting down", logHandler.records[1].Message)
+	})
 }
 
 func TestClientSignals(t *testing.T) {
@@ -405,6 +432,27 @@ func (h *blockingHook) Configured(context.Context, *Client) error {
 	})
 	<-h.release
 	return nil
+}
+
+type recordingHandler struct {
+	records []slog.Record
+}
+
+func (h *recordingHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *recordingHandler) Handle(_ context.Context, record slog.Record) error {
+	h.records = append(h.records, record.Clone())
+	return nil
+}
+
+func (h *recordingHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *recordingHandler) WithGroup(string) slog.Handler {
+	return h
 }
 
 type testTransport struct {

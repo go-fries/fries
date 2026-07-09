@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/metadata"
+	"github.com/go-kratos/kratos/v3"
+	"github.com/go-kratos/kratos/v3/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/propagation"

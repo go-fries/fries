@@ -1,10 +1,7 @@
 package signal
 
 import (
-	"context"
-	"os"
-
-	"github.com/go-kratos/kratos/v2/log"
+	"log/slog"
 )
 
 // Option configures a Server.
@@ -14,13 +11,13 @@ type Option interface {
 
 type config struct {
 	handlers []Handler
-	recovery RecoveryHandler
+	logger   *slog.Logger
 }
 
 func newConfig(opts ...Option) config {
 	cfg := config{
 		handlers: make([]Handler, 0),
-		recovery: defaultRecovery,
+		logger:   slog.Default(),
 	}
 
 	for _, opt := range opts {
@@ -46,23 +43,11 @@ func WithHandlers(handlers ...Handler) Option {
 	})
 }
 
-// WithRecovery configures a panic recovery hook for handler execution.
-func WithRecovery(handler RecoveryHandler) Option {
+// WithLogger configures the slog logger used by server logs.
+func WithLogger(logger *slog.Logger) Option {
 	return optionFunc(func(cfg *config) {
-		if handler != nil {
-			cfg.recovery = handler
+		if logger != nil {
+			cfg.logger = logger
 		}
 	})
-}
-
-// RecoveryHandler handles panics raised by signal handlers.
-type RecoveryHandler func(context.Context, os.Signal, Handler, any)
-
-// DefaultRecovery logs panics raised by signal handlers.
-func DefaultRecovery(ctx context.Context, sig os.Signal, handler Handler, recovered any) {
-	defaultRecovery(ctx, sig, handler, recovered)
-}
-
-var defaultRecovery RecoveryHandler = func(ctx context.Context, sig os.Signal, _ Handler, recovered any) {
-	log.Context(ctx).Errorf("[Signal] handler panic (%s): %v", sig, recovered)
 }

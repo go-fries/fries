@@ -13,16 +13,16 @@ package main
 import (
 	"log"
 
-	"github.com/bufbuild/protovalidate-go"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/transport/http"
-	
-	middlewareprotovalidate "github.com/go-kratos-ecosystem/components/v2/middleware/protovalidate"
+	"buf.build/go/protovalidate"
+	"github.com/go-kratos/kratos/v3"
+	"github.com/go-kratos/kratos/v3/transport/http"
+
+	middlewareprotovalidate "github.com/go-fries/fries/kratos/middleware/protovalidate/v4"
 )
 
 func main() {
 	validator, err := protovalidate.New(
-		protovalidate.WithFailFast(true),
+		protovalidate.WithFailFast(),
 	)
 	if err != nil {
 		log.Fatal(err)

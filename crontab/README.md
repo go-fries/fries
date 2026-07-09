@@ -10,7 +10,7 @@ locations, middleware, and loggers on `*cron.Cron`, then pass that scheduler to
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/crontab/v3
+go get github.com/go-fries/fries/crontab/v4
 ```
 
 ## Usage
@@ -22,8 +22,8 @@ import (
 	"context"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/go-fries/fries/crontab/v3"
-	"github.com/go-kratos/kratos/v2"
+	"github.com/go-fries/fries/crontab/v4"
+	"github.com/go-kratos/kratos/v3"
 )
 
 func main() {
@@ -73,18 +73,19 @@ _, err := server.Cron().AddFunc("@every 1m", func(context.Context) error {
 
 ## Logging
 
-`NewLogger` adapts a Kratos logger to cron's `Printf` logger shape. Use
+`NewLogger` adapts a slog logger to cron's `Printf` logger shape. Use
 `cron.PrintfLogger` or `cron.VerbosePrintfLogger` to pass it to go-cron.
 
 ```go
+logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 c := cron.New(
 	cron.WithLogger(
 		cron.VerbosePrintfLogger(
-			crontab.NewLogger(crontab.WithLogger(log.DefaultLogger)),
+			crontab.NewLogger(crontab.WithLogger(logger)),
 		),
 	),
 )
 ```
 
-`NewLogger()` uses Kratos' default logger. `WithLogger(nil)` leaves the current
+`NewLogger()` uses `slog.Default()`. `WithLogger(nil)` leaves the current
 logger unchanged.

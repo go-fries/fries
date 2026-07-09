@@ -1,11 +1,11 @@
 # Redis Queue
 
-Redis Streams adapter for `github.com/go-fries/fries/queue/v3`.
+Redis Streams adapter for `github.com/go-fries/fries/queue/v4`.
 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/adapter/redis/v3
+go get github.com/go-fries/fries/queue/adapter/redis/v4
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
 	"time"
 
-	redis "github.com/go-fries/fries/queue/adapter/redis/v3"
+	redis "github.com/go-fries/fries/queue/adapter/redis/v4"
 	goredis "github.com/redis/go-redis/v9"
 )
 

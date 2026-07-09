@@ -2,7 +2,7 @@ package sonic
 
 import (
 	"github.com/bytedance/sonic"
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/v4"
 )
 
 var Codec codec.Codec = &sonicCodec{}

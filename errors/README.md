@@ -5,7 +5,7 @@ Helper functions for creating and handling Kratos errors with standard HTTP stat
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/errors/v3
+go get github.com/go-fries/fries/errors/v4
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-fries/fries/errors/v3"
+	"github.com/go-fries/fries/errors/v4"
 )
 
 func main() {

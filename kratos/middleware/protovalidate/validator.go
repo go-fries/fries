@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"buf.build/go/protovalidate"
-	"github.com/go-kratos/kratos/v2/errors"
-	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/go-kratos/kratos/v3/errors"
+	"github.com/go-kratos/kratos/v3/middleware"
 	"google.golang.org/protobuf/proto"
 )
 

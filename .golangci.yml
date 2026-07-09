@@ -77,4 +77,4 @@ formatters:
   settings:
     gofumpt:
       extra-rules: true
-      module-path: github.com/go-fries/fries/v3
+      module-path: github.com/go-fries/fries/v4

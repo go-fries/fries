@@ -6,7 +6,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 // HandlerFunc handles a recovered queue handler panic.

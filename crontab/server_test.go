@@ -2,6 +2,7 @@ package crontab
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -36,6 +37,17 @@ func TestNewServer(t *testing.T) {
 
 	require.NotNil(t, server)
 	assert.Same(t, c, server.Cron())
+}
+
+func TestNewServer_WithLogger(t *testing.T) {
+	t.Parallel()
+
+	backend := &recordingLogger{}
+	logger := slog.New(backend)
+	opts := []ServerOption{WithLogger(logger), nil}
+	server := NewServer(cron.New(), opts...)
+
+	assert.Same(t, logger, server.logger)
 }
 
 func TestServer_ImplementsLifecycleServer(t *testing.T) {

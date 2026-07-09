@@ -1,11 +1,11 @@
 # Memory Queue
 
-In-memory adapter for `github.com/go-fries/fries/queue/v3`.
+In-memory adapter for `github.com/go-fries/fries/queue/v4`.
 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/adapter/memory/v3
+go get github.com/go-fries/fries/queue/adapter/memory/v4
 ```
 
 ## Usage
@@ -16,8 +16,8 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/queue/adapter/memory/v3"
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/adapter/memory/v4"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 func enqueue(ctx context.Context) error {

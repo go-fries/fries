@@ -81,18 +81,18 @@ This is a multi-module repository with the following organization:
 
 **Manual Testing Scenarios:**
 - Build and run example applications in `examples/` directory: `cd examples/cache && go build .` (builds successfully, requires Redis to run)
-- Test that imports work with module functionality: Create a simple test program importing key modules like `strings/v3` and `support/v3`
+- Test that imports work with module functionality: Create a simple test program importing key modules like `strings/v4` and `support/v4`
 - Validate module interfaces haven't broken by spot-checking key modules like `support`, `strings`, `errors`
-- Run example test: `cd /tmp && mkdir test_app && cd test_app && go mod init test && echo 'package main; import "github.com/go-fries/fries/strings/v3"; func main() { println(strings.MD5("test")) }' > main.go` then `go mod tidy && go run main.go`
+- Run example test: `cd /tmp && mkdir test_app && cd test_app && go mod init test && echo 'package main; import "github.com/go-fries/fries/strings/v4"; func main() { println(strings.MD5("test")) }' > main.go` then `go mod tidy && go run main.go`
 
 ## Module Development Patterns
 
 This repository follows Go module best practices:
 
 - Each directory with `go.mod` is an independent module
-- Modules are versioned as `v3` (breaking change from v2)  
-- Cross-module dependencies use full import paths: `github.com/go-fries/fries/<module>/v3`
-- All modules maintain backward compatibility within v3
+- Modules are versioned as `v4` (breaking change from v3)
+- Cross-module dependencies use full import paths: `github.com/go-fries/fries/<module>/v4`
+- All modules maintain backward compatibility within v4
 
 ## Common Issues
 

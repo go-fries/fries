@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-fries/fries/hyperf/jet/v3"
+	"github.com/go-fries/fries/hyperf/jet/v4"
 )
 
 func main() {

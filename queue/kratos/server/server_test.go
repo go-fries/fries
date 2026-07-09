@@ -3,11 +3,12 @@ package server
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -240,10 +241,47 @@ func TestServer_StartReturnsWorkerError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("dequeue failed")
-	server := New(queue.NewWorker(dequeueErrorQueue{err: wantErr}))
+	handler := &recordingHandler{}
+	server := New(queue.NewWorker(dequeueErrorQueue{err: wantErr}), WithLogger(slog.New(handler)))
 
 	err := server.Start(t.Context())
 
 	require.ErrorIs(t, err, wantErr)
+	require.Len(t, handler.records, 1)
+	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
+	assert.Equal(t, "[Queue] server starting", handler.records[0].Message)
 	assert.NoError(t, server.Stop(t.Context()))
+}
+
+func TestServer_StopWritesToConfiguredLogger(t *testing.T) {
+	t.Parallel()
+
+	handler := &recordingHandler{}
+	server := New(queue.NewWorker(newBlockingQueue()), WithLogger(slog.New(handler)))
+
+	require.NoError(t, server.Stop(t.Context()))
+	require.Len(t, handler.records, 1)
+	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
+	assert.Equal(t, "[Queue] server stopping", handler.records[0].Message)
+}
+
+type recordingHandler struct {
+	records []slog.Record
+}
+
+func (h *recordingHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *recordingHandler) Handle(_ context.Context, record slog.Record) error {
+	h.records = append(h.records, record.Clone())
+	return nil
+}
+
+func (h *recordingHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *recordingHandler) WithGroup(string) slog.Handler {
+	return h
 }

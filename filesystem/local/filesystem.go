@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-fries/fries/filesystem/v3"
+	"github.com/go-fries/fries/filesystem/v4"
 )
 
 type Filesystem struct {

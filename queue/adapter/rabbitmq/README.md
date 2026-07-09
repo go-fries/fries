@@ -1,11 +1,11 @@
 # RabbitMQ Queue
 
-RabbitMQ AMQP 0.9.1 adapter for `github.com/go-fries/fries/queue/v3`.
+RabbitMQ AMQP 0.9.1 adapter for `github.com/go-fries/fries/queue/v4`.
 
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/adapter/rabbitmq/v3
+go get github.com/go-fries/fries/queue/adapter/rabbitmq/v4
 ```
 
 ## Usage
@@ -14,7 +14,7 @@ go get github.com/go-fries/fries/queue/adapter/rabbitmq/v3
 package main
 
 import (
-	rabbitmq "github.com/go-fries/fries/queue/adapter/rabbitmq/v3"
+	rabbitmq "github.com/go-fries/fries/queue/adapter/rabbitmq/v4"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

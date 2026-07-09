@@ -1,5 +1,6 @@
 
 TOOLS_MOD_DIR := ./internal/tools
+TOOLS_MOD_PATH := $(patsubst ./%,%,$(TOOLS_MOD_DIR))
 
 ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
 ROOT_GO_MOD_DIRS := $(filter-out $(TOOLS_MOD_DIR), $(ALL_GO_MOD_DIRS))
@@ -33,7 +34,7 @@ MULTIMOD = $(TOOLS)/multimod
 $(TOOLS)/multimod: PACKAGE=go.opentelemetry.io/build-tools/multimod
 
 CODECOVFIX = $(TOOLS)/codecovfix
-$(TOOLS)/codecovfix: PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_DIR)/v3/codecovfix
+$(TOOLS)/codecovfix: PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_PATH)/v4/codecovfix
 
 CROSSLINK = $(TOOLS)/crosslink
 $(CROSSLINK): PACKAGE=go.opentelemetry.io/build-tools/crosslink

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/go-fries/fries/cloudevents/protocol/amqp091/v3"
+	"github.com/go-fries/fries/cloudevents/protocol/amqp091/v4"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )

@@ -3,7 +3,7 @@ package otlp
 import (
 	"context"
 
-	"github.com/go-fries/fries/foundation/v3"
+	"github.com/go-fries/fries/foundation/v4"
 )
 
 // Provider adapts a [Client] to the [foundation.Provider] lifecycle.

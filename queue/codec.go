@@ -3,7 +3,7 @@ package queue
 import (
 	"encoding/json"
 
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/v4"
 )
 
 var defaultCodec codec.Codec = jsonCodec{}

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/codec/json/v3"
+	"github.com/go-fries/fries/codec/json/v4"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"

@@ -12,8 +12,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet"
-	"github.com/go-kratos-ecosystem/components/v2/hyperf/jet/middleware/timeout"
+	"github.com/go-fries/fries/hyperf/jet/v4"
+	"github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4"
 )
 
 func main() {

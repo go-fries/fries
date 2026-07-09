@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+// Internal test proto kept inside the component package.
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
 package tracing.v1;
 
 option go_package = "tracing/v1;tracingpb";

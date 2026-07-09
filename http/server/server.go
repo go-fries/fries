@@ -2,66 +2,53 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-fries/fries/capability/v4"
 )
 
+// Server wraps a standard library HTTP server with Start and Stop methods.
 type Server struct {
-	name string
-	*http.Server
+	name   string
+	server *http.Server
+	logger *slog.Logger
 }
 
-type Option func(*Server)
-
-func WithName(name string) Option {
-	return func(s *Server) {
-		if name != "" {
-			s.name = name
-		}
-	}
-}
-
-var _ transport.Server = (*Server)(nil)
+var _ capability.Server = (*Server)(nil)
 
 func New(srv *http.Server, opts ...Option) *Server {
-	s := &Server{
-		name:   "HTTP",
-		Server: srv,
+	cfg := newConfig(opts...)
+	if srv == nil {
+		srv = &http.Server{}
 	}
-	for _, opt := range opts {
-		opt(s)
+	if cfg.addr != "" {
+		srv.Addr = cfg.addr
+	}
+
+	s := &Server{
+		name:   cfg.name,
+		server: srv,
+		logger: cfg.logger,
 	}
 	return s
 }
 
-type HTTPServerOption func(*http.Server)
-
-func WithHTTPServerAddr(addr string) HTTPServerOption {
-	return func(s *http.Server) {
-		s.Addr = addr
-	}
-}
-
-func NewWithHandler(handler http.Handler, opts ...HTTPServerOption) *Server {
+func NewWithHandler(handler http.Handler, opts ...Option) *Server {
 	srv := &http.Server{
 		Handler: handler,
 		Addr:    ":8080",
 	}
-	for _, opt := range opts {
-		opt(srv)
-	}
 
-	return New(srv)
+	return New(srv, opts...)
 }
 
-func (s *Server) Start(_ context.Context) error {
-	log.Infof("[%s] server listening on: %s", s.name, s.Addr)
-	return s.ListenAndServe()
+func (s *Server) Start(ctx context.Context) error {
+	s.logger.InfoContext(ctx, "["+s.name+"] server listening on: "+s.server.Addr)
+	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	log.Infof("[%s] server stopping", s.name)
-	return s.Shutdown(ctx)
+	s.logger.InfoContext(ctx, "["+s.name+"] server stopping")
+	return s.server.Shutdown(ctx)
 }

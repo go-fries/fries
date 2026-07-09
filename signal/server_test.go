@@ -2,8 +2,8 @@ package signal
 
 import (
 	"context"
+	"log/slog"
 	"os"
-	"reflect"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -25,31 +25,25 @@ func TestServer_StartWithoutHandlersStops(t *testing.T) {
 	assert.NoError(t, receive(t, done))
 }
 
-func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
+func TestServer_ServeDispatchesAndLogsPanics(t *testing.T) {
 	sig := syscall.SIGUSR1
-	type contextKey struct{}
-	ctx := context.WithValue(t.Context(), contextKey{}, "recovery context")
 	handled := make(chan os.Signal, 1)
-	recovered := make(chan any, 1)
-	recoveredCtx := make(chan any, 1)
+	logHandler := &recordingHandler{}
 
 	srv := NewServer(
-		WithRecovery(func(ctx context.Context, _ os.Signal, _ Handler, panicValue any) {
-			recoveredCtx <- ctx.Value(contextKey{})
-			recovered <- panicValue
-		}),
+		WithLogger(slog.New(logHandler)),
 	)
 	handlers, signals := buildHandlers([]Handler{
 		testHandler{
 			signals: []os.Signal{sig},
-			handle: func(_ context.Context, sig os.Signal) {
-				handled <- sig
+			handle: func(context.Context, os.Signal) {
+				panic("handler panic")
 			},
 		},
 		testHandler{
 			signals: []os.Signal{sig},
-			handle: func(context.Context, os.Signal) {
-				panic("handler panic")
+			handle: func(_ context.Context, sig os.Signal) {
+				handled <- sig
 			},
 		},
 	})
@@ -59,13 +53,18 @@ func TestServer_ServeDispatchesAndRecovers(t *testing.T) {
 	ch := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 	go func() {
-		done <- srv.serve(ctx, ch, handlers)
+		done <- srv.serve(t.Context(), ch, handlers)
 	}()
 
 	ch <- sig
 	assert.Equal(t, sig, receive(t, handled))
-	assert.Equal(t, "recovery context", receive(t, recoveredCtx))
-	assert.Equal(t, "handler panic", receive(t, recovered))
+	require.Len(t, logHandler.records, 1)
+	assert.Equal(t, slog.LevelError, logHandler.records[0].Level)
+	assert.Equal(t, "[Signal] handler panic", logHandler.records[0].Message)
+	assert.Equal(t, map[string]any{
+		"panic":  "handler panic",
+		"signal": sig.String(),
+	}, slogRecordAttrs(logHandler.records[0]))
 
 	require.NoError(t, srv.Stop(t.Context()))
 	assert.NoError(t, receive(t, done))
@@ -101,7 +100,7 @@ func TestServer_ServeDispatchesAsyncHandlers(t *testing.T) {
 		assert.NoError(t, err)
 	case <-time.After(time.Second):
 		close(release)
-		t.Fatal("server did not stop while async handler was running")
+		require.FailNow(t, "server did not stop while async handler was running")
 	}
 	close(release)
 }
@@ -115,15 +114,17 @@ func TestServer_StopIsIdempotent(t *testing.T) {
 	})
 }
 
-func TestNewServer_DefaultRecovery(t *testing.T) {
-	assert.NotNil(t, NewServer().recovery)
-	assert.Equal(t, reflect.ValueOf(defaultRecovery).Pointer(), reflect.ValueOf(NewServer(WithRecovery(nil)).recovery).Pointer())
+func TestNewServer_WithLogger(t *testing.T) {
+	logger := slog.New(&recordingHandler{})
+	srv := NewServer(WithLogger(logger))
+
+	assert.Same(t, logger, srv.logger)
 }
 
 func TestNewServer_SkipsNilOptions(t *testing.T) {
 	assert.NotPanics(t, func() {
 		srv := NewServer(nil)
-		assert.NotNil(t, srv.recovery)
+		assert.NotNil(t, srv.logger)
 	})
 }
 
@@ -266,7 +267,7 @@ func TestServer_StartStopsPromptly(t *testing.T) {
 	case err := <-done:
 		assert.NoError(t, err)
 	case <-time.After(time.Second):
-		t.Fatal("server did not stop")
+		require.FailNow(t, "server did not stop")
 	}
 }
 
@@ -277,8 +278,38 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 	case value := <-ch:
 		return value
 	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for channel receive")
+		require.FailNow(t, "timed out waiting for channel receive")
 		var zero T
 		return zero
 	}
+}
+
+type recordingHandler struct {
+	records []slog.Record
+}
+
+func (h *recordingHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *recordingHandler) Handle(_ context.Context, record slog.Record) error {
+	h.records = append(h.records, record.Clone())
+	return nil
+}
+
+func (h *recordingHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *recordingHandler) WithGroup(string) slog.Handler {
+	return h
+}
+
+func slogRecordAttrs(record slog.Record) map[string]any {
+	attrs := make(map[string]any, record.NumAttrs())
+	record.Attrs(func(attr slog.Attr) bool {
+		attrs[attr.Key] = attr.Value.Any()
+		return true
+	})
+	return attrs
 }

@@ -3,7 +3,7 @@ package scope_test
 import (
 	"time"
 
-	"github.com/go-fries/fries/gorm/scope/v3"
+	"github.com/go-fries/fries/gorm/scope/v4"
 	"gorm.io/gorm"
 )
 

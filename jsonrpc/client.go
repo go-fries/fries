@@ -3,8 +3,8 @@ package jsonrpc
 import (
 	"context"
 
-	"github.com/go-fries/fries/codec/json/v3"
-	"github.com/go-fries/fries/codec/v3"
+	"github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/codec/v4"
 )
 
 var DefaultCodec = json.Codec

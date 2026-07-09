@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/eventbus/v3
+module github.com/go-fries/fries/eventbus/v4
 
 go 1.25.0
 

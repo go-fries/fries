@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	tracingpb "github.com/go-fries/fries/kratos/middleware/otel/v3/internal/proto/tracing/v1"
+	tracingpb "github.com/go-fries/fries/kratos/middleware/otel/v4/internal/proto/tracing/v1"
 )
 
 func TestNewTracer(t *testing.T) {

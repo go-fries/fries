@@ -5,7 +5,7 @@ Simple utilities for managing application runtime environments (Dev, Prod, Debug
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/env/v3
+go get github.com/go-fries/fries/env/v4
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-fries/fries/env/v3"
+	"github.com/go-fries/fries/env/v4"
 )
 
 func main() {

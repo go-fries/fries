@@ -11,9 +11,9 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/go-kratos-ecosystem/components/v2/cache"
-	redisStore "github.com/go-kratos-ecosystem/components/v2/cache/redis"
-	redisLocker "github.com/go-kratos-ecosystem/components/v2/locker/redis"
+	"github.com/go-fries/fries/cache/v4"
+	redisStore "github.com/go-fries/fries/cache/redis/v4"
+	redisLocker "github.com/go-fries/fries/locker/redis/v4"
 )
 
 func main() {

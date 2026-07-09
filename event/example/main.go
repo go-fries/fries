@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-fries/fries/event/middleware/recovery/v3"
-	"github.com/go-fries/fries/event/v3"
+	"github.com/go-fries/fries/event/middleware/recovery/v4"
+	"github.com/go-fries/fries/event/v4"
 )
 
 func main() {

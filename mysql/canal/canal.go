@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-fries/fries/mysql/canal/v3/internal"
+	"github.com/go-fries/fries/mysql/canal/v4/internal"
 	orgcanal "github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 )

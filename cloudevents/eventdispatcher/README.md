@@ -10,7 +10,7 @@ import (
 	"log"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/go-fries/fries/cloudevents/eventdispatcher/v3"
+	"github.com/go-fries/fries/cloudevents/eventdispatcher/v4"
 )
 
 type ExampleEvent struct {

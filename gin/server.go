@@ -2,69 +2,47 @@ package gin
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 type Server struct {
-	*gin.Engine
-
-	server      *http.Server
-	middlewares []gin.HandlerFunc
-
-	addr string
+	server *http.Server
+	logger *slog.Logger
 }
 
-type Option func(*Server)
-
-// Deprecated: use Addr
-func WithAddr(addr string) Option {
-	return Addr(addr)
+type server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
 }
 
-func Addr(addr string) Option {
-	return func(s *Server) {
-		s.addr = addr
-	}
-}
-
-func Middleware(middlewares ...gin.HandlerFunc) Option {
-	return func(s *Server) {
-		s.middlewares = append(s.middlewares, middlewares...)
-	}
-}
+var _ server = (*Server)(nil)
 
 func NewServer(e *gin.Engine, opts ...Option) *Server {
+	cfg := newConfig(opts...)
+	if e == nil {
+		e = gin.New()
+	}
+
 	srv := &Server{
-		Engine: e,
-		addr:   ":8080",
+		logger: cfg.logger,
 	}
-
-	for _, opt := range opts {
-		opt(srv)
-	}
-
-	// apply middlewares
-	if len(srv.middlewares) > 0 {
-		srv.Use(srv.middlewares...)
-	}
-
 	srv.server = &http.Server{
-		Addr:    srv.addr,
+		Addr:    cfg.addr,
 		Handler: e,
 	}
 
 	return srv
 }
 
-func (s *Server) Start(_ context.Context) error {
-	log.Infof("[GIN] server listening on: %s", s.addr)
+func (s *Server) Start(ctx context.Context) error {
+	s.logger.InfoContext(ctx, "[GIN] server listening on: "+s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	log.Info("[GIN] server stopping")
+	s.logger.InfoContext(ctx, "[GIN] server stopping")
 	return s.server.Shutdown(ctx)
 }

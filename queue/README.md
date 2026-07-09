@@ -9,15 +9,15 @@ as Redis, RabbitMQ, and memory.
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/queue/v3
+go get github.com/go-fries/fries/queue/v4
 ```
 
 Install the adapter you use as well:
 
 ```bash
-go get github.com/go-fries/fries/queue/adapter/redis/v3
-go get github.com/go-fries/fries/queue/adapter/rabbitmq/v3
-go get github.com/go-fries/fries/queue/adapter/memory/v3
+go get github.com/go-fries/fries/queue/adapter/redis/v4
+go get github.com/go-fries/fries/queue/adapter/rabbitmq/v4
+go get github.com/go-fries/fries/queue/adapter/memory/v4
 ```
 
 ## Basic Usage
@@ -28,8 +28,8 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/queue/adapter/memory/v3"
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/adapter/memory/v4"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 func run(ctx context.Context) error {
@@ -67,7 +67,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 type SendEmail struct {
@@ -116,7 +116,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 func syncUserHandler(rateLimited, invalidPayload, alreadyHandled bool) queue.Handler {
@@ -162,7 +162,7 @@ package main
 import (
 	"context"
 
-	"github.com/go-fries/fries/queue/v3"
+	"github.com/go-fries/fries/queue/v4"
 )
 
 func withObserver(q queue.Queue, handler queue.Handler) (*queue.Producer, *queue.Worker) {

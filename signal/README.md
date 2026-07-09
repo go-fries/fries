@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-go get github.com/go-fries/fries/signal/v3
+go get github.com/go-fries/fries/signal/v4
 ```
 
 ## Example
@@ -16,9 +16,9 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v3"
 
-	"github.com/go-fries/fries/signal/v3"
+	"github.com/go-fries/fries/signal/v4"
 )
 
 func main() {
@@ -34,7 +34,6 @@ func main() {
 func newSignalServer() *signal.Server {
 	srv := signal.NewServer(
 		signal.WithHandlers(&exampleHandler{}, &example2Handler{}),
-		signal.WithRecovery(signal.DefaultRecovery),
 	)
 
 	return srv
@@ -76,7 +75,7 @@ Output:
 INFO msg=[Signal] server starting
 exampleHandler signal: (0x104ff0240,0x1051875b8)
 exampleHandler signal: (0x104ff0240,0x1051875b0)
-ERROR msg=[Signal] handler panic (user defined signal 1): example2Handler panic
+ERROR msg="[Signal] handler panic" signal="user defined signal 1" panic="example2Handler panic"
 ```
 
 ## Behavior
@@ -85,4 +84,4 @@ ERROR msg=[Signal] handler panic (user defined signal 1): example2Handler panic
 - `Stop` is idempotent and can be called more than once.
 - `WithHandlers` registers handlers during construction. `Register` can add handlers before `Start` builds its signal routes.
 - Handlers that embed `signal.AsyncHandler` run in their own goroutine.
-- `WithRecovery` handles panics raised by handlers. Use `signal.WithRecovery(signal.DefaultRecovery)` to log handler panics.
+- Panics raised by handlers are recovered and logged with the server logger.

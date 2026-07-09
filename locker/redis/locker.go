@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-fries/fries/locker/v3"
+	"github.com/go-fries/fries/locker/v4"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
