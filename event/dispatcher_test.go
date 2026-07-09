@@ -3,7 +3,6 @@ package event
 import (
 	"context"
 	"errors"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -178,22 +177,32 @@ func TestDispatcher(t *testing.T) {
 	t.Run("check the number of parallel goroutines", func(t *testing.T) {
 		parallel := 3
 		d := NewDispatcher(WithoutError(), WithParallel(parallel))
-		startedCount := runtime.NumGoroutine()
+
+		var mu sync.Mutex
+		var current, maxConcurrent int
+
 		for range 10 {
 			d.RegisterListeners(
 				AdaptListenerFunc(func(_ context.Context, _ *UserEvent) error {
-					<-time.After(200 * time.Millisecond)
+					mu.Lock()
+					current++
+					if current > maxConcurrent {
+						maxConcurrent = current
+					}
+					mu.Unlock()
+
+					time.Sleep(50 * time.Millisecond)
+
+					mu.Lock()
+					current--
+					mu.Unlock()
 					return nil
 				}),
 			)
 		}
-		go func() {
-			<-time.After(300 * time.Millisecond)
-			currentNum := runtime.NumGoroutine()
-			// startedCount should eq currentNum - 1(this goroutine) - parallel
-			assert.Equal(t, startedCount, currentNum-1-parallel)
-		}()
+
 		_ = d.Dispatch(ctx, &UserEvent{})
+		assert.Equal(t, parallel, maxConcurrent)
 	})
 
 	t.Run("Check if the dispatchOptions of the Dispatch method are valid", func(t *testing.T) {
