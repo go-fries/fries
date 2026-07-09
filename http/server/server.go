@@ -6,21 +6,21 @@ import (
 	"net/http"
 )
 
-// Server represents a startable and stoppable HTTP server.
-type Server interface {
-	Start(context.Context) error
-	Stop(context.Context) error
-}
-
-var _ Server = (*server)(nil)
-
-type server struct {
+// Server wraps a standard library HTTP server with Start and Stop methods.
+type Server struct {
 	name   string
 	server *http.Server
 	logger *slog.Logger
 }
 
-func New(srv *http.Server, opts ...Option) Server {
+type server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+}
+
+var _ server = (*Server)(nil)
+
+func New(srv *http.Server, opts ...Option) *Server {
 	cfg := newConfig(opts...)
 	if srv == nil {
 		srv = &http.Server{}
@@ -29,7 +29,7 @@ func New(srv *http.Server, opts ...Option) Server {
 		srv.Addr = cfg.addr
 	}
 
-	s := &server{
+	s := &Server{
 		name:   cfg.name,
 		server: srv,
 		logger: cfg.logger,
@@ -37,7 +37,7 @@ func New(srv *http.Server, opts ...Option) Server {
 	return s
 }
 
-func NewWithHandler(handler http.Handler, opts ...Option) Server {
+func NewWithHandler(handler http.Handler, opts ...Option) *Server {
 	srv := &http.Server{
 		Handler: handler,
 		Addr:    ":8080",
@@ -46,12 +46,12 @@ func NewWithHandler(handler http.Handler, opts ...Option) Server {
 	return New(srv, opts...)
 }
 
-func (s *server) Start(ctx context.Context) error {
+func (s *Server) Start(ctx context.Context) error {
 	s.logger.InfoContext(ctx, "["+s.name+"] server listening on: "+s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
-func (s *server) Stop(ctx context.Context) error {
+func (s *Server) Stop(ctx context.Context) error {
 	s.logger.InfoContext(ctx, "["+s.name+"] server stopping")
 	return s.server.Shutdown(ctx)
 }

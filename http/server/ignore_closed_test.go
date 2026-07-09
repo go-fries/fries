@@ -12,8 +12,10 @@ import (
 
 func TestIgnoreServerClosedSuppressesHTTPServerClosed(t *testing.T) {
 	srv := &fakeServer{startErr: http.ErrServerClosed}
+	wrapped := server.IgnoreServerClosed(srv)
+	require.IsType(t, &server.IgnoreClosedServer{}, wrapped)
 
-	err := server.IgnoreServerClosed(srv).Start(t.Context())
+	err := wrapped.Start(t.Context())
 
 	require.NoError(t, err)
 }

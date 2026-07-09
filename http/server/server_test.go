@@ -13,7 +13,7 @@ import (
 )
 
 func TestServerDoesNotExposeHTTPServer(t *testing.T) {
-	serverType := reflect.TypeFor[server]()
+	serverType := reflect.TypeFor[Server]()
 	httpServerType := reflect.TypeFor[*http.Server]()
 
 	for i := range serverType.NumField() {
@@ -22,8 +22,8 @@ func TestServerDoesNotExposeHTTPServer(t *testing.T) {
 	}
 }
 
-func TestNewReturnsServerInterface(t *testing.T) {
-	requireServer(t, New(&http.Server{}))
+func TestNewReturnsServer(t *testing.T) {
+	require.IsType(t, &Server{}, New(&http.Server{}))
 }
 
 func TestNewUsesConfiguredHTTPServer(t *testing.T) {
@@ -50,18 +50,16 @@ func TestNewWithHandlerBuildsHTTPServer(t *testing.T) {
 	srv := NewWithHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("hello world"))
 	}), WithAddr(":8082"))
-	httpServer, ok := srv.(*server)
-	require.True(t, ok)
 
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 
 	recorder := httptest.NewRecorder()
-	httpServer.server.Handler.ServeHTTP(recorder, req)
+	srv.server.Handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "hello world", recorder.Body.String())
-	assert.Equal(t, ":8082", httpServer.server.Addr)
+	assert.Equal(t, ":8082", srv.server.Addr)
 }
 
 func TestNewDefaultsToSlogDefaultLogger(t *testing.T) {
@@ -115,18 +113,10 @@ func TestServerStopWritesToConfiguredLogger(t *testing.T) {
 	assert.Equal(t, "[HTTP] server stopping", handler.records[0].Message)
 }
 
-func newTestServer(t *testing.T, srv *http.Server, opts ...Option) *server {
+func newTestServer(t *testing.T, srv *http.Server, opts ...Option) *Server {
 	t.Helper()
 
-	httpServer, ok := New(srv, opts...).(*server)
-	require.True(t, ok)
-	return httpServer
-}
-
-func requireServer(t *testing.T, srv Server) {
-	t.Helper()
-
-	require.NotNil(t, srv)
+	return New(srv, opts...)
 }
 
 type recordingHandler struct {
