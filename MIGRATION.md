@@ -1,4 +1,4 @@
-# Migrating to Fries 4.x
+# Migrating from Fries 3.x to 4.x
 
 Fries 4.x is the line that aligns this repository with Kratos v3 and standard
 library `log/slog`. It is not source-compatible with every 3.x import path.
@@ -77,6 +77,18 @@ logs:
 import "go.opentelemetry.io/contrib/bridges/otelslog"
 ```
 
+The OpenTelemetry instrumentation scope name follows the package path. If your
+traces, dashboards, or tests match scope names, update them from 3.x paths to
+the 4.x paths, for example:
+
+```text
+github.com/go-fries/fries/kratos/middleware/otel/v4
+github.com/go-fries/fries/hyperf/jet/middleware/otel/v4
+```
+
+If you set scope versions with `WithVersion`, update those values to match your
+4.x release/version naming.
+
 ## Validation
 
 `kratos/middleware/protovalidate` keeps focusing on Buf protovalidate for
@@ -91,4 +103,6 @@ import "go.opentelemetry.io/contrib/bridges/otelslog"
 - Replace Kratos `/v2` imports with `/v3`.
 - Replace Kratos log components with `log/slog/*` or official `otelslog`.
 - Replace `contract/v4` imports with `capability/v4`.
+- Update OTel instrumentation scope names and custom scope versions from 3.x to
+  4.x where they are matched by observability tooling or tests.
 - Run module-level tests and `make lint/<module>` for changed modules.
