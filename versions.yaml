@@ -6,7 +6,7 @@ module-sets:
       - github.com/go-fries/fries/errors/v4
       - github.com/go-fries/fries/coroutines/v4
       - github.com/go-fries/fries/constraints/v4
-      - github.com/go-fries/fries/contract/v4
+      - github.com/go-fries/fries/capability/v4
 
       # Cache
       - github.com/go-fries/fries/cache/v4

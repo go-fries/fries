@@ -2,10 +2,10 @@ module github.com/go-fries/fries/http/server/v4
 
 go 1.25.0
 
-replace github.com/go-fries/fries/contract/v4 => ../../contract
+replace github.com/go-fries/fries/capability/v4 => ../../capability
 
 require (
-	github.com/go-fries/fries/contract/v4 v4.0.0
+	github.com/go-fries/fries/capability/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
 

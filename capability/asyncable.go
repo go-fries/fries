@@ -1,4 +1,4 @@
-package contract
+package capability
 
 type Asyncable interface {
 	Async() bool
