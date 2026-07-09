@@ -22,8 +22,12 @@ func TestServerDoesNotExposeHTTPServer(t *testing.T) {
 	}
 }
 
+func TestNewReturnsServer(t *testing.T) {
+	require.IsType(t, &Server{}, New(&http.Server{}))
+}
+
 func TestNewUsesConfiguredHTTPServer(t *testing.T) {
-	srv := New(&http.Server{
+	srv := newTestServer(t, &http.Server{
 		Addr: ":8081",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "server", r.URL.Query().Get("name"))
@@ -64,14 +68,14 @@ func TestNewDefaultsToSlogDefaultLogger(t *testing.T) {
 	slog.SetDefault(logger)
 	defer slog.SetDefault(previous)
 
-	srv := New(&http.Server{}, WithLogger(nil))
+	srv := newTestServer(t, &http.Server{}, WithLogger(nil))
 
 	assert.Same(t, logger, srv.logger)
 }
 
 func TestWithLoggerConfiguresServerLogger(t *testing.T) {
 	logger := slog.New(&recordingHandler{})
-	srv := New(&http.Server{}, WithLogger(logger))
+	srv := newTestServer(t, &http.Server{}, WithLogger(logger))
 
 	assert.Same(t, logger, srv.logger)
 }
@@ -88,6 +92,15 @@ func TestServerStartWritesToConfiguredLogger(t *testing.T) {
 	assert.Equal(t, "[HTTP] server listening on: invalid addr", handler.records[0].Message)
 }
 
+func TestServerStartReturnsServerClosed(t *testing.T) {
+	srv := newTestServer(t, &http.Server{Addr: "127.0.0.1:0"})
+	require.NoError(t, srv.server.Close())
+
+	err := srv.Start(t.Context())
+
+	require.ErrorIs(t, err, http.ErrServerClosed)
+}
+
 func TestServerStopWritesToConfiguredLogger(t *testing.T) {
 	handler := &recordingHandler{}
 	srv := New(&http.Server{}, WithLogger(slog.New(handler)))
@@ -98,6 +111,12 @@ func TestServerStopWritesToConfiguredLogger(t *testing.T) {
 	require.Len(t, handler.records, 1)
 	assert.Equal(t, slog.LevelInfo, handler.records[0].Level)
 	assert.Equal(t, "[HTTP] server stopping", handler.records[0].Message)
+}
+
+func newTestServer(t *testing.T, srv *http.Server, opts ...Option) *Server {
+	t.Helper()
+
+	return New(srv, opts...)
 }
 
 type recordingHandler struct {
