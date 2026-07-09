@@ -11,8 +11,8 @@ replace (
 
 require (
 	github.com/cloudwego/eino v0.9.12
-	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4 v4.0.0
-	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0
+	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4 v4.0.0-beta.1
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0-beta.1
 	github.com/redis/go-redis/v9 v9.21.0
 )
 
@@ -26,8 +26,8 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eino-contrib/jsonschema v1.0.3 // indirect
-	github.com/go-fries/fries/codec/sonic/v4 v4.0.0 // indirect
-	github.com/go-fries/fries/codec/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/codec/sonic/v4 v4.0.0-beta.1 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect

@@ -9,13 +9,13 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/support/v4 v4.0.0
+	github.com/go-fries/fries/support/v4 v4.0.0-beta.1
 	github.com/stretchr/testify v1.11.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-fries/fries/errors/v4 v4.0.0 // indirect
+	github.com/go-fries/fries/errors/v4 v4.0.0-beta.1 // indirect
 	github.com/go-kratos/kratos/v3 v3.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/event/v4 => ../../
 
 require (
-	github.com/go-fries/fries/event/v4 v4.0.0
+	github.com/go-fries/fries/event/v4 v4.0.0-beta.1
 	github.com/stretchr/testify v1.11.1
 )
 
