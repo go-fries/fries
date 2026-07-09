@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/cloudevents/eventdispatcher/v4 => ../../../clo
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/go-fries/fries/cloudevents/eventdispatcher/v4 v4.0.0
+	github.com/go-fries/fries/cloudevents/eventdispatcher/v4 v4.0.0-beta.1
 )
 
 require (

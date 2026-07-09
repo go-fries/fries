@@ -9,8 +9,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/queue/adapter/memory/v4 v4.0.0
-	github.com/go-fries/fries/queue/v4 v4.0.0
+	github.com/go-fries/fries/queue/adapter/memory/v4 v4.0.0-beta.1
+	github.com/go-fries/fries/queue/v4 v4.0.0-beta.1
 )
 
-require github.com/go-fries/fries/codec/v4 v4.0.0 // indirect
+require github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
