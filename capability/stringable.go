@@ -1,4 +1,4 @@
-package contract
+package capability
 
 type Stringable interface {
 	String() string

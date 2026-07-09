@@ -35,7 +35,7 @@ fixes:
   - github.com/go-fries/fries/codec/yaml/v4::codec/yaml/
   - github.com/go-fries/fries/config/v4::config/
   - github.com/go-fries/fries/constraints/v4::constraints/
-  - github.com/go-fries/fries/contract/v4::contract/
+  - github.com/go-fries/fries/capability/v4::capability/
   - github.com/go-fries/fries/coroutines/v4::coroutines/
   - github.com/go-fries/fries/crontab/v4::crontab/
   - github.com/go-fries/fries/encrypter/v4::encrypter/

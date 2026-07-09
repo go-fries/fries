@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-fries/fries/contract/v4"
+	"github.com/go-fries/fries/capability/v4"
 )
 
 // Server wraps a standard library HTTP server with Start and Stop methods.
@@ -15,7 +15,7 @@ type Server struct {
 	logger *slog.Logger
 }
 
-var _ contract.Server = (*Server)(nil)
+var _ capability.Server = (*Server)(nil)
 
 func New(srv *http.Server, opts ...Option) *Server {
 	cfg := newConfig(opts...)
