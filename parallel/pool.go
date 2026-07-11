@@ -5,6 +5,87 @@ import (
 	"sync"
 )
 
+type poolConfig struct {
+	queueSize int
+}
+
+// PoolOption configures a Pool.
+type PoolOption interface {
+	apply(*poolConfig)
+}
+
+type poolOptionFunc func(*poolConfig)
+
+func (f poolOptionFunc) apply(config *poolConfig) {
+	f(config)
+}
+
+// WithQueueSize configures the number of tasks that may wait for a worker.
+//
+// A size of zero creates an unbuffered queue. Negative values keep the default
+// queue size, which equals the worker count.
+func WithQueueSize(size int) PoolOption {
+	return poolOptionFunc(func(config *poolConfig) {
+		if size >= 0 {
+			config.queueSize = size
+		}
+	})
+}
+
+func newPoolConfig(workers int, options ...PoolOption) poolConfig {
+	config := poolConfig{queueSize: workers}
+	for _, option := range options {
+		option.apply(&config)
+	}
+
+	return config
+}
+
+// Future represents the eventual result of a task accepted by a Pool.
+//
+// A Future may be waited on multiple times. Canceling a Wait context stops
+// only that wait; it does not cancel the task. Future values are created by a
+// Pool; the zero value is not valid.
+type Future struct {
+	done chan struct{}
+	err  error
+}
+
+func newFuture() *Future {
+	return &Future{done: make(chan struct{})}
+}
+
+// Done returns a channel that is closed when the task finishes.
+func (f *Future) Done() <-chan struct{} {
+	return f.done
+}
+
+// Wait waits for the task to finish or ctx to be canceled.
+func (f *Future) Wait(ctx context.Context) error {
+	select {
+	case <-f.done:
+		return f.err
+	default:
+	}
+
+	select {
+	case <-f.done:
+		return f.err
+	case <-ctx.Done():
+		select {
+		case <-f.done:
+			return f.err
+		default:
+			return context.Cause(ctx)
+		}
+	}
+}
+
+func (f *Future) complete(err error) {
+	f.err = err
+	close(f.done)
+}
+
 type poolTask struct {
 	ctx    context.Context
 	task   Task
