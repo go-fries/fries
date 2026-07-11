@@ -84,5 +84,50 @@ activeUsers, err := parallel.Filter(ctx, 8, users,
 )
 ```
 
-All functions wait for started work to return. Callbacks should observe the
-provided context and stop promptly after cancellation.
+## Reuse fixed workers
+
+Use `Pool` for intermittent work that should share a fixed concurrency limit
+and a bounded queue:
+
+```go
+pool, err := parallel.NewPool(appContext, 8, parallel.WithQueueSize(32))
+if err != nil {
+	return err
+}
+
+future, err := pool.Submit(taskContext, func(ctx context.Context) error {
+	return refreshCache(ctx, cacheKey)
+})
+if err != nil {
+	return err
+}
+
+// Wait only when this request needs the task result.
+if err := future.Wait(ctx); err != nil {
+	return err
+}
+```
+
+`Submit` returns after the task is accepted; execution may begin immediately or
+after an earlier task finishes. `Execute` combines submission and waiting for
+synchronous handlers.
+
+The context passed to `Submit` is also passed to the task. If background work
+must outlive a request, create an explicit task context, such as one derived
+with `context.WithoutCancel`, instead of using the request context directly.
+Task panics follow normal Go semantics and are not recovered by the pool.
+
+Shut the pool down when its owner stops:
+
+```go
+shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+if err := pool.Shutdown(shutdownContext); err != nil {
+	return err
+}
+```
+
+Batch helpers wait for started work to return. Pool submission returns after
+acceptance and exposes completion through `Future`. Callbacks and tasks should
+observe the provided context and stop promptly after cancellation.
