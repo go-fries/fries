@@ -1,4 +1,4 @@
-package coroutines
+package parallel
 
 import (
 	"context"

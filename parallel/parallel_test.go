@@ -1,4 +1,4 @@
-package coroutines_test
+package parallel_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/coroutines/v4"
+	"github.com/go-fries/fries/parallel/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ func TestRunExecutesTasksConcurrently(t *testing.T) {
 	started := make(chan struct{}, 3)
 	release := make(chan struct{})
 	result := make(chan error, 1)
-	tasks := make([]coroutines.Task, 3)
+	tasks := make([]parallel.Task, 3)
 	for index := range tasks {
 		tasks[index] = func(ctx context.Context) error {
 			started <- struct{}{}
@@ -33,7 +33,7 @@ func TestRunExecutesTasksConcurrently(t *testing.T) {
 	}
 
 	go func() {
-		result <- coroutines.Run(ctx, tasks...)
+		result <- parallel.Run(ctx, tasks...)
 	}()
 
 	for range tasks {
@@ -55,7 +55,7 @@ func TestRunLimitBoundsConcurrency(t *testing.T) {
 	started := make(chan struct{}, 4)
 	release := make(chan struct{}, 4)
 	result := make(chan error, 1)
-	tasks := make([]coroutines.Task, 4)
+	tasks := make([]parallel.Task, 4)
 	for index := range tasks {
 		tasks[index] = func(ctx context.Context) error {
 			started <- struct{}{}
@@ -69,7 +69,7 @@ func TestRunLimitBoundsConcurrency(t *testing.T) {
 	}
 
 	go func() {
-		result <- coroutines.RunLimit(ctx, 2, tasks...)
+		result <- parallel.RunLimit(ctx, 2, tasks...)
 	}()
 
 	requireStarted(t, ctx, started, 2)
@@ -93,7 +93,7 @@ func TestRunReturnsFirstErrorAndCancelsSiblings(t *testing.T) {
 	siblingStarted := make(chan struct{})
 	siblingCanceled := make(chan struct{})
 
-	err := coroutines.Run(
+	err := parallel.Run(
 		t.Context(),
 		func(context.Context) error {
 			<-siblingStarted
@@ -118,7 +118,7 @@ func TestRunObservesParentCancellation(t *testing.T) {
 	cancel()
 
 	var called atomic.Bool
-	err := coroutines.Run(ctx, func(context.Context) error {
+	err := parallel.Run(ctx, func(context.Context) error {
 		called.Store(true)
 
 		return nil
@@ -130,15 +130,15 @@ func TestRunObservesParentCancellation(t *testing.T) {
 
 func TestRunValidatesInputs(t *testing.T) {
 	t.Run("invalid limit", func(t *testing.T) {
-		err := coroutines.RunLimit(t.Context(), 0)
+		err := parallel.RunLimit(t.Context(), 0)
 
-		require.ErrorIs(t, err, coroutines.ErrInvalidLimit)
+		require.ErrorIs(t, err, parallel.ErrInvalidLimit)
 	})
 
 	t.Run("nil task", func(t *testing.T) {
-		err := coroutines.Run(t.Context(), nil)
+		err := parallel.Run(t.Context(), nil)
 
-		require.ErrorIs(t, err, coroutines.ErrNilTask)
+		require.ErrorIs(t, err, parallel.ErrNilTask)
 		assert.Contains(t, err.Error(), "index 0")
 	})
 }

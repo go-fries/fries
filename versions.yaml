@@ -4,7 +4,7 @@ module-sets:
     modules:
       - github.com/go-fries/fries/v4
       - github.com/go-fries/fries/errors/v4
-      - github.com/go-fries/fries/coroutines/v4
+      - github.com/go-fries/fries/parallel/v4
       - github.com/go-fries/fries/constraints/v4
       - github.com/go-fries/fries/capability/v4
 

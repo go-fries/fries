@@ -1,4 +1,4 @@
-package coroutines_test
+package parallel_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/go-fries/fries/coroutines/v4"
+	"github.com/go-fries/fries/parallel/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func TestForEachProcessesEveryValue(t *testing.T) {
 		values []int
 	)
 
-	err := coroutines.ForEach(
+	err := parallel.ForEach(
 		t.Context(), 2, []int{1, 2, 3, 4},
 		func(_ context.Context, value int) error {
 			mu.Lock()
@@ -34,7 +34,7 @@ func TestForEachProcessesEveryValue(t *testing.T) {
 }
 
 func TestMapPreservesInputOrder(t *testing.T) {
-	results, err := coroutines.Map(
+	results, err := parallel.Map(
 		t.Context(), 3, []int{3, 1, 2},
 		func(_ context.Context, value int) (int, error) {
 			return value * 10, nil
@@ -48,7 +48,7 @@ func TestMapPreservesInputOrder(t *testing.T) {
 func TestMapReturnsNoPartialResultsOnFailure(t *testing.T) {
 	wantErr := errors.New("map failed")
 
-	results, err := coroutines.Map(
+	results, err := parallel.Map(
 		t.Context(), 2, []int{1, 2, 3},
 		func(_ context.Context, value int) (int, error) {
 			if value == 2 {
@@ -65,38 +65,38 @@ func TestMapReturnsNoPartialResultsOnFailure(t *testing.T) {
 
 func TestCollectionHelpersValidateInputs(t *testing.T) {
 	t.Run("ForEach limit", func(t *testing.T) {
-		err := coroutines.ForEach(
+		err := parallel.ForEach(
 			t.Context(), -1, []int{1},
 			func(context.Context, int) error { return nil },
 		)
 
-		require.ErrorIs(t, err, coroutines.ErrInvalidLimit)
+		require.ErrorIs(t, err, parallel.ErrInvalidLimit)
 	})
 
 	t.Run("ForEach function", func(t *testing.T) {
-		err := coroutines.ForEach[int](t.Context(), 1, nil, nil)
+		err := parallel.ForEach[int](t.Context(), 1, nil, nil)
 
-		require.ErrorIs(t, err, coroutines.ErrNilFunc)
+		require.ErrorIs(t, err, parallel.ErrNilFunc)
 	})
 
 	t.Run("Map limit", func(t *testing.T) {
-		_, err := coroutines.Map(
+		_, err := parallel.Map(
 			t.Context(), 0, []int{1},
 			func(context.Context, int) (int, error) { return 0, nil },
 		)
 
-		require.ErrorIs(t, err, coroutines.ErrInvalidLimit)
+		require.ErrorIs(t, err, parallel.ErrInvalidLimit)
 	})
 
 	t.Run("Map function", func(t *testing.T) {
-		_, err := coroutines.Map[int, int](t.Context(), 1, nil, nil)
+		_, err := parallel.Map[int, int](t.Context(), 1, nil, nil)
 
-		require.ErrorIs(t, err, coroutines.ErrNilFunc)
+		require.ErrorIs(t, err, parallel.ErrNilFunc)
 	})
 }
 
 func TestMapEmptyInput(t *testing.T) {
-	results, err := coroutines.Map(
+	results, err := parallel.Map(
 		t.Context(), 1, []int{},
 		func(_ context.Context, value int) (int, error) { return value, nil },
 	)

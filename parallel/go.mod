@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/coroutines/v4
+module github.com/go-fries/fries/parallel/v4
 
 go 1.25.0
 
