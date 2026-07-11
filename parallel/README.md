@@ -90,7 +90,7 @@ Use `Pool` for intermittent work that should share a fixed concurrency limit
 and a bounded queue:
 
 ```go
-pool, err := parallel.NewPool(appContext, 8, parallel.WithQueueSize(32))
+pool, err := parallel.NewPool(8, parallel.WithQueueSize(32))
 if err != nil {
 	return err
 }

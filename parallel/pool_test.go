@@ -14,24 +14,15 @@ import (
 )
 
 func TestNewPoolValidatesConfiguration(t *testing.T) {
-	t.Run("context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-		pool, err := parallel.NewPool(ctx, 1)
-
-		require.ErrorIs(t, err, context.Canceled)
-		assert.Nil(t, pool)
-	})
-
 	t.Run("workers", func(t *testing.T) {
-		pool, err := parallel.NewPool(t.Context(), 0)
+		pool, err := parallel.NewPool(0)
 
 		require.ErrorIs(t, err, parallel.ErrInvalidWorkers)
 		assert.Nil(t, pool)
 	})
 
 	t.Run("queue size", func(t *testing.T) {
-		pool, err := parallel.NewPool(t.Context(), 1, parallel.WithQueueSize(-1))
+		pool, err := parallel.NewPool(1, parallel.WithQueueSize(-1))
 
 		require.ErrorIs(t, err, parallel.ErrInvalidQueueSize)
 		assert.Nil(t, pool)
@@ -251,13 +242,13 @@ func TestPoolShutdownUnblocksWaitingSubmit(t *testing.T) {
 	require.NoError(t, pool.Shutdown(t.Context()))
 }
 
-func TestPoolContextCancellationStopsRunningAndQueuedTasks(t *testing.T) {
+func TestTaskContextCancellationStopsRunningAndQueuedTasks(t *testing.T) {
 	wantErr := errors.New("service stopped")
-	poolContext, cancelPool := context.WithCancelCause(t.Context())
-	pool := requirePoolWithContext(t, poolContext, 1, parallel.WithQueueSize(1))
+	taskContext, cancelTasks := context.WithCancelCause(t.Context())
+	pool := requirePool(t, 1, parallel.WithQueueSize(1))
 	started := make(chan struct{})
 
-	running, err := pool.Submit(t.Context(), func(ctx context.Context) error {
+	running, err := pool.Submit(taskContext, func(ctx context.Context) error {
 		close(started)
 		<-ctx.Done()
 
@@ -267,22 +258,21 @@ func TestPoolContextCancellationStopsRunningAndQueuedTasks(t *testing.T) {
 	<-started
 
 	var queuedCalled atomic.Bool
-	queued, err := pool.Submit(t.Context(), func(context.Context) error {
+	queued, err := pool.Submit(taskContext, func(context.Context) error {
 		queuedCalled.Store(true)
 
 		return nil
 	})
 	require.NoError(t, err)
 
-	cancelPool(wantErr)
+	cancelTasks(wantErr)
 	require.ErrorIs(t, running.Wait(t.Context()), wantErr)
 	require.ErrorIs(t, queued.Wait(t.Context()), wantErr)
 	assert.False(t, queuedCalled.Load())
 
 	future, err := pool.Submit(t.Context(), func(context.Context) error { return nil })
-	require.ErrorIs(t, err, parallel.ErrPoolClosed)
-	require.ErrorIs(t, err, wantErr)
-	assert.Nil(t, future)
+	require.NoError(t, err)
+	require.NoError(t, future.Wait(t.Context()))
 	require.NoError(t, pool.Shutdown(t.Context()))
 }
 
@@ -324,18 +314,7 @@ func TestPoolConcurrentSubmitAndShutdown(t *testing.T) {
 func requirePool(t *testing.T, workers int, options ...parallel.PoolOption) *parallel.Pool {
 	t.Helper()
 
-	return requirePoolWithContext(t, t.Context(), workers, options...)
-}
-
-func requirePoolWithContext(
-	t *testing.T,
-	ctx context.Context,
-	workers int,
-	options ...parallel.PoolOption,
-) *parallel.Pool {
-	t.Helper()
-
-	pool, err := parallel.NewPool(ctx, workers, options...)
+	pool, err := parallel.NewPool(workers, options...)
 	require.NoError(t, err)
 
 	return pool

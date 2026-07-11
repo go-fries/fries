@@ -2,7 +2,6 @@ package parallel
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 )
@@ -16,12 +15,9 @@ type poolTask struct {
 // Pool executes intermittently submitted tasks with a fixed number of
 // long-lived workers and a bounded queue.
 //
-// A Pool must be shut down when it is no longer needed. Canceling the context
-// passed to NewPool stops acceptance, cancels running tasks, and completes
-// queued tasks with the cancellation cause.
+// A Pool must be shut down when it is no longer needed. Task lifetimes are
+// controlled by the contexts passed to Submit and Execute.
 type Pool struct {
-	ctx context.Context
-
 	tasks   chan poolTask
 	closing chan struct{}
 	done    chan struct{}
@@ -37,10 +33,7 @@ type Pool struct {
 //
 // Workers must be greater than zero. By default, the queue can hold one task
 // per worker; use WithQueueSize to change that capacity.
-func NewPool(ctx context.Context, workers int, options ...PoolOption) (*Pool, error) {
-	if err := context.Cause(ctx); err != nil {
-		return nil, err
-	}
+func NewPool(workers int, options ...PoolOption) (*Pool, error) {
 	if workers <= 0 {
 		return nil, fmt.Errorf("%w: got %d", ErrInvalidWorkers, workers)
 	}
@@ -51,7 +44,6 @@ func NewPool(ctx context.Context, workers int, options ...PoolOption) (*Pool, er
 	}
 
 	pool := &Pool{
-		ctx:     ctx,
 		tasks:   make(chan poolTask, config.queueSize),
 		closing: make(chan struct{}),
 		done:    make(chan struct{}),
@@ -60,14 +52,6 @@ func NewPool(ctx context.Context, workers int, options ...PoolOption) (*Pool, er
 	for range workers {
 		go pool.work()
 	}
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			pool.stop()
-		case <-pool.done:
-		}
-	}()
 
 	return pool, nil
 }
@@ -84,9 +68,6 @@ func (p *Pool) Submit(ctx context.Context, task Task) (*Future, error) {
 	}
 	if err := context.Cause(ctx); err != nil {
 		return nil, err
-	}
-	if err := context.Cause(p.ctx); err != nil {
-		return nil, errors.Join(ErrPoolClosed, err)
 	}
 
 	future := newFuture()
@@ -106,15 +87,9 @@ func (p *Pool) Submit(ctx context.Context, task Task) (*Future, error) {
 	case p.tasks <- item:
 		return future, nil
 	case <-p.closing:
-		if err := context.Cause(p.ctx); err != nil {
-			return nil, errors.Join(ErrPoolClosed, err)
-		}
-
 		return nil, ErrPoolClosed
 	case <-ctx.Done():
 		return nil, context.Cause(ctx)
-	case <-p.ctx.Done():
-		return nil, errors.Join(ErrPoolClosed, context.Cause(p.ctx))
 	}
 }
 
@@ -131,7 +106,6 @@ func (p *Pool) Execute(ctx context.Context, task Task) error {
 // Shutdown stops accepting new tasks and waits for accepted tasks to finish.
 //
 // Canceling ctx stops only the wait; shutdown continues in the background.
-// Cancel the context passed to NewPool to cancel running and queued tasks.
 func (p *Pool) Shutdown(ctx context.Context) error {
 	p.stop()
 
@@ -179,33 +153,15 @@ func (p *Pool) work() {
 }
 
 func (p *Pool) execute(item poolTask) {
-	if err := context.Cause(p.ctx); err != nil {
+	if err := context.Cause(item.ctx); err != nil {
 		item.future.complete(err)
 
 		return
 	}
 
-	taskContext, cancel := context.WithCancelCause(item.ctx)
-	stop := context.AfterFunc(p.ctx, func() {
-		cancel(context.Cause(p.ctx))
-	})
-	if err := context.Cause(p.ctx); err != nil {
-		cancel(err)
-	}
-
-	if err := context.Cause(taskContext); err != nil {
-		stop()
-		cancel(nil)
-		item.future.complete(err)
-
-		return
-	}
-
-	err := item.task(taskContext)
+	err := item.task(item.ctx)
 	if err == nil {
-		err = context.Cause(taskContext)
+		err = context.Cause(item.ctx)
 	}
-	stop()
-	cancel(nil)
 	item.future.complete(err)
 }
