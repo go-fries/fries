@@ -1,87 +1,59 @@
 package filesystem
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPathPrefixer_Prefix(t *testing.T) {
-	prefixer := NewPathPrefixer("prefix")
-
+func TestValidPath(t *testing.T) {
 	tests := []struct {
-		path     string
-		expected string
+		path string
+		want bool
 	}{
-		{"path", "prefix/path"},
-		{"/path", "prefix/path"},
-		{"//path", "prefix/path"},
-		{"path/", "prefix/path/"},
+		{path: ".", want: true},
+		{path: "file.txt", want: true},
+		{path: "dir/file.txt", want: true},
+		{path: "", want: false},
+		{path: "/file.txt", want: false},
+		{path: "dir/", want: false},
+		{path: "dir//file.txt", want: false},
+		{path: "../file.txt", want: false},
+		{path: `dir\file.txt`, want: false},
 	}
 
 	for _, test := range tests {
 		t.Run(test.path, func(t *testing.T) {
-			assert.Equal(t, test.expected, prefixer.Prefix(test.path))
+			assert.Equal(t, test.want, ValidPath(test.path))
 		})
 	}
 }
 
-func TestPathPrefixer_PrefixEmptyPrefix(t *testing.T) {
-	prefixer := NewPathPrefixer("")
-
-	tests := []struct {
-		path     string
-		expected string
-	}{
-		{"path", "path"},
-		{"/path", "path"},
-		{"//path", "path"},
-		{"path/", "path/"},
-	}
-
-	for _, test := range tests {
-		t.Run(test.path, func(t *testing.T) {
-			assert.Equal(t, test.expected, prefixer.Prefix(test.path))
-		})
-	}
+func TestValidatePath(t *testing.T) {
+	assert.NoError(t, ValidatePath("dir/file.txt"))
+	assert.ErrorIs(t, ValidatePath("../file.txt"), ErrInvalidPath)
 }
 
-func TestPathPrefixer_PrefixWithSeparator(t *testing.T) {
-	prefixer := NewPathPrefixer("prefix", WithPathPrefixerSeparator("::"))
+func TestPathPrefixer(t *testing.T) {
+	prefixer := NewPathPrefixer("/tenant/root/")
 
-	tests := []struct {
-		path     string
-		expected string
-	}{
-		{"path", "prefix::path"},
-		{"/path", "prefix::path"},
-		{"//path", "prefix::path"},
-		{"path/", "prefix::path/"},
-	}
+	assert.Equal(t, "tenant/root", prefixer.Prefix("."))
+	assert.Equal(t, "tenant/root/dir/file.txt", prefixer.Prefix("dir/file.txt"))
 
-	for _, test := range tests {
-		t.Run(test.path, func(t *testing.T) {
-			assert.Equal(t, test.expected, prefixer.Prefix(test.path))
-		})
-	}
+	path, ok := prefixer.Strip("tenant/root/dir/file.txt")
+	assert.True(t, ok)
+	assert.Equal(t, "dir/file.txt", path)
+
+	path, ok = prefixer.Strip("tenant/root")
+	assert.True(t, ok)
+	assert.Equal(t, ".", path)
+
+	_, ok = prefixer.Strip("other/file.txt")
+	assert.False(t, ok)
 }
 
-func TestPathPrefixer_PrefixWithSamePrefixAndSeparator(t *testing.T) {
-	prefixer := NewPathPrefixer("", WithPathPrefixerSeparator(""))
-
-	tests := []struct {
-		path     string
-		expected string
-	}{
-		{"path", "path"},
-		{"/path", "path"},
-		{"//path", "path"},
-		{"path/", "path/"},
-	}
-
-	for _, test := range tests {
-		t.Run(test.path, func(t *testing.T) {
-			assert.Equal(t, test.expected, prefixer.Prefix(test.path))
-		})
-	}
+func TestValidatePathError(t *testing.T) {
+	err := ValidatePath("../file.txt")
+	assert.True(t, errors.Is(err, ErrInvalidPath))
 }

@@ -1,201 +1,127 @@
 package local
 
 import (
-	"context"
-	"os"
+	"io"
+	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/go-fries/fries/filesystem/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var ctx = context.Background()
+func TestFilesystem(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
+	ctx := t.Context()
 
-func TestFilesystem_basic(t *testing.T) {
-	// init
-	require.NoError(t, os.Mkdir("./testfile/basic", os.ModePerm))
-	defer t.Cleanup(func() {
-		assert.NoError(t, os.RemoveAll("./testfile/basic"))
+	require.NoError(t, storage.MakeDirectory(ctx, "dir/nested"))
+	require.NoError(t, storage.Put(
+		ctx,
+		"dir/file.txt",
+		strings.NewReader("content"),
+		filesystem.PutOptions{},
+	))
+	require.NoError(t, storage.Put(
+		ctx,
+		"dir/nested/child.txt",
+		strings.NewReader("child"),
+		filesystem.PutOptions{},
+	))
+
+	reader, err := storage.Open(ctx, "dir/file.txt")
+	require.NoError(t, err)
+	value, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	assert.Equal(t, "content", string(value))
+
+	entry, err := storage.Stat(ctx, "dir/file.txt")
+	require.NoError(t, err)
+	assert.True(t, entry.IsFile())
+	assert.EqualValues(t, len("content"), entry.Size)
+
+	page, err := storage.List(ctx, "dir", filesystem.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, []filesystem.Entry{
+		{Path: "dir/file.txt", Kind: filesystem.EntryKindFile, Size: 7, LastModified: page.Entries[0].LastModified},
+		{Path: "dir/nested", Kind: filesystem.EntryKindDirectory, Size: page.Entries[1].Size, LastModified: page.Entries[1].LastModified},
+	}, page.Entries)
+
+	recursive, err := storage.List(ctx, "dir", filesystem.ListOptions{Recursive: true})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"dir/file.txt", "dir/nested", "dir/nested/child.txt"}, entryPaths(recursive.Entries))
+
+	files, err := storage.List(ctx, ".", filesystem.ListOptions{
+		Recursive: true,
+		Kind:      filesystem.EntryKindFile,
 	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"dir/file.txt", "dir/nested/child.txt"}, entryPaths(files.Entries))
 
-	// local
-	local := NewStorage("./testfile/basic")
-	filename := "test.txt"
+	require.NoError(t, storage.Move(ctx, "dir/file.txt", "dir/moved.txt"))
+	require.NoError(t, storage.Link(ctx, "dir/moved.txt", "dir/link.txt"))
 
-	// write
-	assert.NoError(t, local.Write(ctx, filename, []byte("test")))
+	if runtime.GOOS != "windows" {
+		require.NoError(t, storage.Symlink(ctx, "dir/moved.txt", "dir/symlink.txt"))
+		symlink, err := storage.Open(ctx, "dir/symlink.txt")
+		require.NoError(t, err)
+		value, err := io.ReadAll(symlink)
+		require.NoError(t, err)
+		require.NoError(t, symlink.Close())
+		assert.Equal(t, "content", string(value))
+	}
 
-	// read
-	data, err := local.Read(ctx, filename)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("test"), data)
-
-	data, err = local.Read(ctx, "missing")
-	assert.Error(t, err)
-	assert.Nil(t, data)
-
-	// has
-	has, err := local.Exists(ctx, filename)
-	assert.NoError(t, err)
-	assert.True(t, has)
-
-	missing, err := local.Exists(ctx, "missing")
-	assert.NoError(t, err)
-	assert.False(t, missing)
-
-	// move
-	assert.NoError(t, local.Rename(ctx, filename, "test2.txt"))
-	has, err = local.Exists(ctx, filename)
-	assert.NoError(t, err)
-	assert.False(t, has)
-	has, err = local.Exists(ctx, "test2.txt")
-	assert.NoError(t, err)
-	assert.True(t, has)
-
-	// link
-	assert.NoError(t, local.Link(ctx, "test2.txt", "test4.txt"))
-	has, err = local.Exists(ctx, "test4.txt")
-	assert.NoError(t, err)
-	assert.True(t, has)
-	data, err = local.Read(ctx, "test4.txt")
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("test"), data)
-
-	// symlink
-	// assert.NoError(t, local.Symlink(ctx, "test2.txt", "test5.txt"))
-	// data, err = local.Read(ctx, "test5.txt")
-	// assert.NoError(t, err)
-	// assert.Equal(t, []byte("test"), data)
-
-	// path
-	path := local.Path(ctx, "1.jpg")
-	assert.Equal(t, "./testfile/basic/1.jpg", path)
-
-	// delete
-	assert.NoError(t, local.Delete(ctx, "test4.txt"))
-	has, err = local.Exists(ctx, "test4.txt")
-	assert.NoError(t, err)
-	assert.False(t, has)
+	require.NoError(t, storage.Delete(ctx, "dir/link.txt"))
+	require.NoError(t, storage.DeleteDirectory(ctx, "dir"))
+	_, err = storage.Stat(ctx, "dir")
+	assert.ErrorIs(t, err, filesystem.ErrNotFound)
 }
 
-func TestFilesystem_Path(t *testing.T) {
-	local := NewStorage("./testfile/path")
+func TestFilesystemListPagination(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
+	ctx := t.Context()
 
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"", ".jpg", "./testfile/path/.jpg"},
-		{"", "", "./testfile/path/"},
-		{"", "1.jpg", "./testfile/path/1.jpg"},
-		{"", "2.jpg", "./testfile/path/2.jpg"},
-		{"", "2", "./testfile/path/2"},
-		{"", "2/3", "./testfile/path/2/3"},
-		{"", "/4/3.jpg", "./testfile/path/4/3.jpg"},
+	for _, path := range []string{"a.txt", "b.txt", "c.txt"} {
+		require.NoError(t, storage.Put(ctx, path, strings.NewReader(path), filesystem.PutOptions{}))
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, local.Path(ctx, tt.path))
-		})
-	}
+	first, err := storage.List(ctx, ".", filesystem.ListOptions{Limit: 2})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a.txt", "b.txt"}, entryPaths(first.Entries))
+	assert.Equal(t, "b.txt", first.NextCursor)
+
+	second, err := storage.List(ctx, ".", filesystem.ListOptions{Limit: 2, Cursor: first.NextCursor})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"c.txt"}, entryPaths(second.Entries))
+	assert.Empty(t, second.NextCursor)
 }
 
-func TestFilesystem_Name(t *testing.T) {
-	local := NewStorage("./testfile/path")
+func TestFilesystemRejectsEscapingPaths(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
 
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"", ".jpg", ""},
-		{"", "", "path"},
-		{"", "/1/", "1"},
-		{"", "1.jpg", "1"},
-		{"", "2.jpg", "2"},
-		{"", "2", "2"},
-		{"", "2/3", "3"},
-		{"", "/4/3.jpg", "3"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, local.Name(ctx, tt.path))
-		})
-	}
+	err = storage.Put(t.Context(), "../escape.txt", strings.NewReader("escape"), filesystem.PutOptions{})
+	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
+	assert.ErrorIs(t, storage.DeleteDirectory(t.Context(), "."), filesystem.ErrInvalidPath)
 }
 
-func TestFilesystem_Basename(t *testing.T) {
-	local := NewStorage("./testfile/path")
+func TestFilesystemMissingEntry(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
 
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"", ".jpg", ".jpg"},
-		{"", "/1/", "1"},
-		{"", "", "path"},
-		{"", "1.jpg", "1.jpg"},
-		{"", "2.jpg", "2.jpg"},
-		{"", "2", "2"},
-		{"", "2/3", "3"},
-		{"", "/4/3.jpg", "3.jpg"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, local.Basename(ctx, tt.path))
-		})
-	}
+	_, err = storage.Open(t.Context(), "missing.txt")
+	assert.ErrorIs(t, err, filesystem.ErrNotFound)
+	_, err = storage.Stat(t.Context(), "missing.txt")
+	assert.ErrorIs(t, err, filesystem.ErrNotFound)
 }
 
-func TestFilesystem_Dirname(t *testing.T) {
-	local := NewStorage("./testfile/path")
-
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"", ".jpg", "testfile/path"},
-		{"", "", "testfile/path"},
-		{"", "1.jpg", "testfile/path"},
-		{"", "2.jpg", "testfile/path"},
-		{"", "2", "testfile/path"},
-		{"", "3/4", "testfile/path/3"},
-		{"", "/5/6.jpg", "testfile/path/5"},
+func entryPaths(entries []filesystem.Entry) []string {
+	paths := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		paths = append(paths, entry.Path)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, local.Dirname(ctx, tt.path))
-		})
-	}
-}
-
-func TestFilesystem_Extension(t *testing.T) {
-	local := NewStorage("./testfile/path")
-
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"", ".jpg", ".jpg"},
-		{"", "", ""},
-		{"", "1.jpg", ".jpg"},
-		{"", "2.jpg", ".jpg"},
-		{"", "2", ""},
-		{"", "2/3", ""},
-		{"", "/4/3.jpg", ".jpg"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, local.Extension(ctx, tt.path))
-		})
-	}
+	return paths
 }
