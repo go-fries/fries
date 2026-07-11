@@ -2,6 +2,8 @@ package s3
 
 import (
 	"context"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,6 +53,23 @@ func TestFilesystemMove(t *testing.T) {
 	require.NotNil(t, client.deleteInput)
 	assert.Equal(t, "root/target.txt", dereference(client.copyInput.Key))
 	assert.Equal(t, "root/source file.txt", dereference(client.deleteInput.Key))
+}
+
+func TestFilesystemPutContentLength(t *testing.T) {
+	client := &fakeClient{}
+	storage := newFilesystem(client, "bucket")
+	source := struct{ io.Reader }{Reader: strings.NewReader("content")}
+
+	err := storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{})
+	assert.ErrorIs(t, err, filesystem.ErrContentLengthRequired)
+
+	length := int64(len("content"))
+	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{
+		ContentLength: &length,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, client.putInput)
+	assert.Equal(t, length, *client.putInput.ContentLength)
 }
 
 func TestFilesystemNotFound(t *testing.T) {
@@ -107,6 +126,7 @@ type fakeClient struct {
 	headOutput  *awss3.HeadObjectOutput
 	listInput   *awss3.ListObjectsV2Input
 	listOutput  *awss3.ListObjectsV2Output
+	putInput    *awss3.PutObjectInput
 	copyInput   *awss3.CopyObjectInput
 	deleteInput *awss3.DeleteObjectInput
 }
@@ -119,11 +139,12 @@ func (c *fakeClient) GetObject(
 	return nil, c.getErr
 }
 
-func (*fakeClient) PutObject(
-	context.Context,
-	*awss3.PutObjectInput,
-	...func(*awss3.Options),
+func (c *fakeClient) PutObject(
+	_ context.Context,
+	input *awss3.PutObjectInput,
+	_ ...func(*awss3.Options),
 ) (*awss3.PutObjectOutput, error) {
+	c.putInput = input
 	return &awss3.PutObjectOutput{}, nil
 }
 

@@ -88,7 +88,8 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 	return result.Body, nil
 }
 
-// Put writes src to path, replacing an existing object.
+// Put writes src to path, replacing an existing object. The content length must
+// be explicit or inferable as described by filesystem.PutOptions.
 func (s *Filesystem) Put(
 	ctx context.Context,
 	path string,
@@ -98,16 +99,21 @@ func (s *Filesystem) Put(
 	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
+	contentLength, err := options.ResolveContentLength(src)
+	if err != nil {
+		return wrapPathError("put", path, err)
+	}
 	request := &aliyunoss.PutObjectRequest{
-		Bucket:   aliyunoss.Ptr(s.bucket),
-		Key:      aliyunoss.Ptr(s.prefixer.Prefix(path)),
-		Body:     src,
-		Metadata: cloneMetadata(options.Metadata),
+		Bucket:        aliyunoss.Ptr(s.bucket),
+		Key:           aliyunoss.Ptr(s.prefixer.Prefix(path)),
+		Body:          src,
+		ContentLength: aliyunoss.Ptr(contentLength),
+		Metadata:      cloneMetadata(options.Metadata),
 	}
 	if options.ContentType != "" {
 		request.ContentType = aliyunoss.Ptr(options.ContentType)
 	}
-	_, err := s.client.PutObject(ctx, request)
+	_, err = s.client.PutObject(ctx, request)
 	if err != nil {
 		return wrapPathError("put", path, err)
 	}

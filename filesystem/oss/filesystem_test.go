@@ -2,6 +2,8 @@ package oss
 
 import (
 	"context"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,6 +53,23 @@ func TestFilesystemMove(t *testing.T) {
 	assert.Equal(t, "root/source.txt", dereference(client.copyRequest.SourceKey))
 	assert.Equal(t, "root/target.txt", dereference(client.copyRequest.Key))
 	assert.Equal(t, "root/source.txt", dereference(client.deleteRequest.Key))
+}
+
+func TestFilesystemPutContentLength(t *testing.T) {
+	client := &fakeClient{}
+	storage := newFilesystem(client, "bucket")
+	source := struct{ io.Reader }{Reader: strings.NewReader("content")}
+
+	err := storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{})
+	assert.ErrorIs(t, err, filesystem.ErrContentLengthRequired)
+
+	length := int64(len("content"))
+	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{
+		ContentLength: &length,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, client.putRequest)
+	assert.Equal(t, length, *client.putRequest.ContentLength)
 }
 
 func TestFilesystemNotFound(t *testing.T) {
@@ -107,6 +126,7 @@ type fakeClient struct {
 	headResult    *aliyunoss.HeadObjectResult
 	listRequest   *aliyunoss.ListObjectsV2Request
 	listResult    *aliyunoss.ListObjectsV2Result
+	putRequest    *aliyunoss.PutObjectRequest
 	copyRequest   *aliyunoss.CopyObjectRequest
 	deleteRequest *aliyunoss.DeleteObjectRequest
 }
@@ -119,11 +139,12 @@ func (c *fakeClient) GetObject(
 	return nil, c.getErr
 }
 
-func (*fakeClient) PutObject(
-	context.Context,
-	*aliyunoss.PutObjectRequest,
-	...func(*aliyunoss.Options),
+func (c *fakeClient) PutObject(
+	_ context.Context,
+	request *aliyunoss.PutObjectRequest,
+	_ ...func(*aliyunoss.Options),
 ) (*aliyunoss.PutObjectResult, error) {
+	c.putRequest = request
 	return &aliyunoss.PutObjectResult{}, nil
 }
 

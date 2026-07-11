@@ -97,6 +97,28 @@ func TestFilesystemListPagination(t *testing.T) {
 	assert.Empty(t, second.NextCursor)
 }
 
+func TestFilesystemPutContentLength(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
+	source := struct{ io.Reader }{Reader: strings.NewReader("content")}
+
+	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{})
+	assert.ErrorIs(t, err, filesystem.ErrContentLengthRequired)
+
+	length := int64(len("content"))
+	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{
+		ContentLength: &length,
+	})
+	require.NoError(t, err)
+
+	reader, err := storage.Open(t.Context(), "file.txt")
+	require.NoError(t, err)
+	value, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	assert.Equal(t, "content", string(value))
+}
+
 func TestFilesystemListWithoutMatches(t *testing.T) {
 	storage, err := New(t.TempDir())
 	require.NoError(t, err)

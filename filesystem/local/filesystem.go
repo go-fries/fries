@@ -1,6 +1,7 @@
 package local
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -57,18 +58,23 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 	return reader, nil
 }
 
-// Put writes src to path, replacing an existing file.
+// Put writes src to path, replacing an existing file. The content length must
+// be explicit or inferable as described by filesystem.PutOptions.
 func (s *Filesystem) Put(
 	ctx context.Context,
 	path string,
 	src io.Reader,
-	_ filesystem.PutOptions,
+	options filesystem.PutOptions,
 ) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
+	}
+	contentLength, err := options.ResolveContentLength(src)
+	if err != nil {
+		return wrapPathError("put", path, err)
 	}
 	root, err := s.openRoot("put", path)
 	if err != nil {
@@ -80,10 +86,19 @@ func (s *Filesystem) Put(
 	if err != nil {
 		return wrapPathError("put", path, err)
 	}
-	_, copyErr := io.Copy(file, contextReader{ctx: ctx, reader: src})
+	if src == nil {
+		src = bytes.NewReader(nil)
+	}
+	written, copyErr := io.Copy(
+		file,
+		io.LimitReader(contextReader{ctx: ctx, reader: src}, contentLength),
+	)
 	closeErr := file.Close()
 	if copyErr != nil {
 		return wrapPathError("put", path, copyErr)
+	}
+	if written != contentLength {
+		return wrapPathError("put", path, io.ErrUnexpectedEOF)
 	}
 	if closeErr != nil {
 		return wrapPathError("put", path, closeErr)

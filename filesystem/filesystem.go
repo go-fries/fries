@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 )
@@ -20,6 +21,12 @@ var (
 	// extension cannot perform an operation. It is reserved for optional and
 	// future APIs; the core Driver contract does not currently return it.
 	ErrUnsupported = errors.New("filesystem: operation not supported")
+	// ErrContentLengthRequired indicates that Put cannot determine the number of
+	// bytes remaining in src and PutOptions.ContentLength was not provided.
+	ErrContentLengthRequired = errors.New("filesystem: content length required")
+	// ErrInvalidContentLength indicates that PutOptions.ContentLength is negative
+	// or an inferred reader length is invalid.
+	ErrInvalidContentLength = errors.New("filesystem: invalid content length")
 )
 
 // EntryKind identifies the logical kind of a filesystem entry.
@@ -59,8 +66,64 @@ func (e Entry) IsDir() bool {
 
 // PutOptions configures a Put operation.
 type PutOptions struct {
-	ContentType string
-	Metadata    map[string]string
+	// ContentLength is the number of bytes remaining in the source reader. A nil
+	// value lets the driver infer the length from readers that expose Len() int or
+	// implement io.Seeker. It must be set for other readers. Zero is valid;
+	// negative values are rejected.
+	ContentLength *int64
+	ContentType   string
+	Metadata      map[string]string
+}
+
+// ResolveContentLength returns the explicit or inferred number of bytes
+// remaining in src.
+func (o PutOptions) ResolveContentLength(src io.Reader) (int64, error) {
+	if o.ContentLength != nil {
+		if *o.ContentLength < 0 {
+			return 0, ErrInvalidContentLength
+		}
+		return *o.ContentLength, nil
+	}
+	if src == nil {
+		return 0, nil
+	}
+	if source, ok := src.(interface{ Len() int }); ok {
+		length := int64(source.Len())
+		if length < 0 {
+			return 0, ErrInvalidContentLength
+		}
+		return length, nil
+	}
+	if source, ok := src.(io.Seeker); ok {
+		length, err := remainingLength(source)
+		if err != nil {
+			if errors.Is(err, ErrInvalidContentLength) {
+				return 0, err
+			}
+			return 0, fmt.Errorf("%w: %v", ErrContentLengthRequired, err)
+		}
+		return length, nil
+	}
+	return 0, ErrContentLengthRequired
+}
+
+func remainingLength(source io.Seeker) (int64, error) {
+	current, err := source.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, err
+	}
+	end, endErr := source.Seek(0, io.SeekEnd)
+	_, restoreErr := source.Seek(current, io.SeekStart)
+	if endErr != nil {
+		return 0, endErr
+	}
+	if restoreErr != nil {
+		return 0, restoreErr
+	}
+	if end < current {
+		return 0, ErrInvalidContentLength
+	}
+	return end - current, nil
 }
 
 const (
@@ -109,8 +172,10 @@ type Driver interface {
 	// The logical root "." is not a valid file or object path.
 	// If path does not exist, Open returns an error wrapping ErrNotFound.
 	Open(ctx context.Context, path string) (io.ReadCloser, error)
-	// Put writes src to path, replacing an existing entry. The logical root "."
-	// is not a valid file or object path.
+	// Put writes src to path, replacing an existing entry. ContentLength must be
+	// provided when it cannot be inferred from src; otherwise Put returns an error
+	// wrapping ErrContentLengthRequired. The logical root "." is not a valid file
+	// or object path.
 	Put(ctx context.Context, path string, src io.Reader, options PutOptions) error
 	// Delete removes a file or object. Delete is idempotent: deleting a path
 	// that does not exist returns nil. The logical root "." cannot be deleted.
