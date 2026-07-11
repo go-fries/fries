@@ -38,10 +38,7 @@ func NewPool(workers int, options ...PoolOption) (*Pool, error) {
 		return nil, fmt.Errorf("%w: got %d", ErrInvalidWorkers, workers)
 	}
 
-	config, err := newPoolConfig(workers, options...)
-	if err != nil {
-		return nil, err
-	}
+	config := newPoolConfig(workers, options...)
 
 	pool := &Pool{
 		tasks:   make(chan poolTask, config.queueSize),

@@ -21,12 +21,38 @@ func TestNewPoolValidatesConfiguration(t *testing.T) {
 		assert.Nil(t, pool)
 	})
 
-	t.Run("queue size", func(t *testing.T) {
+	t.Run("negative queue size keeps default", func(t *testing.T) {
 		pool, err := parallel.NewPool(1, parallel.WithQueueSize(-1))
 
-		require.ErrorIs(t, err, parallel.ErrInvalidQueueSize)
-		assert.Nil(t, pool)
+		require.NoError(t, err)
+		require.NotNil(t, pool)
+		require.NoError(t, pool.Shutdown(t.Context()))
 	})
+}
+
+func TestPoolUnbufferedQueueAppliesBackpressure(t *testing.T) {
+	pool := requirePool(t, 1, parallel.WithQueueSize(0))
+	started := make(chan struct{})
+	release := make(chan struct{})
+
+	first, err := pool.Submit(t.Context(), func(context.Context) error {
+		close(started)
+		<-release
+
+		return nil
+	})
+	require.NoError(t, err)
+	<-started
+
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+	second, err := pool.Submit(ctx, func(context.Context) error { return nil })
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Nil(t, second)
+
+	close(release)
+	require.NoError(t, first.Wait(t.Context()))
+	require.NoError(t, pool.Shutdown(t.Context()))
 }
 
 func TestPoolValidatesAndReturnsTaskErrors(t *testing.T) {
