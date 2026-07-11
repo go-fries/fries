@@ -15,14 +15,21 @@ type Repository struct {
 	driver Driver
 }
 
-var _ Driver = (*Repository)(nil)
+var (
+	_ Driver = (*Repository)(nil)
+	_ Copier = (*Repository)(nil)
+	_ Mover  = (*Repository)(nil)
+)
 
 // NewRepository wraps driver with portable convenience operations.
 func NewRepository(driver Driver) *Repository {
 	return &Repository{driver: driver}
 }
 
-// Driver returns the wrapped storage driver.
+// Driver returns the wrapped storage driver. Use it to access optional
+// backend capabilities that Repository does not guarantee, such as Linker,
+// Symlinker, or DirectoryManager, by using a type assertion. It can also be
+// asserted to a concrete driver type when backend-specific APIs are required.
 func (r *Repository) Driver() Driver {
 	return r.driver
 }
