@@ -63,6 +63,93 @@ func TestMapReturnsNoPartialResultsOnFailure(t *testing.T) {
 	assert.Nil(t, results)
 }
 
+func TestMapResultsKeepsPerItemOutcomes(t *testing.T) {
+	wantErr := errors.New("item failed")
+
+	results, err := parallel.MapResults(
+		t.Context(), 2, []int{1, 2, 3},
+		func(_ context.Context, value int) (int, error) {
+			if value == 2 {
+				return 0, wantErr
+			}
+
+			return value * 10, nil
+		},
+	)
+
+	require.NoError(t, err)
+	require.Len(t, results, 3)
+	assert.Equal(t, 10, results[0].Value)
+	assert.NoError(t, results[0].Err)
+	assert.Zero(t, results[1].Value)
+	assert.ErrorIs(t, results[1].Err, wantErr)
+	assert.Equal(t, 30, results[2].Value)
+	assert.NoError(t, results[2].Err)
+}
+
+func TestMapResultsReturnsPartialOutcomesOnCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	started := make(chan struct{})
+	type output struct {
+		results []parallel.Result[int]
+		err     error
+	}
+	result := make(chan output, 1)
+
+	go func() {
+		results, err := parallel.MapResults(
+			ctx, 1, []int{1, 2, 3},
+			func(ctx context.Context, value int) (int, error) {
+				close(started)
+				<-ctx.Done()
+
+				return value, context.Cause(ctx)
+			},
+		)
+		result <- output{results: results, err: err}
+	}()
+
+	<-started
+	cancel()
+	got := <-result
+
+	require.ErrorIs(t, got.err, context.Canceled)
+	require.Len(t, got.results, 3)
+	for _, item := range got.results {
+		assert.ErrorIs(t, item.Err, context.Canceled)
+	}
+}
+
+func TestFilterPreservesInputOrder(t *testing.T) {
+	values, err := parallel.Filter(
+		t.Context(), 3, []int{5, 2, 4, 1, 3},
+		func(_ context.Context, value int) (bool, error) {
+			return value%2 == 1, nil
+		},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, []int{5, 1, 3}, values)
+}
+
+func TestFilterReturnsNoPartialResultsOnFailure(t *testing.T) {
+	wantErr := errors.New("predicate failed")
+
+	values, err := parallel.Filter(
+		t.Context(), 2, []int{1, 2, 3},
+		func(_ context.Context, value int) (bool, error) {
+			if value == 2 {
+				return false, wantErr
+			}
+
+			return true, nil
+		},
+	)
+
+	require.ErrorIs(t, err, wantErr)
+	assert.Nil(t, values)
+}
+
 func TestCollectionHelpersValidateInputs(t *testing.T) {
 	t.Run("ForEach limit", func(t *testing.T) {
 		err := parallel.ForEach(
@@ -90,6 +177,18 @@ func TestCollectionHelpersValidateInputs(t *testing.T) {
 
 	t.Run("Map function", func(t *testing.T) {
 		_, err := parallel.Map[int, int](t.Context(), 1, nil, nil)
+
+		require.ErrorIs(t, err, parallel.ErrNilFunc)
+	})
+
+	t.Run("MapResults function", func(t *testing.T) {
+		_, err := parallel.MapResults[int, int](t.Context(), 1, nil, nil)
+
+		require.ErrorIs(t, err, parallel.ErrNilFunc)
+	})
+
+	t.Run("Filter function", func(t *testing.T) {
+		_, err := parallel.Filter[int](t.Context(), 1, nil, nil)
 
 		require.ErrorIs(t, err, parallel.ErrNilFunc)
 	})

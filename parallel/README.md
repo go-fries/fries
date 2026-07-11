@@ -47,5 +47,42 @@ profiles, err := parallel.Map(ctx, 8, userIDs,
 )
 ```
 
+## Keep partial results
+
+Use `MapResults` when every item should be attempted even if some callbacks
+fail. Each result corresponds to the input at the same index:
+
+```go
+results, batchErr := parallel.MapResults(ctx, 8, userIDs,
+	func(ctx context.Context, id int64) (Profile, error) {
+		return loadProfile(ctx, id)
+	},
+)
+
+for index, result := range results {
+	if result.Err != nil {
+		log.Printf("load user %d: %v", userIDs[index], result.Err)
+		continue
+	}
+	useProfile(result.Value)
+}
+
+if batchErr != nil {
+	return batchErr
+}
+```
+
+## Filter values
+
+`Filter` evaluates a predicate concurrently and preserves input order:
+
+```go
+activeUsers, err := parallel.Filter(ctx, 8, users,
+	func(ctx context.Context, user User) (bool, error) {
+		return service.IsActive(ctx, user.ID)
+	},
+)
+```
+
 All functions wait for started work to return. Callbacks should observe the
 provided context and stop promptly after cancellation.
