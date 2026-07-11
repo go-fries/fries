@@ -1,101 +1,166 @@
-package coroutines
+package coroutines_test
 
 import (
-	"sync"
+	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/go-fries/fries/coroutines/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestWait(t *testing.T) {
-	var (
-		ch  = make(chan struct{}, 2)
-		now = time.Now()
-	)
+func TestRunExecutesTasksConcurrently(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
 
-	Wait(func() {
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	})
+	started := make(chan struct{}, 3)
+	release := make(chan struct{})
+	result := make(chan error, 1)
+	tasks := make([]coroutines.Task, 3)
+	for index := range tasks {
+		tasks[index] = func(ctx context.Context) error {
+			started <- struct{}{}
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return context.Cause(ctx)
+			}
+		}
+	}
 
-	assert.True(t, len(ch) == 2)
-	assert.True(t, time.Since(now) < 400*time.Millisecond)
+	go func() {
+		result <- coroutines.Run(ctx, tasks...)
+	}()
+
+	for range tasks {
+		select {
+		case <-started:
+		case <-ctx.Done():
+			require.FailNow(t, "tasks did not start concurrently")
+		}
+	}
+
+	close(release)
+	require.NoError(t, <-result)
 }
 
-func TestRun(t *testing.T) {
-	var (
-		ch  = make(chan struct{}, 2)
-		now = time.Now()
-		wg  sync.WaitGroup
-	)
+func TestRunLimitBoundsConcurrency(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
 
-	wg.Add(2)
+	started := make(chan struct{}, 4)
+	release := make(chan struct{}, 4)
+	result := make(chan error, 1)
+	tasks := make([]coroutines.Task, 4)
+	for index := range tasks {
+		tasks[index] = func(ctx context.Context) error {
+			started <- struct{}{}
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return context.Cause(ctx)
+			}
+		}
+	}
 
-	Run(func() {
-		defer wg.Done()
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		defer wg.Done()
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	})
+	go func() {
+		result <- coroutines.RunLimit(ctx, 2, tasks...)
+	}()
 
-	wg.Wait()
-	assert.True(t, len(ch) == 2)
-	assert.True(t, time.Since(now) < 400*time.Millisecond)
+	requireStarted(t, ctx, started, 2)
+	select {
+	case <-started:
+		require.FailNow(t, "more than two tasks started")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	release <- struct{}{}
+	release <- struct{}{}
+	requireStarted(t, ctx, started, 2)
+	release <- struct{}{}
+	release <- struct{}{}
+
+	require.NoError(t, <-result)
 }
 
-func TestParallel(t *testing.T) {
-	var (
-		ch  = make(chan struct{}, 3)
-		now = time.Now()
-		wg  sync.WaitGroup
+func TestRunReturnsFirstErrorAndCancelsSiblings(t *testing.T) {
+	wantErr := errors.New("task failed")
+	siblingStarted := make(chan struct{})
+	siblingCanceled := make(chan struct{})
+
+	err := coroutines.Run(
+		t.Context(),
+		func(context.Context) error {
+			<-siblingStarted
+
+			return wantErr
+		},
+		func(ctx context.Context) error {
+			close(siblingStarted)
+			<-ctx.Done()
+			close(siblingCanceled)
+
+			return context.Cause(ctx)
+		},
 	)
-	wg.Add(3)
 
-	Parallel(2, func() {
-		defer wg.Done()
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		defer wg.Done()
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		defer wg.Done()
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	})
-	wg.Wait()
-
-	assert.True(t, len(ch) == 3)
-	assert.True(t, time.Since(now) < 600*time.Millisecond)
-	assert.True(t, time.Since(now) > 400*time.Millisecond)
+	require.ErrorIs(t, err, wantErr)
+	assertClosed(t, siblingCanceled)
 }
 
-func TestParallelWait(t *testing.T) {
-	var (
-		ch  = make(chan struct{}, 3)
-		now = time.Now()
-	)
+func TestRunObservesParentCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
 
-	ParallelWait(2, func() {
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
-	}, func() {
-		time.Sleep(200 * time.Millisecond)
-		ch <- struct{}{}
+	var called atomic.Bool
+	err := coroutines.Run(ctx, func(context.Context) error {
+		called.Store(true)
+
+		return nil
 	})
 
-	assert.True(t, len(ch) == 3)
-	assert.True(t, time.Since(now) < 600*time.Millisecond)
-	assert.True(t, time.Since(now) > 400*time.Millisecond)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.False(t, called.Load())
+}
+
+func TestRunValidatesInputs(t *testing.T) {
+	t.Run("invalid limit", func(t *testing.T) {
+		err := coroutines.RunLimit(t.Context(), 0)
+
+		require.ErrorIs(t, err, coroutines.ErrInvalidLimit)
+	})
+
+	t.Run("nil task", func(t *testing.T) {
+		err := coroutines.Run(t.Context(), nil)
+
+		require.ErrorIs(t, err, coroutines.ErrNilTask)
+		assert.Contains(t, err.Error(), "index 0")
+	})
+}
+
+func requireStarted(t *testing.T, ctx context.Context, started <-chan struct{}, count int) {
+	t.Helper()
+
+	for range count {
+		select {
+		case <-started:
+		case <-ctx.Done():
+			require.FailNow(t, "tasks did not start", context.Cause(ctx))
+		}
+	}
+}
+
+func assertClosed(t *testing.T, ch <-chan struct{}) {
+	t.Helper()
+
+	select {
+	case <-ch:
+	default:
+		assert.Fail(t, "channel is not closed")
+	}
 }
