@@ -2,6 +2,8 @@ package local
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -46,12 +48,11 @@ func TestFilesystem(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []filesystem.Entry{
 		{Path: "dir/file.txt", Kind: filesystem.EntryKindFile, Size: 7, LastModified: page.Entries[0].LastModified},
-		{Path: "dir/nested", Kind: filesystem.EntryKindDirectory, Size: page.Entries[1].Size, LastModified: page.Entries[1].LastModified},
 	}, page.Entries)
 
 	recursive, err := storage.List(ctx, "dir", filesystem.ListOptions{Recursive: true})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"dir/file.txt", "dir/nested", "dir/nested/child.txt"}, entryPaths(recursive.Entries))
+	assert.Equal(t, []string{"dir/file.txt", "dir/nested/child.txt"}, entryPaths(recursive.Entries))
 
 	files, err := storage.List(ctx, ".", filesystem.ListOptions{
 		Recursive: true,
@@ -59,6 +60,13 @@ func TestFilesystem(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"dir/file.txt", "dir/nested/child.txt"}, entryPaths(files.Entries))
+
+	directories, err := storage.List(ctx, ".", filesystem.ListOptions{
+		Recursive: true,
+		Kind:      filesystem.EntryKindDirectory,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, directories.Entries)
 
 	require.NoError(t, storage.Move(ctx, "dir/file.txt", "dir/moved.txt"))
 	require.NoError(t, storage.Link(ctx, "dir/moved.txt", "dir/link.txt"))
@@ -128,6 +136,53 @@ func TestFilesystemRejectsEscapingPaths(t *testing.T) {
 	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
 	assert.ErrorIs(t, storage.Delete(t.Context(), "."), filesystem.ErrInvalidPath)
 	assert.ErrorIs(t, storage.DeleteDirectory(t.Context(), "."), filesystem.ErrInvalidPath)
+}
+
+func TestFilesystemRejectsEscapingSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic-link creation may require additional privileges")
+	}
+
+	root := t.TempDir()
+	outside := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(outside, "outside.txt"), []byte("outside"), 0o644))
+	require.NoError(t, os.Mkdir(filepath.Join(outside, "directory"), 0o755))
+	require.NoError(t, os.Symlink(outside, filepath.Join(root, "escape")))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "inside.txt"), []byte("inside"), 0o644))
+
+	storage, err := New(root)
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	_, err = storage.Open(ctx, "escape/outside.txt")
+	assert.Error(t, err)
+	assert.Error(t, storage.Put(
+		ctx,
+		"escape/created.txt",
+		strings.NewReader("created"),
+		filesystem.PutOptions{},
+	))
+	_, err = os.Stat(filepath.Join(outside, "created.txt"))
+	assert.ErrorIs(t, err, os.ErrNotExist)
+
+	_, err = storage.Stat(ctx, "escape/outside.txt")
+	assert.Error(t, err)
+	_, err = storage.List(ctx, "escape", filesystem.ListOptions{})
+	assert.Error(t, err)
+
+	assert.Error(t, storage.Delete(ctx, "escape/outside.txt"))
+	_, err = os.Stat(filepath.Join(outside, "outside.txt"))
+	assert.NoError(t, err)
+
+	assert.Error(t, storage.Move(ctx, "inside.txt", "escape/moved.txt"))
+	_, err = os.Stat(filepath.Join(root, "inside.txt"))
+	assert.NoError(t, err)
+	assert.Error(t, storage.Link(ctx, "inside.txt", "escape/linked.txt"))
+	assert.Error(t, storage.Symlink(ctx, "inside.txt", "escape/symlink.txt"))
+	assert.Error(t, storage.MakeDirectory(ctx, "escape/created-directory"))
+	assert.Error(t, storage.DeleteDirectory(ctx, "escape/directory"))
+	_, err = os.Stat(filepath.Join(outside, "directory"))
+	assert.NoError(t, err)
 }
 
 func TestFilesystemStatRoot(t *testing.T) {

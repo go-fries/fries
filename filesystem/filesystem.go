@@ -26,7 +26,7 @@ var (
 type EntryKind uint8
 
 const (
-	// EntryKindAny matches files and directories when used as a list filter.
+	// EntryKindAny does not restrict the entry kind when used as a list filter.
 	EntryKindAny EntryKind = iota
 	// EntryKindFile identifies a file or object.
 	EntryKindFile
@@ -70,9 +70,10 @@ const (
 
 // ListOptions configures a List operation.
 type ListOptions struct {
-	// Recursive includes entries below nested directories or prefixes.
+	// Recursive includes files below nested directories or prefixes.
 	Recursive bool
-	// Kind filters entries by kind. EntryKindAny includes every kind.
+	// Kind filters entries by kind. List only enumerates files, so
+	// EntryKindDirectory produces an empty page.
 	Kind EntryKind
 	// Limit caps the number of entries returned. Values less than one use
 	// DefaultListLimit; values greater than MaxListLimit use MaxListLimit.
@@ -118,11 +119,13 @@ type Driver interface {
 	// additional prefix listing to distinguish a missing object from a virtual
 	// directory.
 	Stat(ctx context.Context, path string) (Entry, error)
-	// List returns one page of entries below a directory or object prefix. Use
-	// "." to list the logical root. If path has no matching descendants,
-	// including when it does not exist or names a file, List returns an empty
-	// page and a nil error. Entries are sorted by logical path within each page;
-	// ordering across pages follows the backend cursor and is not guaranteed.
+	// List returns one page of files or objects below a directory or object
+	// prefix. Directories, virtual prefixes, and object-storage directory markers
+	// are not returned. Use "." to list the logical root. If path has no matching
+	// files, including when it does not exist or names a file, List returns an
+	// empty page and a nil error. Entries are sorted by logical path within each
+	// page; ordering across pages follows the backend cursor and is not
+	// guaranteed.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 

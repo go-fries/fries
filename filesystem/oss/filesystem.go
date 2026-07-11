@@ -183,7 +183,7 @@ func (s *Filesystem) hasChildren(ctx context.Context, path string) (bool, error)
 	return len(result.Contents) > 0 || len(result.CommonPrefixes) > 0, nil
 }
 
-// List returns one page of objects and virtual directories below path.
+// List returns one page of objects below path.
 func (s *Filesystem) List(
 	ctx context.Context,
 	path string,
@@ -248,34 +248,27 @@ func (s *Filesystem) entries(
 	result *aliyunoss.ListObjectsV2Result,
 	kind filesystem.EntryKind,
 ) []filesystem.Entry {
-	byPath := make(map[string]filesystem.Entry, len(result.Contents)+len(result.CommonPrefixes))
+	byPath := make(map[string]filesystem.Entry, len(result.Contents))
 	for _, object := range result.Contents {
 		key := dereference(object.Key)
-		entryKind := filesystem.EntryKindFile
 		if strings.HasSuffix(key, "/") {
-			entryKind = filesystem.EntryKindDirectory
-			key = strings.TrimSuffix(key, "/")
-		}
-		path, ok := s.prefixer.Strip(key)
-		if !ok || path == "." || !filesystem.ValidPath(path) || !matchesKind(entryKind, kind) {
 			continue
 		}
-		entry := filesystem.Entry{Path: path, Kind: entryKind, Size: object.Size}
+		path, ok := s.prefixer.Strip(key)
+		if !ok || path == "." || !filesystem.ValidPath(path) ||
+			!matchesKind(filesystem.EntryKindFile, kind) {
+			continue
+		}
+		entry := filesystem.Entry{
+			Path: path,
+			Kind: filesystem.EntryKindFile,
+			Size: object.Size,
+		}
 		if object.LastModified != nil {
 			entry.LastModified = *object.LastModified
 		}
 		byPath[path] = entry
 	}
-	for _, commonPrefix := range result.CommonPrefixes {
-		key := strings.TrimSuffix(dereference(commonPrefix.Prefix), "/")
-		path, ok := s.prefixer.Strip(key)
-		if !ok || path == "." || !filesystem.ValidPath(path) ||
-			!matchesKind(filesystem.EntryKindDirectory, kind) {
-			continue
-		}
-		byPath[path] = filesystem.Entry{Path: path, Kind: filesystem.EntryKindDirectory}
-	}
-
 	entries := make([]filesystem.Entry, 0, len(byPath))
 	for _, entry := range byPath {
 		entries = append(entries, entry)

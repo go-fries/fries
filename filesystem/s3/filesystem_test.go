@@ -16,11 +16,14 @@ func TestFilesystemList(t *testing.T) {
 	modified := time.Now()
 	client := &fakeClient{
 		listOutput: &awss3.ListObjectsV2Output{
-			Contents: []types.Object{{
-				Key:          ptr("root/dir/file.txt"),
-				Size:         ptr(int64(7)),
-				LastModified: &modified,
-			}},
+			Contents: []types.Object{
+				{
+					Key:          ptr("root/dir/file.txt"),
+					Size:         ptr(int64(7)),
+					LastModified: &modified,
+				},
+				{Key: ptr("root/dir/marker/")},
+			},
 			CommonPrefixes:        []types.CommonPrefix{{Prefix: ptr("root/dir/nested/")}},
 			NextContinuationToken: ptr("next"),
 		},
@@ -35,8 +38,14 @@ func TestFilesystemList(t *testing.T) {
 	assert.Equal(t, "root/dir/", dereference(client.listInput.Prefix))
 	assert.Equal(t, "/", dereference(client.listInput.Delimiter))
 	assert.Equal(t, "cursor", dereference(client.listInput.ContinuationToken))
-	assert.Equal(t, []string{"dir/file.txt", "dir/nested"}, entryPaths(page.Entries))
+	assert.Equal(t, []string{"dir/file.txt"}, entryPaths(page.Entries))
 	assert.Equal(t, "next", page.NextCursor)
+
+	directories, err := storage.List(t.Context(), "dir", filesystem.ListOptions{
+		Kind: filesystem.EntryKindDirectory,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, directories.Entries)
 }
 
 func TestFilesystemMove(t *testing.T) {

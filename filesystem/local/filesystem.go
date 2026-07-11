@@ -6,9 +6,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/go-fries/fries/filesystem/v4"
 )
@@ -44,12 +44,13 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 	if err := filesystem.ValidateFilePath(path); err != nil {
 		return nil, err
 	}
-	resolved, err := s.resolve(path)
+	root, err := s.openRoot("open", path)
 	if err != nil {
 		return nil, err
 	}
+	defer closeRoot(root)
 
-	reader, err := os.Open(resolved)
+	reader, err := root.Open(nativePath(path))
 	if err != nil {
 		return nil, wrapPathError("open", path, err)
 	}
@@ -69,12 +70,13 @@ func (s *Filesystem) Put(
 	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
-	resolved, err := s.resolve(path)
+	root, err := s.openRoot("put", path)
 	if err != nil {
 		return err
 	}
+	defer closeRoot(root)
 
-	file, err := os.OpenFile(resolved, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	file, err := root.OpenFile(nativePath(path), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return wrapPathError("put", path, err)
 	}
@@ -97,11 +99,13 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
-	resolved, err := s.resolve(path)
+	root, err := s.openRoot("delete", path)
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(resolved); err != nil {
+	defer closeRoot(root)
+
+	if err := root.Remove(nativePath(path)); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
@@ -118,19 +122,20 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 	if path == "." {
 		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
-	resolved, err := s.resolve(path)
+	root, err := s.openRoot("stat", path)
 	if err != nil {
 		return filesystem.Entry{}, err
 	}
+	defer closeRoot(root)
 
-	info, err := os.Stat(resolved)
+	info, err := root.Stat(nativePath(path))
 	if err != nil {
 		return filesystem.Entry{}, wrapPathError("stat", path, err)
 	}
 	return entryFromInfo(path, info), nil
 }
 
-// List returns entries below path in lexical order.
+// List returns files below path in lexical order.
 func (s *Filesystem) List(
 	ctx context.Context,
 	path string,
@@ -140,12 +145,16 @@ func (s *Filesystem) List(
 	if err := ctx.Err(); err != nil {
 		return filesystem.ListPage{}, err
 	}
-	resolved, err := s.resolve(path)
+	if err := filesystem.ValidatePath(path); err != nil {
+		return filesystem.ListPage{}, err
+	}
+	root, err := s.openRoot("list", path)
 	if err != nil {
 		return filesystem.ListPage{}, err
 	}
+	defer closeRoot(root)
 
-	entries, err := s.listEntries(ctx, resolved, options.Recursive)
+	entries, err := listEntries(ctx, root.FS(), path, options.Recursive)
 	if err != nil {
 		return filesystem.ListPage{}, wrapPathError("list", path, err)
 	}
@@ -168,15 +177,13 @@ func (s *Filesystem) Move(ctx context.Context, src, dst string) error {
 	if err := filesystem.ValidateFilePath(dst); err != nil {
 		return err
 	}
-	source, err := s.resolve(src)
+	root, err := s.openRoot("move", src)
 	if err != nil {
 		return err
 	}
-	destination, err := s.resolve(dst)
-	if err != nil {
-		return err
-	}
-	if err := os.Rename(source, destination); err != nil {
+	defer closeRoot(root)
+
+	if err := root.Rename(nativePath(src), nativePath(dst)); err != nil {
 		return wrapPathError("move", src, err)
 	}
 	return nil
@@ -193,22 +200,20 @@ func (s *Filesystem) Link(ctx context.Context, src, dst string) error {
 	if err := filesystem.ValidateFilePath(dst); err != nil {
 		return err
 	}
-	source, err := s.resolve(src)
+	root, err := s.openRoot("link", src)
 	if err != nil {
 		return err
 	}
-	destination, err := s.resolve(dst)
-	if err != nil {
-		return err
-	}
-	if err := os.Link(source, destination); err != nil {
+	defer closeRoot(root)
+
+	if err := root.Link(nativePath(src), nativePath(dst)); err != nil {
 		return wrapPathError("link", src, err)
 	}
 	return nil
 }
 
-// Symlink creates a symbolic link whose target remains inside the configured
-// root when both logical paths remain inside it.
+// Symlink creates a relative symbolic link. Access through this filesystem
+// rejects links whose resolution escapes the configured root.
 func (s *Filesystem) Symlink(ctx context.Context, target, link string) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -219,19 +224,19 @@ func (s *Filesystem) Symlink(ctx context.Context, target, link string) error {
 	if err := filesystem.ValidateFilePath(link); err != nil {
 		return err
 	}
-	targetPath, err := s.resolve(target)
+	root, err := s.openRoot("symlink", link)
 	if err != nil {
 		return err
 	}
-	linkPath, err := s.resolve(link)
-	if err != nil {
-		return err
-	}
+	defer closeRoot(root)
+
+	targetPath := nativePath(target)
+	linkPath := nativePath(link)
 	relativeTarget, err := filepath.Rel(filepath.Dir(linkPath), targetPath)
 	if err != nil {
 		return wrapPathError("symlink", target, err)
 	}
-	if err := os.Symlink(relativeTarget, linkPath); err != nil {
+	if err := root.Symlink(relativeTarget, linkPath); err != nil {
 		return wrapPathError("symlink", link, err)
 	}
 	return nil
@@ -242,11 +247,16 @@ func (s *Filesystem) MakeDirectory(ctx context.Context, path string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	resolved, err := s.resolve(path)
+	if err := filesystem.ValidatePath(path); err != nil {
+		return err
+	}
+	root, err := s.openRoot("mkdir", path)
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(resolved, 0o755); err != nil {
+	defer closeRoot(root)
+
+	if err := root.MkdirAll(nativePath(path), 0o755); err != nil {
 		return wrapPathError("mkdir", path, err)
 	}
 	return nil
@@ -260,41 +270,44 @@ func (s *Filesystem) DeleteDirectory(ctx context.Context, path string) error {
 	if path == "." {
 		return &fs.PathError{Op: "remove", Path: path, Err: filesystem.ErrInvalidPath}
 	}
-	resolved, err := s.resolve(path)
+	if err := filesystem.ValidatePath(path); err != nil {
+		return err
+	}
+	root, err := s.openRoot("remove", path)
 	if err != nil {
 		return err
 	}
-	if err := os.RemoveAll(resolved); err != nil {
+	defer closeRoot(root)
+
+	if err := root.RemoveAll(nativePath(path)); err != nil {
 		return wrapPathError("remove", path, err)
 	}
 	return nil
 }
 
-func (s *Filesystem) resolve(path string) (string, error) {
-	if err := filesystem.ValidatePath(path); err != nil {
-		return "", err
-	}
-	if path == "." {
-		return s.root, nil
-	}
-
-	resolved := filepath.Join(s.root, filepath.FromSlash(path))
-	relative, err := filepath.Rel(s.root, resolved)
+func (s *Filesystem) openRoot(op, path string) (*os.Root, error) {
+	root, err := os.OpenRoot(s.root)
 	if err != nil {
-		return "", &fs.PathError{Op: "resolve", Path: path, Err: err}
+		return nil, wrapPathError(op, path, err)
 	}
-	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return "", &fs.PathError{Op: "resolve", Path: path, Err: filesystem.ErrInvalidPath}
-	}
-	return resolved, nil
+	return root, nil
 }
 
-func (s *Filesystem) listEntries(
+func nativePath(path string) string {
+	return filepath.FromSlash(path)
+}
+
+func closeRoot(root *os.Root) {
+	_ = root.Close()
+}
+
+func listEntries(
 	ctx context.Context,
+	storage fs.FS,
 	root string,
 	recursive bool,
 ) ([]filesystem.Entry, error) {
-	info, err := os.Stat(root)
+	info, err := fs.Stat(storage, root)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
@@ -306,7 +319,7 @@ func (s *Filesystem) listEntries(
 	}
 
 	if !recursive {
-		dirEntries, err := os.ReadDir(root)
+		dirEntries, err := fs.ReadDir(storage, root)
 		if err != nil {
 			return nil, err
 		}
@@ -316,9 +329,12 @@ func (s *Filesystem) listEntries(
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}
-			entry, err := s.entryFromDirEntry(filepath.Join(root, dirEntry.Name()), dirEntry)
+			entry, err := entryFromDirEntry(logicalJoin(root, dirEntry.Name()), dirEntry)
 			if err != nil {
 				return nil, err
+			}
+			if entry.IsDir() {
+				continue
 			}
 			entries = append(entries, entry)
 		}
@@ -326,7 +342,7 @@ func (s *Filesystem) listEntries(
 	}
 
 	var entries []filesystem.Entry
-	err = filepath.WalkDir(root, func(path string, dirEntry fs.DirEntry, err error) error {
+	err = fs.WalkDir(storage, root, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -336,7 +352,10 @@ func (s *Filesystem) listEntries(
 		if path == root {
 			return nil
 		}
-		entry, err := s.entryFromDirEntry(path, dirEntry)
+		if dirEntry.IsDir() {
+			return nil
+		}
+		entry, err := entryFromDirEntry(path, dirEntry)
 		if err != nil {
 			return err
 		}
@@ -346,16 +365,19 @@ func (s *Filesystem) listEntries(
 	return entries, err
 }
 
-func (s *Filesystem) entryFromDirEntry(path string, dirEntry fs.DirEntry) (filesystem.Entry, error) {
+func logicalJoin(directory, name string) string {
+	if directory == "." {
+		return name
+	}
+	return pathpkg.Join(directory, name)
+}
+
+func entryFromDirEntry(path string, dirEntry fs.DirEntry) (filesystem.Entry, error) {
 	info, err := dirEntry.Info()
 	if err != nil {
 		return filesystem.Entry{}, err
 	}
-	relative, err := filepath.Rel(s.root, path)
-	if err != nil {
-		return filesystem.Entry{}, err
-	}
-	return entryFromInfo(filepath.ToSlash(relative), info), nil
+	return entryFromInfo(path, info), nil
 }
 
 func entryFromInfo(path string, info fs.FileInfo) filesystem.Entry {

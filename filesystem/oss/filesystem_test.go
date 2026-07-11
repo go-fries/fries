@@ -15,11 +15,14 @@ func TestFilesystemList(t *testing.T) {
 	modified := time.Now()
 	client := &fakeClient{
 		listResult: &aliyunoss.ListObjectsV2Result{
-			Contents: []aliyunoss.ObjectProperties{{
-				Key:          aliyunoss.Ptr("root/dir/file.txt"),
-				Size:         7,
-				LastModified: &modified,
-			}},
+			Contents: []aliyunoss.ObjectProperties{
+				{
+					Key:          aliyunoss.Ptr("root/dir/file.txt"),
+					Size:         7,
+					LastModified: &modified,
+				},
+				{Key: aliyunoss.Ptr("root/dir/marker/")},
+			},
 			CommonPrefixes:        []aliyunoss.CommonPrefix{{Prefix: aliyunoss.Ptr("root/dir/nested/")}},
 			NextContinuationToken: aliyunoss.Ptr("next"),
 		},
@@ -34,8 +37,14 @@ func TestFilesystemList(t *testing.T) {
 	assert.Equal(t, "root/dir/", dereference(client.listRequest.Prefix))
 	assert.Equal(t, "/", dereference(client.listRequest.Delimiter))
 	assert.Equal(t, "cursor", dereference(client.listRequest.ContinuationToken))
-	assert.Equal(t, []string{"dir/file.txt", "dir/nested"}, entryPaths(page.Entries))
+	assert.Equal(t, []string{"dir/file.txt"}, entryPaths(page.Entries))
 	assert.Equal(t, "next", page.NextCursor)
+
+	directories, err := storage.List(t.Context(), "dir", filesystem.ListOptions{
+		Kind: filesystem.EntryKindDirectory,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, directories.Entries)
 }
 
 func TestFilesystemMove(t *testing.T) {
