@@ -90,10 +90,7 @@ Use `Pool` for intermittent work that should share a fixed concurrency limit
 and a bounded queue:
 
 ```go
-pool, err := parallel.NewPool(8, parallel.WithQueueSize(32))
-if err != nil {
-	return err
-}
+pool := parallel.NewPool(8, parallel.WithQueueSize(32))
 
 future, err := pool.Submit(taskContext, func(ctx context.Context) error {
 	return refreshCache(ctx, cacheKey)

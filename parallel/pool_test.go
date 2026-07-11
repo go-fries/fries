@@ -13,18 +13,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewPoolValidatesConfiguration(t *testing.T) {
-	t.Run("workers", func(t *testing.T) {
-		pool, err := parallel.NewPool(0)
-
-		require.ErrorIs(t, err, parallel.ErrInvalidWorkers)
-		assert.Nil(t, pool)
+func TestNewPoolConfiguration(t *testing.T) {
+	t.Run("non-positive workers panic", func(t *testing.T) {
+		assert.PanicsWithValue(t, "parallel: worker count must be greater than zero", func() {
+			parallel.NewPool(0)
+		})
 	})
 
 	t.Run("negative queue size keeps default", func(t *testing.T) {
-		pool, err := parallel.NewPool(1, parallel.WithQueueSize(-1))
+		pool := parallel.NewPool(1, parallel.WithQueueSize(-1))
 
-		require.NoError(t, err)
 		require.NotNil(t, pool)
 		require.NoError(t, pool.Shutdown(t.Context()))
 	})
@@ -340,8 +338,5 @@ func TestPoolConcurrentSubmitAndShutdown(t *testing.T) {
 func requirePool(t *testing.T, workers int, options ...parallel.PoolOption) *parallel.Pool {
 	t.Helper()
 
-	pool, err := parallel.NewPool(workers, options...)
-	require.NoError(t, err)
-
-	return pool
+	return parallel.NewPool(workers, options...)
 }

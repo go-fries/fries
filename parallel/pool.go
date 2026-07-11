@@ -2,7 +2,6 @@ package parallel
 
 import (
 	"context"
-	"fmt"
 	"sync"
 )
 
@@ -31,11 +30,11 @@ type Pool struct {
 
 // NewPool starts a fixed number of worker goroutines.
 //
-// Workers must be greater than zero. By default, the queue can hold one task
-// per worker; use WithQueueSize to change that capacity.
-func NewPool(workers int, options ...PoolOption) (*Pool, error) {
+// NewPool panics if workers is not positive. By default, the queue can hold one
+// task per worker; use WithQueueSize to change that capacity.
+func NewPool(workers int, options ...PoolOption) *Pool {
 	if workers <= 0 {
-		return nil, fmt.Errorf("%w: got %d", ErrInvalidWorkers, workers)
+		panic("parallel: worker count must be greater than zero")
 	}
 
 	config := newPoolConfig(workers, options...)
@@ -50,7 +49,7 @@ func NewPool(workers int, options ...PoolOption) (*Pool, error) {
 		go pool.work()
 	}
 
-	return pool, nil
+	return pool
 }
 
 // Submit adds task to the pool and returns once it has been accepted.
