@@ -129,7 +129,8 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
-// Stat returns object metadata.
+// Stat returns object metadata. If an exact object does not exist, Stat issues
+// one additional ListObjectsV2 request to detect a virtual directory prefix.
 func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, error) {
 	if err := filesystem.ValidatePath(path); err != nil {
 		return filesystem.Entry{}, err
@@ -145,6 +146,15 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 		Key:    aliyunoss.Ptr(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
+		if isNotFound(err) {
+			directory, listErr := s.hasChildren(ctx, path)
+			if listErr != nil {
+				return filesystem.Entry{}, wrapPathError("stat", path, listErr)
+			}
+			if directory {
+				return filesystem.Entry{Path: path, Kind: filesystem.EntryKindDirectory}, nil
+			}
+		}
 		return filesystem.Entry{}, wrapPathError("stat", path, err)
 	}
 
@@ -159,6 +169,18 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 		entry.LastModified = *result.LastModified
 	}
 	return entry, nil
+}
+
+func (s *Filesystem) hasChildren(ctx context.Context, path string) (bool, error) {
+	result, err := s.client.ListObjectsV2(ctx, &aliyunoss.ListObjectsV2Request{
+		Bucket:  aliyunoss.Ptr(s.bucket),
+		Prefix:  aliyunoss.Ptr(directoryPrefix(s.prefixer.Prefix(path))),
+		MaxKeys: 1,
+	})
+	if err != nil {
+		return false, err
+	}
+	return len(result.Contents) > 0 || len(result.CommonPrefixes) > 0, nil
 }
 
 // List returns one page of objects and virtual directories below path.

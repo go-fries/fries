@@ -71,8 +71,37 @@ func TestFilesystemRoot(t *testing.T) {
 	assert.ErrorIs(t, storage.Copy(t.Context(), ".", "target.txt"), filesystem.ErrInvalidPath)
 }
 
+func TestFilesystemStatVirtualDirectory(t *testing.T) {
+	client := &fakeClient{
+		headErr: &aliyunoss.ServiceError{StatusCode: 404, Code: "NoSuchKey"},
+		listResult: &aliyunoss.ListObjectsV2Result{
+			Contents: []aliyunoss.ObjectProperties{{Key: aliyunoss.Ptr("root/images/file.jpg")}},
+		},
+	}
+	storage := newFilesystem(client, "bucket", WithRoot("root"))
+
+	entry, err := storage.Stat(t.Context(), "images")
+	require.NoError(t, err)
+	assert.Equal(t, filesystem.Entry{Path: "images", Kind: filesystem.EntryKindDirectory}, entry)
+	assert.Equal(t, "root/images/", dereference(client.listRequest.Prefix))
+	assert.Equal(t, int32(1), client.listRequest.MaxKeys)
+}
+
+func TestFilesystemStatMissing(t *testing.T) {
+	client := &fakeClient{
+		headErr:    &aliyunoss.ServiceError{StatusCode: 404, Code: "NoSuchKey"},
+		listResult: &aliyunoss.ListObjectsV2Result{},
+	}
+	storage := newFilesystem(client, "bucket")
+
+	_, err := storage.Stat(t.Context(), "missing")
+	assert.ErrorIs(t, err, filesystem.ErrNotFound)
+}
+
 type fakeClient struct {
 	getErr        error
+	headErr       error
+	headResult    *aliyunoss.HeadObjectResult
 	listRequest   *aliyunoss.ListObjectsV2Request
 	listResult    *aliyunoss.ListObjectsV2Result
 	copyRequest   *aliyunoss.CopyObjectRequest
@@ -104,12 +133,15 @@ func (c *fakeClient) DeleteObject(
 	return &aliyunoss.DeleteObjectResult{}, nil
 }
 
-func (*fakeClient) HeadObject(
-	context.Context,
-	*aliyunoss.HeadObjectRequest,
-	...func(*aliyunoss.Options),
+func (c *fakeClient) HeadObject(
+	_ context.Context,
+	_ *aliyunoss.HeadObjectRequest,
+	_ ...func(*aliyunoss.Options),
 ) (*aliyunoss.HeadObjectResult, error) {
-	return &aliyunoss.HeadObjectResult{}, nil
+	if c.headResult == nil {
+		c.headResult = &aliyunoss.HeadObjectResult{}
+	}
+	return c.headResult, c.headErr
 }
 
 func (c *fakeClient) ListObjectsV2(

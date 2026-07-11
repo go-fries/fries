@@ -94,7 +94,9 @@ type Driver interface {
 	Delete(ctx context.Context, path string) error
 	// Stat returns metadata for a file or object. Stat(".") returns a synthetic
 	// directory entry for the logical root. If path does not exist, Stat returns
-	// an error wrapping ErrNotFound.
+	// an error wrapping ErrNotFound. Object-storage drivers may perform an
+	// additional prefix listing to distinguish a missing object from a virtual
+	// directory.
 	Stat(ctx context.Context, path string) (Entry, error)
 	// List returns one page of entries below a directory or object prefix. Use
 	// "." to list the logical root. If path has no matching descendants,

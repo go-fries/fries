@@ -71,8 +71,37 @@ func TestFilesystemRoot(t *testing.T) {
 	assert.ErrorIs(t, storage.Copy(t.Context(), ".", "target.txt"), filesystem.ErrInvalidPath)
 }
 
+func TestFilesystemStatVirtualDirectory(t *testing.T) {
+	client := &fakeClient{
+		headErr: &types.NoSuchKey{},
+		listOutput: &awss3.ListObjectsV2Output{
+			Contents: []types.Object{{Key: ptr("root/images/file.jpg")}},
+		},
+	}
+	storage := newFilesystem(client, "bucket", WithRoot("root"))
+
+	entry, err := storage.Stat(t.Context(), "images")
+	require.NoError(t, err)
+	assert.Equal(t, filesystem.Entry{Path: "images", Kind: filesystem.EntryKindDirectory}, entry)
+	assert.Equal(t, "root/images/", dereference(client.listInput.Prefix))
+	assert.Equal(t, int32(1), *client.listInput.MaxKeys)
+}
+
+func TestFilesystemStatMissing(t *testing.T) {
+	client := &fakeClient{
+		headErr:    &types.NoSuchKey{},
+		listOutput: &awss3.ListObjectsV2Output{},
+	}
+	storage := newFilesystem(client, "bucket")
+
+	_, err := storage.Stat(t.Context(), "missing")
+	assert.ErrorIs(t, err, filesystem.ErrNotFound)
+}
+
 type fakeClient struct {
 	getErr      error
+	headErr     error
+	headOutput  *awss3.HeadObjectOutput
 	listInput   *awss3.ListObjectsV2Input
 	listOutput  *awss3.ListObjectsV2Output
 	copyInput   *awss3.CopyObjectInput
@@ -104,12 +133,15 @@ func (c *fakeClient) DeleteObject(
 	return &awss3.DeleteObjectOutput{}, nil
 }
 
-func (*fakeClient) HeadObject(
-	context.Context,
-	*awss3.HeadObjectInput,
-	...func(*awss3.Options),
+func (c *fakeClient) HeadObject(
+	_ context.Context,
+	_ *awss3.HeadObjectInput,
+	_ ...func(*awss3.Options),
 ) (*awss3.HeadObjectOutput, error) {
-	return &awss3.HeadObjectOutput{}, nil
+	if c.headOutput == nil {
+		c.headOutput = &awss3.HeadObjectOutput{}
+	}
+	return c.headOutput, c.headErr
 }
 
 func (c *fakeClient) ListObjectsV2(
