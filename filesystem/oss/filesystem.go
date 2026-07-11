@@ -50,7 +50,6 @@ type ossClient interface {
 type Filesystem struct {
 	client   ossClient
 	bucket   string
-	root     string
 	prefixer *filesystem.PathPrefixer
 }
 
@@ -60,28 +59,18 @@ var (
 	_ filesystem.Mover  = (*Filesystem)(nil)
 )
 
-// Option configures an OSS filesystem.
-type Option func(*Filesystem)
-
-// WithRoot stores logical paths below root in the bucket.
-func WithRoot(root string) Option {
-	return func(storage *Filesystem) {
-		storage.root = root
-	}
-}
-
 // New creates an OSS-backed filesystem.
-func New(client *aliyunoss.Client, bucket string, options ...Option) *Filesystem {
-	return newFilesystem(client, bucket, options...)
+func New(client *aliyunoss.Client, bucket string, opts ...Option) *Filesystem {
+	return newFilesystem(client, bucket, opts...)
 }
 
-func newFilesystem(client ossClient, bucket string, options ...Option) *Filesystem {
-	storage := &Filesystem{client: client, bucket: bucket}
-	for _, option := range options {
-		option(storage)
+func newFilesystem(client ossClient, bucket string, opts ...Option) *Filesystem {
+	cfg := newConfig(opts...)
+	return &Filesystem{
+		client:   client,
+		bucket:   bucket,
+		prefixer: filesystem.NewPathPrefixer(cfg.root),
 	}
-	storage.prefixer = filesystem.NewPathPrefixer(storage.root)
-	return storage
 }
 
 // Open opens path for streaming reads.

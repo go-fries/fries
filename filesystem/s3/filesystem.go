@@ -53,7 +53,6 @@ type s3Client interface {
 type Filesystem struct {
 	client   s3Client
 	prefixer *filesystem.PathPrefixer
-	root     string
 	bucket   string
 }
 
@@ -63,28 +62,18 @@ var (
 	_ filesystem.Mover  = (*Filesystem)(nil)
 )
 
-// Option configures an S3 filesystem.
-type Option func(*Filesystem)
-
-// WithRoot stores logical paths below root in the bucket.
-func WithRoot(root string) Option {
-	return func(s *Filesystem) {
-		s.root = root
-	}
-}
-
 // New creates an S3-backed filesystem.
-func New(client *awss3.Client, bucket string, options ...Option) *Filesystem {
-	return newFilesystem(client, bucket, options...)
+func New(client *awss3.Client, bucket string, opts ...Option) *Filesystem {
+	return newFilesystem(client, bucket, opts...)
 }
 
-func newFilesystem(client s3Client, bucket string, options ...Option) *Filesystem {
-	storage := &Filesystem{client: client, bucket: bucket}
-	for _, option := range options {
-		option(storage)
+func newFilesystem(client s3Client, bucket string, opts ...Option) *Filesystem {
+	cfg := newConfig(opts...)
+	return &Filesystem{
+		client:   client,
+		bucket:   bucket,
+		prefixer: filesystem.NewPathPrefixer(cfg.root),
 	}
-	storage.prefixer = filesystem.NewPathPrefixer(storage.root)
-	return storage
 }
 
 // Open opens path for streaming reads.
