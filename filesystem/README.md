@@ -1,25 +1,24 @@
 # Filesystem
 
-Filesystem provides a common logical-path storage contract for local files,
-Amazon S3, and Alibaba Cloud OSS.
+Filesystem provides a common storage API for local filesystems, Amazon S3, and
+Alibaba Cloud OSS. It uses logical paths relative to a configured root and
+supports streaming reads and writes, metadata, deletion, and paginated file
+listing.
 
-The base `Driver` API supports streaming reads and writes, deletion, metadata,
-and paginated listing. Backend-specific features such as hard links, symbolic
-links, and real directory management are exposed through optional capability
-interfaces.
+The component is split into a core module and backend modules:
+
+- [`filesystem/local`](./local) stores files below a local directory.
+- [`filesystem/s3`](./s3) stores objects in Amazon S3.
+- [`filesystem/oss`](./oss) stores objects in Alibaba Cloud OSS.
 
 ## Installation
+
+Install the core module and the backend you need:
 
 ```bash
 go get github.com/go-fries/fries/filesystem/v4
 go get github.com/go-fries/fries/filesystem/local/v4
 ```
-
-## Logical paths
-
-Paths are relative and slash-separated. Use `.` for the logical root. Leading
-slashes, trailing slashes, empty path elements, `.`, `..`, and backslashes are
-rejected.
 
 ## Usage
 
@@ -30,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/go-fries/fries/filesystem/local/v4"
 	"github.com/go-fries/fries/filesystem/v4"
@@ -38,18 +38,22 @@ import (
 func main() {
 	ctx := context.Background()
 
+	if err := os.MkdirAll("./storage", 0o755); err != nil {
+		log.Fatal(err)
+	}
 	driver, err := local.New("./storage")
 	if err != nil {
 		log.Fatal(err)
 	}
 	storage := filesystem.NewRepository(driver)
 
-	if err := storage.WriteFile(
+	err = storage.WriteFile(
 		ctx,
 		"example.txt",
 		[]byte("Hello, Filesystem!"),
 		filesystem.PutOptions{},
-	); err != nil {
+	)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -57,29 +61,35 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("File content: %s\n", content)
+	fmt.Println(string(content))
 
-	exists, err := storage.Exists(ctx, "example.txt")
+	page, err := storage.ListFiles(ctx, ".", filesystem.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Exists: %v\n", exists)
+	for _, entry := range page.Entries {
+		fmt.Printf("%s (%d bytes)\n", entry.Path, entry.Size)
+	}
+
+	if err := storage.Delete(ctx, "example.txt"); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
-Amazon S3 and Alibaba Cloud OSS drivers are created with `s3.New(...)` and
-`oss.New(...)`. Both accept `WithRoot(...)` to place logical paths below a
-bucket prefix.
+## Basic behavior
 
-## Optional capabilities
+- Paths are relative and slash-separated. Use `.` for the logical root.
+- `Open`, `Put`, and `Delete` operate on files or objects.
+- `Delete` is idempotent; deleting a missing path returns `nil`.
+- `ListFiles` returns files and objects only. Set `Recursive` to include nested
+  paths and follow `NextCursor` until it is empty when reading multiple pages.
+- `Put` accepts an `io.Reader`. Common readers and files expose enough
+  information to infer their length; other streams must set
+  `PutOptions.ContentLength`.
 
-Drivers may additionally implement:
+`Repository` adds whole-file helpers, existence checks, and portable copy and
+move fallbacks. Drivers may also expose optional capabilities such as native
+copying, moving, links, symbolic links, and directory management.
 
-- `filesystem.Copier`
-- `filesystem.Mover`
-- `filesystem.Linker`
-- `filesystem.Symlinker`
-- `filesystem.DirectoryManager`
-
-`Repository.Copy` and `Repository.Move` prefer native driver capabilities and
-fall back to portable streaming operations when those capabilities are absent.
+See the backend README for setup and backend-specific behavior.
