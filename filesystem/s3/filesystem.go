@@ -188,8 +188,8 @@ func (s *Filesystem) hasChildren(ctx context.Context, path string) (bool, error)
 	return len(output.Contents) > 0 || len(output.CommonPrefixes) > 0, nil
 }
 
-// List returns one page of objects below path.
-func (s *Filesystem) List(
+// ListFiles returns one page of objects below path.
+func (s *Filesystem) ListFiles(
 	ctx context.Context,
 	path string,
 	options filesystem.ListOptions,
@@ -215,7 +215,7 @@ func (s *Filesystem) List(
 		return filesystem.ListPage{}, wrapPathError("list", path, err)
 	}
 
-	page := filesystem.ListPage{Entries: s.entries(output, options.Kind)}
+	page := filesystem.ListPage{Entries: s.entries(output)}
 	if output.NextContinuationToken != nil {
 		page.NextCursor = *output.NextContinuationToken
 	}
@@ -250,10 +250,7 @@ func (s *Filesystem) Move(ctx context.Context, src, dst string) error {
 	return s.Delete(ctx, src)
 }
 
-func (s *Filesystem) entries(
-	output *awss3.ListObjectsV2Output,
-	kind filesystem.EntryKind,
-) []filesystem.Entry {
+func (s *Filesystem) entries(output *awss3.ListObjectsV2Output) []filesystem.Entry {
 	byPath := make(map[string]filesystem.Entry, len(output.Contents))
 	for _, object := range output.Contents {
 		key := dereference(object.Key)
@@ -261,8 +258,7 @@ func (s *Filesystem) entries(
 			continue
 		}
 		path, ok := s.prefixer.Strip(key)
-		if !ok || path == "." || !filesystem.ValidPath(path) ||
-			!matchesKind(filesystem.EntryKindFile, kind) {
+		if !ok || path == "." || !filesystem.ValidPath(path) {
 			continue
 		}
 		entry := filesystem.Entry{Path: path, Kind: filesystem.EntryKindFile}
@@ -289,10 +285,6 @@ func directoryPrefix(prefix string) string {
 		return ""
 	}
 	return strings.TrimSuffix(prefix, "/") + "/"
-}
-
-func matchesKind(entryKind, filter filesystem.EntryKind) bool {
-	return filter == filesystem.EntryKindAny || entryKind == filter
 }
 
 func wrapPathError(op, path string, err error) error {

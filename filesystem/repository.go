@@ -59,9 +59,13 @@ func (r *Repository) Stat(ctx context.Context, path string) (Entry, error) {
 	return r.driver.Stat(ctx, path)
 }
 
-// List delegates to the wrapped driver.
-func (r *Repository) List(ctx context.Context, path string, options ListOptions) (ListPage, error) {
-	return r.driver.List(ctx, path, options)
+// ListFiles delegates to the wrapped driver.
+func (r *Repository) ListFiles(
+	ctx context.Context,
+	path string,
+	options ListOptions,
+) (ListPage, error) {
+	return r.driver.ListFiles(ctx, path, options)
 }
 
 // ReadFile reads the complete contents of path into memory.

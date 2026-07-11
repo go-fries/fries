@@ -135,8 +135,8 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 	return entryFromInfo(path, info), nil
 }
 
-// List returns files below path in lexical order.
-func (s *Filesystem) List(
+// ListFiles returns files below path in lexical order.
+func (s *Filesystem) ListFiles(
 	ctx context.Context,
 	path string,
 	options filesystem.ListOptions,
@@ -158,7 +158,6 @@ func (s *Filesystem) List(
 	if err != nil {
 		return filesystem.ListPage{}, wrapPathError("list", path, err)
 	}
-	entries = filterEntries(entries, options.Kind)
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Path < entries[j].Path
 	})
@@ -391,20 +390,6 @@ func entryFromInfo(path string, info fs.FileInfo) filesystem.Entry {
 		Size:         info.Size(),
 		LastModified: info.ModTime(),
 	}
-}
-
-func filterEntries(entries []filesystem.Entry, kind filesystem.EntryKind) []filesystem.Entry {
-	if kind == filesystem.EntryKindAny {
-		return entries
-	}
-
-	filtered := entries[:0]
-	for _, entry := range entries {
-		if entry.Kind == kind {
-			filtered = append(filtered, entry)
-		}
-	}
-	return filtered
 }
 
 func paginate(entries []filesystem.Entry, options filesystem.ListOptions) filesystem.ListPage {

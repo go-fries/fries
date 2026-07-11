@@ -44,29 +44,19 @@ func TestFilesystem(t *testing.T) {
 	assert.True(t, entry.IsFile())
 	assert.EqualValues(t, len("content"), entry.Size)
 
-	page, err := storage.List(ctx, "dir", filesystem.ListOptions{})
+	page, err := storage.ListFiles(ctx, "dir", filesystem.ListOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, []filesystem.Entry{
 		{Path: "dir/file.txt", Kind: filesystem.EntryKindFile, Size: 7, LastModified: page.Entries[0].LastModified},
 	}, page.Entries)
 
-	recursive, err := storage.List(ctx, "dir", filesystem.ListOptions{Recursive: true})
+	recursive, err := storage.ListFiles(ctx, "dir", filesystem.ListOptions{Recursive: true})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"dir/file.txt", "dir/nested/child.txt"}, entryPaths(recursive.Entries))
 
-	files, err := storage.List(ctx, ".", filesystem.ListOptions{
-		Recursive: true,
-		Kind:      filesystem.EntryKindFile,
-	})
+	files, err := storage.ListFiles(ctx, ".", filesystem.ListOptions{Recursive: true})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"dir/file.txt", "dir/nested/child.txt"}, entryPaths(files.Entries))
-
-	directories, err := storage.List(ctx, ".", filesystem.ListOptions{
-		Recursive: true,
-		Kind:      filesystem.EntryKindDirectory,
-	})
-	require.NoError(t, err)
-	assert.Empty(t, directories.Entries)
 
 	require.NoError(t, storage.Move(ctx, "dir/file.txt", "dir/moved.txt"))
 	require.NoError(t, storage.Link(ctx, "dir/moved.txt", "dir/link.txt"))
@@ -96,12 +86,12 @@ func TestFilesystemListPagination(t *testing.T) {
 		require.NoError(t, storage.Put(ctx, path, strings.NewReader(path), filesystem.PutOptions{}))
 	}
 
-	first, err := storage.List(ctx, ".", filesystem.ListOptions{Limit: 2})
+	first, err := storage.ListFiles(ctx, ".", filesystem.ListOptions{Limit: 2})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a.txt", "b.txt"}, entryPaths(first.Entries))
 	assert.Equal(t, "b.txt", first.NextCursor)
 
-	second, err := storage.List(ctx, ".", filesystem.ListOptions{Limit: 2, Cursor: first.NextCursor})
+	second, err := storage.ListFiles(ctx, ".", filesystem.ListOptions{Limit: 2, Cursor: first.NextCursor})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"c.txt"}, entryPaths(second.Entries))
 	assert.Empty(t, second.NextCursor)
@@ -112,13 +102,13 @@ func TestFilesystemListWithoutMatches(t *testing.T) {
 	require.NoError(t, err)
 	ctx := t.Context()
 
-	missing, err := storage.List(ctx, "missing", filesystem.ListOptions{})
+	missing, err := storage.ListFiles(ctx, "missing", filesystem.ListOptions{})
 	require.NoError(t, err)
 	assert.Empty(t, missing.Entries)
 	assert.Empty(t, missing.NextCursor)
 
 	require.NoError(t, storage.Put(ctx, "file.txt", strings.NewReader("content"), filesystem.PutOptions{}))
-	file, err := storage.List(ctx, "file.txt", filesystem.ListOptions{})
+	file, err := storage.ListFiles(ctx, "file.txt", filesystem.ListOptions{})
 	require.NoError(t, err)
 	assert.Empty(t, file.Entries)
 	assert.Empty(t, file.NextCursor)
@@ -167,7 +157,7 @@ func TestFilesystemRejectsEscapingSymlinks(t *testing.T) {
 
 	_, err = storage.Stat(ctx, "escape/outside.txt")
 	assert.Error(t, err)
-	_, err = storage.List(ctx, "escape", filesystem.ListOptions{})
+	_, err = storage.ListFiles(ctx, "escape", filesystem.ListOptions{})
 	assert.Error(t, err)
 
 	assert.Error(t, storage.Delete(ctx, "escape/outside.txt"))

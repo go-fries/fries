@@ -26,15 +26,15 @@ var (
 type EntryKind uint8
 
 const (
-	// EntryKindAny does not restrict the entry kind when used as a list filter.
-	EntryKindAny EntryKind = iota
+	// EntryKindUnknown indicates that an entry's kind is not known.
+	EntryKindUnknown EntryKind = iota
 	// EntryKindFile identifies a file or object.
 	EntryKindFile
 	// EntryKindDirectory identifies a real or virtual directory.
 	EntryKindDirectory
 )
 
-// Entry describes a file, object, or directory returned by Stat or List.
+// Entry describes a file, object, or directory returned by Stat or ListFiles.
 // Fields unsupported by a backend use their zero values. For directories, only
 // Path and Kind are portable across drivers; other fields may be zero or contain
 // backend-specific information and must not be required for portable behavior.
@@ -66,17 +66,14 @@ type PutOptions struct {
 const (
 	// DefaultListLimit is the page size used when ListOptions.Limit is not set.
 	DefaultListLimit = 1000
-	// MaxListLimit is the largest page size accepted by List.
+	// MaxListLimit is the largest page size accepted by ListFiles.
 	MaxListLimit = 1000
 )
 
-// ListOptions configures a List operation.
+// ListOptions configures a ListFiles operation.
 type ListOptions struct {
 	// Recursive includes files below nested directories or prefixes.
 	Recursive bool
-	// Kind filters entries by kind. List only enumerates files, so
-	// EntryKindDirectory produces an empty page.
-	Kind EntryKind
 	// Limit caps the number of entries returned. A page may contain fewer entries,
 	// including none, even when more pages remain. Values less than one use
 	// DefaultListLimit; values greater than MaxListLimit use MaxListLimit.
@@ -97,7 +94,7 @@ func (o ListOptions) Normalize() ListOptions {
 	return o
 }
 
-// ListPage is one page of a directory or prefix listing.
+// ListPage is one page of a file or object listing.
 type ListPage struct {
 	Entries []Entry
 	// NextCursor continues the listing. Only an empty NextCursor indicates that
@@ -124,15 +121,15 @@ type Driver interface {
 	// additional prefix listing to distinguish a missing object from a virtual
 	// directory.
 	Stat(ctx context.Context, path string) (Entry, error)
-	// List returns one page of files or objects below a directory or object
+	// ListFiles returns one page of files or objects below a directory or object
 	// prefix. Directories, virtual prefixes, and object-storage directory markers
 	// are not returned. Use "." to list the logical root. If path has no matching
-	// files, including when it does not exist or names a file, List returns an
+	// files, including when it does not exist or names a file, ListFiles returns an
 	// empty page and a nil error. Entries are sorted by logical path within each
 	// page. A page may be empty while NextCursor is non-empty; callers must
 	// continue until NextCursor is empty. Ordering across pages follows the
 	// backend cursor and is not guaranteed.
-	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
+	ListFiles(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 
 // Copier is implemented by drivers with a native copy operation.

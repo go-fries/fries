@@ -29,7 +29,7 @@ func TestFilesystemList(t *testing.T) {
 	}
 	storage := newFilesystem(client, "bucket", WithRoot("root"))
 
-	page, err := storage.List(t.Context(), "dir", filesystem.ListOptions{
+	page, err := storage.ListFiles(t.Context(), "dir", filesystem.ListOptions{
 		Limit:  2,
 		Cursor: "cursor",
 	})
@@ -39,12 +39,6 @@ func TestFilesystemList(t *testing.T) {
 	assert.Equal(t, "cursor", dereference(client.listRequest.ContinuationToken))
 	assert.Equal(t, []string{"dir/file.txt"}, entryPaths(page.Entries))
 	assert.Equal(t, "next", page.NextCursor)
-
-	directories, err := storage.List(t.Context(), "dir", filesystem.ListOptions{
-		Kind: filesystem.EntryKindDirectory,
-	})
-	require.NoError(t, err)
-	assert.Empty(t, directories.Entries)
 }
 
 func TestFilesystemMove(t *testing.T) {

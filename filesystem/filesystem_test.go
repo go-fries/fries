@@ -7,6 +7,8 @@ import (
 )
 
 func TestEntryKind(t *testing.T) {
+	assert.False(t, Entry{Kind: EntryKindUnknown}.IsFile())
+	assert.False(t, Entry{Kind: EntryKindUnknown}.IsDir())
 	assert.True(t, Entry{Kind: EntryKindFile}.IsFile())
 	assert.False(t, Entry{Kind: EntryKindFile}.IsDir())
 	assert.True(t, Entry{Kind: EntryKindDirectory}.IsDir())

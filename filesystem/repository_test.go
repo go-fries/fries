@@ -114,6 +114,6 @@ func (d *memoryDriver) Stat(_ context.Context, path string) (Entry, error) {
 	}, nil
 }
 
-func (d *memoryDriver) List(context.Context, string, ListOptions) (ListPage, error) {
+func (d *memoryDriver) ListFiles(context.Context, string, ListOptions) (ListPage, error) {
 	return ListPage{}, nil
 }
