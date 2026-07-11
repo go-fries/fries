@@ -35,7 +35,9 @@ const (
 )
 
 // Entry describes a file, object, or directory returned by Stat or List.
-// Fields unsupported by a backend use their zero values.
+// Fields unsupported by a backend use their zero values. For directories, only
+// Path and Kind are portable across drivers; other fields may be zero or contain
+// backend-specific information and must not be required for portable behavior.
 type Entry struct {
 	Path         string
 	Kind         EntryKind
