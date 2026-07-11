@@ -93,6 +93,9 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 		return err
 	}
 	if err := os.Remove(resolved); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return wrapPathError("delete", path, err)
 	}
 	return nil

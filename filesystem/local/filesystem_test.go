@@ -116,6 +116,7 @@ func TestFilesystemMissingEntry(t *testing.T) {
 	assert.ErrorIs(t, err, filesystem.ErrNotFound)
 	_, err = storage.Stat(t.Context(), "missing.txt")
 	assert.ErrorIs(t, err, filesystem.ErrNotFound)
+	assert.NoError(t, storage.Delete(t.Context(), "missing.txt"))
 }
 
 func entryPaths(entries []filesystem.Entry) []string {

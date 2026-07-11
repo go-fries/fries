@@ -83,7 +83,8 @@ type Driver interface {
 	Open(ctx context.Context, path string) (io.ReadCloser, error)
 	// Put writes src to path, replacing an existing entry.
 	Put(ctx context.Context, path string, src io.Reader, options PutOptions) error
-	// Delete removes a file or object.
+	// Delete removes a file or object. Delete is idempotent: deleting a path
+	// that does not exist returns nil.
 	Delete(ctx context.Context, path string) error
 	// Stat returns metadata for a file or object.
 	Stat(ctx context.Context, path string) (Entry, error)
