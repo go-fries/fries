@@ -189,6 +189,7 @@ func (s *Filesystem) List(
 	path string,
 	options filesystem.ListOptions,
 ) (filesystem.ListPage, error) {
+	options = options.Normalize()
 	if err := filesystem.ValidatePath(path); err != nil {
 		return filesystem.ListPage{}, err
 	}
@@ -202,9 +203,7 @@ func (s *Filesystem) List(
 	if options.Cursor != "" {
 		request.ContinuationToken = aliyunoss.Ptr(options.Cursor)
 	}
-	if options.Limit > 0 {
-		request.MaxKeys = int32(min(options.Limit, 1000))
-	}
+	request.MaxKeys = int32(options.Limit)
 
 	result, err := s.client.ListObjectsV2(ctx, request)
 	if err != nil {

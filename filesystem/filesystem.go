@@ -16,7 +16,9 @@ var (
 	// should use errors.Is to test for it. Delete does not return ErrNotFound,
 	// because deletion is idempotent.
 	ErrNotFound = errors.New("filesystem: entry not found")
-	// ErrUnsupported indicates that an optional operation is not supported.
+	// ErrUnsupported indicates that an optional capability or driver-specific
+	// extension cannot perform an operation. It is reserved for optional and
+	// future APIs; the core Driver contract does not currently return it.
 	ErrUnsupported = errors.New("filesystem: operation not supported")
 )
 
@@ -59,18 +61,36 @@ type PutOptions struct {
 	Metadata    map[string]string
 }
 
+const (
+	// DefaultListLimit is the page size used when ListOptions.Limit is not set.
+	DefaultListLimit = 1000
+	// MaxListLimit is the largest page size accepted by List.
+	MaxListLimit = 1000
+)
+
 // ListOptions configures a List operation.
 type ListOptions struct {
 	// Recursive includes entries below nested directories or prefixes.
 	Recursive bool
 	// Kind filters entries by kind. EntryKindAny includes every kind.
 	Kind EntryKind
-	// Limit caps the number of entries returned. Values less than one use the
-	// backend default.
+	// Limit caps the number of entries returned. Values less than one use
+	// DefaultListLimit; values greater than MaxListLimit use MaxListLimit.
 	Limit int
 	// Cursor continues a previous listing. Cursors are opaque and scoped to a
 	// driver, path, and option set.
 	Cursor string
+}
+
+// Normalize returns a copy of o with the shared page-size rules applied.
+func (o ListOptions) Normalize() ListOptions {
+	switch {
+	case o.Limit < 1:
+		o.Limit = DefaultListLimit
+	case o.Limit > MaxListLimit:
+		o.Limit = MaxListLimit
+	}
+	return o
 }
 
 // ListPage is one page of a directory or prefix listing.
@@ -101,7 +121,8 @@ type Driver interface {
 	// List returns one page of entries below a directory or object prefix. Use
 	// "." to list the logical root. If path has no matching descendants,
 	// including when it does not exist or names a file, List returns an empty
-	// page and a nil error.
+	// page and a nil error. Entries are sorted by logical path within each page;
+	// ordering across pages follows the backend cursor and is not guaranteed.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 

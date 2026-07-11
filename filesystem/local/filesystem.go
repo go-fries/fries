@@ -136,6 +136,7 @@ func (s *Filesystem) List(
 	path string,
 	options filesystem.ListOptions,
 ) (filesystem.ListPage, error) {
+	options = options.Normalize()
 	if err := ctx.Err(); err != nil {
 		return filesystem.ListPage{}, err
 	}

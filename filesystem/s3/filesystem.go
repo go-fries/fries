@@ -194,6 +194,7 @@ func (s *Filesystem) List(
 	path string,
 	options filesystem.ListOptions,
 ) (filesystem.ListPage, error) {
+	options = options.Normalize()
 	if err := filesystem.ValidatePath(path); err != nil {
 		return filesystem.ListPage{}, err
 	}
@@ -207,10 +208,7 @@ func (s *Filesystem) List(
 	if options.Cursor != "" {
 		input.ContinuationToken = ptr(options.Cursor)
 	}
-	if options.Limit > 0 {
-		limit := min(options.Limit, 1000)
-		input.MaxKeys = ptr(int32(limit))
-	}
+	input.MaxKeys = ptr(int32(options.Limit))
 
 	output, err := s.client.ListObjectsV2(ctx, input)
 	if err != nil {
