@@ -1,52 +1,95 @@
 package filesystem
 
 import (
+	"bytes"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestStorage(t *testing.T) {
-	var (
-		noop = NoopFilesystem{}
-		ctx  = t.Context()
-	)
+func TestEntryKind(t *testing.T) {
+	assert.False(t, Entry{Kind: EntryKindUnknown}.IsFile())
+	assert.False(t, Entry{Kind: EntryKindUnknown}.IsDir())
+	assert.True(t, Entry{Kind: EntryKindFile}.IsFile())
+	assert.False(t, Entry{Kind: EntryKindFile}.IsDir())
+	assert.True(t, Entry{Kind: EntryKindDirectory}.IsDir())
+	assert.False(t, Entry{Kind: EntryKindDirectory}.IsFile())
+}
 
-	_, err := noop.Read(ctx, "test")
-	assert.NoError(t, err)
+func TestListOptionsNormalize(t *testing.T) {
+	assert.Equal(t, DefaultListLimit, (ListOptions{}).Normalize().Limit)
+	assert.Equal(t, 10, (ListOptions{Limit: 10}).Normalize().Limit)
+	assert.Equal(t, MaxListLimit, (ListOptions{Limit: MaxListLimit + 1}).Normalize().Limit)
+}
 
-	assert.NoError(t, noop.Write(ctx, "noop", []byte("noop")))
-	assert.NoError(t, noop.Delete(ctx, "noop"))
+func TestPutOptionsResolveContentLength(t *testing.T) {
+	t.Run("explicit", func(t *testing.T) {
+		length := int64(7)
+		actual, err := (PutOptions{ContentLength: &length}).ResolveContentLength(
+			struct{ io.Reader }{Reader: strings.NewReader("content")},
+		)
+		require.NoError(t, err)
+		assert.Equal(t, length, actual)
+	})
 
-	has, err := noop.Exists(ctx, "noop")
-	assert.NoError(t, err)
-	assert.True(t, has)
+	t.Run("invalid explicit", func(t *testing.T) {
+		length := int64(-1)
+		_, err := (PutOptions{ContentLength: &length}).ResolveContentLength(nil)
+		assert.ErrorIs(t, err, ErrInvalidContentLength)
+	})
 
-	assert.NoError(t, noop.Rename(ctx, "noop", "noop"))
-	assert.NoError(t, noop.Link(ctx, "noop", "noop"))
-	assert.NoError(t, noop.Symlink(ctx, "noop", "noop"))
+	t.Run("explicit mismatch", func(t *testing.T) {
+		length := int64(3)
+		_, err := (PutOptions{ContentLength: &length}).ResolveContentLength(
+			strings.NewReader("content"),
+		)
+		assert.ErrorIs(t, err, ErrInvalidContentLength)
+	})
 
-	files, err := noop.Files(ctx, "noop")
-	assert.NoError(t, err)
-	assert.Len(t, files, 0)
+	t.Run("len", func(t *testing.T) {
+		source := strings.NewReader("content")
+		_, err := source.Read(make([]byte, 3))
+		require.NoError(t, err)
 
-	allFiles, err := noop.AllFiles(ctx, "noop")
-	assert.NoError(t, err)
-	assert.Len(t, allFiles, 0)
+		length, err := (PutOptions{}).ResolveContentLength(source)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), length)
+	})
 
-	directories, err := noop.Directories(ctx, "noop")
-	assert.NoError(t, err)
-	assert.Len(t, directories, 0)
+	t.Run("seeker", func(t *testing.T) {
+		source := &seekOnly{reader: bytes.NewReader([]byte("content"))}
+		_, err := source.Seek(3, io.SeekStart)
+		require.NoError(t, err)
 
-	allDirectories, err := noop.AllDirectories(ctx, "noop")
-	assert.NoError(t, err)
-	assert.Len(t, allDirectories, 0)
+		length, err := (PutOptions{}).ResolveContentLength(source)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), length)
 
-	isFile, err := noop.IsFile(ctx, "noop")
-	assert.NoError(t, err)
-	assert.False(t, isFile)
+		value := make([]byte, 1)
+		_, err = source.Read(value)
+		require.NoError(t, err)
+		assert.Equal(t, "t", string(value))
+	})
 
-	isDir, err := noop.IsDir(ctx, "noop")
-	assert.NoError(t, err)
-	assert.False(t, isDir)
+	t.Run("unknown", func(t *testing.T) {
+		_, err := (PutOptions{}).ResolveContentLength(
+			struct{ io.Reader }{Reader: strings.NewReader("content")},
+		)
+		assert.ErrorIs(t, err, ErrContentLengthRequired)
+	})
+}
+
+type seekOnly struct {
+	reader *bytes.Reader
+}
+
+func (s *seekOnly) Read(buffer []byte) (int, error) {
+	return s.reader.Read(buffer)
+}
+
+func (s *seekOnly) Seek(offset int64, whence int) (int64, error) {
+	return s.reader.Seek(offset, whence)
 }

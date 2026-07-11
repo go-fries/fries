@@ -1,212 +1,466 @@
 package local
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"io"
+	"io/fs"
 	"os"
+	pathpkg "path"
 	"path/filepath"
-	"strings"
-	"time"
+	"sort"
 
 	"github.com/go-fries/fries/filesystem/v4"
 )
 
+// Filesystem stores logical filesystem paths below a local root directory.
 type Filesystem struct {
-	root     string
-	prefixer *filesystem.PathPrefixer
+	root string
 }
 
-var _ filesystem.Filesystem = (*Filesystem)(nil)
+var (
+	_ filesystem.Driver           = (*Filesystem)(nil)
+	_ filesystem.Mover            = (*Filesystem)(nil)
+	_ filesystem.Linker           = (*Filesystem)(nil)
+	_ filesystem.Symlinker        = (*Filesystem)(nil)
+	_ filesystem.DirectoryManager = (*Filesystem)(nil)
+)
 
-func NewStorage(root string) *Filesystem {
-	return &Filesystem{
-		root:     root,
-		prefixer: filesystem.NewPathPrefixer(root),
-	}
-}
-
-func (s *Filesystem) Read(_ context.Context, path string) ([]byte, error) {
-	return os.ReadFile(s.prefixer.Prefix(path))
-}
-
-func (s *Filesystem) Write(_ context.Context, path string, value []byte) error {
-	return os.WriteFile(s.prefixer.Prefix(path), value, 0o644) //nolint:mnd
-}
-
-func (s *Filesystem) Delete(_ context.Context, path string) error {
-	return os.Remove(s.prefixer.Prefix(path))
-}
-
-func (s *Filesystem) Exists(_ context.Context, path string) (bool, error) {
-	_, err := os.Stat(s.prefixer.Prefix(path))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (s *Filesystem) Rename(_ context.Context, oldPath, newPath string) error {
-	return os.Rename(s.prefixer.Prefix(oldPath), s.prefixer.Prefix(newPath))
-}
-
-func (s *Filesystem) Link(_ context.Context, oldPath, newPath string) error {
-	return os.Link(s.prefixer.Prefix(oldPath), s.prefixer.Prefix(newPath))
-}
-
-func (s *Filesystem) Symlink(_ context.Context, oldPath, newPath string) error {
-	_, _ = oldPath, newPath
-	panic("not implemented") // TODO: Implement
-	// return os.Symlink(s.prefixer.Prefix(oldPath), s.prefixer.Prefix(newPath))
-}
-
-func (s *Filesystem) Files(_ context.Context, path string) ([]string, error) {
-	f, err := os.ReadDir(s.prefixer.Prefix(path))
+// New creates a local filesystem rooted at root.
+func New(root string) (*Filesystem, error) {
+	absolute, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
 	}
 
-	var files []string
-	for _, file := range f {
-		if !file.IsDir() {
-			files = append(files, file.Name())
-		}
-	}
-	return files, nil
+	return &Filesystem{root: filepath.Clean(absolute)}, nil
 }
 
-func (s *Filesystem) AllFiles(ctx context.Context, path string) ([]string, error) {
-	f, err := os.ReadDir(s.prefixer.Prefix(path))
+// Open opens path for streaming reads.
+func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
+		return nil, err
+	}
+	root, err := s.openRoot("open", path)
 	if err != nil {
 		return nil, err
 	}
+	defer closeRoot(root)
 
-	var files []string //molint:prealloc
-	for _, file := range f {
-		if !file.IsDir() {
-			files = append(files, file.Name())
-		} else {
-			subFiles, err := s.AllFiles(ctx, file.Name())
-			if err != nil {
-				return nil, err
-			}
-			files = append(files, subFiles...)
-		}
+	reader, err := root.Open(nativePath(path))
+	if err != nil {
+		return nil, wrapPathError("open", path, err)
 	}
-
-	return files, nil
+	return reader, nil
 }
 
-func (s *Filesystem) Directories(_ context.Context, path string) ([]string, error) {
-	f, err := os.ReadDir(s.prefixer.Prefix(path))
+// Put writes src to path, replacing an existing file. The content length must
+// be explicit or inferable as described by filesystem.PutOptions.
+func (s *Filesystem) Put(
+	ctx context.Context,
+	path string,
+	src io.Reader,
+	options filesystem.PutOptions,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
+		return err
+	}
+	contentLength, err := options.ResolveContentLength(src)
 	if err != nil {
-		return nil, err
+		return wrapPathError("put", path, err)
 	}
+	root, err := s.openRoot("put", path)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
 
-	var dirs []string
-	for _, file := range f {
-		if !file.IsDir() {
-			continue
-		}
-		dirs = append(dirs, file.Name())
+	file, err := root.OpenFile(nativePath(path), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return wrapPathError("put", path, err)
 	}
-	return dirs, nil
+	if src == nil {
+		src = bytes.NewReader(nil)
+	}
+	written, copyErr := io.Copy(
+		file,
+		io.LimitReader(contextReader{ctx: ctx, reader: src}, contentLength),
+	)
+	closeErr := file.Close()
+	if copyErr != nil {
+		return wrapPathError("put", path, copyErr)
+	}
+	if written != contentLength {
+		return wrapPathError("put", path, io.ErrUnexpectedEOF)
+	}
+	if closeErr != nil {
+		return wrapPathError("put", path, closeErr)
+	}
+	return nil
 }
 
-func (s *Filesystem) AllDirectories(ctx context.Context, path string) ([]string, error) {
-	f, err := os.ReadDir(s.prefixer.Prefix(path))
+// Delete removes a file.
+func (s *Filesystem) Delete(ctx context.Context, path string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
+		return err
+	}
+	root, err := s.openRoot("delete", path)
 	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	if err := root.Remove(nativePath(path)); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return wrapPathError("delete", path, err)
+	}
+	return nil
+}
+
+// Stat returns metadata for path.
+func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, error) {
+	if err := ctx.Err(); err != nil {
+		return filesystem.Entry{}, err
+	}
+	if path == "." {
+		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
+	}
+	root, err := s.openRoot("stat", path)
+	if err != nil {
+		return filesystem.Entry{}, err
+	}
+	defer closeRoot(root)
+
+	info, err := root.Stat(nativePath(path))
+	if err != nil {
+		return filesystem.Entry{}, wrapPathError("stat", path, err)
+	}
+	return entryFromInfo(path, info), nil
+}
+
+// ListFiles returns files below path in lexical order.
+func (s *Filesystem) ListFiles(
+	ctx context.Context,
+	path string,
+	options filesystem.ListOptions,
+) (filesystem.ListPage, error) {
+	options = options.Normalize()
+	if err := ctx.Err(); err != nil {
+		return filesystem.ListPage{}, err
+	}
+	if err := filesystem.ValidatePath(path); err != nil {
+		return filesystem.ListPage{}, err
+	}
+	root, err := s.openRoot("list", path)
+	if err != nil {
+		return filesystem.ListPage{}, err
+	}
+	defer closeRoot(root)
+
+	entries, err := listEntries(ctx, root.FS(), path, options.Recursive)
+	if err != nil {
+		return filesystem.ListPage{}, wrapPathError("list", path, err)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+
+	return paginate(entries, options), nil
+}
+
+// Move moves src to dst atomically when the local operating system permits it.
+func (s *Filesystem) Move(ctx context.Context, src, dst string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(src); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(dst); err != nil {
+		return err
+	}
+	root, err := s.openRoot("move", src)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	if err := root.Rename(nativePath(src), nativePath(dst)); err != nil {
+		return wrapPathError("move", src, err)
+	}
+	return nil
+}
+
+// Link creates a hard link from src to dst.
+func (s *Filesystem) Link(ctx context.Context, src, dst string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(src); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(dst); err != nil {
+		return err
+	}
+	root, err := s.openRoot("link", src)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	if err := root.Link(nativePath(src), nativePath(dst)); err != nil {
+		return wrapPathError("link", src, err)
+	}
+	return nil
+}
+
+// Symlink creates a relative symbolic link. Access through this filesystem
+// rejects links whose resolution escapes the configured root.
+func (s *Filesystem) Symlink(ctx context.Context, target, link string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(target); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(link); err != nil {
+		return err
+	}
+	root, err := s.openRoot("symlink", link)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	targetPath := nativePath(target)
+	linkPath := nativePath(link)
+	relativeTarget, err := filepath.Rel(filepath.Dir(linkPath), targetPath)
+	if err != nil {
+		return wrapPathError("symlink", target, err)
+	}
+	if err := root.Symlink(relativeTarget, linkPath); err != nil {
+		return wrapPathError("symlink", link, err)
+	}
+	return nil
+}
+
+// MakeDirectory creates path and any missing parent directories.
+func (s *Filesystem) MakeDirectory(ctx context.Context, path string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidatePath(path); err != nil {
+		return err
+	}
+	root, err := s.openRoot("mkdir", path)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	if err := root.MkdirAll(nativePath(path), 0o755); err != nil {
+		return wrapPathError("mkdir", path, err)
+	}
+	return nil
+}
+
+// DeleteDirectory recursively removes path. The logical root cannot be removed.
+func (s *Filesystem) DeleteDirectory(ctx context.Context, path string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if path == "." {
+		return &fs.PathError{Op: "remove", Path: path, Err: filesystem.ErrInvalidPath}
+	}
+	if err := filesystem.ValidatePath(path); err != nil {
+		return err
+	}
+	root, err := s.openRoot("remove", path)
+	if err != nil {
+		return err
+	}
+	defer closeRoot(root)
+
+	if err := root.RemoveAll(nativePath(path)); err != nil {
+		return wrapPathError("remove", path, err)
+	}
+	return nil
+}
+
+func (s *Filesystem) openRoot(op, path string) (*os.Root, error) {
+	root, err := os.OpenRoot(s.root)
+	if err != nil {
+		return nil, wrapPathError(op, path, err)
+	}
+	return root, nil
+}
+
+func nativePath(path string) string {
+	return filepath.FromSlash(path)
+}
+
+func closeRoot(root *os.Root) {
+	_ = root.Close()
+}
+
+func listEntries(
+	ctx context.Context,
+	storage fs.FS,
+	root string,
+	recursive bool,
+) ([]filesystem.Entry, error) {
+	info, err := fs.Stat(storage, root)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
 		return nil, err
 	}
+	if !info.IsDir() {
+		return nil, nil
+	}
 
-	var dirs []string
-	for _, file := range f {
-		if !file.IsDir() {
-			continue
-		}
-		subDirs, err := s.AllDirectories(ctx, file.Name())
+	if !recursive {
+		dirEntries, err := fs.ReadDir(storage, root)
 		if err != nil {
 			return nil, err
 		}
-		dirs = append(dirs, subDirs...)
-	}
-	return dirs, nil
-}
 
-func (s *Filesystem) MakeDirectory(_ context.Context, path string) error {
-	return os.MkdirAll(s.prefixer.Prefix(path), 0o755) //nolint:mnd
-}
-
-func (s *Filesystem) DeleteDirectory(_ context.Context, path string) error {
-	return os.RemoveAll(s.prefixer.Prefix(path))
-}
-
-func (s *Filesystem) IsFile(_ context.Context, path string) (bool, error) {
-	info, err := os.Stat(s.prefixer.Prefix(path))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
+		entries := make([]filesystem.Entry, 0, len(dirEntries))
+		for _, dirEntry := range dirEntries {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			if dirEntry.IsDir() {
+				continue
+			}
+			entry, include, err := fileEntryFromDirEntry(
+				storage,
+				logicalJoin(root, dirEntry.Name()),
+				dirEntry,
+			)
+			if err != nil {
+				return nil, err
+			}
+			if !include {
+				continue
+			}
+			entries = append(entries, entry)
 		}
-		return false, err
+		return entries, nil
 	}
 
-	return !info.IsDir(), nil
-}
-
-func (s *Filesystem) IsDir(_ context.Context, path string) (bool, error) {
-	info, err := os.Stat(s.prefixer.Prefix(path))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
+	var entries []filesystem.Entry
+	err = fs.WalkDir(storage, root, func(path string, dirEntry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		return false, err
-	}
-
-	return info.IsDir(), nil
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if path == root {
+			return nil
+		}
+		if dirEntry.IsDir() {
+			return nil
+		}
+		entry, include, err := fileEntryFromDirEntry(storage, path, dirEntry)
+		if err != nil {
+			return err
+		}
+		if !include {
+			return nil
+		}
+		entries = append(entries, entry)
+		return nil
+	})
+	return entries, err
 }
 
-func (s *Filesystem) Size(_ context.Context, path string) (int64, error) {
-	info, err := os.Stat(s.prefixer.Prefix(path))
+func logicalJoin(directory, name string) string {
+	if directory == "." {
+		return name
+	}
+	return pathpkg.Join(directory, name)
+}
+
+func fileEntryFromDirEntry(
+	storage fs.FS,
+	path string,
+	dirEntry fs.DirEntry,
+) (filesystem.Entry, bool, error) {
+	info, err := fs.Stat(storage, path)
 	if err != nil {
+		if dirEntry.Type()&fs.ModeSymlink != 0 {
+			return filesystem.Entry{}, false, nil
+		}
+		return filesystem.Entry{}, false, err
+	}
+	if !info.Mode().IsRegular() {
+		return filesystem.Entry{}, false, nil
+	}
+	return entryFromInfo(path, info), true, nil
+}
+
+func entryFromInfo(path string, info fs.FileInfo) filesystem.Entry {
+	kind := filesystem.EntryKindUnknown
+	switch {
+	case info.IsDir():
+		kind = filesystem.EntryKindDirectory
+	case info.Mode().IsRegular():
+		kind = filesystem.EntryKindFile
+	}
+	return filesystem.Entry{
+		Path:         path,
+		Kind:         kind,
+		Size:         info.Size(),
+		LastModified: info.ModTime(),
+	}
+}
+
+func paginate(entries []filesystem.Entry, options filesystem.ListOptions) filesystem.ListPage {
+	start := sort.Search(len(entries), func(i int) bool {
+		return entries[i].Path > options.Cursor
+	})
+	end := len(entries)
+	if options.Limit > 0 && start+options.Limit < end {
+		end = start + options.Limit
+	}
+
+	page := filesystem.ListPage{Entries: entries[start:end]}
+	if end < len(entries) && end > start {
+		page.NextCursor = entries[end-1].Path
+	}
+	return page
+}
+
+func wrapPathError(op, path string, err error) error {
+	if errors.Is(err, os.ErrNotExist) {
+		err = filesystem.ErrNotFound
+	}
+	return &fs.PathError{Op: op, Path: path, Err: err}
+}
+
+type contextReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r contextReader) Read(buffer []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
 		return 0, err
 	}
-
-	return info.Size(), nil
-}
-
-func (s *Filesystem) LastModified(_ context.Context, path string) (*time.Time, error) {
-	info, err := os.Stat(s.prefixer.Prefix(path))
-	if err != nil {
-		return nil, err
-	}
-
-	return ptr(info.ModTime()), nil
-}
-
-func (s *Filesystem) Path(_ context.Context, path string) string {
-	return s.prefixer.Prefix(path)
-}
-
-func (s *Filesystem) Name(_ context.Context, path string) string {
-	path = s.prefixer.Prefix(path)
-	base := filepath.Base(path)
-	return strings.TrimSuffix(base, filepath.Ext(base))
-}
-
-func (s *Filesystem) Basename(_ context.Context, path string) string {
-	return filepath.Base(s.prefixer.Prefix(path))
-}
-
-func (s *Filesystem) Dirname(_ context.Context, path string) string {
-	return filepath.Dir(s.prefixer.Prefix(path))
-}
-
-func (s *Filesystem) Extension(_ context.Context, path string) string {
-	return filepath.Ext(s.prefixer.Prefix(path))
-}
-
-func ptr[T any](v T) *T {
-	return &v
+	return r.reader.Read(buffer)
 }

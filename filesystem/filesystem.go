@@ -3,111 +3,243 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"time"
 )
 
-var ErrNotSupported = errors.New("filesystem: the operation is not supported")
-
-type Filesystem interface {
-	// Read the value at the given path.
-	Read(ctx context.Context, path string) ([]byte, error)
-
-	// Write the value at the given path.
-	Write(ctx context.Context, path string, value []byte) error
-
-	// Delete the value at the given path.
-	Delete(ctx context.Context, path string) error
-
-	// Exists checks if the path exists.
-	Exists(ctx context.Context, path string) (bool, error)
-
-	// Rename renames the value from the old path to the new path.
-	Rename(ctx context.Context, oldPath, newPath string) error
-
-	// Link creates a hard link from the old path to the new path.
-	Link(ctx context.Context, oldPath, newPath string) error
-
-	// Symlink creates a symbolic link from the old path to the new path.
-	Symlink(ctx context.Context, oldPath, newPath string) error
-
-	// Files lists the files in the given path.
-	Files(ctx context.Context, path string) ([]string, error)
-
-	// AllFiles lists all the files in the given path.(including subdirectories)
-	AllFiles(ctx context.Context, path string) ([]string, error)
-
-	// Directories lists the directories in the given path.
-	Directories(ctx context.Context, path string) ([]string, error)
-
-	// AllDirectories lists all the directories in the given path.(including subdirectories)
-	AllDirectories(ctx context.Context, path string) ([]string, error)
-
-	// MakeDirectory creates a directory at the given path.
-	MakeDirectory(ctx context.Context, path string) error
-
-	// DeleteDirectory deletes the directory at the given path.
-	DeleteDirectory(ctx context.Context, path string) error
-
-	// IsFile checks if the path is a file.
-	IsFile(ctx context.Context, path string) (bool, error)
-
-	// IsDir checks if the path is a directory.
-	IsDir(ctx context.Context, path string) (bool, error)
-
-	// Size returns the size of the file in bytes.
-	Size(ctx context.Context, path string) (int64, error)
-
-	// LastModified returns the last modified time of the file.
-	LastModified(ctx context.Context, path string) (*time.Time, error)
-
-	// Path returns the full path for the given path.
-	Path(ctx context.Context, path string) string
-
-	// Name returns the name of the file, without the extension.
-	Name(ctx context.Context, path string) string
-
-	// Basename returns the base name of the file, with the extension.
-	Basename(ctx context.Context, path string) string
-
-	// Dirname returns the directory name of the file.
-	Dirname(ctx context.Context, path string) string
-
-	// Extension returns the extension of the file.
-	Extension(ctx context.Context, path string) string
-}
-
-type Copyable interface {
-	Copy(ctx context.Context, oldPath, newPath string) error
-}
-
-type NoopFilesystem struct{}
-
 var (
-	_ Filesystem = (*NoopFilesystem)(nil)
-	_ Copyable   = (*NoopFilesystem)(nil)
+	// ErrInvalidPath indicates that a path does not follow the filesystem's
+	// logical path contract.
+	ErrInvalidPath = errors.New("filesystem: invalid path")
+	// ErrNotFound indicates that the requested file or object does not exist.
+	// Drivers wrap ErrNotFound when Open or Stat cannot find a path. Callers
+	// should use errors.Is to test for it. Delete does not return ErrNotFound,
+	// because deletion is idempotent.
+	ErrNotFound = errors.New("filesystem: entry not found")
+	// ErrUnsupported indicates that an optional capability or driver-specific
+	// extension cannot perform an operation. It is reserved for optional and
+	// future APIs; the core Driver contract does not currently return it.
+	ErrUnsupported = errors.New("filesystem: operation not supported")
+	// ErrContentLengthRequired indicates that Put cannot determine the number of
+	// bytes remaining in src and PutOptions.ContentLength was not provided.
+	ErrContentLengthRequired = errors.New("filesystem: content length required")
+	// ErrInvalidContentLength indicates that PutOptions.ContentLength is negative
+	// or an inferred reader length is invalid.
+	ErrInvalidContentLength = errors.New("filesystem: invalid content length")
 )
 
-func (NoopFilesystem) Read(context.Context, string) ([]byte, error)             { return nil, nil }
-func (NoopFilesystem) Write(context.Context, string, []byte) error              { return nil }
-func (NoopFilesystem) Delete(context.Context, string) error                     { return nil }
-func (NoopFilesystem) Exists(context.Context, string) (bool, error)             { return true, nil }
-func (NoopFilesystem) Rename(context.Context, string, string) error             { return nil }
-func (NoopFilesystem) Link(context.Context, string, string) error               { return nil }
-func (NoopFilesystem) Symlink(context.Context, string, string) error            { return nil }
-func (NoopFilesystem) Files(context.Context, string) ([]string, error)          { return nil, nil }
-func (NoopFilesystem) AllFiles(context.Context, string) ([]string, error)       { return nil, nil }
-func (NoopFilesystem) Directories(context.Context, string) ([]string, error)    { return nil, nil }
-func (NoopFilesystem) AllDirectories(context.Context, string) ([]string, error) { return nil, nil }
-func (NoopFilesystem) MakeDirectory(context.Context, string) error              { return nil }
-func (NoopFilesystem) DeleteDirectory(context.Context, string) error            { return nil }
-func (NoopFilesystem) IsFile(context.Context, string) (bool, error)             { return false, nil }
+// EntryKind identifies the logical kind of a filesystem entry.
+type EntryKind uint8
 
-func (NoopFilesystem) IsDir(context.Context, string) (bool, error)              { return false, nil }
-func (NoopFilesystem) Size(context.Context, string) (int64, error)              { return 0, nil }
-func (NoopFilesystem) LastModified(context.Context, string) (*time.Time, error) { return nil, nil }
-func (NoopFilesystem) Path(context.Context, string) string                      { return "" }
-func (NoopFilesystem) Name(context.Context, string) string                      { return "" }
-func (NoopFilesystem) Basename(context.Context, string) string                  { return "" }
-func (NoopFilesystem) Dirname(context.Context, string) string                   { return "" }
-func (NoopFilesystem) Extension(context.Context, string) string                 { return "" }
-func (NoopFilesystem) Copy(context.Context, string, string) error               { return nil }
+const (
+	// EntryKindUnknown indicates that an entry's kind is not known.
+	EntryKindUnknown EntryKind = iota
+	// EntryKindFile identifies a file or object.
+	EntryKindFile
+	// EntryKindDirectory identifies a real or virtual directory.
+	EntryKindDirectory
+)
+
+// Entry describes a file, object, or directory returned by Stat or ListFiles.
+// Path and Kind are portable across drivers. Size is the exact byte length for
+// files and objects. For directories and unknown entry kinds, Size and all other
+// fields may be zero or contain backend-specific information and must not be
+// required for portable behavior.
+type Entry struct {
+	Path         string
+	Kind         EntryKind
+	Size         int64
+	LastModified time.Time
+	ContentType  string
+	Metadata     map[string]string
+}
+
+// IsFile reports whether e represents a file or object.
+func (e Entry) IsFile() bool {
+	return e.Kind == EntryKindFile
+}
+
+// IsDir reports whether e represents a real or virtual directory.
+func (e Entry) IsDir() bool {
+	return e.Kind == EntryKindDirectory
+}
+
+// PutOptions configures a Put operation.
+type PutOptions struct {
+	// ContentLength is the number of bytes remaining in the source reader. A nil
+	// value lets the driver infer the length from readers that expose Len() int or
+	// implement io.Seeker. An explicit value must equal an inferred length. It
+	// must be set for other readers. Zero is valid; negative values are rejected.
+	ContentLength *int64
+	ContentType   string
+	Metadata      map[string]string
+}
+
+// ResolveContentLength returns the explicit or inferred number of bytes
+// remaining in src.
+func (o PutOptions) ResolveContentLength(src io.Reader) (int64, error) {
+	if o.ContentLength != nil {
+		if *o.ContentLength < 0 {
+			return 0, ErrInvalidContentLength
+		}
+	}
+
+	inferred, known, err := inferContentLength(src)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %v", ErrInvalidContentLength, err)
+	}
+	if o.ContentLength != nil {
+		if known && *o.ContentLength != inferred {
+			return 0, fmt.Errorf(
+				"%w: explicit value %d does not match inferred value %d",
+				ErrInvalidContentLength,
+				*o.ContentLength,
+				inferred,
+			)
+		}
+		return *o.ContentLength, nil
+	}
+	if known {
+		return inferred, nil
+	}
+	return 0, ErrContentLengthRequired
+}
+
+func inferContentLength(src io.Reader) (int64, bool, error) {
+	if src == nil {
+		return 0, true, nil
+	}
+	if source, ok := src.(interface{ Len() int }); ok {
+		length := int64(source.Len())
+		if length < 0 {
+			return 0, true, ErrInvalidContentLength
+		}
+		return length, true, nil
+	}
+	if source, ok := src.(io.Seeker); ok {
+		length, err := remainingLength(source)
+		if err != nil {
+			return 0, true, err
+		}
+		return length, true, nil
+	}
+	return 0, false, nil
+}
+
+func remainingLength(source io.Seeker) (int64, error) {
+	current, err := source.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, err
+	}
+	end, endErr := source.Seek(0, io.SeekEnd)
+	_, restoreErr := source.Seek(current, io.SeekStart)
+	if endErr != nil {
+		return 0, endErr
+	}
+	if restoreErr != nil {
+		return 0, restoreErr
+	}
+	if end < current {
+		return 0, ErrInvalidContentLength
+	}
+	return end - current, nil
+}
+
+const (
+	// DefaultListLimit is the page size used when ListOptions.Limit is not set.
+	DefaultListLimit = 1000
+	// MaxListLimit is the largest page size accepted by ListFiles.
+	MaxListLimit = 1000
+)
+
+// ListOptions configures a ListFiles operation.
+type ListOptions struct {
+	// Recursive includes files below nested directories or prefixes.
+	Recursive bool
+	// Limit caps the number of entries returned. A page may contain fewer entries,
+	// including none, even when more pages remain. Values less than one use
+	// DefaultListLimit; values greater than MaxListLimit use MaxListLimit.
+	Limit int
+	// Cursor continues a previous listing. Cursors are opaque and scoped to a
+	// driver, path, and option set.
+	Cursor string
+}
+
+// Normalize returns a copy of o with the shared page-size rules applied.
+func (o ListOptions) Normalize() ListOptions {
+	switch {
+	case o.Limit < 1:
+		o.Limit = DefaultListLimit
+	case o.Limit > MaxListLimit:
+		o.Limit = MaxListLimit
+	}
+	return o
+}
+
+// ListPage is one page of a file or object listing.
+type ListPage struct {
+	Entries []Entry
+	// NextCursor continues the listing. Only an empty NextCursor indicates that
+	// the listing is complete; Entries may be empty while NextCursor is non-empty.
+	NextCursor string
+}
+
+// Driver is the minimal storage contract shared by local filesystems and
+// object-storage backends.
+type Driver interface {
+	// Open opens path for streaming reads. The caller must close the result.
+	// The logical root "." is not a valid file or object path.
+	// If path does not exist, Open returns an error wrapping ErrNotFound.
+	Open(ctx context.Context, path string) (io.ReadCloser, error)
+	// Put writes src to path, replacing an existing entry. ContentLength must be
+	// provided when it cannot be inferred from src; otherwise Put returns an error
+	// wrapping ErrContentLengthRequired. The logical root "." is not a valid file
+	// or object path.
+	Put(ctx context.Context, path string, src io.Reader, options PutOptions) error
+	// Delete removes a file or object. Delete is idempotent: deleting a path
+	// that does not exist returns nil. The logical root "." cannot be deleted.
+	Delete(ctx context.Context, path string) error
+	// Stat returns metadata for a file or object. Stat(".") returns a synthetic
+	// directory entry for the logical root. If path does not exist, Stat returns
+	// an error wrapping ErrNotFound. Object-storage drivers may perform an
+	// additional prefix listing to distinguish a missing object from a virtual
+	// directory.
+	Stat(ctx context.Context, path string) (Entry, error)
+	// ListFiles returns one page of files or objects below a directory or object
+	// prefix. Directories, virtual prefixes, and object-storage directory markers
+	// are not returned. Use "." to list the logical root. If path has no matching
+	// files, including when it does not exist or names a file, ListFiles returns an
+	// empty page and a nil error. Entries are sorted by logical path within each
+	// page. A page may be empty while NextCursor is non-empty; callers must
+	// continue until NextCursor is empty. Ordering across pages follows the
+	// backend cursor and is not guaranteed.
+	ListFiles(ctx context.Context, path string, options ListOptions) (ListPage, error)
+}
+
+// Copier is implemented by drivers with a native copy operation.
+type Copier interface {
+	Copy(ctx context.Context, src, dst string) error
+}
+
+// Mover is implemented by drivers with a native move operation.
+// A move is not necessarily atomic on object-storage backends.
+type Mover interface {
+	Move(ctx context.Context, src, dst string) error
+}
+
+// Linker is implemented by drivers that support hard links.
+type Linker interface {
+	Link(ctx context.Context, src, dst string) error
+}
+
+// Symlinker is implemented by drivers that support symbolic links.
+type Symlinker interface {
+	Symlink(ctx context.Context, target, link string) error
+}
+
+// DirectoryManager is implemented by drivers with real directory semantics.
+type DirectoryManager interface {
+	MakeDirectory(ctx context.Context, path string) error
+	DeleteDirectory(ctx context.Context, path string) error
+}
