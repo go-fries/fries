@@ -97,7 +97,9 @@ type Driver interface {
 	// an error wrapping ErrNotFound.
 	Stat(ctx context.Context, path string) (Entry, error)
 	// List returns one page of entries below a directory or object prefix. Use
-	// "." to list the logical root.
+	// "." to list the logical root. If path has no matching descendants,
+	// including when it does not exist or names a file, List returns an empty
+	// page and a nil error.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 

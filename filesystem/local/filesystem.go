@@ -293,6 +293,17 @@ func (s *Filesystem) listEntries(
 	root string,
 	recursive bool,
 ) ([]filesystem.Entry, error) {
+	info, err := os.Stat(root)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, nil
+	}
+
 	if !recursive {
 		dirEntries, err := os.ReadDir(root)
 		if err != nil {
@@ -314,7 +325,7 @@ func (s *Filesystem) listEntries(
 	}
 
 	var entries []filesystem.Entry
-	err := filepath.WalkDir(root, func(path string, dirEntry fs.DirEntry, err error) error {
+	err = filepath.WalkDir(root, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

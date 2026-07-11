@@ -99,6 +99,23 @@ func TestFilesystemListPagination(t *testing.T) {
 	assert.Empty(t, second.NextCursor)
 }
 
+func TestFilesystemListWithoutMatches(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	missing, err := storage.List(ctx, "missing", filesystem.ListOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, missing.Entries)
+	assert.Empty(t, missing.NextCursor)
+
+	require.NoError(t, storage.Put(ctx, "file.txt", strings.NewReader("content"), filesystem.PutOptions{}))
+	file, err := storage.List(ctx, "file.txt", filesystem.ListOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, file.Entries)
+	assert.Empty(t, file.NextCursor)
+}
+
 func TestFilesystemRejectsEscapingPaths(t *testing.T) {
 	storage, err := New(t.TempDir())
 	require.NoError(t, err)
