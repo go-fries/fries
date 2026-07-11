@@ -2,7 +2,7 @@
 
 `parallel` provides small, context-aware helpers for concurrent batch work.
 It propagates errors and cancellation, supports explicit concurrency limits,
-and avoids background worker lifecycle management.
+and provides an optional fixed-worker pool for intermittent background work.
 
 ## Installation
 
@@ -124,6 +124,10 @@ if err := pool.Shutdown(shutdownContext); err != nil {
 	return err
 }
 ```
+
+If the shutdown context expires, `Shutdown` returns its cancellation cause but
+the pool continues draining accepted tasks in the background. Task contexts
+remain responsible for canceling work that should not outlive shutdown.
 
 Batch helpers wait for started work to return. Pool submission returns after
 acceptance and exposes completion through `Future`. Callbacks and tasks should

@@ -121,7 +121,7 @@ func TestPoolExecuteWaitsForCompletion(t *testing.T) {
 
 func TestPoolAppliesQueueBackpressure(t *testing.T) {
 	pool := requirePool(t, 1, parallel.WithQueueSize(1))
-	started := make(chan struct{})
+	started := make(chan struct{}, 1)
 	release := make(chan struct{}, 2)
 	task := func(ctx context.Context) error {
 		select {
@@ -179,7 +179,7 @@ func TestFutureWaitCancellationDoesNotCancelTask(t *testing.T) {
 
 func TestPoolShutdownDrainsAcceptedTasks(t *testing.T) {
 	pool := requirePool(t, 1, parallel.WithQueueSize(1))
-	started := make(chan struct{})
+	started := make(chan struct{}, 1)
 	release := make(chan struct{}, 2)
 	task := func(context.Context) error {
 		select {
@@ -214,7 +214,7 @@ func TestPoolShutdownDrainsAcceptedTasks(t *testing.T) {
 
 func TestPoolShutdownUnblocksWaitingSubmit(t *testing.T) {
 	pool := requirePool(t, 1, parallel.WithQueueSize(1))
-	started := make(chan struct{})
+	started := make(chan struct{}, 1)
 	release := make(chan struct{}, 2)
 	task := func(ctx context.Context) error {
 		select {

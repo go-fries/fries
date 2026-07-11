@@ -96,7 +96,9 @@ type poolTask struct {
 // long-lived workers and a bounded queue.
 //
 // A Pool must be shut down when it is no longer needed. Task lifetimes are
-// controlled by the contexts passed to Submit and Execute.
+// controlled by the contexts passed to Submit and Execute. Pool values must be
+// created by NewPool and must not be copied after first use; the zero value is
+// not valid.
 type Pool struct {
 	tasks   chan poolTask
 	closing chan struct{}

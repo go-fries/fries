@@ -62,6 +62,10 @@ func execute(
 	group.SetLimit(limit)
 
 	for index := range count {
+		if context.Cause(groupContext) != nil {
+			break
+		}
+
 		group.Go(func() error {
 			if err := context.Cause(groupContext); err != nil {
 				return err
