@@ -78,7 +78,7 @@ func newFilesystem(client s3Client, bucket string, opts ...Option) *Filesystem {
 
 // Open opens path for streaming reads.
 func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, error) {
-	if err := filesystem.ValidatePath(path); err != nil {
+	if err := filesystem.ValidateFilePath(path); err != nil {
 		return nil, err
 	}
 	output, err := s.client.GetObject(ctx, &awss3.GetObjectInput{
@@ -98,7 +98,7 @@ func (s *Filesystem) Put(
 	src io.Reader,
 	options filesystem.PutOptions,
 ) error {
-	if err := filesystem.ValidatePath(path); err != nil {
+	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
 	input := &awss3.PutObjectInput{
@@ -119,7 +119,7 @@ func (s *Filesystem) Put(
 
 // Delete removes an object.
 func (s *Filesystem) Delete(ctx context.Context, path string) error {
-	if err := filesystem.ValidatePath(path); err != nil {
+	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
 	_, err := s.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
@@ -136,6 +136,12 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, error) {
 	if err := filesystem.ValidatePath(path); err != nil {
 		return filesystem.Entry{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return filesystem.Entry{}, err
+	}
+	if path == "." {
+		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
 	output, err := s.client.HeadObject(ctx, &awss3.HeadObjectInput{
 		Bucket: ptr(s.bucket),
@@ -198,10 +204,10 @@ func (s *Filesystem) List(
 
 // Copy copies src to dst using S3's native server-side copy operation.
 func (s *Filesystem) Copy(ctx context.Context, src, dst string) error {
-	if err := filesystem.ValidatePath(src); err != nil {
+	if err := filesystem.ValidateFilePath(src); err != nil {
 		return err
 	}
-	if err := filesystem.ValidatePath(dst); err != nil {
+	if err := filesystem.ValidateFilePath(dst); err != nil {
 		return err
 	}
 	copySource := url.PathEscape(s.bucket + "/" + s.prefixer.Prefix(src))

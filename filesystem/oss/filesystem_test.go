@@ -58,6 +58,19 @@ func TestFilesystemNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, filesystem.ErrNotFound)
 }
 
+func TestFilesystemRoot(t *testing.T) {
+	storage := newFilesystem(&fakeClient{}, "bucket", WithRoot("root"))
+
+	entry, err := storage.Stat(t.Context(), ".")
+	require.NoError(t, err)
+	assert.Equal(t, filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, entry)
+
+	_, err = storage.Open(t.Context(), ".")
+	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
+	assert.ErrorIs(t, storage.Delete(t.Context(), "."), filesystem.ErrInvalidPath)
+	assert.ErrorIs(t, storage.Copy(t.Context(), ".", "target.txt"), filesystem.ErrInvalidPath)
+}
+
 type fakeClient struct {
 	getErr        error
 	listRequest   *aliyunoss.ListObjectsV2Request

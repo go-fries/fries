@@ -35,6 +35,12 @@ func TestValidatePath(t *testing.T) {
 	assert.ErrorIs(t, ValidatePath("../file.txt"), ErrInvalidPath)
 }
 
+func TestValidateFilePath(t *testing.T) {
+	assert.NoError(t, ValidateFilePath("dir/file.txt"))
+	assert.ErrorIs(t, ValidateFilePath("."), ErrInvalidPath)
+	assert.ErrorIs(t, ValidateFilePath("../file.txt"), ErrInvalidPath)
+}
+
 func TestPathPrefixer(t *testing.T) {
 	prefixer := NewPathPrefixer("/tenant/root/")
 

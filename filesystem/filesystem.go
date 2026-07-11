@@ -83,17 +83,21 @@ type ListPage struct {
 // object-storage backends.
 type Driver interface {
 	// Open opens path for streaming reads. The caller must close the result.
+	// The logical root "." is not a valid file or object path.
 	// If path does not exist, Open returns an error wrapping ErrNotFound.
 	Open(ctx context.Context, path string) (io.ReadCloser, error)
-	// Put writes src to path, replacing an existing entry.
+	// Put writes src to path, replacing an existing entry. The logical root "."
+	// is not a valid file or object path.
 	Put(ctx context.Context, path string, src io.Reader, options PutOptions) error
 	// Delete removes a file or object. Delete is idempotent: deleting a path
-	// that does not exist returns nil.
+	// that does not exist returns nil. The logical root "." cannot be deleted.
 	Delete(ctx context.Context, path string) error
-	// Stat returns metadata for a file or object. If path does not exist, Stat
-	// returns an error wrapping ErrNotFound.
+	// Stat returns metadata for a file or object. Stat(".") returns a synthetic
+	// directory entry for the logical root. If path does not exist, Stat returns
+	// an error wrapping ErrNotFound.
 	Stat(ctx context.Context, path string) (Entry, error)
-	// List returns one page of entries below a directory or object prefix.
+	// List returns one page of entries below a directory or object prefix. Use
+	// "." to list the logical root.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 

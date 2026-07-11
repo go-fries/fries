@@ -20,6 +20,18 @@ func ValidatePath(path string) error {
 	return &fs.PathError{Op: "validate", Path: path, Err: ErrInvalidPath}
 }
 
+// ValidateFilePath validates a logical file or object path. Unlike
+// ValidatePath, it rejects ".", which represents the logical root.
+func ValidateFilePath(path string) error {
+	if err := ValidatePath(path); err != nil {
+		return err
+	}
+	if path == "." {
+		return &fs.PathError{Op: "validate", Path: path, Err: ErrInvalidPath}
+	}
+	return nil
+}
+
 // PathPrefixer maps logical paths to object-storage keys below a root prefix.
 type PathPrefixer struct {
 	prefix string

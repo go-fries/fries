@@ -105,7 +105,21 @@ func TestFilesystemRejectsEscapingPaths(t *testing.T) {
 
 	err = storage.Put(t.Context(), "../escape.txt", strings.NewReader("escape"), filesystem.PutOptions{})
 	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
+	_, err = storage.Open(t.Context(), ".")
+	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
+	err = storage.Put(t.Context(), ".", strings.NewReader("root"), filesystem.PutOptions{})
+	assert.ErrorIs(t, err, filesystem.ErrInvalidPath)
+	assert.ErrorIs(t, storage.Delete(t.Context(), "."), filesystem.ErrInvalidPath)
 	assert.ErrorIs(t, storage.DeleteDirectory(t.Context(), "."), filesystem.ErrInvalidPath)
+}
+
+func TestFilesystemStatRoot(t *testing.T) {
+	storage, err := New(t.TempDir())
+	require.NoError(t, err)
+
+	entry, err := storage.Stat(t.Context(), ".")
+	require.NoError(t, err)
+	assert.Equal(t, filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, entry)
 }
 
 func TestFilesystemMissingEntry(t *testing.T) {

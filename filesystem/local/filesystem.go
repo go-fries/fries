@@ -41,6 +41,9 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
+		return nil, err
+	}
 	resolved, err := s.resolve(path)
 	if err != nil {
 		return nil, err
@@ -61,6 +64,9 @@ func (s *Filesystem) Put(
 	_ filesystem.PutOptions,
 ) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
 		return err
 	}
 	resolved, err := s.resolve(path)
@@ -88,6 +94,9 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if err := filesystem.ValidateFilePath(path); err != nil {
+		return err
+	}
 	resolved, err := s.resolve(path)
 	if err != nil {
 		return err
@@ -105,6 +114,9 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, error) {
 	if err := ctx.Err(); err != nil {
 		return filesystem.Entry{}, err
+	}
+	if path == "." {
+		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
 	resolved, err := s.resolve(path)
 	if err != nil {
@@ -149,6 +161,12 @@ func (s *Filesystem) Move(ctx context.Context, src, dst string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if err := filesystem.ValidateFilePath(src); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(dst); err != nil {
+		return err
+	}
 	source, err := s.resolve(src)
 	if err != nil {
 		return err
@@ -166,6 +184,12 @@ func (s *Filesystem) Move(ctx context.Context, src, dst string) error {
 // Link creates a hard link from src to dst.
 func (s *Filesystem) Link(ctx context.Context, src, dst string) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(src); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(dst); err != nil {
 		return err
 	}
 	source, err := s.resolve(src)
@@ -186,6 +210,12 @@ func (s *Filesystem) Link(ctx context.Context, src, dst string) error {
 // root when both logical paths remain inside it.
 func (s *Filesystem) Symlink(ctx context.Context, target, link string) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(target); err != nil {
+		return err
+	}
+	if err := filesystem.ValidateFilePath(link); err != nil {
 		return err
 	}
 	targetPath, err := s.resolve(target)
