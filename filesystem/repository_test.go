@@ -80,9 +80,16 @@ func (d *memoryDriver) Put(
 	src io.Reader,
 	options PutOptions,
 ) error {
-	value, err := io.ReadAll(src)
+	contentLength, err := options.ResolveContentLength(src)
 	if err != nil {
 		return err
+	}
+	value, err := io.ReadAll(io.LimitReader(src, contentLength))
+	if err != nil {
+		return err
+	}
+	if int64(len(value)) != contentLength {
+		return io.ErrUnexpectedEOF
 	}
 	d.objects[path] = memoryObject{
 		value:       value,

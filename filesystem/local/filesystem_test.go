@@ -2,11 +2,13 @@ package local
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/go-fries/fries/filesystem/v4"
 	"github.com/stretchr/testify/assert"
@@ -207,6 +209,51 @@ func TestFilesystemRejectsEscapingSymlinks(t *testing.T) {
 	assert.Error(t, storage.DeleteDirectory(ctx, "escape/directory"))
 	_, err = os.Stat(filepath.Join(outside, "directory"))
 	assert.NoError(t, err)
+}
+
+func TestFilesystemListFilesClassifiesSymlinkTargets(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic-link creation may require additional privileges")
+	}
+
+	root := t.TempDir()
+	outside := t.TempDir()
+	storage, err := New(root)
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	require.NoError(t, storage.Put(
+		ctx,
+		"file.txt",
+		strings.NewReader("content"),
+		filesystem.PutOptions{},
+	))
+	require.NoError(t, storage.MakeDirectory(ctx, "directory"))
+	require.NoError(t, storage.Symlink(ctx, "file.txt", "file-link"))
+	require.NoError(t, storage.Symlink(ctx, "directory", "directory-link"))
+	require.NoError(t, os.Symlink("missing", filepath.Join(root, "broken-link")))
+	require.NoError(t, os.Symlink(outside, filepath.Join(root, "external-link")))
+
+	page, err := storage.ListFiles(ctx, ".", filesystem.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"file-link", "file.txt"}, entryPaths(page.Entries))
+
+	fileLink, err := storage.Stat(ctx, "file-link")
+	require.NoError(t, err)
+	assert.True(t, fileLink.IsFile())
+	directoryLink, err := storage.Stat(ctx, "directory-link")
+	require.NoError(t, err)
+	assert.True(t, directoryLink.IsDir())
+}
+
+func TestEntryFromInfoUnknownKind(t *testing.T) {
+	info, err := fs.Stat(fstest.MapFS{
+		"pipe": &fstest.MapFile{Mode: fs.ModeNamedPipe},
+	}, "pipe")
+	require.NoError(t, err)
+
+	entry := entryFromInfo("pipe", info)
+	assert.Equal(t, filesystem.EntryKindUnknown, entry.Kind)
 }
 
 func TestFilesystemStatRoot(t *testing.T) {

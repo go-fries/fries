@@ -343,11 +343,18 @@ func listEntries(
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}
-			entry, err := entryFromDirEntry(logicalJoin(root, dirEntry.Name()), dirEntry)
+			if dirEntry.IsDir() {
+				continue
+			}
+			entry, include, err := fileEntryFromDirEntry(
+				storage,
+				logicalJoin(root, dirEntry.Name()),
+				dirEntry,
+			)
 			if err != nil {
 				return nil, err
 			}
-			if entry.IsDir() {
+			if !include {
 				continue
 			}
 			entries = append(entries, entry)
@@ -369,9 +376,12 @@ func listEntries(
 		if dirEntry.IsDir() {
 			return nil
 		}
-		entry, err := entryFromDirEntry(path, dirEntry)
+		entry, include, err := fileEntryFromDirEntry(storage, path, dirEntry)
 		if err != nil {
 			return err
+		}
+		if !include {
+			return nil
 		}
 		entries = append(entries, entry)
 		return nil
@@ -386,18 +396,31 @@ func logicalJoin(directory, name string) string {
 	return pathpkg.Join(directory, name)
 }
 
-func entryFromDirEntry(path string, dirEntry fs.DirEntry) (filesystem.Entry, error) {
-	info, err := dirEntry.Info()
+func fileEntryFromDirEntry(
+	storage fs.FS,
+	path string,
+	dirEntry fs.DirEntry,
+) (filesystem.Entry, bool, error) {
+	info, err := fs.Stat(storage, path)
 	if err != nil {
-		return filesystem.Entry{}, err
+		if dirEntry.Type()&fs.ModeSymlink != 0 {
+			return filesystem.Entry{}, false, nil
+		}
+		return filesystem.Entry{}, false, err
 	}
-	return entryFromInfo(path, info), nil
+	if !info.Mode().IsRegular() {
+		return filesystem.Entry{}, false, nil
+	}
+	return entryFromInfo(path, info), true, nil
 }
 
 func entryFromInfo(path string, info fs.FileInfo) filesystem.Entry {
-	kind := filesystem.EntryKindFile
-	if info.IsDir() {
+	kind := filesystem.EntryKindUnknown
+	switch {
+	case info.IsDir():
 		kind = filesystem.EntryKindDirectory
+	case info.Mode().IsRegular():
+		kind = filesystem.EntryKindFile
 	}
 	return filesystem.Entry{
 		Path:         path,

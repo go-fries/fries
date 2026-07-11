@@ -121,9 +121,11 @@ func (r *Repository) Copy(ctx context.Context, src, dst string) error {
 	}
 	defer reader.Close() //nolint:errcheck
 
+	contentLength := entry.Size
 	return r.Put(ctx, dst, reader, PutOptions{
-		ContentType: entry.ContentType,
-		Metadata:    cloneMetadata(entry.Metadata),
+		ContentLength: &contentLength,
+		ContentType:   entry.ContentType,
+		Metadata:      cloneMetadata(entry.Metadata),
 	})
 }
 
