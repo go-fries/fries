@@ -75,7 +75,8 @@ type ListOptions struct {
 	// Kind filters entries by kind. List only enumerates files, so
 	// EntryKindDirectory produces an empty page.
 	Kind EntryKind
-	// Limit caps the number of entries returned. Values less than one use
+	// Limit caps the number of entries returned. A page may contain fewer entries,
+	// including none, even when more pages remain. Values less than one use
 	// DefaultListLimit; values greater than MaxListLimit use MaxListLimit.
 	Limit int
 	// Cursor continues a previous listing. Cursors are opaque and scoped to a
@@ -96,7 +97,9 @@ func (o ListOptions) Normalize() ListOptions {
 
 // ListPage is one page of a directory or prefix listing.
 type ListPage struct {
-	Entries    []Entry
+	Entries []Entry
+	// NextCursor continues the listing. Only an empty NextCursor indicates that
+	// the listing is complete; Entries may be empty while NextCursor is non-empty.
 	NextCursor string
 }
 
@@ -124,8 +127,9 @@ type Driver interface {
 	// are not returned. Use "." to list the logical root. If path has no matching
 	// files, including when it does not exist or names a file, List returns an
 	// empty page and a nil error. Entries are sorted by logical path within each
-	// page; ordering across pages follows the backend cursor and is not
-	// guaranteed.
+	// page. A page may be empty while NextCursor is non-empty; callers must
+	// continue until NextCursor is empty. Ordering across pages follows the
+	// backend cursor and is not guaranteed.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
 }
 
