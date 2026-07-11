@@ -98,12 +98,24 @@ func TestFilesystemListPagination(t *testing.T) {
 }
 
 func TestFilesystemPutContentLength(t *testing.T) {
-	storage, err := New(t.TempDir())
+	root := t.TempDir()
+	storage, err := New(root)
 	require.NoError(t, err)
 	source := struct{ io.Reader }{Reader: strings.NewReader("content")}
 
 	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{})
 	assert.ErrorIs(t, err, filesystem.ErrContentLengthRequired)
+
+	mismatch := int64(3)
+	err = storage.Put(
+		t.Context(),
+		"file.txt",
+		strings.NewReader("content"),
+		filesystem.PutOptions{ContentLength: &mismatch},
+	)
+	assert.ErrorIs(t, err, filesystem.ErrInvalidContentLength)
+	_, err = os.Stat(filepath.Join(root, "file.txt"))
+	assert.ErrorIs(t, err, os.ErrNotExist)
 
 	length := int64(len("content"))
 	err = storage.Put(t.Context(), "file.txt", source, filesystem.PutOptions{

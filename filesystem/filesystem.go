@@ -68,8 +68,8 @@ func (e Entry) IsDir() bool {
 type PutOptions struct {
 	// ContentLength is the number of bytes remaining in the source reader. A nil
 	// value lets the driver infer the length from readers that expose Len() int or
-	// implement io.Seeker. It must be set for other readers. Zero is valid;
-	// negative values are rejected.
+	// implement io.Seeker. An explicit value must equal an inferred length. It
+	// must be set for other readers. Zero is valid; negative values are rejected.
 	ContentLength *int64
 	ContentType   string
 	Metadata      map[string]string
@@ -82,29 +82,48 @@ func (o PutOptions) ResolveContentLength(src io.Reader) (int64, error) {
 		if *o.ContentLength < 0 {
 			return 0, ErrInvalidContentLength
 		}
+	}
+
+	inferred, known, err := inferContentLength(src)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %v", ErrInvalidContentLength, err)
+	}
+	if o.ContentLength != nil {
+		if known && *o.ContentLength != inferred {
+			return 0, fmt.Errorf(
+				"%w: explicit value %d does not match inferred value %d",
+				ErrInvalidContentLength,
+				*o.ContentLength,
+				inferred,
+			)
+		}
 		return *o.ContentLength, nil
 	}
+	if known {
+		return inferred, nil
+	}
+	return 0, ErrContentLengthRequired
+}
+
+func inferContentLength(src io.Reader) (int64, bool, error) {
 	if src == nil {
-		return 0, nil
+		return 0, true, nil
 	}
 	if source, ok := src.(interface{ Len() int }); ok {
 		length := int64(source.Len())
 		if length < 0 {
-			return 0, ErrInvalidContentLength
+			return 0, true, ErrInvalidContentLength
 		}
-		return length, nil
+		return length, true, nil
 	}
 	if source, ok := src.(io.Seeker); ok {
 		length, err := remainingLength(source)
 		if err != nil {
-			if errors.Is(err, ErrInvalidContentLength) {
-				return 0, err
-			}
-			return 0, fmt.Errorf("%w: %v", ErrContentLengthRequired, err)
+			return 0, true, err
 		}
-		return length, nil
+		return length, true, nil
 	}
-	return 0, ErrContentLengthRequired
+	return 0, false, nil
 }
 
 func remainingLength(source io.Seeker) (int64, error) {

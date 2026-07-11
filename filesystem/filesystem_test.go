@@ -41,6 +41,14 @@ func TestPutOptionsResolveContentLength(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidContentLength)
 	})
 
+	t.Run("explicit mismatch", func(t *testing.T) {
+		length := int64(3)
+		_, err := (PutOptions{ContentLength: &length}).ResolveContentLength(
+			strings.NewReader("content"),
+		)
+		assert.ErrorIs(t, err, ErrInvalidContentLength)
+	})
+
 	t.Run("len", func(t *testing.T) {
 		source := strings.NewReader("content")
 		_, err := source.Read(make([]byte, 3))
