@@ -11,7 +11,10 @@ var (
 	// ErrInvalidPath indicates that a path does not follow the filesystem's
 	// logical path contract.
 	ErrInvalidPath = errors.New("filesystem: invalid path")
-	// ErrNotFound indicates that the requested entry does not exist.
+	// ErrNotFound indicates that the requested file or object does not exist.
+	// Drivers wrap ErrNotFound when Open or Stat cannot find a path. Callers
+	// should use errors.Is to test for it. Delete does not return ErrNotFound,
+	// because deletion is idempotent.
 	ErrNotFound = errors.New("filesystem: entry not found")
 	// ErrUnsupported indicates that an optional operation is not supported.
 	ErrUnsupported = errors.New("filesystem: operation not supported")
@@ -80,13 +83,15 @@ type ListPage struct {
 // object-storage backends.
 type Driver interface {
 	// Open opens path for streaming reads. The caller must close the result.
+	// If path does not exist, Open returns an error wrapping ErrNotFound.
 	Open(ctx context.Context, path string) (io.ReadCloser, error)
 	// Put writes src to path, replacing an existing entry.
 	Put(ctx context.Context, path string, src io.Reader, options PutOptions) error
 	// Delete removes a file or object. Delete is idempotent: deleting a path
 	// that does not exist returns nil.
 	Delete(ctx context.Context, path string) error
-	// Stat returns metadata for a file or object.
+	// Stat returns metadata for a file or object. If path does not exist, Stat
+	// returns an error wrapping ErrNotFound.
 	Stat(ctx context.Context, path string) (Entry, error)
 	// List returns one page of entries below a directory or object prefix.
 	List(ctx context.Context, path string, options ListOptions) (ListPage, error)
