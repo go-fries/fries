@@ -61,6 +61,7 @@ func execute(
 	group, groupContext := errgroup.WithContext(ctx)
 	group.SetLimit(limit)
 
+	scheduled := 0
 	for index := range count {
 		if context.Cause(groupContext) != nil {
 			break
@@ -73,13 +74,17 @@ func execute(
 
 			return fn(groupContext, index)
 		})
+		scheduled++
 	}
 
 	if err := group.Wait(); err != nil {
 		return err
 	}
+	if scheduled < count {
+		return context.Cause(ctx)
+	}
 
-	return context.Cause(ctx)
+	return nil
 }
 
 func validateLimit(limit int) error {

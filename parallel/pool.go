@@ -238,9 +238,5 @@ func (p *Pool) execute(item poolTask) {
 		return
 	}
 
-	err := item.task(item.ctx)
-	if err == nil {
-		err = context.Cause(item.ctx)
-	}
-	item.future.complete(err)
+	item.future.complete(item.task(item.ctx))
 }

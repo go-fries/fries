@@ -67,6 +67,20 @@ func TestPoolValidatesAndReturnsTaskErrors(t *testing.T) {
 	require.NoError(t, pool.Shutdown(t.Context()))
 }
 
+func TestPoolTrustsSuccessfulTaskResultAfterContextCancellation(t *testing.T) {
+	pool := requirePool(t, 1)
+	taskContext, cancel := context.WithCancel(t.Context())
+
+	future, err := pool.Submit(taskContext, func(context.Context) error {
+		cancel()
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, future.Wait(t.Context()))
+	require.NoError(t, pool.Shutdown(t.Context()))
+}
+
 func TestPoolSubmitRunsAsynchronously(t *testing.T) {
 	pool := requirePool(t, 1, parallel.WithQueueSize(0))
 	started := make(chan struct{})

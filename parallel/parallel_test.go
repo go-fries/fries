@@ -128,6 +128,28 @@ func TestRunObservesParentCancellation(t *testing.T) {
 	assert.False(t, called.Load())
 }
 
+func TestRunTrustsSuccessfulTaskResultsAfterAllTasksStart(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	started := make(chan struct{}, 2)
+	release := make(chan error, 2)
+	result := make(chan error, 1)
+	task := func(context.Context) error {
+		started <- struct{}{}
+
+		return <-release
+	}
+
+	go func() {
+		result <- parallel.Run(ctx, task, task)
+	}()
+
+	requireStarted(t, t.Context(), started, 2)
+	cancel()
+	release <- nil
+	release <- nil
+	require.NoError(t, <-result)
+}
+
 func TestRunValidatesInputs(t *testing.T) {
 	t.Run("invalid limit", func(t *testing.T) {
 		err := parallel.RunLimit(t.Context(), 0)
