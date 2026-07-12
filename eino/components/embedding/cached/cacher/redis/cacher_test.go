@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-fries/fries/codec/sonic/v4"
 	"github.com/go-fries/fries/codec/v4"
 	"github.com/go-fries/fries/eino/components/embedding/cached/v4"
 	"github.com/redis/go-redis/v9"
@@ -61,7 +62,7 @@ func TestCacher(t *testing.T) {
 	value := []float64{1.1, 2.2, 3.3}
 	expire := time.Second * 10
 
-	valueBytes, err := defaultCodec.Marshal(value)
+	valueBytes, err := (sonic.Codec{}).Marshal(value)
 	require.NoError(t, err)
 
 	t.Run("Set and Get", func(t *testing.T) {

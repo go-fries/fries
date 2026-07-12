@@ -12,8 +12,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var defaultCodec codec.Codec = sonic.Codec{}
-
 type Cacher struct {
 	rdb    redis.UniversalClient
 	prefix string
@@ -48,7 +46,7 @@ func NewCacher(rdb redis.UniversalClient, opts ...Option) *Cacher {
 	cacher := &Cacher{
 		rdb:    rdb,
 		prefix: "eino:",
-		codec:  defaultCodec,
+		codec:  sonic.Codec{},
 	}
 	for _, opt := range opts {
 		opt.apply(cacher)
