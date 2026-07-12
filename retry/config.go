@@ -47,38 +47,35 @@ func (f optionFunc) apply(c *config) {
 // WithMaxAttempts sets the total number of allowed executions, including the
 // initial attempt.
 //
-// It panics if attempts is less than one.
+// Values less than one leave the current attempt limit unchanged.
 func WithMaxAttempts(attempts int) Option {
-	if attempts < 1 {
-		panic("retry: max attempts must be greater than zero")
-	}
 	return optionFunc(func(c *config) {
-		c.maxAttempts = attempts
+		if attempts >= 1 {
+			c.maxAttempts = attempts
+		}
 	})
 }
 
 // WithBackoff sets the delay strategy used between attempts.
 //
-// It panics if backoff is nil.
+// A nil backoff leaves the current strategy unchanged.
 func WithBackoff(backoff Backoff) Option {
-	if backoff == nil {
-		panic("retry: nil backoff")
-	}
 	return optionFunc(func(c *config) {
-		c.backoff = backoff
+		if backoff != nil {
+			c.backoff = backoff
+		}
 	})
 }
 
 // WithRetryIf sets the predicate that decides whether an operation error may
 // be retried. The predicate is not called after the final allowed attempt.
 //
-// It panics if predicate is nil.
+// A nil predicate leaves the current predicate unchanged.
 func WithRetryIf(predicate func(error) bool) Option {
-	if predicate == nil {
-		panic("retry: nil retry predicate")
-	}
 	return optionFunc(func(c *config) {
-		c.retryIf = predicate
+		if predicate != nil {
+			c.retryIf = predicate
+		}
 	})
 }
 
