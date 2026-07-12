@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBackoffStrategies(t *testing.T) {
@@ -108,7 +107,13 @@ func TestJitterIsSafeForConcurrentUse(t *testing.T) {
 	wg.Wait()
 }
 
-func TestBackoffPanicsOnInvalidConfiguration(t *testing.T) {
+func TestJitterNormalizesNilBackoff(t *testing.T) {
+	t.Parallel()
+
+	assert.Zero(t, Jitter(nil, 0)(1))
+}
+
+func TestBackoffPanicsOnInvalidDelay(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -120,14 +125,13 @@ func TestBackoffPanicsOnInvalidConfiguration(t *testing.T) {
 		{name: "negative exponential initial", fn: func() { Exponential(-1, 0) }},
 		{name: "negative exponential maximum", fn: func() { Exponential(0, -1) }},
 		{name: "maximum below initial", fn: func() { Exponential(time.Second, time.Millisecond) }},
-		{name: "nil jitter backoff", fn: func() { Jitter(nil, 0) }},
 		{name: "negative jitter maximum", fn: func() { Jitter(NoBackoff(), -1) }},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Panics(t, tt.fn)
+			assert.Panics(t, tt.fn)
 		})
 	}
 }

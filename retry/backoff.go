@@ -83,11 +83,11 @@ func Exponential(initial, maximum time.Duration) Backoff {
 // Jitter wraps backoff and adds a random duration from zero through maximum to
 // each positive delay.
 //
-// It panics if backoff is nil or maximum is negative. Overflow is clamped to
-// the largest duration.
+// A nil backoff is treated as NoBackoff. Jitter panics if maximum is negative.
+// Overflow is clamped to the largest duration.
 func Jitter(backoff Backoff, maximum time.Duration) Backoff {
 	if backoff == nil {
-		panic("retry: nil jitter backoff")
+		backoff = NoBackoff()
 	}
 	validateDelay("jitter maximum delay", maximum)
 	if maximum == 0 {
