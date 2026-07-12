@@ -1,6 +1,6 @@
 // Package md5 computes MD5 digests for checksums and legacy compatibility.
 //
-// MD5 is cryptographically broken. Do not use this package for passwords,
+// MD5 is cryptographically broken and must not be used for passwords,
 // signatures, certificates, or other security-sensitive purposes.
 package md5
 
@@ -13,27 +13,31 @@ import (
 
 var defaultHasher = hashing.New(standardmd5.New)
 
-// New creates an MD5 Hasher.
+// New returns a reusable [hashing.Hasher] configured to compute MD5 digests.
 func New() *hashing.Hasher {
 	return hashing.New(standardmd5.New)
 }
 
-// Sum computes the MD5 digest of value.
+// Sum returns the MD5 digest of value.
 func Sum(value []byte) hashing.Digest {
 	return defaultHasher.Sum(value)
 }
 
-// SumString computes the MD5 digest of value.
+// SumString returns the MD5 digest of value.
 func SumString(value string) hashing.Digest {
 	return defaultHasher.SumString(value)
 }
 
-// SumReader reads reader until EOF and computes its MD5 digest.
+// SumReader reads reader until EOF and returns its MD5 digest. It returns
+// [hashing.ErrNilReader] for a nil reader and propagates errors reported while
+// reading.
 func SumReader(reader io.Reader) (hashing.Digest, error) {
 	return defaultHasher.SumReader(reader)
 }
 
-// SumFile reads the file at path and computes its MD5 digest.
+// SumFile opens the file at path, reads it until EOF, and returns its MD5
+// digest. It returns errors encountered while opening, reading, or closing the
+// file.
 func SumFile(path string) (hashing.Digest, error) {
 	return defaultHasher.SumFile(path)
 }

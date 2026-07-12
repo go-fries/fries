@@ -7,23 +7,22 @@ import (
 	"os"
 )
 
-// NewHash creates a new hash.Hash instance.
+// NewHash returns a new [hash.Hash].
 //
-// Each call must return a new, non-nil hash.Hash. A NewHash used concurrently
-// must itself be safe for concurrent use.
+// Each call must return a distinct, non-nil hash.Hash. A NewHash passed to New
+// must be safe to call concurrently.
 type NewHash func() hash.Hash
 
-// Hasher computes independent digests using a new hash.Hash for every
-// operation. A Hasher is safe for concurrent use when its constructor is safe
-// for concurrent use.
+// Hasher computes independent digests using a new [hash.Hash] for each
+// operation. A Hasher is safe for concurrent use.
 type Hasher struct {
 	newHash NewHash
 }
 
-// New creates a reusable Hasher backed by newHash.
+// New returns a reusable Hasher backed by newHash.
 //
-// New panics when newHash is nil. The constructor must return a new, non-nil
-// hash.Hash each time it is called.
+// New panics if newHash is nil. Operations on the returned Hasher panic if
+// newHash returns nil. See NewHash for the constructor contract.
 func New(newHash NewHash) *Hasher {
 	if newHash == nil {
 		panic("hashing: nil hash constructor")
@@ -32,7 +31,7 @@ func New(newHash NewHash) *Hasher {
 	return &Hasher{newHash: newHash}
 }
 
-// Sum computes the digest of value.
+// Sum returns the digest of value.
 func (h *Hasher) Sum(value []byte) Digest {
 	hashValue := h.create()
 	_, _ = hashValue.Write(value)
@@ -40,12 +39,13 @@ func (h *Hasher) Sum(value []byte) Digest {
 	return NewDigest(hashValue.Sum(nil))
 }
 
-// SumString computes the digest of value.
+// SumString returns the digest of value.
 func (h *Hasher) SumString(value string) Digest {
 	return h.Sum([]byte(value))
 }
 
-// SumReader reads reader until EOF and computes its digest.
+// SumReader reads reader until EOF and returns its digest. It returns
+// ErrNilReader for a nil reader and propagates errors reported while reading.
 func (h *Hasher) SumReader(reader io.Reader) (Digest, error) {
 	if reader == nil {
 		return Digest{}, ErrNilReader
@@ -59,7 +59,8 @@ func (h *Hasher) SumReader(reader io.Reader) (Digest, error) {
 	return NewDigest(hashValue.Sum(nil)), nil
 }
 
-// SumFile reads the file at path and computes its digest.
+// SumFile opens the file at path, reads it until EOF, and returns its digest.
+// It returns errors encountered while opening, reading, or closing the file.
 func (h *Hasher) SumFile(path string) (digest Digest, err error) {
 	file, err := os.Open(path)
 	if err != nil {

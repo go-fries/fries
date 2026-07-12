@@ -2,5 +2,5 @@ package hashing
 
 import "errors"
 
-// ErrNilReader is returned when a nil reader is passed to SumReader.
+// ErrNilReader indicates that SumReader received a nil reader.
 var ErrNilReader = errors.New("hashing: nil reader")
