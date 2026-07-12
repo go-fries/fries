@@ -7,7 +7,7 @@ import (
 	"github.com/go-fries/fries/codec/v4"
 )
 
-var DefaultCodec = json.Codec
+var DefaultCodec codec.Codec = json.Codec{}
 
 // Client represents a JSON-RPC client that can invoke remote methods.
 // It supports namespacing to organize method calls and uses a Transport

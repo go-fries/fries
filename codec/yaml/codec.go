@@ -5,17 +5,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var Codec codec.Codec = &yamlCodec{}
+// Codec encodes and decodes YAML values. Its zero value is ready to use.
+type Codec struct{}
 
-// yamlCodec is a YAML codec.
-type yamlCodec struct{}
+var _ codec.Codec = Codec{}
 
-// Marshal converts the given data into a byte slice using YAML.
-func (c *yamlCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as YAML.
+func (Codec) Marshal(data any) ([]byte, error) {
 	return yaml.Marshal(data)
 }
 
-// Unmarshal converts the given byte slice into a data structure using YAML.
-func (c *yamlCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes YAML data into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	return yaml.Unmarshal(src, dest)
 }

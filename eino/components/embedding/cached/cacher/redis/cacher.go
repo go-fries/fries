@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var defaultCodec = sonic.Codec
+var defaultCodec codec.Codec = sonic.Codec{}
 
 type Cacher struct {
 	rdb    redis.UniversalClient

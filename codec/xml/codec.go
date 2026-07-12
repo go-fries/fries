@@ -6,19 +6,17 @@ import (
 	"github.com/go-fries/fries/codec/v4"
 )
 
-var Codec codec.Codec = &xmlCodec{}
+// Codec encodes and decodes XML values. Its zero value is ready to use.
+type Codec struct{}
 
-// codec is an XML codec.
-type xmlCodec struct{}
+var _ codec.Codec = Codec{}
 
-var _ codec.Codec = (*xmlCodec)(nil)
-
-// Marshal converts the given data into a byte slice using XML.
-func (c *xmlCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as XML.
+func (Codec) Marshal(data any) ([]byte, error) {
 	return xml.Marshal(data)
 }
 
-// Unmarshal converts the given byte slice into a data structure using XML.
-func (c *xmlCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes XML data into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	return xml.Unmarshal(src, dest)
 }

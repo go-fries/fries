@@ -1,36 +1,39 @@
-package proto
+package proto_test
 
 import (
 	"testing"
 
-	"github.com/go-fries/fries/codec/proto/v4/internal/proto"
+	"github.com/go-fries/fries/codec/proto/v4"
+	testproto "github.com/go-fries/fries/codec/proto/v4/internal/proto"
+	"github.com/go-fries/fries/codec/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCodec(t *testing.T) {
-	msg := &proto.TestMessage{
-		Name:  "test",
-		Value: 123,
-	}
+	c := proto.Codec{}
+	assert.Implements(t, (*codec.Codec)(nil), c)
 
-	data, err := Codec.Marshal(msg)
-	assert.NoError(t, err)
+	want := &testproto.TestMessage{Name: "test", Value: 123}
+	data, err := c.Marshal(want)
+	require.NoError(t, err)
 
-	newMsg := &proto.TestMessage{}
-	err = Codec.Unmarshal(data, newMsg)
-	assert.NoError(t, err)
-
-	assert.Equal(t, msg.Name, newMsg.Name)
-	assert.Equal(t, msg.Value, newMsg.Value)
+	got := &testproto.TestMessage{}
+	require.NoError(t, c.Unmarshal(data, got))
+	assert.Equal(t, want.GetName(), got.GetName())
+	assert.Equal(t, want.GetValue(), got.GetValue())
 }
 
-func TestCodec_ErrInvalidProtoMessage(t *testing.T) {
-	_, err := Codec.Marshal("invalid data")
-	assert.Error(t, err)
-	assert.Equal(t, ErrInvalidProtoMessage, err)
+func TestCodecInvalidMessage(t *testing.T) {
+	c := proto.Codec{}
 
-	var newMsg string
-	err = Codec.Unmarshal([]byte("invalid data"), &newMsg)
+	_, err := c.Marshal("invalid")
+	assert.ErrorIs(t, err, proto.ErrInvalidMessage)
+	assert.ErrorIs(t, c.Unmarshal(nil, new(string)), proto.ErrInvalidMessage)
+}
+
+func TestCodecInvalidData(t *testing.T) {
+	c := proto.Codec{}
+	err := c.Unmarshal([]byte{0xff}, &testproto.TestMessage{})
 	assert.Error(t, err)
-	assert.Equal(t, ErrInvalidProtoMessage, err)
 }

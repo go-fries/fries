@@ -1,41 +1,34 @@
-package yaml
+package yaml_test
 
 import (
 	"testing"
 
+	"github.com/go-fries/fries/codec/v4"
+	"github.com/go-fries/fries/codec/yaml/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var yamlBytes = []byte(`name: test
-value: 123
-`)
-
-type TestMessage struct {
+type message struct {
 	Name  string `yaml:"name"`
-	Value int32  `yaml:"value"`
+	Value int    `yaml:"value"`
 }
 
 func TestCodec(t *testing.T) {
-	msg := &TestMessage{
-		Name:  "test",
-		Value: 123,
-	}
+	c := yaml.Codec{}
+	assert.Implements(t, (*codec.Codec)(nil), c)
 
-	data, err := Codec.Marshal(msg)
-	require.NoError(t, err)
-	assert.Equal(t, yamlBytes, data)
-
-	newMsg := &TestMessage{}
-	err = Codec.Unmarshal(data, newMsg)
+	want := message{Name: "test", Value: 123}
+	data, err := c.Marshal(want)
 	require.NoError(t, err)
 
-	assert.Equal(t, msg.Name, newMsg.Name)
-	assert.Equal(t, msg.Value, newMsg.Value)
+	var got message
+	require.NoError(t, c.Unmarshal(data, &got))
+	assert.Equal(t, want, got)
+}
 
-	// Test Unmarshal with YAML bytes
-	err = Codec.Unmarshal(yamlBytes, newMsg)
-	require.NoError(t, err)
-	assert.Equal(t, msg.Name, newMsg.Name)
-	assert.Equal(t, msg.Value, newMsg.Value)
+func TestCodecErrors(t *testing.T) {
+	c := yaml.Codec{}
+
+	assert.Error(t, c.Unmarshal([]byte("value: ["), &message{}))
 }
