@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Backoff returns the delay after a failed attempt. attempt starts at one and
-// identifies the execution that just failed.
+// Backoff returns the delay after a failed attempt. The attempt parameter
+// starts at one and identifies the execution that just failed.
 //
 // A Backoff must be safe for concurrent use when shared by callers.
 type Backoff func(attempt int) time.Duration
@@ -80,11 +80,11 @@ func Exponential(initial, maximum time.Duration) Backoff {
 	}
 }
 
-// Jitter wraps backoff and adds a random duration from zero through maximum to
-// each positive delay.
+// Jitter wraps backoff and adds a random duration in the inclusive range from
+// zero through maximum to each positive delay.
 //
-// A nil backoff is treated as NoBackoff. Jitter panics if maximum is negative.
-// Overflow is clamped to the largest duration.
+// A nil backoff is treated as [NoBackoff]. Jitter panics if maximum is
+// negative. Overflow is clamped to the largest duration.
 func Jitter(backoff Backoff, maximum time.Duration) Backoff {
 	if backoff == nil {
 		backoff = NoBackoff()

@@ -15,7 +15,7 @@ type ValueOperation[T any] func(context.Context) (T, error)
 // Do executes operation until it succeeds, cannot be retried, exhausts the
 // configured attempts, or ctx is canceled.
 //
-// ctx must not be nil. Do panics if operation is nil.
+// The context must not be nil. Do panics if operation is nil.
 func Do(ctx context.Context, operation Operation, options ...Option) error {
 	if operation == nil {
 		panic("retry: nil operation")
@@ -30,7 +30,7 @@ func Do(ctx context.Context, operation Operation, options ...Option) error {
 // the configured attempts, or ctx is canceled. It returns the value produced
 // by the final operation execution, including when that execution fails.
 //
-// ctx must not be nil. DoValue panics if operation is nil.
+// The context must not be nil. DoValue panics if operation is nil.
 func DoValue[T any](
 	ctx context.Context,
 	operation ValueOperation[T],
@@ -83,10 +83,11 @@ func DoValue[T any](
 	}
 }
 
-// Permanent marks err as non-retryable. It returns nil when err is nil.
+// Permanent returns an error that marks err as non-retryable. It returns nil
+// when err is nil.
 //
-// The marker supports errors.Is and errors.As through error unwrapping. Do and
-// DoValue return the underlying error rather than the marker.
+// The returned error unwraps to err. [Do] and [DoValue] return err rather than
+// the marker when execution stops.
 func Permanent(err error) error {
 	if err == nil {
 		return nil
@@ -94,7 +95,8 @@ func Permanent(err error) error {
 	return &permanentError{err: err}
 }
 
-// After requests delay before the next attempt. It returns nil when err is nil.
+// After returns an error that requests delay before the next attempt. It
+// returns nil when err is nil. The returned error unwraps to err.
 //
 // The override still respects context cancellation, the retry predicate, and
 // the configured attempt limit. After panics if delay is negative.

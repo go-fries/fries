@@ -14,10 +14,15 @@ const (
 
 // Event describes a failed operation that will be retried.
 type Event struct {
-	Attempt     int
+	// Attempt is the one-based number of the execution that failed.
+	Attempt int
+	// MaxAttempts is the configured total execution limit, including the
+	// initial attempt.
 	MaxAttempts int
-	Err         error
-	Delay       time.Duration
+	// Err is the underlying error returned by the failed operation.
+	Err error
+	// Delay is the duration to wait before the next attempt.
+	Delay time.Duration
 }
 
 // NotifyFunc receives an Event before the wait for the next attempt begins.
@@ -81,7 +86,7 @@ func WithRetryIf(predicate func(error) bool) Option {
 
 // WithNotify sets the function called before each scheduled retry.
 //
-// Passing nil disables notifications.
+// Passing a nil [NotifyFunc] disables notifications.
 func WithNotify(notify NotifyFunc) Option {
 	return optionFunc(func(c *config) {
 		c.notify = notify
