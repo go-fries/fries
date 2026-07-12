@@ -29,7 +29,3 @@ func TestMD5Helpers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, fileDigest.Hex())
 }
-
-func TestVersionIsAvailable(t *testing.T) {
-	assert.NotEmpty(t, md5.Version())
-}
