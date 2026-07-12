@@ -18,28 +18,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-go@v6
+        id: setup-go
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: false
+
+      - name: Go cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+
       - name: GolangCI-Lint cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/golangci-lint
           key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/.golangci.yml') }}
           restore-keys: ${{ runner.os }}-golangci-lint-
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: false
-          cache: true
-          cache-dependency-path: |  
-            **/go.sum
-
-      - name: Tools cache
-        uses: actions/cache@v6
-        with:
-          path: .tools
-          key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.mod', 'internal/tools/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-tools-
 
       - name: Run lint
         run: make lint
