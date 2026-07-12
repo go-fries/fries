@@ -121,6 +121,9 @@ module-sets:
       # Recovery
       - github.com/go-fries/fries/recovery/v4
 
+      # Retry
+      - github.com/go-fries/fries/retry/v4
+
       # Signal
       - github.com/go-fries/fries/signal/v4
 

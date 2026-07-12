@@ -1,0 +1,190 @@
+package retry
+
+import (
+	"context"
+	"errors"
+	"time"
+)
+
+// Operation is an error-returning operation that may be retried.
+type Operation func(context.Context) error
+
+// ValueOperation is a value-returning operation that may be retried.
+type ValueOperation[T any] func(context.Context) (T, error)
+
+// Do executes operation until it succeeds, cannot be retried, exhausts the
+// configured attempts, or ctx is canceled.
+//
+// The context must not be nil. Context cancellation takes precedence over an
+// operation error returned by the same attempt. Do panics if operation is nil.
+func Do(ctx context.Context, operation Operation, options ...Option) error {
+	if operation == nil {
+		panic("retry: nil operation")
+	}
+	_, err := DoValue(ctx, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, operation(ctx)
+	}, options...)
+	return err
+}
+
+// DoValue executes operation until it succeeds, cannot be retried, exhausts
+// the configured attempts, or ctx is canceled. It returns the value produced
+// by the final operation execution, including when that execution fails.
+//
+// The context must not be nil. Context cancellation takes precedence over an
+// operation error returned by the same attempt. DoValue panics if operation is
+// nil.
+func DoValue[T any](
+	ctx context.Context,
+	operation ValueOperation[T],
+	options ...Option,
+) (T, error) {
+	if operation == nil {
+		panic("retry: nil operation")
+	}
+
+	c := newConfig(options...)
+	var result T
+
+	for attempt := 1; ; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+
+		var err error
+		result, err = operation(ctx)
+		if err == nil {
+			return result, nil
+		}
+		// Prefer cancellation that occurred during the attempt over its
+		// returned error.
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+
+		info := inspectError(err)
+		if info.permanent {
+			return result, info.cause
+		}
+		if attempt == c.maxAttempts || !c.retryIf(info.cause) {
+			return result, info.cause
+		}
+
+		delay := max(c.backoff(attempt), 0)
+		if info.override {
+			delay = info.overrideDelay
+		}
+		if c.notify != nil {
+			c.notify(ctx, Event{
+				Attempt:     attempt,
+				MaxAttempts: c.maxAttempts,
+				Err:         info.cause,
+				Delay:       delay,
+			})
+		}
+		if err := wait(ctx, delay); err != nil {
+			return result, err
+		}
+	}
+}
+
+// Permanent returns an error that marks err as non-retryable. It returns nil
+// when err is nil.
+//
+// The returned error unwraps to err. [Do] and [DoValue] remove a root marker
+// when execution stops, while preserving any error that wraps the marker.
+func Permanent(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &permanentError{err: err}
+}
+
+// After returns an error that requests delay before the next attempt. It
+// returns nil when err is nil. The returned error unwraps to err.
+//
+// The override still respects context cancellation, the retry predicate, and
+// the configured attempt limit. [Do] and [DoValue] remove a root marker from
+// the final error, while preserving any error that wraps the marker. After
+// panics if delay is negative.
+func After(delay time.Duration, err error) error {
+	validateDelay("retry-after delay", delay)
+	if err == nil {
+		return nil
+	}
+	return &afterError{delay: delay, err: err}
+}
+
+type permanentError struct {
+	err error
+}
+
+func (e *permanentError) Error() string {
+	return e.err.Error()
+}
+
+func (e *permanentError) Unwrap() error {
+	return e.err
+}
+
+type afterError struct {
+	delay time.Duration
+	err   error
+}
+
+func (e *afterError) Error() string {
+	return e.err.Error()
+}
+
+func (e *afterError) Unwrap() error {
+	return e.err
+}
+
+type errorInfo struct {
+	cause         error
+	permanent     bool
+	override      bool
+	overrideDelay time.Duration
+}
+
+func inspectError(err error) errorInfo {
+	info := errorInfo{cause: err}
+
+	var permanentErr *permanentError
+	if errors.As(err, &permanentErr) {
+		info.permanent = true
+	}
+
+	var afterErr *afterError
+	if errors.As(err, &afterErr) {
+		info.override = true
+		info.overrideDelay = afterErr.delay
+	}
+
+	for {
+		switch root := info.cause.(type) {
+		case *permanentError:
+			info.cause = root.err
+		case *afterError:
+			info.cause = root.err
+		default:
+			return info
+		}
+	}
+}
+
+func wait(ctx context.Context, delay time.Duration) error {
+	if delay == 0 {
+		return ctx.Err()
+	}
+
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
