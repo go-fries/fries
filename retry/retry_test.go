@@ -139,6 +139,19 @@ func TestDoContext(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 		assert.Equal(t, 1, attempts)
 	})
+
+	t.Run("operation cancellation wins over permanent error", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(t.Context())
+		var attempts int
+		err := Do(ctx, func(context.Context) error {
+			attempts++
+			cancel()
+			return Permanent(assert.AnError)
+		})
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Equal(t, 1, attempts)
+	})
 }
 
 func TestDoRetryPredicate(t *testing.T) {
@@ -202,6 +215,20 @@ func TestPermanent(t *testing.T) {
 	assert.Equal(t, 1, attempts)
 }
 
+func TestPermanentPreservesWrappingContext(t *testing.T) {
+	t.Parallel()
+
+	operationErr := errors.New("invalid user")
+	var attempts int
+	err := Do(t.Context(), func(context.Context) error {
+		attempts++
+		return fmt.Errorf("save user: %w", Permanent(operationErr))
+	})
+	require.ErrorIs(t, err, operationErr)
+	assert.EqualError(t, err, "save user: invalid user")
+	assert.Equal(t, 1, attempts)
+}
+
 func TestAfter(t *testing.T) {
 	t.Parallel()
 
@@ -228,6 +255,33 @@ func TestAfter(t *testing.T) {
 	assert.Equal(t, 2, attempts)
 	assert.Zero(t, event.Delay)
 	assert.Equal(t, assert.AnError, event.Err)
+}
+
+func TestAfterPreservesWrappingContext(t *testing.T) {
+	t.Parallel()
+
+	operationErr := errors.New("rate limited")
+	var (
+		attempts int
+		events   []Event
+	)
+	err := Do(
+		t.Context(), func(context.Context) error {
+			attempts++
+			return fmt.Errorf("send request: %w", After(0, operationErr))
+		},
+		WithMaxAttempts(2),
+		WithBackoff(Fixed(time.Hour)),
+		WithNotify(func(_ context.Context, event Event) {
+			events = append(events, event)
+		}),
+	)
+	require.ErrorIs(t, err, operationErr)
+	assert.EqualError(t, err, "send request: rate limited")
+	assert.Equal(t, 2, attempts)
+	require.Len(t, events, 1)
+	assert.EqualError(t, events[0].Err, "send request: rate limited")
+	assert.Zero(t, events[0].Delay)
 }
 
 func TestNotify(t *testing.T) {

@@ -51,6 +51,8 @@ err := retry.Do(ctx, operation)
 ```
 
 The operation itself must observe the supplied context while it is running.
+If the context is canceled during an attempt and that attempt returns an error,
+the context error takes precedence.
 
 `Do` and `DoValue` panic when the operation is nil. As with other Go APIs that
 accept `context.Context`, callers must not pass a nil context. Attempt counts
@@ -84,7 +86,8 @@ if errors.Is(err, ErrInvalidRequest) {
 ```
 
 `Do` and `DoValue` return the underlying error, so normal `errors.Is` and
-`errors.As` checks continue to work.
+`errors.As` checks continue to work. Errors wrapped around the `Permanent`
+marker are preserved.
 
 ## Override the next delay
 
@@ -96,6 +99,7 @@ return retry.After(delay, ErrRateLimited)
 ```
 
 The override still respects the attempt limit, retry predicate, and context.
+Errors wrapped around the `After` marker are preserved.
 
 ## Observe scheduled retries
 

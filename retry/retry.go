@@ -15,7 +15,8 @@ type ValueOperation[T any] func(context.Context) (T, error)
 // Do executes operation until it succeeds, cannot be retried, exhausts the
 // configured attempts, or ctx is canceled.
 //
-// The context must not be nil. Do panics if operation is nil.
+// The context must not be nil. Context cancellation takes precedence over an
+// operation error returned by the same attempt. Do panics if operation is nil.
 func Do(ctx context.Context, operation Operation, options ...Option) error {
 	if operation == nil {
 		panic("retry: nil operation")
@@ -30,7 +31,9 @@ func Do(ctx context.Context, operation Operation, options ...Option) error {
 // the configured attempts, or ctx is canceled. It returns the value produced
 // by the final operation execution, including when that execution fails.
 //
-// The context must not be nil. DoValue panics if operation is nil.
+// The context must not be nil. Context cancellation takes precedence over an
+// operation error returned by the same attempt. DoValue panics if operation is
+// nil.
 func DoValue[T any](
 	ctx context.Context,
 	operation ValueOperation[T],
@@ -53,13 +56,15 @@ func DoValue[T any](
 		if err == nil {
 			return result, nil
 		}
+		// Prefer cancellation that occurred during the attempt over its
+		// returned error.
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
 
 		info := inspectError(err)
 		if info.permanent {
 			return result, info.cause
-		}
-		if err := ctx.Err(); err != nil {
-			return result, err
 		}
 		if attempt == c.maxAttempts || !c.retryIf(info.cause) {
 			return result, info.cause
@@ -86,8 +91,8 @@ func DoValue[T any](
 // Permanent returns an error that marks err as non-retryable. It returns nil
 // when err is nil.
 //
-// The returned error unwraps to err. [Do] and [DoValue] return err rather than
-// the marker when execution stops.
+// The returned error unwraps to err. [Do] and [DoValue] remove a root marker
+// when execution stops, while preserving any error that wraps the marker.
 func Permanent(err error) error {
 	if err == nil {
 		return nil
@@ -99,7 +104,9 @@ func Permanent(err error) error {
 // returns nil when err is nil. The returned error unwraps to err.
 //
 // The override still respects context cancellation, the retry predicate, and
-// the configured attempt limit. After panics if delay is negative.
+// the configured attempt limit. [Do] and [DoValue] remove a root marker from
+// the final error, while preserving any error that wraps the marker. After
+// panics if delay is negative.
 func After(delay time.Duration, err error) error {
 	validateDelay("retry-after delay", delay)
 	if err == nil {
@@ -146,23 +153,24 @@ func inspectError(err error) errorInfo {
 	var permanentErr *permanentError
 	if errors.As(err, &permanentErr) {
 		info.permanent = true
-		info.cause = permanentErr.err
 	}
 
 	var afterErr *afterError
 	if errors.As(err, &afterErr) {
 		info.override = true
 		info.overrideDelay = afterErr.delay
-		info.cause = afterErr.err
 	}
 
-	var nestedPermanent *permanentError
-	if errors.As(info.cause, &nestedPermanent) {
-		info.permanent = true
-		info.cause = nestedPermanent.err
+	for {
+		switch root := info.cause.(type) {
+		case *permanentError:
+			info.cause = root.err
+		case *afterError:
+			info.cause = root.err
+		default:
+			return info
+		}
 	}
-
-	return info
 }
 
 func wait(ctx context.Context, delay time.Duration) error {
