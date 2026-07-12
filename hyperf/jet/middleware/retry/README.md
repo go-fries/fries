@@ -16,16 +16,21 @@ Use import aliases to distinguish the middleware from the base component:
 
 ```go
 import (
+	"time"
+
+	"github.com/go-fries/fries/hyperf/jet/v4"
 	baseretry "github.com/go-fries/fries/retry/v4"
 	jetretry "github.com/go-fries/fries/hyperf/jet/middleware/retry/v4"
 )
 
-client.Use(jetretry.New(
-	baseretry.WithMaxAttempts(3),
-	baseretry.WithBackoff(
-		baseretry.Exponential(100*time.Millisecond, time.Second),
-	),
-))
+func configureRetry(client *jet.Client) {
+	client.Use(jetretry.New(
+		baseretry.WithMaxAttempts(3),
+		baseretry.WithBackoff(
+			baseretry.Exponential(100*time.Millisecond, time.Second),
+		),
+	))
+}
 ```
 
 The default configuration uses three total attempts and exponential backoff
