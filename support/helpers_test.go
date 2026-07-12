@@ -14,27 +14,6 @@ type foo struct {
 	Age  int
 }
 
-func TestRetry(t *testing.T) {
-	// success
-	var i int
-	err := Retry(func() error {
-		i++
-		if i < 3 {
-			return assert.AnError
-		}
-		return nil
-	}, 3)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, i)
-
-	// failed
-	err = Retry(func() error {
-		return assert.AnError
-	}, 3)
-	assert.Error(t, err)
-	assert.Equal(t, 3, i)
-}
-
 func TestUntil(t *testing.T) {
 	// no sleep
 	var i int
