@@ -1,66 +1,105 @@
-# Retry - Hyperf jet middleware
+# Hyperf Jet Retry Middleware
 
-Retry middleware for Hyperf jet.
+This module adapts the base `retry` component to Hyperf Jet middleware. Retry
+execution, context cancellation, backoff, predicates, notifications, and final
+error behavior are provided by `github.com/go-fries/fries/retry/v4`.
 
-## Usage Example
+## Installation
+
+```bash
+go get github.com/go-fries/fries/hyperf/jet/middleware/retry/v4
+```
+
+## Basic usage
+
+Use import aliases to distinguish the middleware from the base component:
 
 ```go
-package main
-
 import (
-	"context"
-	"errors"
-	"log"
-	"time"
-
-	"github.com/go-fries/fries/hyperf/jet/v4"
-	"github.com/go-fries/fries/hyperf/jet/middleware/retry/v4"
+	baseretry "github.com/go-fries/fries/retry/v4"
+	jetretry "github.com/go-fries/fries/hyperf/jet/middleware/retry/v4"
 )
 
-var customErr = errors.New("custom error")
-
-func main() {
-	client, err := jet.NewClient(
-		jet.WithTransporter(nil),
-		jet.WithService("Example/User/MoneyService"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// base usage
-	client.Use(retry.New())
-
-	// with options
-	client.Use(retry.New(
-		// allow retry when custom error
-		retry.Allow(func(err error) bool {
-			return errors.Is(err, customErr)
-		}),
-
-		// or: allow retry with OrAllowFuncs
-		retry.Allow(retry.OrAllowFuncs(
-			retry.DefaultAllow,
-			func(err error) bool {
-				return errors.Is(err, customErr)
-			}),
-		// ... more allow
-		),
-
-		// retry 3 times
-		retry.Attempts(3),
-
-		// retry with backoff
-		retry.Backoff(retry.LinearBackoff(100*time.Second)),
-		// or: retry with NoBackoff
-		retry.Backoff(retry.NoBackoff()),
-		// or: retry with ExponentialBackoff
-		retry.Backoff(retry.ExponentialBackoff(100*time.Second)),
-		// or: retry with ConstantBackoff
-		retry.Backoff(retry.ConstantBackoff(100*time.Second)),
-	))
-
-	// call service
-	client.Invoke(context.Background(), "service", []any{"..."}, nil)
-}
+client.Use(jetretry.New(
+	baseretry.WithMaxAttempts(3),
+	baseretry.WithBackoff(
+		baseretry.Exponential(100*time.Millisecond, time.Second),
+	),
+))
 ```
+
+The default configuration uses three total attempts and exponential backoff
+starting at 100 milliseconds and capped at one second.
+
+## Retryable errors
+
+By default, the middleware retries:
+
+- errors returned by the Jet timeout middleware;
+- HTTP 408 Request Timeout;
+- HTTP 429 Too Many Requests; and
+- HTTP 5xx responses.
+
+Other HTTP 4xx and unrelated errors are returned immediately. Override the
+predicate with a base retry option:
+
+```go
+client.Use(jetretry.New(
+	baseretry.WithRetryIf(func(err error) bool {
+		return jetretry.DefaultRetryIf(err) ||
+			errors.Is(err, ErrTemporaryBusinessFailure)
+	}),
+))
+```
+
+Only retry operations that are idempotent or otherwise safe to execute more
+than once.
+
+## Observe retries
+
+Use the base component notification hook for logging or metrics:
+
+```go
+client.Use(jetretry.New(
+	baseretry.WithNotify(func(ctx context.Context, event baseretry.Event) {
+		logger.WarnContext(ctx, "Jet call will retry",
+			"attempt", event.Attempt,
+			"max_attempts", event.MaxAttempts,
+			"delay", event.Delay,
+			"error", event.Err,
+		)
+	}),
+))
+```
+
+## Middleware order and timeouts
+
+Place retry outside timeout when each attempt should receive an independent
+timeout:
+
+```go
+client.Use(
+	jetretry.New(),
+	timeout.New(),
+)
+```
+
+```text
+retry -> timeout -> handler
+```
+
+Placing timeout outside retry gives the complete retry sequence one shared
+timeout context:
+
+```go
+client.Use(
+	timeout.New(),
+	jetretry.New(),
+)
+```
+
+```text
+timeout -> retry -> handler
+```
+
+When the shared context expires, no further attempts are started.
