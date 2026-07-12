@@ -47,7 +47,7 @@ const flushScanCount = 1000
 
 func New(redis redis.UniversalClient, opts ...Option) *Store {
 	story := &Store{
-		codec: json.Codec,
+		codec: json.Codec{},
 		redis: redis,
 	}
 	for _, o := range opts {

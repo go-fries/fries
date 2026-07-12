@@ -28,9 +28,9 @@ func createRedisClient(t *testing.T) redis.UniversalClient {
 }
 
 func TestPositioner(t *testing.T) {
-	positioner := NewPositioner(createRedisClient(t), WithPrefix("canal"), WithCodec(json.Codec))
+	positioner := NewPositioner(createRedisClient(t), WithPrefix("canal"), WithCodec(json.Codec{}))
 	assert.Equal(t, "canal:"+name, positioner.prefix+name)
-	assert.Equal(t, json.Codec, positioner.codec)
+	assert.Equal(t, json.Codec{}, positioner.codec)
 
 	pos, err := positioner.Get(ctx)
 	require.NoError(t, err)
@@ -51,11 +51,11 @@ func TestPositioner(t *testing.T) {
 func TestBufferedPositioner(t *testing.T) {
 	positioner := NewBufferedPositioner(
 		createRedisClient(t),
-		WithPrefix("buffered:canal"), WithCodec(json.Codec),
+		WithPrefix("buffered:canal"), WithCodec(json.Codec{}),
 		WithFlushInterval(5*time.Second), WithBatchSize(100),
 	)
 	assert.Equal(t, "buffered:canal:"+name, positioner.prefix+name)
-	assert.Equal(t, json.Codec, positioner.codec)
+	assert.Equal(t, json.Codec{}, positioner.codec)
 	assert.Equal(t, 5*time.Second, positioner.flushInterval)
 	assert.Equal(t, 100, positioner.batchSize)
 

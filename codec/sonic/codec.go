@@ -5,14 +5,17 @@ import (
 	"github.com/go-fries/fries/codec/v4"
 )
 
-var Codec codec.Codec = &sonicCodec{}
+// Codec encodes and decodes JSON values using Sonic. Its zero value is ready to use.
+type Codec struct{}
 
-type sonicCodec struct{}
+var _ codec.Codec = Codec{}
 
-func (j *sonicCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as JSON.
+func (Codec) Marshal(data any) ([]byte, error) {
 	return sonic.Marshal(data)
 }
 
-func (j *sonicCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes JSON data into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	return sonic.Unmarshal(src, dest)
 }

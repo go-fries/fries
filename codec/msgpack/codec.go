@@ -5,14 +5,17 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-var Codec codec.Codec = &msgPackCodec{}
+// Codec encodes and decodes MessagePack values. Its zero value is ready to use.
+type Codec struct{}
 
-type msgPackCodec struct{}
+var _ codec.Codec = Codec{}
 
-func (j *msgPackCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as MessagePack.
+func (Codec) Marshal(data any) ([]byte, error) {
 	return msgpack.Marshal(data)
 }
 
-func (j *msgPackCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes MessagePack data into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	return msgpack.Unmarshal(src, dest)
 }

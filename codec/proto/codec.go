@@ -1,33 +1,34 @@
 package proto
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/go-fries/fries/codec/v4"
 	"google.golang.org/protobuf/proto"
 )
 
-var Codec codec.Codec = &protoCodec{}
+// ErrInvalidMessage is returned when a value does not implement proto.Message.
+var ErrInvalidMessage = errors.New("codec/proto: value must implement proto.Message")
 
-var ErrInvalidProtoMessage = fmt.Errorf("data must implement proto.Message interface")
+// Codec encodes and decodes Protocol Buffers messages. Its zero value is ready to use.
+type Codec struct{}
 
-// protoCodec is a Protocol Buffers codec.
-type protoCodec struct{}
+var _ codec.Codec = Codec{}
 
-// Marshal converts the given data into a byte slice using Protocol Buffers.
-func (c *protoCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as a Protocol Buffers message.
+func (Codec) Marshal(data any) ([]byte, error) {
 	msg, ok := data.(proto.Message)
 	if !ok {
-		return nil, ErrInvalidProtoMessage
+		return nil, ErrInvalidMessage
 	}
 	return proto.Marshal(msg)
 }
 
-// Unmarshal converts the given byte slice into a data structure using Protocol Buffers.
-func (c *protoCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes a Protocol Buffers message into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	msg, ok := dest.(proto.Message)
 	if !ok {
-		return ErrInvalidProtoMessage
+		return ErrInvalidMessage
 	}
 	return proto.Unmarshal(src, msg)
 }

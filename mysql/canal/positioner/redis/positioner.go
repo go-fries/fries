@@ -32,7 +32,7 @@ type Option interface {
 func NewPositioner(client redis.UniversalClient, opts ...Option) *Positioner {
 	positioner := &Positioner{
 		client: client,
-		codec:  json.Codec,
+		codec:  json.Codec{},
 	}
 
 	for _, opt := range opts {

@@ -1,67 +1,62 @@
-package json
+package json_test
 
 import (
-	"encoding/json"
 	"testing"
 
+	"github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/codec/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestJSON(t *testing.T) {
-	j1, j2 := Codec, Codec
-
-	assert.Same(t, j1, j2)
-
-	data := map[string]any{
-		"foo": "bar",
-	}
-
-	// marshal
-	bytes1, err := json.Marshal(data)
-	assert.NoError(t, err)
-
-	bytes2, err := j1.Marshal(data)
-	assert.NoError(t, err)
-
-	assert.Equal(t, bytes1, bytes2)
-
-	// unmarshal
-	dest1, dest2 := make(map[string]any), make(map[string]any)
-	assert.NoError(t, json.Unmarshal(bytes1, &dest1))
-	assert.NoError(t, j1.Unmarshal(bytes1, &dest2))
-
-	assert.Equal(t, dest1, dest2)
+type message struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
 }
 
-func BenchmarkJSONCodec_Marshal(b *testing.B) {
-	data := map[string]any{
-		"foo": "bar",
-	}
+func TestCodec(t *testing.T) {
+	c := json.Codec{}
+	assert.Implements(t, (*codec.Codec)(nil), c)
 
-	b.ReportAllocs()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, err := Codec.Marshal(data)
-			assert.NoError(b, err)
-		}
-	})
+	want := message{Name: "test", Value: 123}
+	data, err := c.Marshal(want)
+	require.NoError(t, err)
+
+	var got message
+	require.NoError(t, c.Unmarshal(data, &got))
+	assert.Equal(t, want, got)
 }
 
-func BenchmarkJSONCodec_Unmarshal(b *testing.B) {
-	data := map[string]any{
-		"foo": "bar",
-	}
+func TestCodecErrors(t *testing.T) {
+	c := json.Codec{}
 
-	bytes, err := Codec.Marshal(data)
-	assert.NoError(b, err)
+	_, err := c.Marshal(make(chan int))
+	assert.Error(t, err)
+	assert.Error(t, c.Unmarshal([]byte("{"), &message{}))
+}
+
+func BenchmarkCodecMarshal(b *testing.B) {
+	c := json.Codec{}
+	value := message{Name: "test", Value: 123}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var dest map[string]any
-			assert.NoError(b, Codec.Unmarshal(bytes, &dest))
+	for b.Loop() {
+		if _, err := c.Marshal(value); err != nil {
+			b.Fatal(err)
 		}
-	})
+	}
+}
+
+func BenchmarkCodecUnmarshal(b *testing.B) {
+	c := json.Codec{}
+	data, err := c.Marshal(message{Name: "test", Value: 123})
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for b.Loop() {
+		var value message
+		if err := c.Unmarshal(data, &value); err != nil {
+			b.Fatal(err)
+		}
+	}
 }

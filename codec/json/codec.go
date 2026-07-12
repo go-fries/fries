@@ -6,14 +6,17 @@ import (
 	"github.com/go-fries/fries/codec/v4"
 )
 
-var Codec codec.Codec = &jsonCodec{}
+// Codec encodes and decodes JSON values. Its zero value is ready to use.
+type Codec struct{}
 
-type jsonCodec struct{}
+var _ codec.Codec = Codec{}
 
-func (j *jsonCodec) Marshal(data any) ([]byte, error) {
+// Marshal encodes data as JSON.
+func (Codec) Marshal(data any) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (j *jsonCodec) Unmarshal(src []byte, dest any) error {
+// Unmarshal decodes JSON data into dest.
+func (Codec) Unmarshal(src []byte, dest any) error {
 	return json.Unmarshal(src, dest)
 }

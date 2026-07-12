@@ -1,58 +1,62 @@
-package msgpack
+package msgpack_test
 
 import (
 	"testing"
 
+	"github.com/go-fries/fries/codec/msgpack/v4"
+	"github.com/go-fries/fries/codec/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestJSON(t *testing.T) {
-	c1, c2 := Codec, Codec
-
-	assert.Same(t, c1, c2)
-
-	data := map[string]any{
-		"foo": "bar",
-	}
-
-	// marshal
-	bytes, err := c1.Marshal(data)
-	assert.NoError(t, err)
-
-	// unmarshal
-	dest := make(map[string]any)
-	assert.NoError(t, c1.Unmarshal(bytes, &dest))
+type message struct {
+	Name  string `msgpack:"name"`
+	Value int    `msgpack:"value"`
 }
 
-func BenchmarkMsgPackCodec_Marshal(b *testing.B) {
-	data := map[string]any{
-		"foo": "bar",
-	}
+func TestCodec(t *testing.T) {
+	c := msgpack.Codec{}
+	assert.Implements(t, (*codec.Codec)(nil), c)
 
-	b.ReportAllocs()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, err := Codec.Marshal(data)
-			assert.NoError(b, err)
-		}
-	})
+	want := message{Name: "test", Value: 123}
+	data, err := c.Marshal(want)
+	require.NoError(t, err)
+
+	var got message
+	require.NoError(t, c.Unmarshal(data, &got))
+	assert.Equal(t, want, got)
 }
 
-func BenchmarkMsgPackCodec_Unmarshal(b *testing.B) {
-	data := map[string]any{
-		"foo": "bar",
-	}
+func TestCodecErrors(t *testing.T) {
+	c := msgpack.Codec{}
 
-	bytes, err := Codec.Marshal(data)
-	assert.NoError(b, err)
+	_, err := c.Marshal(make(chan int))
+	assert.Error(t, err)
+	assert.Error(t, c.Unmarshal([]byte{0xc1}, &message{}))
+}
+
+func BenchmarkCodecMarshal(b *testing.B) {
+	c := msgpack.Codec{}
+	value := message{Name: "test", Value: 123}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var dest map[string]any
-			assert.NoError(b, Codec.Unmarshal(bytes, &dest))
+	for b.Loop() {
+		if _, err := c.Marshal(value); err != nil {
+			b.Fatal(err)
 		}
-	})
+	}
+}
+
+func BenchmarkCodecUnmarshal(b *testing.B) {
+	c := msgpack.Codec{}
+	data, err := c.Marshal(message{Name: "test", Value: 123})
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for b.Loop() {
+		var value message
+		if err := c.Unmarshal(data, &value); err != nil {
+			b.Fatal(err)
+		}
+	}
 }

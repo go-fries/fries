@@ -39,7 +39,7 @@ func TestRedis_Prefix(t *testing.T) {
 }
 
 func TestRedis_Base(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis"), Codec(json.Codec))
+	store := New(createRedis(t), Prefix("cache:redis"), Codec(json.Codec{}))
 
 	ok1, err := store.Put(ctx, "test", "test", time.Second)
 	assert.Nil(t, err)
