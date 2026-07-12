@@ -10,30 +10,6 @@ import (
 	"github.com/go-fries/fries/errors/v4"
 )
 
-// Retry retries the given function until it returns nil or the attempts are exhausted.
-// `sleeps` is the time to sleep between each attempt.
-// If `sleeps` is not provided, it will not sleep.
-//
-//	Retry(func() error { return nil }, 3) => nil
-//	Retry(func() error { return nil }, 3, time.Second) => nil
-//	Retry(func() error { return fmt.Errorf("error") }, 3) => error
-func Retry(fn func() error, attempts int, sleeps ...time.Duration) (err error) {
-	var sleep time.Duration
-	if len(sleeps) > 0 {
-		sleep = sleeps[0]
-	}
-
-	for range attempts {
-		if err = fn(); err == nil {
-			return nil
-		}
-		if sleep > 0 {
-			time.Sleep(sleep)
-		}
-	}
-	return err
-}
-
 // Until retries the given function until it returns true.
 // `sleeps` is the time to sleep between each attempt.
 // If `sleeps` is not provided, it will not sleep.
