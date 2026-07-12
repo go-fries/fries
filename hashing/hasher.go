@@ -7,18 +7,24 @@ import (
 	"os"
 )
 
+// NewHash creates a new hash.Hash instance.
+//
+// Each call must return a new, non-nil hash.Hash. A NewHash used concurrently
+// must itself be safe for concurrent use.
+type NewHash func() hash.Hash
+
 // Hasher computes independent digests using a new hash.Hash for every
 // operation. A Hasher is safe for concurrent use when its constructor is safe
 // for concurrent use.
 type Hasher struct {
-	newHash func() hash.Hash
+	newHash NewHash
 }
 
 // New creates a reusable Hasher backed by newHash.
 //
 // New panics when newHash is nil. The constructor must return a new, non-nil
 // hash.Hash each time it is called.
-func New(newHash func() hash.Hash) *Hasher {
+func New(newHash NewHash) *Hasher {
 	if newHash == nil {
 		panic("hashing: nil hash constructor")
 	}
