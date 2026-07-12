@@ -52,6 +52,14 @@ err := retry.Do(ctx, operation)
 
 The operation itself must observe the supplied context while it is running.
 
+`Do` and `DoValue` panic when the operation is nil. As with other Go APIs that
+accept `context.Context`, callers must not pass a nil context. Attempt counts
+below one, nil backoff, and nil retry predicates leave the current configuration
+unchanged. Backoff constructors and `After` panic on negative durations so
+invalid static configuration fails immediately. A negative duration returned
+dynamically by a custom backoff is treated as zero. The package does not recover
+panics raised by an operation or notification callback.
+
 ## Return a value
 
 Use `DoValue` for typed results:

@@ -268,42 +268,47 @@ func TestBackoffIsNotCalledAfterFinalAttempt(t *testing.T) {
 	assert.Zero(t, calls)
 }
 
-func TestDoPanicsOnInvalidInput(t *testing.T) {
+func TestDoPanicsOnNilOperation(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		fn   func()
-	}{
-		{
-			name: "nil context",
-			fn: func() {
-				_ = Do(nil, func(context.Context) error { return nil }) //nolint:staticcheck // Verify the documented nil-context panic.
-			},
-		},
-		{name: "nil operation", fn: func() { _ = Do(t.Context(), nil) }},
-		{name: "nil value operation", fn: func() { _, _ = DoValue[string](t.Context(), nil) }},
-		{name: "zero attempts", fn: func() { WithMaxAttempts(0) }},
-		{name: "nil backoff", fn: func() { WithBackoff(nil) }},
-		{name: "nil predicate", fn: func() { WithRetryIf(nil) }},
-		{name: "negative retry after", fn: func() { _ = After(-1, assert.AnError) }},
-		{
-			name: "negative custom backoff",
-			fn: func() {
-				_ = Do(
-					t.Context(), func(context.Context) error { return assert.AnError },
-					WithBackoff(func(int) time.Duration { return -1 }),
-				)
-			},
-		},
-	}
+	assert.PanicsWithValue(t, "retry: nil operation", func() {
+		_ = Do(t.Context(), nil)
+	})
+	assert.PanicsWithValue(t, "retry: nil operation", func() {
+		_, _ = DoValue[string](t.Context(), nil)
+	})
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			require.Panics(t, tt.fn)
-		})
-	}
+func TestConfigurationNormalization(t *testing.T) {
+	t.Parallel()
+
+	var attempts int
+	err := Do(t.Context(), func(context.Context) error {
+		attempts++
+		return assert.AnError
+	}, WithMaxAttempts(0), WithBackoff(NoBackoff()))
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Equal(t, defaultMaxAttempts, attempts)
+
+	c := newConfig(WithBackoff(nil), WithRetryIf(nil))
+	require.NotNil(t, c.backoff)
+	require.NotNil(t, c.retryIf)
+	assert.Equal(t, 5, newConfig(WithMaxAttempts(5), WithMaxAttempts(0)).maxAttempts)
+
+	attempts = 0
+	err = Do(t.Context(), func(context.Context) error {
+		attempts++
+		if attempts == 1 {
+			return assert.AnError
+		}
+		return nil
+	}, WithBackoff(func(int) time.Duration { return -1 }))
+	require.NoError(t, err)
+	assert.Equal(t, 2, attempts)
+
+	assert.Panics(t, func() {
+		_ = After(-1, assert.AnError)
+	})
 }
 
 func TestSharedBackoffAcrossConcurrentRetries(t *testing.T) {

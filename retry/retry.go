@@ -15,7 +15,7 @@ type ValueOperation[T any] func(context.Context) (T, error)
 // Do executes operation until it succeeds, cannot be retried, exhausts the
 // configured attempts, or ctx is canceled.
 //
-// Do panics if ctx or operation is nil.
+// ctx must not be nil. Do panics if operation is nil.
 func Do(ctx context.Context, operation Operation, options ...Option) error {
 	if operation == nil {
 		panic("retry: nil operation")
@@ -30,15 +30,12 @@ func Do(ctx context.Context, operation Operation, options ...Option) error {
 // the configured attempts, or ctx is canceled. It returns the value produced
 // by the final operation execution, including when that execution fails.
 //
-// DoValue panics if ctx or operation is nil.
+// ctx must not be nil. DoValue panics if operation is nil.
 func DoValue[T any](
 	ctx context.Context,
 	operation ValueOperation[T],
 	options ...Option,
 ) (T, error) {
-	if ctx == nil {
-		panic("retry: nil context")
-	}
 	if operation == nil {
 		panic("retry: nil operation")
 	}
@@ -46,7 +43,7 @@ func DoValue[T any](
 	c := newConfig(options...)
 	var result T
 
-	for attempt := 1; attempt <= c.maxAttempts; attempt++ {
+	for attempt := 1; ; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return result, err
 		}
@@ -68,10 +65,7 @@ func DoValue[T any](
 			return result, info.cause
 		}
 
-		delay := c.backoff(attempt)
-		if delay < 0 {
-			panic("retry: backoff returned a negative delay")
-		}
+		delay := max(c.backoff(attempt), 0)
 		if info.override {
 			delay = info.overrideDelay
 		}
@@ -87,8 +81,6 @@ func DoValue[T any](
 			return result, err
 		}
 	}
-
-	panic("retry: unreachable")
 }
 
 // Permanent marks err as non-retryable. It returns nil when err is nil.
