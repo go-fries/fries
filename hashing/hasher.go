@@ -36,12 +36,15 @@ func (h *Hasher) Sum(value []byte) Digest {
 	hashValue := h.create()
 	_, _ = hashValue.Write(value)
 
-	return NewDigest(hashValue.Sum(nil))
+	return Digest{sum: hashValue.Sum(nil)}
 }
 
 // SumString returns the digest of value.
 func (h *Hasher) SumString(value string) Digest {
-	return h.Sum([]byte(value))
+	hashValue := h.create()
+	_, _ = io.WriteString(hashValue, value)
+
+	return Digest{sum: hashValue.Sum(nil)}
 }
 
 // SumReader reads reader until EOF and returns its digest. It returns
@@ -56,7 +59,7 @@ func (h *Hasher) SumReader(reader io.Reader) (Digest, error) {
 		return Digest{}, err
 	}
 
-	return NewDigest(hashValue.Sum(nil)), nil
+	return Digest{sum: hashValue.Sum(nil)}, nil
 }
 
 // SumFile opens the file at path, reads it until EOF, and returns its digest.
