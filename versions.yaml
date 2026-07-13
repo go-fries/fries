@@ -119,6 +119,9 @@ module-sets:
       # Otel
       - github.com/go-fries/fries/otel/otlp/v4
 
+      # Poll
+      - github.com/go-fries/fries/poll/v4
+
       # Recovery
       - github.com/go-fries/fries/recovery/v4
 
