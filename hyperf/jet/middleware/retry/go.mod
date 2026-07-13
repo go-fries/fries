@@ -5,11 +5,13 @@ go 1.25.0
 replace (
 	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4 => ../timeout
 	github.com/go-fries/fries/hyperf/jet/v4 => ../../
+	github.com/go-fries/fries/retry/v4 => ../../../../retry
 )
 
 require (
 	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4 v4.0.0-beta.1
 	github.com/go-fries/fries/hyperf/jet/v4 v4.0.0-beta.1
+	github.com/go-fries/fries/retry/v4 v4.0.0-beta.1
 	github.com/stretchr/testify v1.11.1
 )
 
