@@ -5,6 +5,7 @@ go 1.25.0
 replace (
 	github.com/go-fries/fries/codec/v4 => ../../../codec
 	github.com/go-fries/fries/queue/v4 => ../../
+	github.com/go-fries/fries/retry/v4 => ../../../retry
 )
 
 require (
@@ -16,6 +17,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
+	github.com/go-fries/fries/retry/v4 v4.0.0-beta.1 // indirect
 	github.com/go-playground/form/v4 v4.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

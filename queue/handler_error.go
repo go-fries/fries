@@ -21,8 +21,9 @@ type retryAfterError struct {
 
 // RetryAfter tells a Worker to retry the task after delay.
 //
-// The retry still respects the Worker's RetryPolicy retry budget. When the
-// retry policy says no retry is available, the task is dead-lettered.
+// The retry still respects the Worker's maximum attempt limit, but bypasses its
+// retry predicate and configured backoff. When no retry is available, the task
+// is dead-lettered.
 func RetryAfter(delay time.Duration) error {
 	if delay < 0 {
 		delay = 0

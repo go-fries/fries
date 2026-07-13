@@ -26,6 +26,15 @@
   should live under the component in `queue/adapter/`, such as
   `queue/adapter/memory/` for local in-memory queues and
   `queue/adapter/redis/` for Redis Streams.
+- Queue workers own message retry budgets, Task/Error-aware retry predicates,
+  and Ack/Retry/DeadLetter settlement. Retry delays reuse `retry.Backoff`;
+  `retry.Do` must not wrap queue handlers because retries need separate durable
+  delivery attempts.
+- `queue.RetryAfter` is an explicit delay override that bypasses the ordinary
+  retry predicate but still respects the worker's maximum attempt limit.
+- Queue submodules that replace the local `queue/v4` module must also replace
+  its local `retry/v4` dependency because Go module replace directives are not
+  inherited transitively.
 - Queue implementations stay byte-oriented through `Task.Payload []byte`. Typed payload
   helpers such as `TaskFor[T]`, `EnqueueFor`, and `HandleFor` live in the core
   module as a convenience layer and should not change queue contracts.

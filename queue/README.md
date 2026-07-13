@@ -135,8 +135,36 @@ func syncUserHandler(rateLimited, invalidPayload, alreadyHandled bool) queue.Han
 }
 ```
 
-For production workloads, prefer bounded retry policies. `JitterRetry` can wrap
-another policy to spread retry bursts.
+For production workloads, configure a bounded attempt limit and reuse the base
+retry component for backoff:
+
+```go
+package main
+
+import (
+	"time"
+
+	"github.com/go-fries/fries/queue/v4"
+	"github.com/go-fries/fries/retry/v4"
+)
+
+func newWorker(q queue.Queue) *queue.Worker {
+	return queue.NewWorker(
+		q,
+		queue.WithMaxAttempts(5),
+		queue.WithBackoff(
+			retry.Jitter(
+				retry.Exponential(time.Second, time.Minute),
+				250*time.Millisecond,
+			),
+		),
+	)
+}
+```
+
+`WithMaxAttempts` includes the initial delivery. `WithRetryIf` can additionally
+filter ordinary handler errors using the task and error. An explicit
+`RetryAfter` bypasses that predicate, but still respects the attempt limit.
 
 ## Shutdown
 

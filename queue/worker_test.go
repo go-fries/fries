@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-fries/fries/retry/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,7 +87,9 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 		WithConsumerName(""),
 		WithConcurrency(0),
 		WithHandlerTimeout(0),
-		WithRetryPolicy(nil),
+		WithMaxAttempts(0),
+		WithBackoff(nil),
+		WithRetryIf(nil),
 		WithMiddleware(),
 		Handle("", HandlerFunc(func(context.Context, *Task) error { return nil })),
 		Handle("ignored", nil),
@@ -97,7 +100,9 @@ func TestWorker_ConfigDefaults(t *testing.T) {
 	assert.Equal(t, 1, config.concurrency)
 	assert.Zero(t, config.handlerTimeout)
 	assert.Equal(t, defaultSettlementTimeout, config.settlementTimeout)
-	assert.NotNil(t, config.retryPolicy)
+	assert.Equal(t, defaultRetryMaxAttempts, config.maxAttempts)
+	assert.Equal(t, defaultRetryDelay, config.backoff(1))
+	assert.True(t, config.retryIf(&Task{}, errors.New("failed")))
 	assert.Empty(t, config.middleware)
 	assert.Empty(t, config.handlers)
 }
@@ -107,7 +112,8 @@ func TestWorker_ConfigOptions(t *testing.T) {
 
 	middleware := Middleware(func(next Handler) Handler { return next })
 	handler := HandlerFunc(func(context.Context, *Task) error { return nil })
-	retryPolicy := NoRetry()
+	backoff := retry.Fixed(3 * time.Second)
+	retryIf := func(*Task, error) bool { return false }
 
 	config := newWorkerConfig(
 		WithQueue("critical"),
@@ -115,7 +121,9 @@ func TestWorker_ConfigOptions(t *testing.T) {
 		WithConcurrency(4),
 		WithHandlerTimeout(time.Second),
 		WithSettlementTimeout(2*time.Second),
-		WithRetryPolicy(retryPolicy),
+		WithMaxAttempts(5),
+		WithBackoff(backoff),
+		WithRetryIf(retryIf),
 		WithMiddleware(middleware),
 		Handle("send_email", handler),
 	)
@@ -125,7 +133,9 @@ func TestWorker_ConfigOptions(t *testing.T) {
 	assert.Equal(t, 4, config.concurrency)
 	assert.Equal(t, time.Second, config.handlerTimeout)
 	assert.Equal(t, 2*time.Second, config.settlementTimeout)
-	assert.Equal(t, retryPolicy, config.retryPolicy)
+	assert.Equal(t, 5, config.maxAttempts)
+	assert.Equal(t, 3*time.Second, config.backoff(1))
+	assert.False(t, config.retryIf(&Task{}, errors.New("failed")))
 	assert.Len(t, config.middleware, 1)
 	assert.NotNil(t, config.handlers["send_email"])
 }
@@ -181,7 +191,8 @@ func TestWorker_RetriesThenDeadLetters(t *testing.T) {
 			seen <- task.Attempt
 			return errors.New("temporary failure")
 		})),
-		WithRetryPolicy(FixedRetry(2, 0)),
+		WithMaxAttempts(2),
+		WithBackoff(retry.NoBackoff()),
 	)
 
 	errs := make(chan error, 1)
@@ -341,7 +352,8 @@ func TestWorker_HandlerTimeoutRetriesWithSettlementContext(t *testing.T) {
 			return ctx.Err()
 		})),
 		WithHandlerTimeout(time.Millisecond),
-		WithRetryPolicy(FixedRetry(2, 0)),
+		WithMaxAttempts(2),
+		WithBackoff(retry.NoBackoff()),
 	)
 	delivery := &recordingDelivery{
 		task: &Task{Type: "slow", Attempt: 1},
@@ -369,7 +381,7 @@ func TestWorker_HandlerTimeoutDeadLettersWithSettlementContext(t *testing.T) {
 			return ctx.Err()
 		})),
 		WithHandlerTimeout(time.Millisecond),
-		WithRetryPolicy(NoRetry()),
+		WithMaxAttempts(1),
 	)
 	delivery := &recordingDelivery{
 		task: &Task{Type: "slow", Attempt: 1},
@@ -466,7 +478,8 @@ func TestWorker_RetryAfterOverridesRetryDelay(t *testing.T) {
 		Handle("rate_limited", HandlerFunc(func(context.Context, *Task) error {
 			return RetryAfter(5 * time.Second)
 		})),
-		WithRetryPolicy(FixedRetry(2, time.Second)),
+		WithMaxAttempts(2),
+		WithBackoff(retry.Fixed(time.Second)),
 	)
 	delivery := &recordingDelivery{
 		task: &Task{Type: "rate_limited", Attempt: 1},
@@ -482,7 +495,7 @@ func TestWorker_RetryAfterOverridesRetryDelay(t *testing.T) {
 	assert.Equal(t, 5*time.Second, <-retried)
 }
 
-func TestWorker_RetryAfterRespectsRetryPolicyBudget(t *testing.T) {
+func TestWorker_RetryAfterRespectsMaxAttempts(t *testing.T) {
 	t.Parallel()
 
 	deadLettered := make(chan string, 1)
@@ -491,7 +504,7 @@ func TestWorker_RetryAfterRespectsRetryPolicyBudget(t *testing.T) {
 		Handle("rate_limited", HandlerFunc(func(context.Context, *Task) error {
 			return RetryAfter(time.Second)
 		})),
-		WithRetryPolicy(FixedRetry(1, 0)),
+		WithMaxAttempts(1),
 	)
 	delivery := &recordingDelivery{
 		task: &Task{Type: "rate_limited", Attempt: 1},
