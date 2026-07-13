@@ -69,6 +69,7 @@ fixes:
   - github.com/go-fries/fries/hyperf/jet/middleware/retry/v4::hyperf/jet/middleware/retry/
   - github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4::hyperf/jet/middleware/timeout/
   - github.com/go-fries/fries/hyperf/jet/middleware/otel/v4::hyperf/jet/middleware/otel/
+  - github.com/go-fries/fries/log/slog/v4::log/slog/
   - github.com/go-fries/fries/log/slog/multi/v4::log/slog/multi/
   - github.com/go-fries/fries/log/slog/syslog/v4::log/slog/syslog/
   - github.com/go-fries/fries/kratos/middleware/cors/v4::kratos/middleware/cors/
