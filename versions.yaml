@@ -90,6 +90,7 @@ module-sets:
       - github.com/go-fries/fries/jsonrpc/v4
 
       # Log
+      - github.com/go-fries/fries/log/slog/v4
       - github.com/go-fries/fries/log/slog/multi/v4
       - github.com/go-fries/fries/log/slog/syslog/v4
 
