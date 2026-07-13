@@ -12,17 +12,17 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/cache/redis/v4 v4.0.0-beta.1
-	github.com/go-fries/fries/cache/v4 v4.0.0-beta.1
+	github.com/go-fries/fries/cache/redis/v4 v4.0.0-beta.2
+	github.com/go-fries/fries/cache/v4 v4.0.0-beta.2
 	github.com/redis/go-redis/v9 v9.21.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-fries/fries/codec/json/v4 v4.0.0-beta.1 // indirect
-	github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
-	github.com/go-fries/fries/locker/redis/v4 v4.0.0-beta.1 // indirect
-	github.com/go-fries/fries/locker/v4 v4.0.0-beta.1 // indirect
+	github.com/go-fries/fries/codec/json/v4 v4.0.0-beta.2 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0-beta.2 // indirect
+	github.com/go-fries/fries/locker/redis/v4 v4.0.0-beta.2 // indirect
+	github.com/go-fries/fries/locker/v4 v4.0.0-beta.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 )
