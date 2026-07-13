@@ -14,9 +14,12 @@
 // implementations increment the attempt before handler execution, so the first
 // handler invocation sees Attempt equal to 1.
 //
-// Handlers normally return an error to let the Worker's RetryPolicy decide the
-// next action. For explicit business decisions, handlers may return ErrDiscard,
-// RetryAfter, or DeadLetter.
+// Handlers normally return an error to let the Worker's maximum attempt limit,
+// retry predicate, and backoff decide the next action. For explicit business
+// decisions, handlers may return ErrDiscard, RetryAfter, or DeadLetter.
+// Workers configure the total delivery limit with [WithMaxAttempts], calculate
+// delays with a retry.Backoff passed to [WithBackoff], and may filter ordinary
+// handler errors with [WithRetryIf].
 //
 // Producers and workers can emit low-sensitivity Observer events for metrics,
 // tracing, and logging. Observer events omit task payload and metadata by

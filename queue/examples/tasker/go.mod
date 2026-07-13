@@ -6,6 +6,7 @@ replace (
 	github.com/go-fries/fries/codec/v4 => ../../../codec
 	github.com/go-fries/fries/queue/adapter/memory/v4 => ../../adapter/memory
 	github.com/go-fries/fries/queue/v4 => ../../
+	github.com/go-fries/fries/retry/v4 => ../../../retry
 )
 
 require (
@@ -13,4 +14,7 @@ require (
 	github.com/go-fries/fries/queue/v4 v4.0.0-beta.1
 )
 
-require github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
+require (
+	github.com/go-fries/fries/codec/v4 v4.0.0-beta.1 // indirect
+	github.com/go-fries/fries/retry/v4 v4.0.0-beta.1 // indirect
+)

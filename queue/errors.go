@@ -15,4 +15,6 @@ var (
 	ErrInvalidTaskType = errors.New("queue: task type is required")
 	// ErrHandlerNotFound is used when a worker receives a task with no registered handler.
 	ErrHandlerNotFound = errors.New("queue: handler not found")
+	// ErrRetryExhausted is used as the dead-letter reason when a task has no retries left.
+	ErrRetryExhausted = errors.New("queue: retry exhausted")
 )

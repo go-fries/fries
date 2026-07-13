@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-fries/fries/codec/v4"
+	"github.com/go-fries/fries/retry/v4"
 )
 
 const (
@@ -23,7 +24,9 @@ type workerConfig struct {
 	concurrency       int
 	handlerTimeout    time.Duration
 	settlementTimeout time.Duration
-	retryPolicy       RetryPolicy
+	maxAttempts       int
+	backoff           retry.Backoff
+	retryIf           func(*Task, error) bool
 	observer          Observer
 	middleware        []Middleware
 	handlers          map[string]Handler
@@ -76,11 +79,40 @@ func WithSettlementTimeout(timeout time.Duration) WorkerOption {
 	})
 }
 
-// WithRetryPolicy sets the retry policy used after handler errors.
-func WithRetryPolicy(policy RetryPolicy) WorkerOption {
+// WithMaxAttempts sets the total number of allowed task deliveries, including
+// the initial delivery.
+//
+// Values less than one leave the current attempt limit unchanged.
+func WithMaxAttempts(attempts int) WorkerOption {
 	return workerOptionFunc(func(c *workerConfig) {
-		if policy != nil {
-			c.retryPolicy = policy
+		if attempts >= 1 {
+			c.maxAttempts = attempts
+		}
+	})
+}
+
+// WithBackoff sets the delay strategy used before another task delivery.
+//
+// A nil backoff leaves the current strategy unchanged. The backoff must be safe
+// for concurrent use when the Worker has multiple processing loops.
+func WithBackoff(backoff retry.Backoff) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if backoff != nil {
+			c.backoff = backoff
+		}
+	})
+}
+
+// WithRetryIf sets the predicate that decides whether a handler error may be
+// retried. The predicate is not called after the final allowed attempt or for
+// explicit RetryAfter errors. A rejected error becomes the dead-letter reason.
+//
+// A nil predicate leaves the current predicate unchanged. The predicate must
+// be safe for concurrent use when the Worker has multiple processing loops.
+func WithRetryIf(predicate func(task *Task, err error) bool) WorkerOption {
+	return workerOptionFunc(func(c *workerConfig) {
+		if predicate != nil {
+			c.retryIf = predicate
 		}
 	})
 }
@@ -143,7 +175,9 @@ func newWorkerConfig(opts ...WorkerOption) *workerConfig {
 		queue:             DefaultQueue,
 		concurrency:       defaultConcurrency,
 		settlementTimeout: defaultSettlementTimeout,
-		retryPolicy:       FixedRetry(defaultRetryMaxAttempts, defaultRetryDelay),
+		maxAttempts:       defaultRetryMaxAttempts,
+		backoff:           retry.Fixed(defaultRetryDelay),
+		retryIf:           func(*Task, error) bool { return true },
 		handlers:          make(map[string]Handler),
 	}
 	for _, opt := range opts {
@@ -378,18 +412,17 @@ func (w *Worker) process(ctx context.Context, delivery Delivery) error {
 	if reason, ok := deadLetterReason(err); ok {
 		return w.deadLetter(ctx, delivery, reason)
 	}
-	if retryAfter, ok := retryAfterDelay(err); ok {
-		if _, ok := w.config.retryPolicy.NextDelay(task, err); !ok {
-			return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
-		}
-		return w.retry(ctx, delivery, retryAfter)
-	}
-
-	delay, ok := w.config.retryPolicy.NextDelay(task, err)
-	if !ok {
+	if task.Attempt >= w.config.maxAttempts {
 		return w.deadLetter(ctx, delivery, fmt.Sprintf("%s: %v", ErrRetryExhausted, err))
 	}
+	if retryAfter, ok := retryAfterDelay(err); ok {
+		return w.retry(ctx, delivery, retryAfter)
+	}
+	if !w.config.retryIf(task, err) {
+		return w.deadLetter(ctx, delivery, err.Error())
+	}
 
+	delay := max(w.config.backoff(task.Attempt), 0)
 	return w.retry(ctx, delivery, delay)
 }
 
