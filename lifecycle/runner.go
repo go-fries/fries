@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"sync/atomic"
+	"time"
 )
 
 // ErrAlreadyRun is returned when a [Runner] is run more than once.
@@ -17,13 +18,18 @@ type Handler func(context.Context) error
 // Runner coordinates provider startup, application execution, and provider
 // shutdown. A Runner may be run only once.
 type Runner struct {
-	config config
-	ran    atomic.Bool
+	providers       []Provider
+	shutdownTimeout time.Duration
+	ran             atomic.Bool
 }
 
 // New creates a [Runner] configured by options.
 func New(options ...Option) *Runner {
-	return &Runner{config: newConfig(options...)}
+	c := newConfig(options...)
+	return &Runner{
+		providers:       c.providers,
+		shutdownTimeout: c.shutdownTimeout,
+	}
 }
 
 // Run bootstraps providers, executes handler, and shuts down every provider
@@ -63,8 +69,8 @@ func (r *Runner) Run(ctx context.Context, handler Handler) (err error) {
 }
 
 func (r *Runner) bootstrap(ctx context.Context) (context.Context, []Provider, error) {
-	started := make([]Provider, 0, len(r.config.providers))
-	for _, provider := range r.config.providers {
+	started := make([]Provider, 0, len(r.providers))
+	for _, provider := range r.providers {
 		next, err := provider.Bootstrap(ctx)
 		if err != nil {
 			return ctx, started, providerError("bootstrap", provider, err)
@@ -81,7 +87,7 @@ func (r *Runner) bootstrap(ctx context.Context) (context.Context, []Provider, er
 func (r *Runner) shutdown(ctx context.Context, providers []Provider) error {
 	ctx, cancel := context.WithTimeout(
 		context.WithoutCancel(ctx),
-		r.config.shutdownTimeout,
+		r.shutdownTimeout,
 	)
 	defer cancel()
 
