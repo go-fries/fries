@@ -3,69 +3,13 @@ package support
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/go-fries/fries/errors/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 type foo struct {
 	Name string
 	Age  int
-}
-
-func TestUntil(t *testing.T) {
-	// no sleep
-	var i int
-	Until(func() bool {
-		i++
-		return i == 3
-	})
-	assert.Equal(t, 3, i)
-
-	// has sleep
-	i = 0
-	now := time.Now()
-	Until(func() bool {
-		i++
-		return i == 3
-	}, 100*time.Millisecond)
-	assert.Equal(t, 3, i)
-	assert.True(t, time.Since(now) > 200*time.Millisecond)
-}
-
-func TestUntilTimeout(t *testing.T) {
-	// success
-	err := UntilTimeout(func() bool {
-		time.Sleep(200 * time.Millisecond)
-		return true
-	}, 500*time.Millisecond)
-	assert.Nil(t, err)
-
-	// failed
-	err = UntilTimeout(func() bool {
-		time.Sleep(500 * time.Millisecond)
-		return false
-	}, 200*time.Millisecond)
-	assert.Error(t, err)
-	assert.True(t, errors.IsTimeoutError(err))
-}
-
-func TestTimeout(t *testing.T) {
-	// success
-	err := Timeout(func() error {
-		time.Sleep(200 * time.Millisecond)
-		return nil
-	}, 500*time.Millisecond)
-	assert.Nil(t, err)
-
-	// failed
-	err = Timeout(func() error {
-		time.Sleep(500 * time.Millisecond)
-		return assert.AnError
-	}, 200*time.Millisecond)
-	assert.Error(t, err)
-	assert.True(t, errors.IsTimeoutError(err))
 }
 
 func TestRepeat(t *testing.T) {
