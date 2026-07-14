@@ -12,7 +12,7 @@
 
 - The repository contains many independent Go modules, each with its own
   `go.mod`.
-- Common component modules include `foundation/`, `event/`, `cache/`, `codec/`,
+- Common component modules include `lifecycle/`, `event/`, `cache/`, `codec/`,
   `env/`, `http/`, `redis/`, `mysql/`, `otel/`, `gin/`, `chi/`, and `locker/`.
 - Protobuf contracts live in `contract/`, with root Buf configuration in
   `buf.yaml` and `buf.gen.yaml`.
@@ -46,6 +46,14 @@
   panics into handler errors for retry or dead-letter handling.
 - Queue adapter packages live under `queue/adapter/`; for example,
   `queue/adapter/redis/` adapts Redis Streams to the `queue.Queue` interface.
+- The `lifecycle/` module owns application startup, handler execution,
+  rollback, and graceful shutdown. Providers bootstrap in registration order
+  and shut down in reverse order, passing a derived context between successful
+  lifecycle steps.
+- `lifecycle.Runner` is one-shot. Startup failure rolls back only providers
+  that bootstrapped successfully; shutdown attempts every started provider and
+  joins lifecycle errors. Shutdown contexts preserve runtime context values but
+  detach from runtime cancellation before applying the configured timeout.
 
 ## Public Module Conventions
 

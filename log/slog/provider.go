@@ -22,7 +22,7 @@ func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-// Terminate leaves the process-wide default slog logger unchanged.
-func (p *Provider) Terminate(ctx context.Context) (context.Context, error) {
+// Shutdown leaves the process-wide default slog logger unchanged.
+func (p *Provider) Shutdown(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }

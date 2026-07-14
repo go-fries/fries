@@ -33,7 +33,7 @@ func TestProvider(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "Asia/Shanghai", l1.String())
 
-	ctx2, err := p.Terminate(ctx)
+	ctx2, err := p.Shutdown(ctx)
 	assert.NoError(t, err)
 	l2, ok := FromContext(ctx2)
 	assert.True(t, ok)

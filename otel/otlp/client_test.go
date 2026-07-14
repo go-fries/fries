@@ -333,16 +333,16 @@ func TestProvider(t *testing.T) {
 		assert.True(t, client.configured)
 	})
 
-	t.Run("terminate requires client", func(t *testing.T) {
+	t.Run("shutdown requires client", func(t *testing.T) {
 		provider := NewProvider(nil)
 
-		ctx, err := provider.Terminate(t.Context())
+		ctx, err := provider.Shutdown(t.Context())
 
 		require.ErrorIs(t, err, ErrClientRequired)
 		assert.Equal(t, t.Context(), ctx)
 	})
 
-	t.Run("terminate shuts down client", func(t *testing.T) {
+	t.Run("shutdown shuts down client", func(t *testing.T) {
 		restoreGlobals := saveGlobalProviders(t)
 		defer restoreGlobals()
 
@@ -362,7 +362,7 @@ func TestProvider(t *testing.T) {
 		require.NoError(t, client.Configure(t.Context()))
 
 		provider := NewProvider(client)
-		ctx, err := provider.Terminate(t.Context())
+		ctx, err := provider.Shutdown(t.Context())
 		require.NoError(t, err)
 		assert.Equal(t, t.Context(), ctx)
 		assert.True(t, client.shutdown)

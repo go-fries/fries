@@ -19,26 +19,24 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/go-fries/fries/foundation/v4"
+	"github.com/go-fries/fries/lifecycle/v4"
 	slogprovider "github.com/go-fries/fries/log/slog/v4"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	providers := foundation.NewChain(slogprovider.NewProvider(logger))
+	runner := lifecycle.New(
+		lifecycle.WithProviders(slogprovider.NewProvider(logger)),
+	)
 
-	ctx, err := providers.Bootstrap(context.Background())
-	if err != nil {
-		panic(err)
-	}
-
-	slog.InfoContext(ctx, "service started")
-
-	if _, err := providers.Terminate(ctx); err != nil {
+	if err := runner.Run(context.Background(), func(ctx context.Context) error {
+		slog.InfoContext(ctx, "service started")
+		return nil
+	}); err != nil {
 		panic(err)
 	}
 }
 ```
 
-`Bootstrap` replaces the process-wide default logger. `Terminate` does not
+`Bootstrap` replaces the process-wide default logger. `Shutdown` does not
 restore the previous logger.

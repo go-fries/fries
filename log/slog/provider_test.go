@@ -23,7 +23,7 @@ func TestProvider(t *testing.T) {
 	assert.Equal(t, ctx, bootstrapped)
 	assert.Same(t, logger, slog.Default())
 
-	terminated, err := provider.Terminate(bootstrapped)
+	terminated, err := provider.Shutdown(bootstrapped)
 	assert.NoError(t, err)
 	assert.Equal(t, bootstrapped, terminated)
 	assert.Same(t, logger, slog.Default())

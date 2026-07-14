@@ -21,7 +21,7 @@ func (p *Provider[T]) Bootstrap(ctx context.Context) (context.Context, error) {
 	return NewContext(ctx, p.config), nil
 }
 
-// Terminate is a placeholder function that simulates the termination process of a context.
-func (p *Provider[T]) Terminate(ctx context.Context) (context.Context, error) {
+// Shutdown returns ctx unchanged.
+func (p *Provider[T]) Shutdown(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }

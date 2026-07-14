@@ -54,8 +54,8 @@ module-sets:
       - github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4
       - github.com/go-fries/fries/eino/components/embedding/cached/cacher/gorm/v4
 
-      # Foundation
-      - github.com/go-fries/fries/foundation/v4
+      # Lifecycle
+      - github.com/go-fries/fries/lifecycle/v4
 
       # Filesystem
       - github.com/go-fries/fries/filesystem/v4

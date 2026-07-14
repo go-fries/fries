@@ -17,7 +17,7 @@ func TestProvider(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, Debug, e1)
 
-	ctx2, err := p.Terminate(ctx)
+	ctx2, err := p.Shutdown(ctx)
 	assert.NoError(t, err)
 
 	e2, ok := FromContext(ctx2)
