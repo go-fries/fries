@@ -34,8 +34,9 @@ func WithProviders(providers ...Provider) Option {
 	})
 }
 
-// WithShutdownTimeout sets the total time available to shut down all providers.
-// The timeout applies to normal shutdown and startup rollback.
+// WithShutdownTimeout sets the total time available to shut down all providers
+// when using [Runner.Run] or rolling back a failed [Runner.Bootstrap]. Direct
+// calls to [Runner.Shutdown] use the context supplied by the caller.
 //
 // Values that are not positive leave the current timeout unchanged.
 func WithShutdownTimeout(timeout time.Duration) Option {

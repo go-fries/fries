@@ -6,4 +6,6 @@
 // that started successfully are shut down before the error is returned.
 // Shutdown continues after individual provider failures and joins all lifecycle
 // errors so callers can inspect every failure with errors.Is and errors.As.
+// Runner also exposes Bootstrap and Shutdown for applications that manage their
+// execution separately.
 package lifecycle

@@ -79,6 +79,80 @@ func TestRunnerRun(t *testing.T) {
 	}, order)
 }
 
+func TestRunnerBootstrapAndShutdown(t *testing.T) {
+	var order []string
+	provider := &testProvider{
+		bootstrap: func(ctx context.Context) (context.Context, error) {
+			order = append(order, "bootstrap")
+			return context.WithValue(ctx, contextKey("runtime"), true), nil
+		},
+		shutdown: func(ctx context.Context) (context.Context, error) {
+			order = append(order, "shutdown")
+			assert.ErrorIs(t, ctx.Err(), context.Canceled)
+			assert.Equal(t, true, ctx.Value(contextKey("runtime")))
+			return context.WithValue(ctx, contextKey("shutdown"), true), nil
+		},
+	}
+
+	runner := New(WithProviders(provider))
+	bootstrap := runner.Bootstrap
+	shutdown := runner.Shutdown
+
+	runtimeCtx, err := bootstrap(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, true, runtimeCtx.Value(contextKey("runtime")))
+
+	shutdownInput, cancel := context.WithCancel(runtimeCtx)
+	cancel()
+	shutdownCtx, err := shutdown(shutdownInput)
+	require.NoError(t, err)
+	assert.Equal(t, true, shutdownCtx.Value(contextKey("shutdown")))
+	assert.Equal(t, []string{"bootstrap", "shutdown"}, order)
+}
+
+func TestRunnerShutdownLifecycle(t *testing.T) {
+	t.Run("before bootstrap", func(t *testing.T) {
+		runner := New()
+
+		ctx, err := runner.Shutdown(t.Context())
+		require.NoError(t, err)
+		assert.Same(t, t.Context(), ctx)
+
+		_, err = runner.Bootstrap(t.Context())
+		require.NoError(t, err)
+	})
+
+	t.Run("idempotent", func(t *testing.T) {
+		shutdownErr := errors.New("shutdown failed")
+		var calls int
+		runner := New(WithProviders(&testProvider{
+			shutdown: func(ctx context.Context) (context.Context, error) {
+				calls++
+				return ctx, shutdownErr
+			},
+		}))
+
+		ctx, err := runner.Bootstrap(t.Context())
+		require.NoError(t, err)
+		_, err = runner.Shutdown(ctx)
+		assert.ErrorIs(t, err, shutdownErr)
+		_, err = runner.Shutdown(ctx)
+		assert.ErrorIs(t, err, shutdownErr)
+		assert.Equal(t, 1, calls)
+	})
+}
+
+func TestRunnerRunAfterBootstrap(t *testing.T) {
+	runner := New()
+	ctx, err := runner.Bootstrap(t.Context())
+	require.NoError(t, err)
+
+	err = runner.Run(ctx, func(context.Context) error { return nil })
+	assert.ErrorIs(t, err, ErrAlreadyStarted)
+	_, err = runner.Shutdown(ctx)
+	require.NoError(t, err)
+}
+
 func TestRunnerRunRollsBackStartedProviders(t *testing.T) {
 	bootstrapErr := errors.New("bootstrap failed")
 	rollbackErr := errors.New("rollback failed")
@@ -196,7 +270,7 @@ func TestRunnerRunShutdownTimeout(t *testing.T) {
 func TestRunnerRunOnlyOnce(t *testing.T) {
 	runner := New()
 	require.NoError(t, runner.Run(t.Context(), func(context.Context) error { return nil }))
-	assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error { return nil }), ErrAlreadyRun)
+	assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error { return nil }), ErrAlreadyStarted)
 }
 
 func TestRunnerRunConcurrentlyOnlyOnce(t *testing.T) {
@@ -214,7 +288,7 @@ func TestRunnerRunConcurrentlyOnlyOnce(t *testing.T) {
 	}()
 	<-started
 
-	assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error { return nil }), ErrAlreadyRun)
+	assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error { return nil }), ErrAlreadyStarted)
 	close(release)
 	assert.NoError(t, <-done)
 }
@@ -335,17 +409,17 @@ func TestRunnerRunRace(t *testing.T) {
 	wg.Wait()
 	close(results)
 
-	var succeeded, alreadyRun int
+	var succeeded, alreadyStarted int
 	for err := range results {
 		switch {
 		case err == nil:
 			succeeded++
-		case errors.Is(err, ErrAlreadyRun):
-			alreadyRun++
+		case errors.Is(err, ErrAlreadyStarted):
+			alreadyStarted++
 		default:
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
 	assert.Equal(t, 1, succeeded)
-	assert.Equal(t, 1, alreadyRun)
+	assert.Equal(t, 1, alreadyStarted)
 }

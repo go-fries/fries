@@ -42,3 +42,20 @@ stop a provider that ignores cancellation.
 
 A nil context is treated as `context.Background()`. A nil handler is treated as
 a no-op: providers bootstrap and then immediately shut down.
+
+## Manual lifecycle
+
+`Runner` also exposes `Bootstrap` and `Shutdown` directly. Their method values
+can be passed wherever lifecycle functions are expected:
+
+```go
+runner := lifecycle.New(lifecycle.WithProviders(providers...))
+
+bootstrap := runner.Bootstrap
+shutdown := runner.Shutdown
+```
+
+`Bootstrap` may run only once. `Shutdown` is idempotent and uses the context
+supplied by its caller, so manually managed applications control their own
+shutdown cancellation and deadline. `Runner` implements `Provider` and can
+therefore be composed inside another runner.

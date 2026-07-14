@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var _ Provider = (*Runner)(nil)
+
 func TestBootstrapFunc(t *testing.T) {
 	provider := BootstrapFunc(func(ctx context.Context) (context.Context, error) {
 		return context.WithValue(ctx, contextKey("bootstrap"), true), nil

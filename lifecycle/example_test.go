@@ -25,3 +25,22 @@ func ExampleRunner_Run() {
 	// bootstrap
 	// run
 }
+
+func ExampleRunner_Bootstrap() {
+	provider := lifecycle.BootstrapFunc(
+		func(ctx context.Context) (context.Context, error) {
+			fmt.Println("bootstrap")
+			return ctx, nil
+		},
+	)
+
+	runner := lifecycle.New(lifecycle.WithProviders(provider))
+	bootstrap := runner.Bootstrap
+	shutdown := runner.Shutdown
+
+	ctx, _ := bootstrap(context.Background())
+	_, _ = shutdown(ctx)
+
+	// Output:
+	// bootstrap
+}
