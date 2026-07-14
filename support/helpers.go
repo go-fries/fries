@@ -10,47 +10,6 @@ import (
 	"github.com/go-fries/fries/errors/v4"
 )
 
-// Until retries the given function until it returns true.
-// `sleeps` is the time to sleep between each attempt.
-// If `sleeps` is not provided, it will not sleep.
-//
-//	Until(func() bool { return true })
-//	Until(func() bool { return true }, time.Second)
-func Until(fn func() bool, sleeps ...time.Duration) {
-	var sleep time.Duration
-	if len(sleeps) > 0 {
-		sleep = sleeps[0]
-	}
-
-	for !fn() {
-		if sleep > 0 {
-			time.Sleep(sleep)
-		}
-	}
-}
-
-// UntilTimeout retries the given function until it returns true or the timeout is reached.
-// `sleeps` is the time to sleep between each attempt.
-// If `sleeps` is not provided, it will not sleep.
-// The timeout includes the time to sleep.
-//
-//	UntilTimeout(func() bool { return true }, time.Second)
-//	UntilTimeout(func() bool { return true }, time.Second, time.Millisecond)
-func UntilTimeout(fn func() bool, timeout time.Duration, sleeps ...time.Duration) error {
-	ch := make(chan error, 1)
-	go func() {
-		Until(fn, sleeps...)
-		ch <- nil
-	}()
-	select {
-	case err := <-ch:
-		defer close(ch)
-		return err
-	case <-time.After(timeout):
-		return errors.NewTimeoutError(timeout, fmt.Errorf("helpers.UntilTimeout: timeout"))
-	}
-}
-
 // Timeout runs the given function with a timeout.
 // If the function does not return before the timeout, it returns an error.
 //
