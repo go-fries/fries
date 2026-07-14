@@ -25,7 +25,7 @@ func TestProvider(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, cfg, got)
 
-	terminatedCtx, err := provider.Terminate(newCtx)
+	terminatedCtx, err := provider.Shutdown(newCtx)
 	require.NoError(t, err)
 	assert.Equal(t, newCtx, terminatedCtx)
 }

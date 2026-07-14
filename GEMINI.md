@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-**Fries** (formerly `go-kratos-ecosystem/components`) is a modular collection of Go libraries and components designed to build robust applications. It follows a toolkit approach where developers can pick and choose specific packages (like `event`, `cache`, `filesystem`) or use the `foundation` package to structure an entire application using a Service Provider pattern.
+**Fries** (formerly `go-kratos-ecosystem/components`) is a modular collection of Go libraries and components designed to build robust applications. It follows a toolkit approach where developers can pick and choose specific packages (like `event`, `cache`, `filesystem`) or use the `lifecycle` package to coordinate application startup and shutdown with a Service Provider pattern.
 
 *   **Language:** Go (>= 1.25.0)
 *   **Architecture:** Modular, Component-based, Service Provider (DI) pattern.
-*   **Key Pattern:** The `foundation.Kernel` manages application lifecycle via `Bootstrap` and `Terminate` methods defined in `Provider` interfaces.
+*   **Key Pattern:** The `lifecycle.Runner` manages application lifecycle via `Bootstrap` and `Shutdown` methods defined in `Provider` interfaces.
 
 ## Key Directories & Components
 
-*   **`foundation/`**: The core application kernel. Contains `Kernel`, `Provider`, and `Handler` interfaces for lifecycle management.
+*   **`lifecycle/`**: Context-aware application startup, execution, rollback, and graceful shutdown.
 *   **`event/`**: A typed event dispatcher with support for middleware (e.g., panic recovery).
 *   **`config/`**: A generic configuration propagation mechanism using `context.Context`.
 *   **`cache/`, `redis/`, `mysql/`**: Data access and caching components.
@@ -61,12 +61,12 @@ This project uses a `Makefile` to manage the build, test, and lint workflows acr
 
 ### Core Concepts
 
-#### Service Providers (`foundation`)
-Applications structured with `fries` typically use a `Kernel` that registers `Providers`.
+#### Service Providers (`lifecycle`)
+Applications structured with `fries` can use a `Runner` configured with `Providers`.
 ```go
 type Provider interface {
     Bootstrap(context.Context) (context.Context, error) // Init
-    Terminate(context.Context) (context.Context, error) // Cleanup
+    Shutdown(context.Context) (context.Context, error) // Cleanup
 }
 ```
 

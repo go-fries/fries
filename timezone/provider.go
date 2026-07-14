@@ -32,6 +32,6 @@ func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
 	return NewContext(ctx, p.local), nil
 }
 
-func (p *Provider) Terminate(ctx context.Context) (context.Context, error) {
+func (p *Provider) Shutdown(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }

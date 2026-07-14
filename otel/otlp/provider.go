@@ -3,15 +3,15 @@ package otlp
 import (
 	"context"
 
-	"github.com/go-fries/fries/foundation/v4"
+	"github.com/go-fries/fries/lifecycle/v4"
 )
 
-// Provider adapts a [Client] to the [foundation.Provider] lifecycle.
+// Provider adapts a [Client] to the [lifecycle.Provider] lifecycle.
 type Provider struct {
 	client *Client
 }
 
-var _ foundation.Provider = (*Provider)(nil)
+var _ lifecycle.Provider = (*Provider)(nil)
 
 // NewProvider creates a [Provider] backed by client.
 func NewProvider(client *Client) *Provider {
@@ -28,8 +28,8 @@ func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
 	return ctx, p.client.Configure(ctx)
 }
 
-// Terminate shuts down the underlying client.
-func (p *Provider) Terminate(ctx context.Context) (context.Context, error) {
+// Shutdown shuts down the underlying client.
+func (p *Provider) Shutdown(ctx context.Context) (context.Context, error) {
 	if p.client == nil {
 		return ctx, ErrClientRequired
 	}

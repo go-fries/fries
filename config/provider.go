@@ -2,8 +2,8 @@ package config
 
 import "context"
 
-// Provider is a generic structure that represents a provider with a specific configuration.
-// It provides functionalities to bootstrap a context with the configuration and to terminate the context.
+// Provider adds a configuration value to a context during bootstrap. Its
+// Shutdown method returns the supplied context unchanged.
 type Provider[T any] struct {
 	config T
 }
@@ -21,7 +21,7 @@ func (p *Provider[T]) Bootstrap(ctx context.Context) (context.Context, error) {
 	return NewContext(ctx, p.config), nil
 }
 
-// Terminate is a placeholder function that simulates the termination process of a context.
-func (p *Provider[T]) Terminate(ctx context.Context) (context.Context, error) {
+// Shutdown returns ctx unchanged.
+func (p *Provider[T]) Shutdown(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
