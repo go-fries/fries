@@ -5,29 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
-	"time"
-
-	"github.com/go-fries/fries/errors/v4"
 )
-
-// Timeout runs the given function with a timeout.
-// If the function does not return before the timeout, it returns an error.
-//
-//	Timeout(func() error { return nil }, time.Second) => nil
-//	Timeout(func() error { time.Sleep(2 * time.Second); return nil }, time.Second) => error
-func Timeout(fn func() error, timeout time.Duration) error {
-	ch := make(chan error, 1)
-	go func() {
-		ch <- fn()
-	}()
-	select {
-	case err := <-ch:
-		defer close(ch)
-		return err
-	case <-time.After(timeout):
-		return errors.NewTimeoutError(timeout, fmt.Errorf("helpers.Timeout: timeout"))
-	}
-}
 
 // Repeat runs the given function `times` times or until an error is returned.
 //
