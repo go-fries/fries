@@ -2,8 +2,8 @@ package config
 
 import "context"
 
-// Provider is a generic structure that represents a provider with a specific configuration.
-// It provides functionalities to bootstrap a context with the configuration and to terminate the context.
+// Provider adds a configuration value to a context during bootstrap. Its
+// Shutdown method returns the supplied context unchanged.
 type Provider[T any] struct {
 	config T
 }
