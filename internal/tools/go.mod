@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v4
 
-go 1.25.0
+go 1.25.8
 
 require (
 	github.com/bufbuild/buf v1.65.0
@@ -237,7 +237,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.29.0 // indirect
-	github.com/securego/gosec/v2 v2.27.1 // indirect
+	github.com/securego/gosec/v2 v2.28.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
