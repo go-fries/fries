@@ -33,11 +33,46 @@ func TestNew(t *testing.T) {
 		backend := New(
 			client,
 			nil,
+			WithPrefix("app:locker:"),
 			WithWaitInterval(2*time.Millisecond, 5*time.Millisecond),
 		)
+		assert.Equal(t, "app:locker:", backend.prefix)
 		assert.Equal(t, 2*time.Millisecond, backend.minWaitInterval)
 		assert.Equal(t, 5*time.Millisecond, backend.maxWaitInterval)
 	})
+}
+
+func TestWithPrefix(t *testing.T) {
+	tests := map[string]struct {
+		option Option
+		prefix string
+	}{
+		"default": {
+			prefix: defaultPrefix,
+		},
+		"custom": {
+			option: WithPrefix("billing:locker"),
+			prefix: "billing:locker:",
+		},
+		"trailing colons": {
+			option: WithPrefix("billing:locker::"),
+			prefix: "billing:locker:",
+		},
+		"empty": {
+			option: WithPrefix(""),
+			prefix: defaultPrefix,
+		},
+		"colons only": {
+			option: WithPrefix("::"),
+			prefix: defaultPrefix,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tt.prefix, newConfig(tt.option).prefix)
+		})
+	}
 }
 
 func TestWithWaitInterval(t *testing.T) {
@@ -143,6 +178,31 @@ func TestLockTryAcquire(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, third)
 	require.NoError(t, third.Release(t.Context()))
+}
+
+func TestRedisKeyPrefix(t *testing.T) {
+	client := newRedis(t)
+	name := "test:" + uuid.NewString()
+	defaultLock := New(client).Lock(name, time.Second)
+	customLock := New(client, WithPrefix("billing:locker:")).Lock(name, time.Second)
+
+	defaultLease, err := defaultLock.TryAcquire(t.Context())
+	require.NoError(t, err)
+	customLease, err := customLock.TryAcquire(t.Context())
+	require.NoError(t, err)
+
+	defaultExists, err := client.Exists(t.Context(), defaultPrefix+name).Result()
+	require.NoError(t, err)
+	customExists, err := client.Exists(t.Context(), "billing:locker:"+name).Result()
+	require.NoError(t, err)
+	unprefixedExists, err := client.Exists(t.Context(), name).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), defaultExists)
+	assert.Equal(t, int64(1), customExists)
+	assert.Zero(t, unprefixedExists)
+
+	require.NoError(t, defaultLease.Release(t.Context()))
+	require.NoError(t, customLease.Release(t.Context()))
 }
 
 func TestLockAcquireWaitsUntilReleased(t *testing.T) {

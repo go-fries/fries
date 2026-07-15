@@ -30,6 +30,7 @@ return 0
 // Locker creates named locks backed by Redis.
 type Locker struct {
 	client          redis.UniversalClient
+	prefix          string
 	minWaitInterval time.Duration
 	maxWaitInterval time.Duration
 }
@@ -46,6 +47,7 @@ func New(client redis.UniversalClient, options ...Option) *Locker {
 	c := newConfig(options...)
 	return &Locker{
 		client:          client,
+		prefix:          c.prefix,
 		minWaitInterval: c.minWaitInterval,
 		maxWaitInterval: c.maxWaitInterval,
 	}
@@ -65,6 +67,7 @@ func (l *Locker) Lock(name string, ttl time.Duration) locker.Lock {
 	return &Lock{
 		client:          l.client,
 		name:            name,
+		key:             l.prefix + name,
 		ttl:             ttl,
 		minWaitInterval: l.minWaitInterval,
 		maxWaitInterval: l.maxWaitInterval,
@@ -75,6 +78,7 @@ func (l *Locker) Lock(name string, ttl time.Duration) locker.Lock {
 type Lock struct {
 	client          redis.UniversalClient
 	name            string
+	key             string
 	ttl             time.Duration
 	minWaitInterval time.Duration
 	maxWaitInterval time.Duration
@@ -126,7 +130,7 @@ func (l *Lock) Restore(token string) (locker.Lease, error) {
 	if token == "" {
 		return nil, locker.ErrInvalidToken
 	}
-	return &Lease{client: l.client, name: l.name, token: token}, nil
+	return &Lease{client: l.client, key: l.key, token: token}, nil
 }
 
 func (l *Lock) validate(ctx context.Context) error {
@@ -143,14 +147,14 @@ func (l *Lock) validate(ctx context.Context) error {
 }
 
 func (l *Lock) tryAcquire(ctx context.Context, token string) (locker.Lease, error) {
-	acquired, err := l.client.SetNX(ctx, l.name, token, l.ttl).Result()
+	acquired, err := l.client.SetNX(ctx, l.key, token, l.ttl).Result()
 	if err != nil {
-		return nil, fmt.Errorf("locker/redis: acquire %q: %w", l.name, err)
+		return nil, fmt.Errorf("locker/redis: acquire %q: %w", l.key, err)
 	}
 	if !acquired {
 		return nil, locker.ErrNotAcquired
 	}
-	return &Lease{client: l.client, name: l.name, token: token}, nil
+	return &Lease{client: l.client, key: l.key, token: token}, nil
 }
 
 func (l *Lock) waitInterval() time.Duration {
@@ -165,7 +169,7 @@ func (l *Lock) waitInterval() time.Duration {
 // Lease represents ownership of a Redis lock.
 type Lease struct {
 	client redis.UniversalClient
-	name   string
+	key    string
 	token  string
 }
 
@@ -188,9 +192,9 @@ func (l *Lease) Release(ctx context.Context) error {
 		return err
 	}
 
-	released, err := releaseScript.Run(ctx, l.client, []string{l.name}, l.token).Int64()
+	released, err := releaseScript.Run(ctx, l.client, []string{l.key}, l.token).Int64()
 	if err != nil {
-		return fmt.Errorf("locker/redis: release %q: %w", l.name, err)
+		return fmt.Errorf("locker/redis: release %q: %w", l.key, err)
 	}
 	if released == 0 {
 		return locker.ErrLeaseLost
@@ -212,12 +216,12 @@ func (l *Lease) Refresh(ctx context.Context, ttl time.Duration) error {
 	refreshed, err := refreshScript.Run(
 		ctx,
 		l.client,
-		[]string{l.name},
+		[]string{l.key},
 		l.token,
 		milliseconds(ttl),
 	).Int64()
 	if err != nil {
-		return fmt.Errorf("locker/redis: refresh %q: %w", l.name, err)
+		return fmt.Errorf("locker/redis: refresh %q: %w", l.key, err)
 	}
 	if refreshed == 0 {
 		return locker.ErrLeaseLost

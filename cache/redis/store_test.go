@@ -222,7 +222,7 @@ func TestRedis_Lock(t *testing.T) {
 	lease, err := lock.TryAcquire(t.Context())
 	assert.NoError(t, err)
 	assert.NotNil(t, lease)
-	exists, err := r.redis.Exists(t.Context(), "cache:redis:test").Result()
+	exists, err := r.redis.Exists(t.Context(), "locker:cache:redis:test").Result()
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), exists)
 

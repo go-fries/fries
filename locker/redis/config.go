@@ -1,13 +1,18 @@
 package redis
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 const (
+	defaultPrefix          = "locker:"
 	defaultMinWaitInterval = 50 * time.Millisecond
 	defaultMaxWaitInterval = 100 * time.Millisecond
 )
 
 type config struct {
+	prefix          string
 	minWaitInterval time.Duration
 	maxWaitInterval time.Duration
 }
@@ -21,6 +26,16 @@ type optionFunc func(*config)
 
 func (f optionFunc) apply(c *config) {
 	f(c)
+}
+
+// WithPrefix sets the Redis key prefix. The default is "locker:". Trailing
+// colons are normalized, and an empty prefix is ignored.
+func WithPrefix(prefix string) Option {
+	return optionFunc(func(c *config) {
+		if prefix = strings.TrimRight(prefix, ":"); prefix != "" {
+			c.prefix = prefix + ":"
+		}
+	})
 }
 
 // WithWaitInterval sets the interval used between acquisition attempts.
@@ -37,6 +52,7 @@ func WithWaitInterval(minimum, maximum time.Duration) Option {
 
 func newConfig(options ...Option) config {
 	c := config{
+		prefix:          defaultPrefix,
 		minWaitInterval: defaultMinWaitInterval,
 		maxWaitInterval: defaultMaxWaitInterval,
 	}
