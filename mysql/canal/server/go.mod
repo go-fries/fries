@@ -14,7 +14,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
+	github.com/go-mysql-org/go-mysql v1.16.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.19.0 // indirect
@@ -23,7 +23,6 @@ require (
 	github.com/pingcap/log v1.1.1-0.20260227082333-572e590d08f1 // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260630101339-693e52cd51bd // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

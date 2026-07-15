@@ -21,7 +21,7 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/go-fries/fries/codec/json/v4 v4.0.0-beta.2 // indirect
 	github.com/go-fries/fries/codec/v4 v4.0.0-beta.2 // indirect
-	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
+	github.com/go-mysql-org/go-mysql v1.16.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.19.0 // indirect
