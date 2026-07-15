@@ -80,6 +80,42 @@ func TestTry(t *testing.T) {
 	assert.True(t, releaseCalled)
 }
 
+func TestHandlerSingleErrorPreservesIdentity(t *testing.T) {
+	handlerErr := errors.New("handler failed")
+	releaseErr := errors.New("release failed")
+	tests := []struct {
+		name       string
+		handlerErr error
+		releaseErr error
+		want       error
+	}{
+		{
+			name:       "handler error",
+			handlerErr: handlerErr,
+			want:       handlerErr,
+		},
+		{
+			name:       "release error",
+			releaseErr: releaseErr,
+			want:       releaseErr,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lock := &testLock{lease: &testLease{release: func(context.Context) error {
+				return tt.releaseErr
+			}}}
+
+			err := Do(t.Context(), lock, func(context.Context) error {
+				return tt.handlerErr
+			})
+
+			assert.True(t, err == tt.want)
+		})
+	}
+}
+
 func TestTryNotAcquired(t *testing.T) {
 	lock := &testLock{tryErr: ErrNotAcquired}
 	handlerCalled := false

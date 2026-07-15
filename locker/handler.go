@@ -43,7 +43,13 @@ func Try(ctx context.Context, lock Lock, handler Handler) error {
 
 func handle(ctx context.Context, lease Lease, handler Handler) (err error) {
 	defer func() {
-		err = errors.Join(err, lease.Release(context.WithoutCancel(ctx)))
+		releaseErr := lease.Release(context.WithoutCancel(ctx))
+		switch {
+		case err == nil:
+			err = releaseErr
+		case releaseErr != nil:
+			err = errors.Join(err, releaseErr)
+		}
 	}()
 
 	return handler(ctx)
