@@ -2,7 +2,9 @@ package cache
 
 import (
 	"testing"
+	"time"
 
+	"github.com/go-fries/fries/locker/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,8 +56,14 @@ func TestRepository(t *testing.T) {
 	assert.Empty(t, repo.GetPrefix())
 
 	// Lock
-	locker := repo.Lock("test", 0)
-	assert.Nil(t, locker) // because of NullStore
+	lock := repo.Lock("test", time.Second)
+	assert.NotNil(t, lock)
+	lease, err := lock.TryAcquire(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, lease)
+	assert.NoError(t, lease.Release(ctx))
+	_, transferable := lease.(locker.TransferableLease)
+	assert.False(t, transferable)
 
 	// -----repository----
 
