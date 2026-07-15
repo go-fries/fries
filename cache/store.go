@@ -11,7 +11,7 @@ import (
 var ErrNotFound = errors.New("cache: the key is not found")
 
 type Store interface {
-	Locker
+	locker.Locker
 
 	// Has returns true if the key exists in the cache.
 	// If the key does not exist, the return value will be false, and the return error will be nil.
@@ -61,17 +61,4 @@ type Addable interface {
 	// If the key does not exist, the return value will be true, and the return error will be nil.
 	// otherwise, the return error will be the store error.
 	Add(ctx context.Context, key string, value any, ttl time.Duration) (bool, error)
-}
-
-// Locker interface defines methods for acquiring a distributed lock with a specified time-to-live (TTL).
-// It abstracts the underlying locking mechanism and allows operations like cache-based locking.
-type Locker interface {
-	// Lock attempts to acquire a lock identified by the provided key and sets its TTL.
-	// The returned locker.Locker can be used to perform further operations such as unlocking.
-	// Parameters:
-	//   key - A unique identifier for the lock.
-	//   ttl - The time-to-live duration for the lock, after which it will automatically be released.
-	// Return value:
-	//   Returns a locker.Locker instance to manage the acquired lock.
-	Lock(key string, ttl time.Duration) locker.Locker
 }

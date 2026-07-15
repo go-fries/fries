@@ -29,6 +29,7 @@ import (
 
 	redisStore "github.com/go-fries/fries/cache/redis/v4"
 	"github.com/go-fries/fries/cache/v4"
+	"github.com/go-fries/fries/locker/v4"
 )
 
 var ctx = context.Background()
@@ -80,5 +81,13 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("user2: %+v", user2)
+
+	// Try to run work while holding a cache-prefixed Redis lock.
+	err = locker.Try(ctx, repository.Lock("users:refresh", 30*time.Second), func(ctx context.Context) error {
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 ```

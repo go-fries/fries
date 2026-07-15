@@ -43,8 +43,8 @@ func (n *NullStore) Flush(context.Context) (bool, error) {
 	return true, nil
 }
 
-func (n *NullStore) Lock(string, time.Duration) locker.Locker {
-	return nil
+func (n *NullStore) Lock(name string, ttl time.Duration) locker.Lock {
+	return (locker.NoopLocker{}).Lock(name, ttl)
 }
 
 func (n *NullStore) GetPrefix() string {

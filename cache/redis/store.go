@@ -15,9 +15,10 @@ import (
 )
 
 type Store struct {
-	prefix string
-	codec  codec.Codec
-	redis  redis.UniversalClient
+	prefix      string
+	codec       codec.Codec
+	redis       redis.UniversalClient
+	lockBackend locker.Locker
 }
 
 type Option func(*Store)
@@ -47,8 +48,9 @@ const flushScanCount = 1000
 
 func New(redis redis.UniversalClient, opts ...Option) *Store {
 	story := &Store{
-		codec: json.Codec{},
-		redis: redis,
+		codec:       json.Codec{},
+		redis:       redis,
+		lockBackend: lockerredis.New(redis),
 	}
 	for _, o := range opts {
 		o(story)
@@ -197,10 +199,6 @@ func (s *Store) Add(ctx context.Context, key string, value any, ttl time.Duratio
 	return r.Val(), nil
 }
 
-func (s *Store) Lock(key string, ttl time.Duration) locker.Locker {
-	return lockerredis.NewLocker(
-		s.redis,
-		lockerredis.WithName(s.prefix+key),
-		lockerredis.WithTTL(ttl),
-	)
+func (s *Store) Lock(key string, ttl time.Duration) locker.Lock {
+	return s.lockBackend.Lock(s.prefix+key, ttl)
 }

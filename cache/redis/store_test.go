@@ -3,8 +3,6 @@ package redis
 import (
 	"context"
 	"errors"
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -219,24 +217,25 @@ func TestRedis_Add(t *testing.T) {
 }
 
 func TestRedis_Lock(t *testing.T) {
-	r := New(createRedis(t))
-	var wg sync.WaitGroup
-	var s int64
+	r := New(createRedis(t), Prefix("cache:redis"))
+	lock := r.Lock("test", 5*time.Second)
+	lease, err := lock.TryAcquire(t.Context())
+	assert.NoError(t, err)
+	assert.NotNil(t, lease)
+	exists, err := r.redis.Exists(t.Context(), "cache:redis:test").Result()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), exists)
 
-	for range 10 {
-		wg.Go(func() {
-			err := r.Lock("test", 5*time.Second).Try(t.Context(), func() {
-				time.Sleep(time.Second)
-			})
-			if err != nil {
-				assert.True(t, errors.Is(err, locker.ErrLocked))
-			} else {
-				atomic.AddInt64(&s, 1)
-			}
-		})
-	}
-	wg.Wait()
-	assert.True(t, s > 0)
+	err = locker.Try(t.Context(), r.Lock("test", 5*time.Second), func(context.Context) error {
+		return nil
+	})
+	assert.ErrorIs(t, err, locker.ErrNotAcquired)
+	assert.NoError(t, lease.Release(t.Context()))
+
+	err = locker.Try(t.Context(), r.Lock("test", 5*time.Second), func(context.Context) error {
+		return nil
+	})
+	assert.NoError(t, err)
 }
 
 func TestRedis_ErrNotFound(t *testing.T) {
