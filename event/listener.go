@@ -25,8 +25,8 @@ type Listener interface {
 }
 
 type listenerDefinition struct {
-	typeOf reflect.Type
-	next   AnyHandler
+	typeOf  reflect.Type
+	handler AnyHandler
 }
 
 type typedListener[T any] struct {
@@ -36,7 +36,7 @@ type typedListener[T any] struct {
 func (l typedListener[T]) definition() listenerDefinition {
 	return listenerDefinition{
 		typeOf: reflect.TypeFor[T](),
-		next: func(ctx context.Context, value any) error {
+		handler: func(ctx context.Context, value any) error {
 			return l.handler.Handle(ctx, value.(T))
 		},
 	}

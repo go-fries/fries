@@ -24,8 +24,8 @@ type Dispatcher struct {
 }
 
 type listenerEntry struct {
-	typeOf reflect.Type
-	next   AnyHandler
+	typeOf  reflect.Type
+	handler AnyHandler
 }
 
 // New creates a Dispatcher configured by options.
@@ -59,11 +59,11 @@ func (d *Dispatcher) Subscribe(listeners ...Listener) *Subscription {
 		}
 
 		definition := listener.definition()
-		next := chain(d.middleware...)(definition.next)
-		if next == nil {
-			panic("event: middleware returned a nil next function")
+		handler := chain(d.middleware...)(definition.handler)
+		if handler == nil {
+			panic("event: middleware returned a nil handler")
 		}
-		entries[i] = &listenerEntry{typeOf: definition.typeOf, next: next}
+		entries[i] = &listenerEntry{typeOf: definition.typeOf, handler: handler}
 	}
 
 	d.mu.Lock()
@@ -135,7 +135,7 @@ func dispatchSerial(
 			return joinErrors(appendContextCause(errs, cause))
 		}
 
-		err := entry.next(ctx, value)
+		err := entry.handler(ctx, value)
 		if err != nil {
 			errs = append(errs, err)
 			if !continueOnError {
@@ -186,7 +186,7 @@ func dispatchConcurrent(
 					return
 				}
 
-				err := entries[index].next(runCtx, value)
+				err := entries[index].handler(runCtx, value)
 				if err == nil {
 					continue
 				}
