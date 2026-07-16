@@ -79,6 +79,49 @@ func main() {
 Middleware is declared from outermost to innermost. In the example,
 `logErrors` can observe the structured error returned by `recovery.New()`.
 
+<details>
+<summary>Organizing events and handlers</summary>
+
+Keep event code with its business area. Shared top-level directories for every
+event and handler quickly become difficult to navigate:
+
+```text
+internal/
+├── order/
+│   ├── service.go
+│   └── events.go                 # defines order.Paid
+├── notification/
+│   └── send_paid_receipt.go      # handles order.Paid
+├── analytics/
+│   └── record_order_revenue.go   # handles order.Paid
+└── app/
+    └── events.go                 # registers handlers
+```
+
+Define an event in the package that produces it. Keep each handler in the
+package that owns the work it performs. Register subscriptions during
+application startup so the wiring remains visible in one place:
+
+```go
+func registerEventHandlers(
+	dispatcher *event.Dispatcher,
+	sendReceipt *notification.SendPaidReceipt,
+	recordRevenue *analytics.RecordOrderRevenue,
+) *event.Subscription {
+	return dispatcher.Subscribe(
+		event.HandlerFor[order.Paid](sendReceipt),
+		event.HandlerFor[order.Paid](recordRevenue),
+	)
+}
+```
+
+Name handlers after the work they perform, such as `SendPaidReceipt`, rather
+than using generic names such as `OrderPaidHandler`. Application services
+should usually receive a `*event.Dispatcher` explicitly. Package-level dispatch
+is better suited to small applications and integration code.
+
+</details>
+
 ## Execution behavior
 
 - `Dispatch` runs matching handlers serially in registration order by default.
