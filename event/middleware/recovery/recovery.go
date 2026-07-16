@@ -30,7 +30,7 @@ func (e *PanicError) Unwrap() error {
 // middleware or the Dispatch caller.
 func New(options ...Option) event.Middleware {
 	c := newConfig(options...)
-	return func(next event.Next) event.Next {
+	return func(next event.AnyHandler) event.AnyHandler {
 		return func(ctx context.Context, value any) (err error) {
 			defer func() {
 				if recovered := recover(); recovered != nil {

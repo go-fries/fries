@@ -41,7 +41,7 @@ func (ReceiptHandler) Handle(_ context.Context, value OrderPaid) error {
 	return nil
 }
 
-func logErrors(next event.Next) event.Next {
+func logErrors(next event.AnyHandler) event.AnyHandler {
 	return func(ctx context.Context, value any) error {
 		err := next(ctx, value)
 		if err != nil {

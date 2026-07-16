@@ -25,7 +25,7 @@ type Dispatcher struct {
 
 type listenerEntry struct {
 	typeOf reflect.Type
-	next   Next
+	next   AnyHandler
 }
 
 // New creates a Dispatcher configured by options.

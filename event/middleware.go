@@ -5,14 +5,15 @@ import (
 	"slices"
 )
 
-// Next handles one matching event in a middleware chain.
-type Next func(context.Context, any) error
+// AnyHandler invokes one matching event handler through a type-erased
+// middleware boundary. It does not subscribe to every event type.
+type AnyHandler func(context.Context, any) error
 
-// Middleware wraps a Next function.
-type Middleware func(Next) Next
+// Middleware wraps an [AnyHandler].
+type Middleware func(AnyHandler) AnyHandler
 
 func chain(middleware ...Middleware) Middleware {
-	return func(next Next) Next {
+	return func(next AnyHandler) AnyHandler {
 		for _, item := range slices.Backward(middleware) {
 			if item != nil {
 				next = item(next)

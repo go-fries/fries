@@ -432,7 +432,7 @@ func TestDispatcherConcurrentUse(t *testing.T) {
 func TestMiddlewareOrderAndMatching(t *testing.T) {
 	var calls []string
 	middleware := func(name string) Middleware {
-		return func(next Next) Next {
+		return func(next AnyHandler) AnyHandler {
 			return func(ctx context.Context, value any) error {
 				calls = append(calls, name+":before")
 				err := next(ctx, value)

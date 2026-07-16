@@ -26,7 +26,7 @@ type Listener interface {
 
 type listenerDefinition struct {
 	typeOf reflect.Type
-	next   Next
+	next   AnyHandler
 }
 
 type typedListener[T any] struct {

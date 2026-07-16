@@ -75,7 +75,7 @@ func TestNewIgnoresNilOptionsAndInvalidStackSize(t *testing.T) {
 
 func TestOuterMiddlewareObservesPanicError(t *testing.T) {
 	var observed error
-	logging := func(next event.Next) event.Next {
+	logging := func(next event.AnyHandler) event.AnyHandler {
 		return func(ctx context.Context, value any) error {
 			err := next(ctx, value)
 			observed = err
