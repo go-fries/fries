@@ -59,7 +59,7 @@ func (d *Dispatcher) Subscribe(listeners ...Listener) *Subscription {
 		}
 
 		definition := listener.definition()
-		next := Chain(d.middleware...)(definition.next)
+		next := chain(d.middleware...)(definition.next)
 		if next == nil {
 			panic("event: middleware returned a nil next function")
 		}

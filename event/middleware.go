@@ -11,9 +11,7 @@ type Next func(context.Context, any) error
 // Middleware wraps a Next function.
 type Middleware func(Next) Next
 
-// Chain combines middleware in declaration order from outermost to innermost.
-// Nil middleware is ignored.
-func Chain(middleware ...Middleware) Middleware {
+func chain(middleware ...Middleware) Middleware {
 	return func(next Next) Next {
 		for _, item := range slices.Backward(middleware) {
 			if item != nil {
