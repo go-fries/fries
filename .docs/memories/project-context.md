@@ -54,6 +54,22 @@
   that bootstrapped successfully; shutdown attempts every started provider and
   joins lifecycle errors. Shutdown contexts preserve runtime context values but
   detach from runtime cancellation before applying the configured timeout.
+- The `event/` component is the repository's only in-process event dispatcher.
+  It routes exact concrete Go types, dispatches synchronously and serially by
+  default, supports per-dispatch bounded concurrency, and returns handler
+  errors instead of silently discarding them. Reliable asynchronous work stays
+  in `queue/`, while managed background work stays in `parallel/`.
+- Event subscriptions are created with `Dispatcher.Subscribe(HandlerFor[T](...))`
+  and removed through batch `Subscription` values. Event middleware is fixed at
+  Dispatcher construction time; recovery converts panics to structured errors,
+  while logging, metrics, and alerts remain separate outer middleware concerns.
+- Event also exposes `Default`, `SetDefault`, package-level `Subscribe`, and
+  package-level `Dispatch` as optional convenience entry points. Default
+  replacement is intended for application startup and does not migrate
+  subscriptions from the previous Dispatcher.
+- Event lifecycle Provider Bootstrap installs its Dispatcher both in Context
+  and as the package default. Provider Shutdown does not restore the previous
+  default because repository lifecycle shutdown is treated as process exit.
 
 ## Public Module Conventions
 

@@ -2,164 +2,251 @@ package event
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"sync"
-
-	"golang.org/x/sync/errgroup"
+	"sync/atomic"
 )
 
+var (
+	// ErrInvalidContext is returned when Dispatch receives a nil context.
+	ErrInvalidContext = errors.New("event: invalid context")
+	// ErrNilEvent is returned when Dispatch receives an untyped nil event.
+	ErrNilEvent = errors.New("event: nil event")
+)
+
+// Dispatcher synchronously dispatches in-process events to handlers registered
+// for their exact concrete types. A Dispatcher is safe for concurrent use.
 type Dispatcher struct {
 	mu         sync.RWMutex
-	listeners  []AnyListener
+	listeners  map[reflect.Type][]*listenerEntry
 	middleware []Middleware
-	wg         sync.WaitGroup
-	option     *options
 }
 
-type options struct {
-	// [parallel] limits the number of active goroutines in listeners to at most n.
-	// A negative value indicates no limit. A limit of zero will prevent any new goroutines from being added.
-	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the
-	// configured limit.
-	// The limit must not be modified while any listener in the listeners are active.
-	parallel int
-
-	// [withError] enforces an error interrupt. When [withError] is true, one of the listeners returns an error,
-	// which interrupts the execution of other listeners in the listener collection
-	// Note: When parallel is set to an integer of -1 or>1 and an error interrupt is thrown,
-	// if there is a blocking operation in the listener, the listener implementation should actively check ctx.Done()
-	// to ensure proper cancellation and avoid interruption failures
-	withError bool
+type listenerEntry struct {
+	typeOf  reflect.Type
+	handler AnyHandler
 }
 
-type Option func(option *options)
-
-func WithError() func(option *options) {
-	return func(option *options) {
-		option.withError = true
-	}
-}
-
-func WithoutError() func(option *options) {
-	return func(option *options) {
-		option.withError = false
-	}
-}
-
-func WithParallel(parallel int) func(option *options) {
-	return func(option *options) {
-		option.parallel = parallel
-	}
-}
-
-func NewDispatcher(opts ...Option) *Dispatcher {
-	o := &options{
-		parallel: -1,
-	}
-	for _, opt := range opts {
-		opt(o)
-	}
+// New creates a Dispatcher configured by options.
+func New(options ...Option) *Dispatcher {
+	c := newConfig(options...)
 	return &Dispatcher{
-		listeners: make([]AnyListener, 0),
-		option:    o,
+		listeners:  make(map[reflect.Type][]*listenerEntry),
+		middleware: c.middleware,
 	}
 }
 
-func (d *Dispatcher) Use(mws ...Middleware) {
-	d.middleware = append(d.middleware, mws...)
-}
+// Subscribe registers listeners for their exact event types. The returned
+// Subscription owns every registration created by this call.
+//
+// Subscribe panics if the Dispatcher or any listener is nil. Calling Subscribe
+// without listeners returns an inactive Subscription.
+func (d *Dispatcher) Subscribe(listeners ...Listener) *Subscription {
+	if d == nil {
+		panic("event: nil dispatcher")
+	}
 
-func (d *Dispatcher) RegisterListeners(ls ...AnyListener) {
+	subscription := &Subscription{dispatcher: d}
+	if len(listeners) == 0 {
+		return subscription
+	}
+
+	entries := make([]*listenerEntry, len(listeners))
+	for i, listener := range listeners {
+		if listener == nil {
+			panic("event: nil listener")
+		}
+
+		definition := listener.definition()
+		handler := chain(d.middleware...)(definition.handler)
+		if handler == nil {
+			panic("event: middleware returned a nil handler")
+		}
+		entries[i] = &listenerEntry{typeOf: definition.typeOf, handler: handler}
+	}
+
 	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.listeners = append(d.listeners, ls...)
+	for _, entry := range entries {
+		d.listeners[entry.typeOf] = append(d.listeners[entry.typeOf], entry)
+		subscription.registrations = append(subscription.registrations, registration{
+			typeOf: entry.typeOf,
+			entry:  entry,
+		})
+	}
+	d.mu.Unlock()
+
+	subscription.active.Store(true)
+	return subscription
 }
 
-type dispatchOptions struct {
-	// [parallel] limits the number of active goroutines in listeners to at most n.
-	// A negative value indicates no limit. A limit of zero will prevent any new goroutines from being added.
-	// Any subsequent call to the listener will block until it can add an active goroutine without exceeding the
-	// configured limit.
-	// The limit must not be modified while any listener in the listeners are active.
-	parallel int
+// Dispatch synchronously dispatches value to handlers registered for its exact
+// concrete type. Handlers execute serially and stop at the first error by
+// default. Dispatch options can enable bounded concurrency or continued error
+// collection for this call.
+//
+// Dispatch returns [ErrInvalidContext] for a nil context and [ErrNilEvent] for an
+// untyped nil event. It panics if called on a nil Dispatcher.
+func (d *Dispatcher) Dispatch(
+	ctx context.Context,
+	value any,
+	options ...DispatchOption,
+) error {
+	if d == nil {
+		panic("event: nil dispatcher")
+	}
+	if ctx == nil {
+		return ErrInvalidContext
+	}
+	if value == nil {
+		return ErrNilEvent
+	}
+	if cause := context.Cause(ctx); cause != nil {
+		return cause
+	}
 
-	// [withError] enforces an error interrupt. When [withError] is true, one of the listeners returns an error,
-	// which interrupts the execution of other listeners in the listener collection
-	// Note: When parallel is set to an integer of -1 or>1 and an error interrupt is thrown,
-	// if there is a blocking operation in the listener, the listener implementation should actively check ctx.Done()
-	// to ensure proper cancellation and avoid interruption failures
-	withError bool
+	c := newDispatchConfig(options...)
+	entries := d.snapshot(reflect.TypeOf(value))
+	if len(entries) == 0 {
+		return nil
+	}
+	if c.concurrency == 1 || len(entries) == 1 {
+		return dispatchSerial(ctx, value, entries, c.continueOnError)
+	}
+	return dispatchConcurrent(ctx, value, entries, c)
 }
 
-type DispatchOption func(option *dispatchOptions)
-
-func WithDispatchWithError() func(option *dispatchOptions) {
-	return func(option *dispatchOptions) {
-		option.withError = true
-	}
-}
-
-func WithDispatchWithoutError() func(option *dispatchOptions) {
-	return func(option *dispatchOptions) {
-		option.withError = false
-	}
-}
-
-func WithDispatchParallel(parallel int) func(option *dispatchOptions) {
-	return func(option *dispatchOptions) {
-		option.parallel = parallel
-	}
-}
-
-// Dispatch the event to listeners
-// If the options of the dispatch method have a value,
-// it will overwrite the options of the NewDispatch method
-func (d *Dispatcher) Dispatch(ctx context.Context, event any, options ...DispatchOption) error {
-	o := &dispatchOptions{
-		parallel:  d.option.parallel,
-		withError: d.option.withError,
-	}
-	for _, opt := range options {
-		opt(o)
-	}
-
+func (d *Dispatcher) snapshot(typeOf reflect.Type) []*listenerEntry {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	eg, ctx := errgroup.WithContext(ctx)
-	if o.parallel != 0 {
-		eg.SetLimit(o.parallel)
+	return append([]*listenerEntry(nil), d.listeners[typeOf]...)
+}
+
+func dispatchSerial(
+	ctx context.Context,
+	value any,
+	entries []*listenerEntry,
+	continueOnError bool,
+) error {
+	var errs []error
+	for _, entry := range entries {
+		if cause := context.Cause(ctx); cause != nil {
+			return joinErrors(appendContextCause(errs, cause))
+		}
+
+		err := entry.handler(ctx, value)
+		if err != nil {
+			errs = append(errs, err)
+			if !continueOnError {
+				return joinErrors(appendContextCause(errs, context.Cause(ctx)))
+			}
+		}
+
+		if cause := context.Cause(ctx); cause != nil {
+			return joinErrors(appendContextCause(errs, cause))
+		}
 	}
+	return joinErrors(errs)
+}
 
-	middleChain := Chain(d.middleware...)
-	for _, l := range d.listeners {
-		d.wg.Add(1)
-		eg.Go(func() error {
-			defer d.wg.Done()
+func dispatchConcurrent(
+	ctx context.Context,
+	value any,
+	entries []*listenerEntry,
+	c dispatchConfig,
+) error {
+	workerCount := min(c.concurrency, len(entries))
+	results := make([]error, len(entries))
 
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-				handler := middleChain(func(ctx context.Context, event any) error {
-					return l.Handle(ctx, event)
-				})
+	runCtx := ctx
+	cancel := func(error) {}
+	if !c.continueOnError {
+		runCtx, cancel = context.WithCancelCause(ctx)
+	}
+	defer cancel(nil)
 
-				if err := handler(ctx, event); err != nil && o.withError {
-					return err
+	var (
+		nextIndex  atomic.Int64
+		firstError error
+		firstOnce  sync.Once
+		workers    sync.WaitGroup
+	)
+	nextIndex.Store(-1)
+
+	for range workerCount {
+		workers.Go(func() {
+			for {
+				if context.Cause(runCtx) != nil {
+					return
 				}
-				return nil
+
+				index := int(nextIndex.Add(1))
+				if index >= len(entries) || context.Cause(runCtx) != nil {
+					return
+				}
+
+				err := entries[index].handler(runCtx, value)
+				if err == nil {
+					continue
+				}
+				if c.continueOnError {
+					results[index] = err
+					continue
+				}
+
+				firstOnce.Do(func() {
+					firstError = err
+					cancel(err)
+				})
+				return
 			}
 		})
 	}
-	return eg.Wait()
+	workers.Wait()
+
+	if !c.continueOnError {
+		return joinErrors(appendContextCause([]error{firstError}, context.Cause(ctx)))
+	}
+
+	errs := make([]error, 0, len(results)+1)
+	for _, err := range results {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return joinErrors(appendContextCause(errs, context.Cause(ctx)))
 }
 
-func (d *Dispatcher) Reset() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.listeners = make([]AnyListener, 0)
+func appendContextCause(errs []error, cause error) []error {
+	if cause == nil {
+		return compactErrors(errs)
+	}
+	for _, err := range errs {
+		if err != nil && errors.Is(err, cause) {
+			return compactErrors(errs)
+		}
+	}
+	return append(compactErrors(errs), cause)
 }
 
-func (d *Dispatcher) Wait() {
-	d.wg.Wait()
+func compactErrors(errs []error) []error {
+	compacted := errs[:0]
+	for _, err := range errs {
+		if err != nil {
+			compacted = append(compacted, err)
+		}
+	}
+	return compacted
+}
+
+func joinErrors(errs []error) error {
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		return errors.Join(errs...)
+	}
 }

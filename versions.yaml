@@ -44,10 +44,9 @@ module-sets:
       - github.com/go-fries/fries/ent/v4
       - github.com/go-fries/fries/ent/multidriver/v4
 
-      # Event & EventBus
+      # Event
       - github.com/go-fries/fries/event/v4
       - github.com/go-fries/fries/event/middleware/recovery/v4
-      - github.com/go-fries/fries/eventbus/v4
 
       # Eino
       - github.com/go-fries/fries/eino/components/embedding/cached/v4
@@ -155,7 +154,6 @@ excluded-modules:
 
   # examples
   - github.com/go-fries/fries/examples/cache/v4
-  - github.com/go-fries/fries/event/example/v4 # todo: migrate to /examples
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v4
   - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v4
   - github.com/go-fries/fries/examples/mysql/canal/v4

@@ -5,15 +5,20 @@ import (
 	"slices"
 )
 
-type Handler func(ctx context.Context, event any) error
+// AnyHandler invokes one matching event handler through a type-erased
+// middleware boundary. It does not subscribe to every event type.
+type AnyHandler func(context.Context, any) error
 
-type Middleware func(Handler) Handler
+// Middleware wraps an [AnyHandler].
+type Middleware func(AnyHandler) AnyHandler
 
-func Chain(mws ...Middleware) Middleware {
-	return func(h Handler) Handler {
-		for _, mw := range slices.Backward(mws) {
-			h = mw(h)
+func chain(middleware ...Middleware) Middleware {
+	return func(next AnyHandler) AnyHandler {
+		for _, item := range slices.Backward(middleware) {
+			if item != nil {
+				next = item(next)
+			}
 		}
-		return h
+		return next
 	}
 }

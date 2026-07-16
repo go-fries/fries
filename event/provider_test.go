@@ -1,27 +1,40 @@
 package event
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+type lifecycleProvider interface {
+	Bootstrap(context.Context) (context.Context, error)
+	Shutdown(context.Context) (context.Context, error)
+}
+
+var _ lifecycleProvider = (*Provider)(nil)
+
 func TestProvider(t *testing.T) {
-	d := NewDispatcher()
-	p := NewProvider(d)
-	p.RegisterListeners(nil)
+	previous := Default()
+	t.Cleanup(func() { SetDefault(previous) })
 
-	ctx, err := p.Bootstrap(t.Context())
-	assert.NoError(t, err)
+	dispatcher := New()
+	provider := NewProvider(dispatcher)
 
-	d1, ok := FromContext(ctx)
-	assert.True(t, ok)
-	assert.Equal(t, d, d1)
+	ctx, err := provider.Bootstrap(t.Context())
+	require.NoError(t, err)
+	actual, ok := FromContext(ctx)
+	require.True(t, ok)
+	assert.Same(t, dispatcher, actual)
+	assert.Same(t, dispatcher, Default())
 
-	ctx, err = p.Shutdown(ctx)
-	assert.NoError(t, err)
+	shutdownCtx, err := provider.Shutdown(ctx)
+	require.NoError(t, err)
+	assert.Same(t, ctx, shutdownCtx)
+	assert.Same(t, dispatcher, Default())
+}
 
-	d2, ok := FromContext(ctx)
-	assert.True(t, ok)
-	assert.Equal(t, d, d2)
+func TestNewProviderPanicsForNilDispatcher(t *testing.T) {
+	assert.Panics(t, func() { NewProvider(nil) })
 }
