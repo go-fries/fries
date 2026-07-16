@@ -13,14 +13,14 @@ func TestDispatcherContext(t *testing.T) {
 	assert.Nil(t, dispatcher)
 
 	expected := New()
-	ctx := WithDispatcher(t.Context(), expected)
+	ctx := NewContext(t.Context(), expected)
 	dispatcher, ok = FromContext(ctx)
 	require.True(t, ok)
 	assert.Same(t, expected, dispatcher)
 }
 
 func TestDispatcherContextValidation(t *testing.T) {
-	assert.Panics(t, func() { WithDispatcher(nil, New()) }) //nolint:staticcheck // Verifies the nil context contract.
-	assert.Panics(t, func() { WithDispatcher(t.Context(), nil) })
+	assert.Panics(t, func() { NewContext(nil, New()) }) //nolint:staticcheck // Verifies the nil context contract.
+	assert.Panics(t, func() { NewContext(t.Context(), nil) })
 	assert.Panics(t, func() { FromContext(nil) }) //nolint:staticcheck // Verifies the nil context contract.
 }

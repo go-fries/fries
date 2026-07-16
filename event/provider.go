@@ -16,9 +16,10 @@ func NewProvider(dispatcher *Dispatcher) *Provider {
 	return &Provider{dispatcher: dispatcher}
 }
 
-// Bootstrap adds the configured Dispatcher to ctx.
+// Bootstrap sets the configured Dispatcher as the default and adds it to ctx.
 func (p *Provider) Bootstrap(ctx context.Context) (context.Context, error) {
-	return WithDispatcher(ctx, p.dispatcher), nil
+	SetDefault(p.dispatcher)
+	return NewContext(ctx, p.dispatcher), nil
 }
 
 // Shutdown returns ctx unchanged. Dispatcher operations are synchronous, so no

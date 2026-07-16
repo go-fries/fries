@@ -4,9 +4,9 @@ import "context"
 
 type contextKey struct{}
 
-// WithDispatcher returns a copy of ctx that carries dispatcher.
-// WithDispatcher panics if ctx or dispatcher is nil.
-func WithDispatcher(ctx context.Context, dispatcher *Dispatcher) context.Context {
+// NewContext returns a copy of ctx that carries dispatcher.
+// NewContext panics if ctx or dispatcher is nil.
+func NewContext(ctx context.Context, dispatcher *Dispatcher) context.Context {
 	if ctx == nil {
 		panic("event: nil context")
 	}

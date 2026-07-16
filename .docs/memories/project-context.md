@@ -63,6 +63,13 @@
   and removed through batch `Subscription` values. Event middleware is fixed at
   Dispatcher construction time; recovery converts panics to structured errors,
   while logging, metrics, and alerts remain separate outer middleware concerns.
+- Event also exposes `Default`, `SetDefault`, package-level `Subscribe`, and
+  package-level `Dispatch` as optional convenience entry points. Default
+  replacement is intended for application startup and does not migrate
+  subscriptions from the previous Dispatcher.
+- Event lifecycle Provider Bootstrap installs its Dispatcher both in Context
+  and as the package default. Provider Shutdown does not restore the previous
+  default because repository lifecycle shutdown is treated as process exit.
 
 ## Public Module Conventions
 

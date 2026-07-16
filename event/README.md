@@ -96,3 +96,39 @@ Middleware is declared from outermost to innermost. In the example,
 Event does not provide fire-and-forget delivery, persistence, retries, or
 message settlement. Use `parallel` for managed in-process background work and
 `queue` for reliable asynchronous delivery.
+
+## Default dispatcher
+
+For small applications or package-level integration, `Subscribe` and
+`Dispatch` delegate to a replaceable default Dispatcher:
+
+```go
+subscription := event.Subscribe(
+	event.HandlerFor[OrderPaid](ReceiptHandler{}),
+)
+defer subscription.Unsubscribe()
+
+if err := event.Dispatch(ctx, OrderPaid{OrderID: "123"}); err != nil {
+	return err
+}
+```
+
+Configure the default Dispatcher during application startup, before registering
+listeners:
+
+```go
+event.SetDefault(
+	event.New(
+		event.WithMiddleware(logErrors, recovery.New()),
+	),
+)
+```
+
+Replacing the default Dispatcher does not migrate existing subscriptions.
+Libraries should prefer an explicitly injected Dispatcher and should not
+register global listeners from `init` functions.
+
+When used with `lifecycle`, `NewProvider(dispatcher)` installs the Dispatcher
+both as the package default and in the lifecycle Context during Bootstrap.
+Shutdown does not restore the previous default because application shutdown is
+treated as process termination.

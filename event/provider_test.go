@@ -16,6 +16,9 @@ type lifecycleProvider interface {
 var _ lifecycleProvider = (*Provider)(nil)
 
 func TestProvider(t *testing.T) {
+	previous := Default()
+	t.Cleanup(func() { SetDefault(previous) })
+
 	dispatcher := New()
 	provider := NewProvider(dispatcher)
 
@@ -24,10 +27,12 @@ func TestProvider(t *testing.T) {
 	actual, ok := FromContext(ctx)
 	require.True(t, ok)
 	assert.Same(t, dispatcher, actual)
+	assert.Same(t, dispatcher, Default())
 
 	shutdownCtx, err := provider.Shutdown(ctx)
 	require.NoError(t, err)
 	assert.Same(t, ctx, shutdownCtx)
+	assert.Same(t, dispatcher, Default())
 }
 
 func TestNewProviderPanicsForNilDispatcher(t *testing.T) {
