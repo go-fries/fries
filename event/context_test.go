@@ -4,17 +4,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestContext(t *testing.T) {
-	d1, ok1 := FromContext(t.Context())
-	assert.False(t, ok1)
-	assert.Nil(t, d1)
+func TestDispatcherContext(t *testing.T) {
+	dispatcher, ok := FromContext(t.Context())
+	assert.False(t, ok)
+	assert.Nil(t, dispatcher)
 
-	var d *Dispatcher
-	ctx := NewContext(t.Context(), d)
+	expected := New()
+	ctx := WithDispatcher(t.Context(), expected)
+	dispatcher, ok = FromContext(ctx)
+	require.True(t, ok)
+	assert.Same(t, expected, dispatcher)
+}
 
-	d2, ok2 := FromContext(ctx)
-	assert.True(t, ok2)
-	assert.Equal(t, d, d2)
+func TestDispatcherContextValidation(t *testing.T) {
+	assert.Panics(t, func() { WithDispatcher(nil, New()) }) //nolint:staticcheck // Verifies the nil context contract.
+	assert.Panics(t, func() { WithDispatcher(t.Context(), nil) })
+	assert.Panics(t, func() { FromContext(nil) }) //nolint:staticcheck // Verifies the nil context contract.
 }

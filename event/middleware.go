@@ -5,15 +5,21 @@ import (
 	"slices"
 )
 
-type Handler func(ctx context.Context, event any) error
+// Next handles one matching event in a middleware chain.
+type Next func(context.Context, any) error
 
-type Middleware func(Handler) Handler
+// Middleware wraps a Next function.
+type Middleware func(Next) Next
 
-func Chain(mws ...Middleware) Middleware {
-	return func(h Handler) Handler {
-		for _, mw := range slices.Backward(mws) {
-			h = mw(h)
+// Chain combines middleware in declaration order from outermost to innermost.
+// Nil middleware is ignored.
+func Chain(middleware ...Middleware) Middleware {
+	return func(next Next) Next {
+		for _, item := range slices.Backward(middleware) {
+			if item != nil {
+				next = item(next)
+			}
 		}
-		return h
+		return next
 	}
 }

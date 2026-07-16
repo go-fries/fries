@@ -11,5 +11,3 @@ require (
 	github.com/go-fries/fries/event/middleware/recovery/v4 v4.0.0-beta.2
 	github.com/go-fries/fries/event/v4 v4.0.0-beta.2
 )
-
-require golang.org/x/sync v0.22.0 // indirect

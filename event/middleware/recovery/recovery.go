@@ -3,69 +3,43 @@ package recovery
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/go-fries/fries/event/v4"
 )
 
-// HandlerFunc defines a function to handle panic recovery
-type HandlerFunc func(ctx context.Context, event, recovery any, stack []byte)
-
-// DefaultHandler is the default panic recovery handler that logs the event and stack trace
-var DefaultHandler = func(_ context.Context, event, recovery any, stack []byte) {
-	log.Printf("panic recovery event: %v\nrecovery: %v\nstack trace:\n%s", event, recovery, stack)
+// PanicError describes a panic recovered while handling an event.
+type PanicError struct {
+	Value any
+	Stack []byte
 }
 
-type options struct {
-	handler HandlerFunc
-	// stackSize is the size of the stack buffer to allocate
-	stackSize int
+// Error returns a description of the recovered panic.
+func (e *PanicError) Error() string {
+	return fmt.Sprintf("event recovery: panic: %v", e.Value)
 }
 
-type Option func(*options)
-
-// WithHandler sets a custom panic recovery handler
-func WithHandler(h HandlerFunc) Option {
-	return func(o *options) {
-		if h != nil {
-			o.handler = h
-		}
-	}
+// Unwrap returns the recovered value when it is an error.
+func (e *PanicError) Unwrap() error {
+	err, _ := e.Value.(error)
+	return err
 }
 
-// WithStackSize sets the size of the stack trace buffer
-func WithStackSize(size int) Option {
-	return func(o *options) {
-		if size > 0 {
-			o.stackSize = size
-		}
-	}
-}
-
-// New creates a new recovery middleware
-func New(opts ...Option) event.Middleware {
-	o := &options{
-		handler:   DefaultHandler,
-		stackSize: 4 << 10, //nolint:mnd // 4KB default stack size
-	}
-	for _, opt := range opts {
-		opt(o)
-	}
-
-	return func(next event.Handler) event.Handler {
-		return func(ctx context.Context, event any) (err error) {
+// New creates middleware that converts panics into PanicError values. New does
+// not log, emit metrics, or report alerts; those concerns belong to outer
+// middleware or the Dispatch caller.
+func New(options ...Option) event.Middleware {
+	c := newConfig(options...)
+	return func(next event.Next) event.Next {
+		return func(ctx context.Context, value any) (err error) {
 			defer func() {
-				if r := recover(); r != nil {
-					stack := make([]byte, o.stackSize)
+				if recovered := recover(); recovered != nil {
+					stack := make([]byte, c.stackSize)
 					stack = stack[:runtime.Stack(stack, false)]
-					o.handler(ctx, event, r, stack)
-
-					// Convert panic to error
-					err = fmt.Errorf("panic recovered: %v", r)
+					err = &PanicError{Value: recovered, Stack: stack}
 				}
 			}()
-			return next(ctx, event)
+			return next(ctx, value)
 		}
 	}
 }

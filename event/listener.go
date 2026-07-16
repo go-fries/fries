@@ -2,43 +2,69 @@ package event
 
 import (
 	"context"
+	"reflect"
 )
 
-type Listener[T any] interface {
-	Handle(ctx context.Context, event T) error
+// Handler handles events of type T.
+type Handler[T any] interface {
+	Handle(context.Context, T) error
 }
 
-type AnyListener interface {
-	Handle(ctx context.Context, event any) error
+// HandlerFunc adapts a function to [Handler].
+type HandlerFunc[T any] func(context.Context, T) error
+
+// Handle calls f with ctx and value.
+func (f HandlerFunc[T]) Handle(ctx context.Context, value T) error {
+	return f(ctx, value)
 }
 
-// listenerAdapter adapts a Listener[T] to an AnyListener.
-type listenerAdapter[T any] struct {
-	L Listener[T]
+// Listener is a type-aware handler accepted by [Dispatcher.Subscribe]. Listener
+// values are created by [HandlerFor].
+type Listener interface {
+	definition() listenerDefinition
 }
 
-// AdaptListener adapts a Listener[T] to an AnyListener.
-func AdaptListener[T any](l Listener[T]) AnyListener {
-	return &listenerAdapter[T]{L: l}
+type listenerDefinition struct {
+	typeOf reflect.Type
+	next   Next
 }
 
-func (a *listenerAdapter[T]) Handle(ctx context.Context, event any) error {
-	if e, ok := event.(T); ok {
-		return a.L.Handle(ctx, e)
+type typedListener[T any] struct {
+	handler Handler[T]
+}
+
+func (l typedListener[T]) definition() listenerDefinition {
+	return listenerDefinition{
+		typeOf: reflect.TypeFor[T](),
+		next: func(ctx context.Context, value any) error {
+			return l.handler.Handle(ctx, value.(T))
+		},
 	}
-	return nil
 }
 
-// ListenerFunc is a function type that implements the Listener interface.
-type ListenerFunc[T any] func(ctx context.Context, event T) error
-
-var _ Listener[string] = ListenerFunc[string](nil)
-
-func (f ListenerFunc[T]) Handle(ctx context.Context, event T) error {
-	return f(ctx, event)
+// HandlerFor adapts handler to a [Listener] for the exact concrete type T.
+// HandlerFor panics if T is an interface type or handler is nil.
+func HandlerFor[T any](handler Handler[T]) Listener {
+	typeOf := reflect.TypeFor[T]()
+	if typeOf.Kind() == reflect.Interface {
+		panic("event: handler event type must not be an interface")
+	}
+	if isNilHandler(handler) {
+		panic("event: nil handler")
+	}
+	return typedListener[T]{handler: handler}
 }
 
-// AdaptListenerFunc adapts a function to the Listener interface.
-func AdaptListenerFunc[T any](f func(ctx context.Context, event T) error) AnyListener {
-	return AdaptListener(ListenerFunc[T](f))
+func isNilHandler[T any](handler Handler[T]) bool {
+	if handler == nil {
+		return true
+	}
+	value := reflect.ValueOf(handler)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+		reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }

@@ -3,47 +3,55 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/go-fries/fries/event/middleware/recovery/v4"
 	"github.com/go-fries/fries/event/v4"
 )
 
-func main() {
-	dispatcher := event.NewDispatcher(event.WithoutError(), event.WithParallel(1))
-
-	// Use middleware
-	dispatcher.Use(
-		recovery.New(),
-	)
-
-	dispatcher.RegisterListeners(
-		event.AdaptListener(event.ListenerFunc[*UserEvent](func(_ context.Context, event *UserEvent) error {
-			fmt.Println("this is user func listener, the name is", event.Name)
-			return nil
-		})),
-		event.AdaptListenerFunc(func(_ context.Context, event *UserEvent) error {
-			fmt.Println("this is user func listener, the name is", event.Name)
-			return nil
-		}),
-		event.AdaptListener(&UserListener{}),
-	)
-
-	if err := dispatcher.Dispatch(context.Background(), &UserEvent{Name: "z"},
-		event.WithDispatchWithError()); err != nil {
-		fmt.Println(err)
-	}
-
-	// Wait for all listeners to finish processing
-	dispatcher.Wait()
-}
-
-type UserEvent struct {
+type userCreated struct {
 	Name string
 }
 
-type UserListener struct{}
+type welcomeHandler struct{}
 
-func (u *UserListener) Handle(_ context.Context, event *UserEvent) error {
-	fmt.Println("this is user struct listener, the name is", event.Name)
+func (welcomeHandler) Handle(_ context.Context, value userCreated) error {
+	fmt.Println("welcome", value.Name)
 	return nil
+}
+
+func logging(next event.Next) event.Next {
+	return func(ctx context.Context, value any) error {
+		err := next(ctx, value)
+		if err != nil {
+			slog.ErrorContext(ctx, "event handler failed", "event", value, "error", err)
+		}
+		return err
+	}
+}
+
+func main() {
+	dispatcher := event.New(
+		event.WithMiddleware(logging, recovery.New()),
+	)
+
+	subscription := dispatcher.Subscribe(
+		event.HandlerFor[userCreated](welcomeHandler{}),
+		event.HandlerFor[userCreated](event.HandlerFunc[userCreated](
+			func(_ context.Context, value userCreated) error {
+				fmt.Println("created user", value.Name)
+				return nil
+			},
+		)),
+	)
+	defer subscription.Unsubscribe()
+
+	if err := dispatcher.Dispatch(
+		context.Background(),
+		userCreated{Name: "ZhangSan"},
+		event.WithConcurrency(2),
+		event.ContinueOnError(),
+	); err != nil {
+		slog.Error("dispatch event", "error", err)
+	}
 }

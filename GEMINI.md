@@ -73,6 +73,6 @@ type Provider interface {
 #### Event Dispatching (`event`)
 The event system is typed and middleware-friendly.
 ```go
-dispatcher := event.NewDispatcher()
+dispatcher := event.New()
 dispatcher.Dispatch(ctx, &MyEvent{...})
 ```
