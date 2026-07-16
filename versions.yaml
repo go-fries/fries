@@ -154,7 +154,6 @@ excluded-modules:
 
   # examples
   - github.com/go-fries/fries/examples/cache/v4
-  - github.com/go-fries/fries/event/example/v4 # todo: migrate to /examples
   - github.com/go-fries/fries/examples/cloudevents/amqp091/v4
   - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v4
   - github.com/go-fries/fries/examples/mysql/canal/v4
