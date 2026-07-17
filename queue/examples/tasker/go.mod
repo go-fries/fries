@@ -10,11 +10,11 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/queue/adapter/memory/v4 v4.0.0-beta.2
-	github.com/go-fries/fries/queue/v4 v4.0.0-beta.2
+	github.com/go-fries/fries/queue/adapter/memory/v4 v4.0.0-beta.3
+	github.com/go-fries/fries/queue/v4 v4.0.0-beta.3
 )
 
 require (
-	github.com/go-fries/fries/codec/v4 v4.0.0-beta.2 // indirect
-	github.com/go-fries/fries/retry/v4 v4.0.0-beta.2 // indirect
+	github.com/go-fries/fries/codec/v4 v4.0.0-beta.3 // indirect
+	github.com/go-fries/fries/retry/v4 v4.0.0-beta.3 // indirect
 )

@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/codec/v4 v4.0.0-beta.2
-	github.com/go-fries/fries/retry/v4 v4.0.0-beta.2
+	github.com/go-fries/fries/codec/v4 v4.0.0-beta.3
+	github.com/go-fries/fries/retry/v4 v4.0.0-beta.3
 	github.com/stretchr/testify v1.11.1
 )
 

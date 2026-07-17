@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/capability/v4 => ../../capability
 
 require (
-	github.com/go-fries/fries/capability/v4 v4.0.0-beta.2
+	github.com/go-fries/fries/capability/v4 v4.0.0-beta.3
 	github.com/stretchr/testify v1.11.1
 )
 
