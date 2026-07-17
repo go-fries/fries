@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/filesystem/v4 => ../
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.2
-	github.com/go-fries/fries/filesystem/v4 v4.0.0-beta.2
+	github.com/go-fries/fries/filesystem/v4 v4.0.0-beta.3
 	github.com/stretchr/testify v1.11.1
 )
 
