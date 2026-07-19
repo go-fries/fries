@@ -3,6 +3,7 @@ package health
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 type handlerConfig struct {
@@ -100,6 +101,7 @@ func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
 	w.WriteHeader(statusCode)
 	if r.Method == http.MethodHead {
 		return

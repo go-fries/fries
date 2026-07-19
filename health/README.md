@@ -43,6 +43,8 @@ if !report.Healthy() {
 The timeout is a total budget for one `Check`, not a separate timeout for each
 checker. A checker must observe the supplied Context while performing blocking
 work. The registry cannot forcibly stop a checker that ignores cancellation.
+If a checker panics, the registry records a `PanicError` for that check and
+continues running the remaining checks.
 
 ## Liveness and readiness
 

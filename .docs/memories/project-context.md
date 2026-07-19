@@ -78,6 +78,10 @@
   module intentionally does not depend on infrastructure adapters, lifecycle,
   logging, metrics, or global registries. HTTP responses hide checker errors by
   default and expose them only through an explicit handler option.
+- Health recovers checker panics at its worker boundary as structured
+  `PanicError` results, preventing a probe from terminating the process. When a
+  checker error and Context cause both occur, the result joins them so callers
+  can inspect either with `errors.Is` and `errors.As`.
 
 ## Public Module Conventions
 

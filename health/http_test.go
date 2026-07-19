@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync/atomic"
 	"testing"
 
@@ -90,15 +91,31 @@ func TestHandlerWithErrorDetails(t *testing.T) {
 func TestHandlerHead(t *testing.T) {
 	registry := health.New()
 
-	recorder := httptest.NewRecorder()
+	getRecorder := httptest.NewRecorder()
 	health.Handler(registry).ServeHTTP(
-		recorder,
+		getRecorder,
+		httptest.NewRequest(http.MethodGet, "/livez", nil),
+	)
+
+	headRecorder := httptest.NewRecorder()
+	health.Handler(registry).ServeHTTP(
+		headRecorder,
 		httptest.NewRequest(http.MethodHead, "/livez", nil),
 	)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
-	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
-	assert.Empty(t, recorder.Body.String())
+	assert.Equal(t, http.StatusOK, headRecorder.Code)
+	assert.Equal(t, "application/json", headRecorder.Header().Get("Content-Type"))
+	assert.Equal(
+		t,
+		strconv.Itoa(getRecorder.Body.Len()),
+		headRecorder.Header().Get("Content-Length"),
+	)
+	assert.Equal(
+		t,
+		getRecorder.Header().Get("Content-Length"),
+		headRecorder.Header().Get("Content-Length"),
+	)
+	assert.Empty(t, headRecorder.Body.String())
 }
 
 func TestHandlerRejectsUnsupportedMethods(t *testing.T) {

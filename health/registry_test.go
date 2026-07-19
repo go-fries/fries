@@ -183,6 +183,45 @@ func TestRegistryCheckMarksLateSuccessCanceled(t *testing.T) {
 	assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
 }
 
+func TestRegistryCheckJoinsCheckerErrorAndContextCause(t *testing.T) {
+	registry := health.New(
+		health.WithTimeout(5*time.Millisecond),
+		health.WithConcurrency(1),
+	)
+	checkErr := errors.New("check failed")
+	registry.Register("slow", health.CheckFunc(func(ctx context.Context) error {
+		<-ctx.Done()
+		return checkErr
+	}))
+
+	report := registry.Check(t.Context())
+
+	require.Len(t, report.Results, 1)
+	assert.ErrorIs(t, report.Results[0].Err, checkErr)
+	assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+}
+
+func TestRegistryCheckRecoversCheckerPanic(t *testing.T) {
+	registry := health.New(health.WithConcurrency(1))
+	panicErr := errors.New("panic")
+	registry.Register("panic", health.CheckFunc(func(context.Context) error {
+		panic(panicErr)
+	}))
+	registry.Register("healthy", health.CheckFunc(func(context.Context) error {
+		return nil
+	}))
+
+	report := registry.Check(t.Context())
+
+	require.Len(t, report.Results, 2)
+	var recovered *health.PanicError
+	require.ErrorAs(t, report.Results[0].Err, &recovered)
+	assert.Same(t, panicErr, recovered.Value)
+	assert.NotEmpty(t, recovered.Stack)
+	assert.ErrorIs(t, report.Results[0].Err, panicErr)
+	assert.NoError(t, report.Results[1].Err)
+}
+
 func TestRegistryCheckUsesSnapshot(t *testing.T) {
 	registry := health.New(health.WithConcurrency(1))
 	started := make(chan struct{}, 1)

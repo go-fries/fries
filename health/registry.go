@@ -2,7 +2,9 @@ package health
 
 import (
 	"context"
+	"errors"
 	"reflect"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -61,7 +63,7 @@ func (r *Registry) Register(name string, checker Checker) {
 
 // Check runs a snapshot of the registered checks. Checks may run concurrently,
 // but results remain in registration order. Ordinary check errors do not stop
-// other checks.
+// other checks. Checker panics are recovered as [PanicError] values.
 //
 // Check panics if the Registry or ctx is nil.
 func (r *Registry) Check(ctx context.Context) Report {
@@ -125,16 +127,32 @@ func (r *Registry) run(
 				}
 
 				startedAt := time.Now()
-				err := entries[index].checker.Check(runCtx)
+				err := runChecker(runCtx, entries[index].checker)
 				results[index].Duration = time.Since(startedAt)
-				if err == nil {
-					err = context.Cause(runCtx)
+				if cause := context.Cause(runCtx); cause != nil {
+					if err == nil {
+						err = cause
+					} else if !errors.Is(err, cause) {
+						err = errors.Join(err, cause)
+					}
 				}
 				results[index].Err = err
 			}
 		})
 	}
 	workers.Wait()
+}
+
+func runChecker(ctx context.Context, checker Checker) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = &PanicError{
+				Value: recovered,
+				Stack: debug.Stack(),
+			}
+		}
+	}()
+	return checker.Check(ctx)
 }
 
 func isNilChecker(checker Checker) bool {
