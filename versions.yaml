@@ -82,6 +82,9 @@ module-sets:
       - github.com/go-fries/fries/hashing/v4
       - github.com/go-fries/fries/hashing/md5/v4
 
+      # Health
+      - github.com/go-fries/fries/health/v4
+
       # Http
       - github.com/go-fries/fries/http/server/v4
 

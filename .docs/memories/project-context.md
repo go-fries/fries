@@ -70,6 +70,18 @@
 - Event lifecycle Provider Bootstrap installs its Dispatcher both in Context
   and as the package default. Provider Shutdown does not restore the previous
   default because repository lifecycle shutdown is treated as process exit.
+- The `health/` module runs named synchronous health checks with a shared
+  timeout, bounded concurrency, stable result order, and a standard-library
+  HTTP handler. Applications use separate Registry instances for liveness and
+  readiness; health does not cache results or run background checks.
+- Health checks adapt infrastructure clients through `CheckFunc`. The core
+  module intentionally does not depend on infrastructure adapters, lifecycle,
+  logging, metrics, or global registries. HTTP responses hide checker errors by
+  default and expose them only through an explicit handler option.
+- Health recovers checker panics at its worker boundary as structured
+  `PanicError` results, preventing a probe from terminating the process. When a
+  checker error and Context cause both occur, the result joins them so callers
+  can inspect either with `errors.Is` and `errors.As`.
 
 ## Public Module Conventions
 
