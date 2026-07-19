@@ -103,18 +103,15 @@ func TestHandlerHead(t *testing.T) {
 		httptest.NewRequest(http.MethodHead, "/livez", nil),
 	)
 
+	getContentLength, err := strconv.Atoi(getRecorder.Header().Get("Content-Length"))
+	require.NoError(t, err)
+	assert.Equal(t, getRecorder.Body.Len(), getContentLength)
+
 	assert.Equal(t, http.StatusOK, headRecorder.Code)
 	assert.Equal(t, "application/json", headRecorder.Header().Get("Content-Type"))
-	assert.Equal(
-		t,
-		strconv.Itoa(getRecorder.Body.Len()),
-		headRecorder.Header().Get("Content-Length"),
-	)
-	assert.Equal(
-		t,
-		getRecorder.Header().Get("Content-Length"),
-		headRecorder.Header().Get("Content-Length"),
-	)
+	headContentLength, err := strconv.Atoi(headRecorder.Header().Get("Content-Length"))
+	require.NoError(t, err)
+	assert.Positive(t, headContentLength)
 	assert.Empty(t, headRecorder.Body.String())
 }
 
