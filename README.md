@@ -58,7 +58,7 @@ and internal development tools are not included.
 | MySQL | [`mysql/canal`](https://pkg.go.dev/github.com/go-fries/fries/mysql/canal/v4)<br>[`mysql/canal/positioner/redis`](https://pkg.go.dev/github.com/go-fries/fries/mysql/canal/positioner/redis/v4)<br>[`mysql/canal/server`](https://pkg.go.dev/github.com/go-fries/fries/mysql/canal/server/v4) | MySQL binlog processing with Redis position storage and server lifecycle integration. |
 | OpenTelemetry | [`otel/otlp`](https://pkg.go.dev/github.com/go-fries/fries/otel/otlp/v4) | Global OpenTelemetry provider configuration using OTLP exporters. |
 | Poll | [`poll`](https://pkg.go.dev/github.com/go-fries/fries/poll/v4) | Context-aware condition polling for eventually consistent state and asynchronous work. |
-| Ptr | [`ptr`](https://pkg.go.dev/github.com/go-fries/fries/ptr/v4) | Generic pointer construction helper. |
+| Ptr | [`ptr`](https://pkg.go.dev/github.com/go-fries/fries/ptr/v4) | Generic pointer helpers. |
 | Recovery | [`recovery`](https://pkg.go.dev/github.com/go-fries/fries/recovery/v4) | Shared panic recovery utilities. |
 | Signal | [`signal`](https://pkg.go.dev/github.com/go-fries/fries/signal/v4) | Signal handling integrated with application server lifecycles. |
 | Slices | [`slices`](https://pkg.go.dev/github.com/go-fries/fries/slices/v4) | Generic slice helpers. |
