@@ -11,8 +11,8 @@ go get github.com/go-fries/fries/http/response/v4
 
 ## Response format
 
-Every response includes an application status, a public message, and data. The
-application code is optional:
+Every response includes an application status and a public message. The
+application code and data are optional:
 
 ```json
 {
@@ -84,6 +84,51 @@ body := response.FromError(
 `FromError` uses `err.Error()` as the failure message. Do not pass database,
 network, credential, or other internal errors to it. Log those errors
 separately and use `Failure` with a public message instead.
+
+## Map application errors
+
+Use `ErrorMapper` to centralize the conversion from domain errors to HTTP
+status codes and safe response bodies:
+
+```go
+type applicationErrorMapper struct{}
+
+func (applicationErrorMapper) Map(
+	_ context.Context,
+	err error,
+) (int, response.Body) {
+	switch {
+	case err == nil:
+		return http.StatusOK, response.FromError(nil)
+
+	case errors.Is(err, repository.ErrNotFound):
+		return http.StatusNotFound, response.Failure(
+			"Resource not found.",
+			response.WithCode(10404),
+		)
+
+	default:
+		return http.StatusInternalServerError, response.Failure(
+			"Unable to process the request.",
+			response.WithCode(10500),
+		)
+	}
+}
+```
+
+Handlers can use the mapper without duplicating error rules:
+
+```go
+httpStatus, body := mapper.Map(r.Context(), err)
+if err := response.Write(w, httpStatus, body); err != nil {
+	slog.Error("write response", "error", err)
+}
+```
+
+`ErrorMapperFunc` adapts a function when a dedicated mapper type is
+unnecessary. Mappers should accept a nil error and return a successful
+response. Unknown errors should always use a safe fallback message rather than
+exposing `err.Error()`.
 
 Use `WithData` when a failure needs safe, structured details:
 
