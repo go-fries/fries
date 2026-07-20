@@ -28,8 +28,12 @@ application code and data are optional:
 
 `status` reports whether the application operation succeeded. It does not
 replace the HTTP status code. `code` is application-defined and is not
-automatically copied from the HTTP status code. When there is no data, `data`
-is omitted.
+automatically copied from the HTTP status code.
+
+`data` is omitted when its interface value is nil. Empty non-nil values,
+including slices, maps, strings, and numeric zero, remain in the response. A
+typed nil pointer, slice, or map stored in `data` is encoded as `null` because
+the containing interface is non-nil.
 
 ## Write a response
 

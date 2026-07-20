@@ -100,6 +100,10 @@ func TestFromError(t *testing.T) {
 func TestBodyJSON(t *testing.T) {
 	t.Parallel()
 
+	var typedNilPointer *struct{}
+	var typedNilSlice []int
+	var typedNilMap map[string]int
+
 	tests := []struct {
 		name string
 		body response.Body
@@ -114,6 +118,41 @@ func TestBodyJSON(t *testing.T) {
 			name: "keeps zero code and omits nil data",
 			body: response.Success("ok", nil, response.WithCode(0)),
 			want: `{"status":true,"code":0,"message":"ok"}`,
+		},
+		{
+			name: "keeps zero data",
+			body: response.Success("ok", 0),
+			want: `{"status":true,"message":"ok","data":0}`,
+		},
+		{
+			name: "keeps empty string data",
+			body: response.Success("ok", ""),
+			want: `{"status":true,"message":"ok","data":""}`,
+		},
+		{
+			name: "keeps empty slice data",
+			body: response.Success("ok", []int{}),
+			want: `{"status":true,"message":"ok","data":[]}`,
+		},
+		{
+			name: "keeps empty map data",
+			body: response.Success("ok", map[string]int{}),
+			want: `{"status":true,"message":"ok","data":{}}`,
+		},
+		{
+			name: "encodes typed nil pointer as null",
+			body: response.Success("ok", typedNilPointer),
+			want: `{"status":true,"message":"ok","data":null}`,
+		},
+		{
+			name: "encodes typed nil slice as null",
+			body: response.Success("ok", typedNilSlice),
+			want: `{"status":true,"message":"ok","data":null}`,
+		},
+		{
+			name: "encodes typed nil map as null",
+			body: response.Success("ok", typedNilMap),
+			want: `{"status":true,"message":"ok","data":null}`,
 		},
 	}
 

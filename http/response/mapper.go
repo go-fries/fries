@@ -22,5 +22,8 @@ func (f ErrorMapperFunc) Map(
 	ctx context.Context,
 	err error,
 ) (httpStatus int, body Body) {
+	if f == nil {
+		panic("response: nil error mapper function")
+	}
 	return f(ctx, err)
 }

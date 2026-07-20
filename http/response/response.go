@@ -4,7 +4,8 @@ package response
 //
 // Status reports whether the application operation succeeded. Code is an
 // optional application-defined code and does not represent the HTTP status
-// code. Data is omitted when it is nil.
+// code. Data is omitted when its interface value is nil. A typed nil stored in
+// Data is encoded as null.
 type Body struct {
 	Status  bool   `json:"status"`
 	Code    *int   `json:"code,omitempty"`

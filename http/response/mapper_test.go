@@ -64,9 +64,13 @@ func TestErrorMapperFuncPanicsWhenNil(t *testing.T) {
 
 	var mapper response.ErrorMapperFunc
 
-	assert.Panics(t, func() {
-		_, _ = mapper.Map(t.Context(), errors.New("failure"))
-	})
+	assert.PanicsWithValue(
+		t,
+		"response: nil error mapper function",
+		func() {
+			_, _ = mapper.Map(t.Context(), errors.New("failure"))
+		},
+	)
 }
 
 var _ response.ErrorMapper = response.ErrorMapperFunc(nil)
