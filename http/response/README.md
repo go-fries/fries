@@ -71,6 +71,20 @@ if err := response.Write(w, http.StatusNotFound, body); err != nil {
 }
 ```
 
+For errors that are already safe to expose, `FromError` converts a nil error
+to a successful response and a non-nil error to a failed response:
+
+```go
+body := response.FromError(
+	err,
+	response.WithCode(10422),
+)
+```
+
+`FromError` uses `err.Error()` as the failure message. Do not pass database,
+network, credential, or other internal errors to it. Log those errors
+separately and use `Failure` with a public message instead.
+
 Use `WithData` when a failure needs safe, structured details:
 
 ```go

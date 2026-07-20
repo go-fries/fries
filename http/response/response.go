@@ -35,3 +35,15 @@ func Failure(message string, options ...Option) Body {
 		Data:    c.data,
 	}
 }
+
+// FromError returns a successful response when err is nil. Otherwise, it
+// returns a failed response using err.Error() as the message.
+//
+// FromError does not infer an HTTP status code or application code. Only pass
+// errors whose messages are safe to expose to API callers.
+func FromError(err error, options ...Option) Body {
+	if err == nil {
+		return Success("", nil, options...)
+	}
+	return Failure(err.Error(), options...)
+}
