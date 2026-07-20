@@ -29,7 +29,7 @@ application code is optional:
 `status` reports whether the application operation succeeded. It does not
 replace the HTTP status code. `code` is application-defined and is not
 automatically copied from the HTTP status code. When there is no data, `data`
-is encoded as `null`.
+is omitted.
 
 ## Write a response
 
@@ -104,4 +104,3 @@ c.JSON(
 ```
 
 Framework-specific adapters are not required.
-

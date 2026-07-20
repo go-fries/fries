@@ -48,14 +48,14 @@ func TestBodyJSON(t *testing.T) {
 		want string
 	}{
 		{
-			name: "omits unset code and keeps nil data",
+			name: "omits unset code and nil data",
 			body: response.Success("ok", nil),
-			want: `{"status":true,"message":"ok","data":null}`,
+			want: `{"status":true,"message":"ok"}`,
 		},
 		{
-			name: "keeps zero code",
+			name: "keeps zero code and omits nil data",
 			body: response.Success("ok", nil, response.WithCode(0)),
-			want: `{"status":true,"code":0,"message":"ok","data":null}`,
+			want: `{"status":true,"code":0,"message":"ok"}`,
 		},
 	}
 
