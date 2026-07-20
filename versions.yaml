@@ -124,6 +124,9 @@ module-sets:
       # Poll
       - github.com/go-fries/fries/poll/v4
 
+      # Ptr
+      - github.com/go-fries/fries/ptr/v4
+
       # Recovery
       - github.com/go-fries/fries/recovery/v4
 
