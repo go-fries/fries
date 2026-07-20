@@ -175,27 +175,6 @@ func DefaultWithFunc[T comparable](value T, callbacks ...func() T) T {
 	return zero
 }
 
-// Ptr returns a pointer to the value.
-//
-//	Ptr("foo") // *string("foo")
-//	Ptr(1) // *int(1)
-func Ptr[T any](value T) *T {
-	return &value
-}
-
-// Val returns the value of the pointer.
-// If the pointer is nil, return the zero value.
-//
-//	Val((*string)(nil)) // ""
-//	Val(Ptr("foo")) // "foo"
-func Val[T any](value *T) T {
-	if value != nil {
-		return *value
-	}
-	var zero T
-	return zero
-}
-
 // IsType returns true if the value is the type.
 //
 //	IsType[int](1) // true

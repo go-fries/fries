@@ -236,11 +236,12 @@ func TestOptional(t *testing.T) {
 	var nilStructVal *nilStruct
 	assert.Nil(t, Optional(nilStructVal).nilField)
 	assert.Nil(t, Optional(Optional(nilStructVal).nilField).nilField)
+	value := 10
 	valStructVal := &nilStruct{
 		nilField: &struct {
 			nilField *int
 		}{
-			nilField: Ptr(10),
+			nilField: &value,
 		},
 	}
 	assert.Equal(t, 10, *Optional(valStructVal).nilField.nilField)
@@ -366,47 +367,6 @@ func TestDefaultWithFunc(t *testing.T) {
 		return 0
 	})
 	assert.Equal(t, 0, got6)
-}
-
-func TestPtrAndVal(t *testing.T) {
-	// string
-	got := Ptr("foo")
-	assert.Equal(t, "foo", *got)
-	assert.Equal(t, "foo", Val(got))
-
-	// int
-	got2 := Ptr(10)
-	assert.Equal(t, 10, *got2)
-	assert.Equal(t, 10, Val(got2))
-
-	// struct
-	got3 := Ptr(foo{Name: "bar"})
-	assert.Equal(t, "bar", got3.Name)
-	assert.Equal(t, "bar", Val(got3).Name)
-
-	// time.Time
-	now := time.Now()
-	got4 := Ptr(now)
-	assert.Equal(t, now.String(), got4.String())
-	assert.Equal(t, now.String(), Val(got4).String())
-
-	// nil
-	got5 := Ptr[*int](nil)
-	assert.Nil(t, *got5)
-
-	// nil val
-	var nilVal *int
-	got6 := Val(nilVal)
-	assert.Equal(t, 0, got6)
-
-	// zero value
-	got7 := Ptr(0)
-	assert.Equal(t, 0, *got7)
-	assert.Equal(t, 0, Val(got7))
-
-	got8 := Ptr("")
-	assert.Equal(t, "", *got8)
-	assert.Equal(t, "", Val(got8))
 }
 
 type testInterface interface {
