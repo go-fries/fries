@@ -86,6 +86,7 @@ module-sets:
       - github.com/go-fries/fries/health/v4
 
       # Http
+      - github.com/go-fries/fries/http/response/v4
       - github.com/go-fries/fries/http/server/v4
 
       # JSON-RPC
