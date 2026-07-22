@@ -10,7 +10,7 @@ replace (
 )
 
 require (
-	github.com/cloudwego/eino v0.9.12
+	github.com/cloudwego/eino v0.9.13
 	github.com/go-fries/fries/eino/components/embedding/cached/cacher/redis/v4 v4.0.0-beta.3
 	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0-beta.3
 	github.com/redis/go-redis/v9 v9.21.0
