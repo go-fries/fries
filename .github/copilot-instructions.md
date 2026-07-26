@@ -65,10 +65,10 @@ This is a multi-module repository with the following organization:
 - `ent/` - Ent ORM utilities
 - `filesystem/` - File system abstractions (local, S3, OSS)
 
-### Examples
-- `examples/cache/` - Cache usage example
-- `examples/otel/otlp/` - OpenTelemetry example
-- `examples/cloudevents/` - CloudEvents examples
+### Documentation and Examples
+- Component README files describe installation and common usage
+- Package-local `example_test.go` files provide compile-checked Go documentation examples
+- Integration tests live beside the component they exercise and should honor `testing.Short()`
 
 ## Validation
 
@@ -80,7 +80,7 @@ This is a multi-module repository with the following organization:
 4. **Integration testing**: Only in CI environment with services
 
 **Manual Testing Scenarios:**
-- Build and run example applications in `examples/` directory: `cd examples/cache && go build .` (builds successfully, requires Redis to run)
+- Run package-local examples with the corresponding module test target
 - Test that imports work with module functionality: Create a simple test program importing key modules like `strings/v4` and `support/v4`
 - Validate module interfaces haven't broken by spot-checking key modules like `support`, `strings`, `errors`
 - Run example test: `cd /tmp && mkdir test_app && cd test_app && go mod init test && echo 'package main; import "github.com/go-fries/fries/strings/v4"; func main() { println(strings.MD5("test")) }' > main.go` then `go mod tidy && go run main.go`
