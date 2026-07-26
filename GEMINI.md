@@ -18,7 +18,7 @@
 *   **`filesystem/`**: Abstraction for file storage (Local, S3, OSS).
 *   **`crontab/`**: Cron job scheduling.
 *   **`internal/`**: Internal shared utilities and tools.
-*   **`examples/`**: Usage examples for various components.
+*   **Component README and `example_test.go` files**: Usage examples that stay close to the APIs they document.
 
 ## Development & Usage
 

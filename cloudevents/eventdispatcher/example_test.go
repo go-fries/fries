@@ -1,15 +1,4 @@
-# Event Dispatcher for CloudEvents
-
-## Installation
-
-```bash
-go get github.com/go-fries/fries/cloudevents/eventdispatcher/v4
-```
-
-## Usage
-
-```go
-package main
+package eventdispatcher_test
 
 import (
 	"context"
@@ -23,13 +12,13 @@ type userCreated struct {
 	UserID string `json:"user_id"`
 }
 
-func main() {
+func ExampleDispatcher() {
 	dispatcher := eventdispatcher.NewDispatcher()
 	dispatcher.AddListener(
 		"user.created",
 		eventdispatcher.ListenerFunc[userCreated](
 			func(_ context.Context, event userCreated) error {
-				fmt.Printf("created user: %s\n", event.UserID)
+				fmt.Println("created user:", event.UserID)
 				return nil
 			},
 		),
@@ -49,5 +38,7 @@ func main() {
 	if err := dispatcher.Dispatch(context.Background(), event); err != nil {
 		panic(err)
 	}
+
+	// Output:
+	// created user: 123
 }
-```

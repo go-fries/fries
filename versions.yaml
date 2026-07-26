@@ -160,9 +160,5 @@ excluded-modules:
   - github.com/go-fries/fries/internal/tools/v4
 
   # examples
-  - github.com/go-fries/fries/examples/cache/v4
-  - github.com/go-fries/fries/examples/cloudevents/amqp091/v4
-  - github.com/go-fries/fries/examples/cloudevents/eventdispatcher/v4
-  - github.com/go-fries/fries/examples/mysql/canal/v4
   - github.com/go-fries/fries/queue/examples/tasker/v4
   - github.com/go-fries/fries/eino/components/embedding/cached/example/v4

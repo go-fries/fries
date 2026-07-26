@@ -40,6 +40,16 @@ For public modules:
 
 Public modules should be usable from Go documentation alone. README files should focus on installation, common usage, and behavior that is not obvious from type signatures.
 
+## Examples
+
+Keep examples close to the APIs they document:
+
+- put common usage and required setup in the component README
+- use package-local `example_test.go` files for compile-checked Go documentation examples
+- keep external-service scenarios in integration tests beside the component and honor `testing.Short()`
+
+Avoid standalone example modules unless the example has an independent release or dependency lifecycle that cannot be represented clearly inside the component.
+
 ## Component Configuration
 
 Configuration state and option parsing should live in a package-local `config.go` when a component has configurable behavior.
