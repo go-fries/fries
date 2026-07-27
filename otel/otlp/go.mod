@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/go-fries/fries/lifecycle/v4 => ../../lifecycle
 
 require (
-	github.com/go-fries/fries/lifecycle/v4 v4.0.0-beta.3
+	github.com/go-fries/fries/lifecycle/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/host v0.69.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.69.0
