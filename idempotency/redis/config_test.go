@@ -12,12 +12,7 @@ func TestNew(t *testing.T) {
 		New(nil)
 	})
 
-	var client *goredis.Client
-	assert.Panics(t, func() {
-		New(client)
-	})
-
-	client = goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
+	client := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
 	t.Cleanup(func() { _ = client.Close() })
 	store := New(client, nil, WithPrefix("billing:idempotency::"))
 	assert.Equal(t, "billing:idempotency:", store.prefix)

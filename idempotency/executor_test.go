@@ -32,11 +32,6 @@ func TestNewPanicsWithNilStore(t *testing.T) {
 	assert.Panics(t, func() {
 		New(nil)
 	})
-
-	var store *testStore
-	assert.Panics(t, func() {
-		New(store)
-	})
 }
 
 func TestDoValidatesArguments(t *testing.T) {

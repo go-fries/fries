@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"reflect"
 )
 
 // Handler is an idempotent business operation.
@@ -22,26 +21,12 @@ type Executor struct {
 //
 // New panics if store is nil.
 func New(store Store, options ...Option) *Executor {
-	if isNilStore(store) {
+	if store == nil {
 		panic("idempotency: nil store")
 	}
 	return &Executor{
 		store:  store,
 		config: newConfig(options...),
-	}
-}
-
-func isNilStore(store Store) bool {
-	if store == nil {
-		return true
-	}
-	value := reflect.ValueOf(store)
-	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
-		reflect.Pointer, reflect.Slice:
-		return value.IsNil()
-	default:
-		return false
 	}
 }
 

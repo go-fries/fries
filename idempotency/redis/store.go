@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/go-fries/fries/idempotency/v4"
@@ -84,27 +83,13 @@ var _ idempotency.Store = (*Store)(nil)
 //
 // New panics if client is nil.
 func New(client goredis.UniversalClient, options ...Option) *Store {
-	if isNilClient(client) {
+	if client == nil {
 		panic("idempotency/redis: nil client")
 	}
 	c := newConfig(options...)
 	return &Store{
 		client: client,
 		prefix: c.prefix,
-	}
-}
-
-func isNilClient(client goredis.UniversalClient) bool {
-	if client == nil {
-		return true
-	}
-	value := reflect.ValueOf(client)
-	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
-		reflect.Pointer, reflect.Slice:
-		return value.IsNil()
-	default:
-		return false
 	}
 }
 
