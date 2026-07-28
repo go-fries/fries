@@ -54,6 +54,15 @@ func TestDoValidatesArguments(t *testing.T) {
 	assert.ErrorIs(t, executor.Do(ctx, "key", func(context.Context) error {
 		return nil
 	}), expected)
+
+	expired, cancelDeadline := context.WithDeadline(
+		t.Context(),
+		time.Now().Add(-time.Second),
+	)
+	defer cancelDeadline()
+	assert.ErrorIs(t, executor.Do(expired, "key", func(context.Context) error {
+		return nil
+	}), context.DeadlineExceeded)
 }
 
 func TestDoHandlesExistingStates(t *testing.T) {
