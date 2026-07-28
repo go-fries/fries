@@ -1,10 +1,10 @@
 // Package idempotency coordinates idempotent business operations through an
-// atomic Store.
+// atomic [Store].
 //
-// An Executor claims a key before running a Handler. DoValue additionally
+// An [Executor] claims a key before running a [Handler]. [DoValue] additionally
 // persists and replays typed results. Concurrent callers for the same key
-// receive ErrInProgress, while calls made after successful completion return
-// without running the Handler again. Optional fingerprints detect reuse of a
+// receive [ErrInProgress], while calls made after successful completion return
+// without running the handler again. Optional fingerprints detect reuse of a
 // key for different input.
 //
 // The package does not provide exactly-once execution. Applications should

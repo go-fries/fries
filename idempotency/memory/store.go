@@ -17,6 +17,7 @@ type record struct {
 }
 
 // Store keeps idempotency records in process memory.
+// A Store is safe for concurrent use.
 type Store struct {
 	mu      sync.Mutex
 	records map[string]record
@@ -25,7 +26,7 @@ type Store struct {
 
 var _ idempotency.Store = (*Store)(nil)
 
-// New creates an empty Store.
+// New creates an empty [Store].
 func New() *Store {
 	return &Store{
 		records: make(map[string]record),

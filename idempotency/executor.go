@@ -12,13 +12,13 @@ import (
 // Handler is an idempotent business operation.
 type Handler func(context.Context) error
 
-// Executor coordinates Handler execution through a Store.
+// Executor coordinates [Handler] execution through a [Store].
 type Executor struct {
 	store  Store
 	config config
 }
 
-// New creates an Executor.
+// New creates an [Executor].
 //
 // New panics if store is nil.
 func New(store Store, options ...Option) *Executor {
@@ -34,15 +34,15 @@ func New(store Store, options ...Option) *Executor {
 // Do runs handler after atomically claiming key.
 //
 // A completed key returns nil without running handler. An active claim returns
-// ErrInProgress. A fingerprint mismatch returns ErrKeyConflict.
+// [ErrInProgress]. A fingerprint mismatch returns [ErrKeyConflict].
 //
-// Handler failures are followed by an attempt to abort the claim. Complete and
-// Abort use a detached timeout context that preserves values from ctx. Do does
-// not recover Handler panics; the claim remains until its execution TTL
-// expires.
+// Failures returned by handler are followed by an attempt to abort the claim.
+// [Store.Complete] and [Store.Abort] use a detached timeout context that
+// preserves values from ctx. Do does not recover handler panics; the claim
+// remains until its execution TTL expires.
 //
-// A nil ctx returns ErrInvalidContext, and an empty key returns ErrInvalidKey.
-// Do panics if handler is nil.
+// A nil ctx returns [ErrInvalidContext], and an empty key returns
+// [ErrInvalidKey]. Do panics if handler is nil.
 func (e *Executor) Do(
 	ctx context.Context,
 	key string,

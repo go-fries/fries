@@ -72,6 +72,7 @@ return redis.call("del", KEYS[1])
 )
 
 // Store keeps idempotency records in Redis.
+// A Store is safe for concurrent use.
 type Store struct {
 	client goredis.UniversalClient
 	prefix string
@@ -79,7 +80,7 @@ type Store struct {
 
 var _ idempotency.Store = (*Store)(nil)
 
-// New creates a Redis-backed Store.
+// New creates a Redis-backed [Store].
 //
 // New panics if client is nil.
 func New(client goredis.UniversalClient, options ...Option) *Store {

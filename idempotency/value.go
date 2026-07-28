@@ -9,9 +9,9 @@ import (
 // ValueHandler is an idempotent business operation that returns a value.
 type ValueHandler[T any] func(context.Context) (T, error)
 
-// Result describes a value produced or replayed by DoValue.
+// Result describes a value produced or replayed by [DoValue].
 type Result[T any] struct {
-	// Value is the value returned by the ValueHandler or decoded from a
+	// Value is the value returned by the [ValueHandler] or decoded from a
 	// completed record.
 	Value T
 	// Replayed reports whether Value came from a completed record.
@@ -21,17 +21,17 @@ type Result[T any] struct {
 // DoValue runs handler after atomically claiming key or returns the value
 // stored by a previous successful execution.
 //
-// A completed key is decoded with the Executor codec and returned with
-// Result.Replayed set to true. An active claim returns ErrInProgress, and a
-// fingerprint mismatch returns ErrKeyConflict.
+// A completed key is decoded with the [Executor] codec and returned with
+// [Result.Replayed] set to true. An active claim returns [ErrInProgress], and a
+// fingerprint mismatch returns [ErrKeyConflict].
 //
-// Handler failures abort the claim. Encoding failures leave the claim in
-// progress until its execution TTL expires because the Handler may already
-// have produced business side effects. Complete failures return the value
-// produced by the Handler together with the Store error.
+// Failures returned by handler abort the claim. Encoding failures leave the claim in
+// progress until its execution TTL expires because the handler may already
+// have produced business side effects. Failures from [Store.Complete] return
+// the value produced by the handler together with the store error.
 //
-// A nil ctx returns ErrInvalidContext, and an empty key returns ErrInvalidKey.
-// DoValue panics if executor or handler is nil.
+// A nil ctx returns [ErrInvalidContext], and an empty key returns
+// [ErrInvalidKey]. DoValue panics if executor or handler is nil.
 func DoValue[T any](
 	ctx context.Context,
 	executor *Executor,

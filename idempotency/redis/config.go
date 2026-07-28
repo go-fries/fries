@@ -8,7 +8,7 @@ type config struct {
 	prefix string
 }
 
-// Option configures a Store.
+// Option configures a [Store].
 type Option interface {
 	apply(*config)
 }

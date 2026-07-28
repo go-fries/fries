@@ -1,5 +1,5 @@
-// Package memory provides an in-process Store for idempotent operations.
+// Package memory provides an in-process idempotency store.
 //
-// Records are lost when the process exits. The Store is concurrency-safe,
+// Records are lost when the process exits. [Store] is safe for concurrent use,
 // expires records lazily, and does not start background goroutines.
 package memory

@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// BeginStatus describes the outcome of a Store.Begin operation.
+// BeginStatus describes the outcome of a [Store.Begin] operation.
+// The zero value is invalid.
 type BeginStatus uint8
 
 const (
@@ -19,42 +20,72 @@ const (
 
 // BeginRequest contains the data required to claim an idempotency key.
 type BeginRequest struct {
-	Key         string
-	Token       string
+	// Key identifies the idempotent operation.
+	Key string
+	// Token uniquely identifies the caller's execution claim.
+	Token string
+	// Fingerprint identifies the operation input. An empty fingerprint disables
+	// conflict detection.
 	Fingerprint string
-	TTL         time.Duration
+	// TTL controls how long the execution claim remains active.
+	TTL time.Duration
 }
 
 // BeginResult reports the current state of an idempotency key.
-//
-// Result contains the stored result when Status is BeginCompleted. Executor.Do
-// ignores Result, while DoValue decodes it into the requested value type.
 type BeginResult struct {
+	// Status reports whether the claim was acquired, remains in progress, or
+	// has already completed.
 	Status BeginStatus
+	// Result contains the stored result when Status is [BeginCompleted].
+	// [Executor.Do] ignores Result, while [DoValue] decodes it into the requested
+	// value type.
 	Result []byte
 }
 
 // CompleteRequest contains the data required to complete an execution claim.
 type CompleteRequest struct {
-	Key    string
-	Token  string
+	// Key identifies the idempotent operation.
+	Key string
+	// Token identifies the execution claim to complete.
+	Token string
+	// Result contains the encoded value to persist.
 	Result []byte
-	TTL    time.Duration
+	// TTL controls how long the completed record remains available.
+	TTL time.Duration
 }
 
-// AbortRequest identifies an execution claim to remove after a failed Handler.
+// AbortRequest identifies an execution claim to remove after a failed
+// [Handler].
 type AbortRequest struct {
-	Key   string
+	// Key identifies the idempotent operation.
+	Key string
+	// Token identifies the execution claim to abort.
 	Token string
 }
 
 // Store atomically coordinates execution claims and completed results.
 //
-// Implementations must linearize operations for the same key. Complete and
-// Abort must return ErrClaimLost when the supplied token no longer owns an
-// active claim.
+// Implementations must be safe for concurrent use and linearize operations for
+// the same key. [Store.Complete] and [Store.Abort] must return [ErrClaimLost]
+// when the supplied token no longer owns an active claim.
 type Store interface {
+	// Begin atomically creates an execution claim for a missing or expired key,
+	// or reports the current state of an existing record.
+	//
+	// Begin returns [ErrKeyConflict] when a non-empty fingerprint differs from
+	// the fingerprint stored for the key.
 	Begin(context.Context, BeginRequest) (BeginResult, error)
+
+	// Complete atomically replaces an active claim with a completed record.
+	//
+	// The claim must be owned by the request token. Complete returns
+	// [ErrClaimLost] when the claim expired, was replaced, or is no longer
+	// active.
 	Complete(context.Context, CompleteRequest) error
+
+	// Abort atomically removes an active claim after execution fails.
+	//
+	// The claim must be owned by the request token. Abort returns [ErrClaimLost]
+	// when the claim expired, was replaced, or is no longer active.
 	Abort(context.Context, AbortRequest) error
 }
