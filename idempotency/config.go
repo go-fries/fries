@@ -32,7 +32,7 @@ func (f optionFunc) apply(c *config) {
 }
 
 // WithFinalizationTimeout sets the time available to complete or abort a
-// claim after [Handler] execution. Non-positive values are ignored.
+// claim. Non-positive values are ignored.
 func WithFinalizationTimeout(timeout time.Duration) Option {
 	return optionFunc(func(c *config) {
 		if timeout > 0 {
@@ -72,7 +72,7 @@ type executeConfig struct {
 	fingerprint  string
 }
 
-// ExecuteOption configures one [Executor.Do] call.
+// ExecuteOption configures one [Executor.Do] or [DoValue] call.
 type ExecuteOption interface {
 	applyExecute(*executeConfig)
 }
@@ -84,7 +84,7 @@ func (f executeOptionFunc) applyExecute(c *executeConfig) {
 }
 
 // ExecutionTTLOption configures the execution claim TTL for an [Executor] or
-// one [Executor.Do] call.
+// one [Executor.Do] or [DoValue] call.
 type ExecutionTTLOption interface {
 	Option
 	ExecuteOption
@@ -110,14 +110,15 @@ func (o executionTTLOption) applyExecute(c *executeConfig) {
 func (executionTTLOption) executionTTLOption() {}
 
 // WithExecutionTTL sets the execution claim TTL. When passed to [New] it
-// changes the [Executor] default; when passed to [Executor.Do] it overrides
-// that default for the current call. Non-positive values are ignored.
+// changes the [Executor] default; when passed to [Executor.Do] or [DoValue] it
+// overrides that default for the current call. Non-positive values are
+// ignored.
 func WithExecutionTTL(ttl time.Duration) ExecutionTTLOption {
 	return executionTTLOption{ttl: ttl}
 }
 
 // ResultTTLOption configures the completed record TTL for an [Executor] or one
-// [Executor.Do] call.
+// [Executor.Do] or [DoValue] call.
 type ResultTTLOption interface {
 	Option
 	ExecuteOption
@@ -143,8 +144,9 @@ func (o resultTTLOption) applyExecute(c *executeConfig) {
 func (resultTTLOption) resultTTLOption() {}
 
 // WithResultTTL sets the completed record TTL. When passed to [New] it changes
-// the [Executor] default; when passed to [Executor.Do] it overrides that
-// default for the current call. Non-positive values are ignored.
+// the [Executor] default; when passed to [Executor.Do] or [DoValue] it
+// overrides that default for the current call. Non-positive values are
+// ignored.
 func WithResultTTL(ttl time.Duration) ResultTTLOption {
 	return resultTTLOption{ttl: ttl}
 }

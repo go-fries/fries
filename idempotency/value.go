@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+
+	"github.com/go-fries/fries/codec/v4"
 )
 
-// ValueHandler is an idempotent business operation that returns a value.
+// ValueHandler is a business operation guarded by an [Executor] that returns a
+// value.
 type ValueHandler[T any] func(context.Context) (T, error)
 
 // Result describes a value produced or replayed by [DoValue].
@@ -25,10 +29,11 @@ type Result[T any] struct {
 // [Result.Replayed] set to true. An active claim returns [ErrInProgress], and a
 // fingerprint mismatch returns [ErrKeyConflict].
 //
-// Failures returned by handler abort the claim. Encoding failures leave the claim in
-// progress until its execution TTL expires because the handler may already
-// have produced business side effects. Failures from [Store.Complete] return
-// the value produced by the handler together with the store error.
+// Failures returned by handler abort the claim.
+// Encoding failures leave the claim in progress until its execution TTL
+// expires because the handler may already have produced business side effects.
+// Failures from [Store.Complete] return the value produced by the handler
+// together with the store error.
 //
 // A nil ctx returns [ErrInvalidContext], and an empty key returns
 // [ErrInvalidKey]. DoValue panics if executor or handler is nil.
@@ -55,9 +60,11 @@ func DoValue[T any](
 	}
 	if begin.replayed {
 		result := Result[T]{Replayed: true}
-		if err := executor.config.codec.Unmarshal(begin.result, &result.Value); err != nil {
+		value, err := decodeValue[T](executor.config.codec, begin.result)
+		if err != nil {
 			return result, fmt.Errorf("idempotency: decode result: %w", err)
 		}
+		result.Value = value
 		return result, nil
 	}
 
@@ -75,4 +82,19 @@ func DoValue[T any](
 		return result, err
 	}
 	return result, nil
+}
+
+func decodeValue[T any](valueCodec codec.Codec, data []byte) (T, error) {
+	var value T
+	valueType := reflect.TypeFor[T]()
+	if valueType.Kind() != reflect.Pointer {
+		return value, valueCodec.Unmarshal(data, &value)
+	}
+
+	destination := reflect.New(valueType.Elem())
+	if err := valueCodec.Unmarshal(data, destination.Interface()); err != nil {
+		return value, err
+	}
+	reflect.ValueOf(&value).Elem().Set(destination.Convert(valueType))
+	return value, nil
 }

@@ -2,6 +2,7 @@ package idempotency
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -56,6 +57,58 @@ func TestDoValueExecutesAndReplaysValue(t *testing.T) {
 	assert.Equal(t, first.Value, second.Value)
 	assert.True(t, second.Replayed)
 	assert.Equal(t, 1, calls)
+}
+
+func TestDoValueExecutesAndReplaysPointerValue(t *testing.T) {
+	var stored []byte
+	completed := false
+	store := unusedStore()
+	store.begin = func(context.Context, BeginRequest) (BeginResult, error) {
+		if completed {
+			return BeginResult{
+				Status: BeginCompleted,
+				Result: append([]byte(nil), stored...),
+			}, nil
+		}
+		return BeginResult{Status: BeginAcquired}, nil
+	}
+	store.complete = func(_ context.Context, request CompleteRequest) error {
+		stored = append([]byte(nil), request.Result...)
+		completed = true
+		return nil
+	}
+
+	invalidDestination := errors.New("invalid decode destination")
+	executor := New(store, WithCodec(&testCodec{
+		marshal: func(value any) ([]byte, error) {
+			typed, ok := value.(*testValue)
+			if !ok {
+				return nil, errors.New("invalid encode value")
+			}
+			return json.Marshal(typed)
+		},
+		unmarshal: func(data []byte, destination any) error {
+			typed, ok := destination.(*testValue)
+			if !ok {
+				return invalidDestination
+			}
+			return json.Unmarshal(data, typed)
+		},
+	}))
+	handler := func(context.Context) (*testValue, error) {
+		return &testValue{ID: 1, Name: "order"}, nil
+	}
+
+	first, err := DoValue(t.Context(), executor, "key", handler)
+	require.NoError(t, err)
+	assert.Equal(t, &testValue{ID: 1, Name: "order"}, first.Value)
+	assert.False(t, first.Replayed)
+
+	second, err := DoValue(t.Context(), executor, "key", handler)
+	require.NoError(t, err)
+	assert.Equal(t, first.Value, second.Value)
+	assert.NotSame(t, first.Value, second.Value)
+	assert.True(t, second.Replayed)
 }
 
 func TestDoValueValidatesArguments(t *testing.T) {

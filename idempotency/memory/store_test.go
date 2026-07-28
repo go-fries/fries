@@ -185,6 +185,47 @@ func TestStoreExpiredOwnerCannotReplaceNewClaim(t *testing.T) {
 	}), idempotency.ErrClaimLost)
 }
 
+func TestStoreCleansExpiredRecordsAcrossKeys(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	store := New()
+	store.now = func() time.Time {
+		return now
+	}
+	ctx := t.Context()
+
+	_, err := store.Begin(ctx, idempotency.BeginRequest{
+		Key:   "expired",
+		Token: "expired-owner",
+		TTL:   time.Minute,
+	})
+	require.NoError(t, err)
+	require.NoError(t, store.Complete(ctx, idempotency.CompleteRequest{
+		Key:    "expired",
+		Token:  "expired-owner",
+		Result: []byte("result"),
+		TTL:    time.Minute,
+	}))
+
+	_, err = store.Begin(ctx, idempotency.BeginRequest{
+		Key:   "active",
+		Token: "active-owner",
+		TTL:   time.Hour,
+	})
+	require.NoError(t, err)
+
+	now = now.Add(time.Minute)
+	_, err = store.Begin(ctx, idempotency.BeginRequest{
+		Key:   "new",
+		Token: "new-owner",
+		TTL:   time.Hour,
+	})
+	require.NoError(t, err)
+
+	assert.NotContains(t, store.records, "expired")
+	assert.Contains(t, store.records, "active")
+	assert.Contains(t, store.records, "new")
+}
+
 func TestStoreOnlyGrantsOneConcurrentClaim(t *testing.T) {
 	store := New()
 	ctx := t.Context()

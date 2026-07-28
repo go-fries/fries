@@ -20,14 +20,16 @@ const (
 
 // BeginRequest contains the data required to claim an idempotency key.
 type BeginRequest struct {
-	// Key identifies the idempotent operation.
+	// Key identifies the idempotent operation and must not be empty.
 	Key string
-	// Token uniquely identifies the caller's execution claim.
+	// Token uniquely identifies the caller's execution claim and must not be
+	// empty.
 	Token string
 	// Fingerprint identifies the operation input. An empty fingerprint disables
 	// conflict detection.
 	Fingerprint string
-	// TTL controls how long the execution claim remains active.
+	// TTL controls how long the execution claim remains active and must be
+	// positive.
 	TTL time.Duration
 }
 
@@ -44,22 +46,23 @@ type BeginResult struct {
 
 // CompleteRequest contains the data required to complete an execution claim.
 type CompleteRequest struct {
-	// Key identifies the idempotent operation.
+	// Key identifies the idempotent operation and must not be empty.
 	Key string
-	// Token identifies the execution claim to complete.
+	// Token identifies the execution claim to complete and must not be empty.
 	Token string
 	// Result contains the encoded value to persist.
 	Result []byte
-	// TTL controls how long the completed record remains available.
+	// TTL controls how long the completed record remains available and must be
+	// positive.
 	TTL time.Duration
 }
 
 // AbortRequest identifies an execution claim to remove after a failed
 // [Handler].
 type AbortRequest struct {
-	// Key identifies the idempotent operation.
+	// Key identifies the idempotent operation and must not be empty.
 	Key string
-	// Token identifies the execution claim to abort.
+	// Token identifies the execution claim to abort and must not be empty.
 	Token string
 }
 
@@ -68,6 +71,9 @@ type AbortRequest struct {
 // Implementations must be safe for concurrent use and linearize operations for
 // the same key. [Store.Complete] and [Store.Abort] must return [ErrClaimLost]
 // when the supplied token no longer owns an active claim.
+//
+// Methods return [ErrInvalidContext] when ctx is nil and honor context
+// cancellation.
 type Store interface {
 	// Begin atomically creates an execution claim for a missing or expired key,
 	// or reports the current state of an existing record.

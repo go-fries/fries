@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Handler is an idempotent business operation.
+// Handler is a business operation guarded by an [Executor].
 type Handler func(context.Context) error
 
 // Executor coordinates [Handler] execution through a [Store].

@@ -19,9 +19,10 @@ type record struct {
 // Store keeps idempotency records in process memory.
 // A Store is safe for concurrent use.
 type Store struct {
-	mu      sync.Mutex
-	records map[string]record
-	now     func() time.Time
+	mu          sync.Mutex
+	records     map[string]record
+	now         func() time.Time
+	nextCleanup time.Time
 }
 
 var _ idempotency.Store = (*Store)(nil)
@@ -46,18 +47,17 @@ func (s *Store) Begin(
 	defer s.mu.Unlock()
 
 	now := s.now()
+	s.cleanup(now)
 	current, exists := s.records[request.Key]
-	if exists && !now.Before(current.expiresAt) {
-		delete(s.records, request.Key)
-		exists = false
-	}
 	if !exists {
-		s.records[request.Key] = record{
+		current = record{
 			status:      idempotency.BeginInProgress,
 			token:       request.Token,
 			fingerprint: request.Fingerprint,
 			expiresAt:   now.Add(request.TTL),
 		}
+		s.records[request.Key] = current
+		s.scheduleCleanup(current.expiresAt)
 		return idempotency.BeginResult{Status: idempotency.BeginAcquired}, nil
 	}
 	if request.Fingerprint != "" && request.Fingerprint != current.fingerprint {
@@ -81,7 +81,8 @@ func (s *Store) Complete(
 	defer s.mu.Unlock()
 
 	now := s.now()
-	current, exists := s.current(request.Key, now)
+	s.cleanup(now)
+	current, exists := s.records[request.Key]
 	if !exists ||
 		current.status != idempotency.BeginInProgress ||
 		current.token != request.Token {
@@ -92,6 +93,7 @@ func (s *Store) Complete(
 	current.data = clone(request.Result)
 	current.expiresAt = now.Add(request.TTL)
 	s.records[request.Key] = current
+	s.scheduleCleanup(current.expiresAt)
 	return nil
 }
 
@@ -106,7 +108,8 @@ func (s *Store) Abort(
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	current, exists := s.current(request.Key, s.now())
+	s.cleanup(s.now())
+	current, exists := s.records[request.Key]
 	if !exists ||
 		current.status != idempotency.BeginInProgress ||
 		current.token != request.Token {
@@ -116,13 +119,25 @@ func (s *Store) Abort(
 	return nil
 }
 
-func (s *Store) current(key string, now time.Time) (record, bool) {
-	current, exists := s.records[key]
-	if exists && !now.Before(current.expiresAt) {
-		delete(s.records, key)
-		return record{}, false
+func (s *Store) cleanup(now time.Time) {
+	if s.nextCleanup.IsZero() || now.Before(s.nextCleanup) {
+		return
 	}
-	return current, exists
+
+	s.nextCleanup = time.Time{}
+	for key, current := range s.records {
+		if !now.Before(current.expiresAt) {
+			delete(s.records, key)
+			continue
+		}
+		s.scheduleCleanup(current.expiresAt)
+	}
+}
+
+func (s *Store) scheduleCleanup(expiresAt time.Time) {
+	if s.nextCleanup.IsZero() || expiresAt.Before(s.nextCleanup) {
+		s.nextCleanup = expiresAt
+	}
 }
 
 func clone(data []byte) []byte {
