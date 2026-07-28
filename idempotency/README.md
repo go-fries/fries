@@ -60,8 +60,8 @@ replayed := result.Replayed
 
 The first call encodes and stores the returned value. A completed call decodes
 the stored value, sets `Replayed` to `true`, and does not run the handler.
-Values use JSON by default. Existing Fries codecs satisfy `idempotency.Codec`
-directly:
+Values use `codec/json` by default. `WithCodec` accepts the shared
+`codec.Codec` interface:
 
 ```go
 executor := idempotency.New(

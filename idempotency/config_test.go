@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	codecjson "github.com/go-fries/fries/codec/json/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func TestCodecOption(t *testing.T) {
 	assert.Same(t, custom, c.codec)
 
 	c = newConfig(WithCodec(nil))
-	assert.IsType(t, jsonCodec{}, c.codec)
+	assert.IsType(t, codecjson.Codec{}, c.codec)
 }
 
 type testCodec struct {

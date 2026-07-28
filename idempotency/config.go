@@ -1,6 +1,11 @@
 package idempotency
 
-import "time"
+import (
+	"time"
+
+	codecjson "github.com/go-fries/fries/codec/json/v4"
+	"github.com/go-fries/fries/codec/v4"
+)
 
 const (
 	defaultExecutionTTL        = 30 * time.Second
@@ -12,7 +17,7 @@ type config struct {
 	executionTTL        time.Duration
 	resultTTL           time.Duration
 	finalizationTimeout time.Duration
-	codec               Codec
+	codec               codec.Codec
 }
 
 // Option configures an Executor.
@@ -38,10 +43,10 @@ func WithFinalizationTimeout(timeout time.Duration) Option {
 
 // WithCodec sets the codec used to persist values handled by DoValue. A nil
 // codec leaves the current codec unchanged.
-func WithCodec(codec Codec) Option {
+func WithCodec(value codec.Codec) Option {
 	return optionFunc(func(c *config) {
-		if codec != nil {
-			c.codec = codec
+		if value != nil {
+			c.codec = value
 		}
 	})
 }
@@ -51,7 +56,7 @@ func newConfig(options ...Option) config {
 		executionTTL:        defaultExecutionTTL,
 		resultTTL:           defaultResultTTL,
 		finalizationTimeout: defaultFinalizationTimeout,
-		codec:               jsonCodec{},
+		codec:               codecjson.Codec{},
 	}
 	for _, option := range options {
 		if option != nil {

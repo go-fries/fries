@@ -88,9 +88,8 @@
   key generation, or exactly-once guarantees.
 - Idempotency exposes `Executor.Do` for completion-only operations and the
   package-level generic `DoValue` for encoded result replay. `DoValue` requires
-  an explicit Executor, uses JSON by default, and accepts structurally
-  compatible Fries codecs through the component-local minimal `Codec`
-  interface.
+  an explicit Executor, uses `codec/json` by default, and accepts the shared
+  `codec.Codec` interface.
 - Idempotency execution claims use ownership tokens and a short execution TTL;
   completed records use a separate result TTL. The memory adapter is
   process-local and expires records lazily, while the Redis adapter uses Lua
