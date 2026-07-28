@@ -25,10 +25,46 @@ func ExampleExecutor_Do() {
 	// 1
 }
 
+func ExampleDoValue() {
+	executor := idempotency.New(newExampleStore())
+	calls := 0
+	handler := func(context.Context) (exampleValue, error) {
+		calls++
+		return exampleValue{ID: 123}, nil
+	}
+
+	first, _ := idempotency.DoValue(
+		context.Background(),
+		executor,
+		"orders:create:123",
+		handler,
+	)
+	second, _ := idempotency.DoValue(
+		context.Background(),
+		executor,
+		"orders:create:123",
+		handler,
+	)
+
+	fmt.Println(first.Value.ID, first.Replayed)
+	fmt.Println(second.Value.ID, second.Replayed)
+	fmt.Println(calls)
+
+	// Output:
+	// 123 false
+	// 123 true
+	// 1
+}
+
+type exampleValue struct {
+	ID int `json:"id"`
+}
+
 type exampleStore struct {
 	mu        sync.Mutex
 	token     string
 	completed bool
+	result    []byte
 }
 
 func newExampleStore() *exampleStore {
@@ -42,7 +78,10 @@ func (s *exampleStore) Begin(
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.completed {
-		return idempotency.BeginResult{Status: idempotency.BeginCompleted}, nil
+		return idempotency.BeginResult{
+			Status: idempotency.BeginCompleted,
+			Result: append([]byte(nil), s.result...),
+		}, nil
 	}
 	if s.token != "" {
 		return idempotency.BeginResult{Status: idempotency.BeginInProgress}, nil
@@ -62,6 +101,7 @@ func (s *exampleStore) Complete(
 	}
 	s.completed = true
 	s.token = ""
+	s.result = append([]byte(nil), request.Result...)
 	return nil
 }
 

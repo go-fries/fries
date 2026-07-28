@@ -28,7 +28,7 @@ type BeginRequest struct {
 // BeginResult reports the current state of an idempotency key.
 //
 // Result contains the stored result when Status is BeginCompleted. Executor.Do
-// does not interpret Result; it is reserved for typed result replay.
+// ignores Result, while DoValue decodes it into the requested value type.
 type BeginResult struct {
 	Status BeginStatus
 	Result []byte

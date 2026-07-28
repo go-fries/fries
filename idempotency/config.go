@@ -12,6 +12,7 @@ type config struct {
 	executionTTL        time.Duration
 	resultTTL           time.Duration
 	finalizationTimeout time.Duration
+	codec               Codec
 }
 
 // Option configures an Executor.
@@ -35,11 +36,22 @@ func WithFinalizationTimeout(timeout time.Duration) Option {
 	})
 }
 
+// WithCodec sets the codec used to persist values handled by DoValue. A nil
+// codec leaves the current codec unchanged.
+func WithCodec(codec Codec) Option {
+	return optionFunc(func(c *config) {
+		if codec != nil {
+			c.codec = codec
+		}
+	})
+}
+
 func newConfig(options ...Option) config {
 	c := config{
 		executionTTL:        defaultExecutionTTL,
 		resultTTL:           defaultResultTTL,
 		finalizationTimeout: defaultFinalizationTimeout,
+		codec:               jsonCodec{},
 	}
 	for _, option := range options {
 		if option != nil {

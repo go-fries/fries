@@ -1,6 +1,7 @@
 package idempotency
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -60,4 +61,32 @@ func TestInvalidExecuteOptionsKeepDefaults(t *testing.T) {
 
 	assert.Equal(t, defaultExecutionTTL, execution.executionTTL)
 	assert.Equal(t, defaultResultTTL, execution.resultTTL)
+}
+
+func TestCodecOption(t *testing.T) {
+	custom := &testCodec{}
+	c := newConfig(WithCodec(custom))
+	assert.Same(t, custom, c.codec)
+
+	c = newConfig(WithCodec(nil))
+	assert.IsType(t, jsonCodec{}, c.codec)
+}
+
+type testCodec struct {
+	marshal   func(any) ([]byte, error)
+	unmarshal func([]byte, any) error
+}
+
+func (c *testCodec) Marshal(value any) ([]byte, error) {
+	if c.marshal != nil {
+		return c.marshal(value)
+	}
+	return json.Marshal(value)
+}
+
+func (c *testCodec) Unmarshal(data []byte, value any) error {
+	if c.unmarshal != nil {
+		return c.unmarshal(data, value)
+	}
+	return json.Unmarshal(data, value)
 }

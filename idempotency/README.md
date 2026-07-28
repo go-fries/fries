@@ -38,6 +38,42 @@ The first call claims the key and runs the handler. A repeated call after
 completion returns `nil` without running the handler. If another caller still
 owns the claim, `Do` returns `idempotency.ErrInProgress`.
 
+Use `DoValue` when repeated callers need the value produced by the first
+successful execution:
+
+```go
+result, err := idempotency.DoValue(
+	ctx,
+	executor,
+	"orders:create:"+idempotencyKey,
+	func(ctx context.Context) (Order, error) {
+		return createOrder(ctx, request)
+	},
+)
+if err != nil {
+	return err
+}
+
+order := result.Value
+replayed := result.Replayed
+```
+
+The first call encodes and stores the returned value. A completed call decodes
+the stored value, sets `Replayed` to `true`, and does not run the handler.
+Values use JSON by default. Existing Fries codecs satisfy `idempotency.Codec`
+directly:
+
+```go
+executor := idempotency.New(
+	store,
+	idempotency.WithCodec(msgpack.Codec{}),
+)
+```
+
+Use a stable result type and Codec for the lifetime of a key. Changing either
+can make an existing completed result impossible to decode. Do not mix `Do`
+and `DoValue` for the same key.
+
 Use a fingerprint when the same key must never be accepted for different
 input:
 
@@ -92,6 +128,9 @@ application's responsibility.
 
 - Execution claims and completed records have separate TTLs.
 - A handler error aborts its claim so a later call can retry.
+- If a `DoValue` handler succeeds but encoding fails, the claim remains until
+  its execution TTL expires rather than immediately allowing duplicate side
+  effects.
 - Handler panics are not recovered. The claim remains until its execution TTL
   expires.
 - Completion and abort use a short context detached from request cancellation
