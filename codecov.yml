@@ -57,6 +57,9 @@ fixes:
   - github.com/go-fries/fries/hashing/v4::hashing/
   - github.com/go-fries/fries/hashing/md5/v4::hashing/md5/
   - github.com/go-fries/fries/health/v4::health/
+  - github.com/go-fries/fries/idempotency/v4::idempotency/
+  - github.com/go-fries/fries/idempotency/memory/v4::idempotency/memory/
+  - github.com/go-fries/fries/idempotency/redis/v4::idempotency/redis/
   - github.com/go-fries/fries/http/response/v4::http/response/
   - github.com/go-fries/fries/http/server/v4::http/server/
   - github.com/go-fries/fries/hyperf/jet/v4::hyperf/jet/

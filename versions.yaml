@@ -85,6 +85,11 @@ module-sets:
       # Health
       - github.com/go-fries/fries/health/v4
 
+      # Idempotency
+      - github.com/go-fries/fries/idempotency/v4
+      - github.com/go-fries/fries/idempotency/memory/v4
+      - github.com/go-fries/fries/idempotency/redis/v4
+
       # Http
       - github.com/go-fries/fries/http/response/v4
       - github.com/go-fries/fries/http/server/v4
