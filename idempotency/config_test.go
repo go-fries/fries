@@ -10,8 +10,8 @@ import (
 func TestConfigOptions(t *testing.T) {
 	c := newConfig(
 		nil,
-		WithDefaultExecutionTTL(time.Minute),
-		WithDefaultResultTTL(time.Hour),
+		WithExecutionTTL(time.Minute),
+		WithResultTTL(time.Hour),
 		WithFinalizationTimeout(10*time.Second),
 	)
 
@@ -22,8 +22,8 @@ func TestConfigOptions(t *testing.T) {
 
 func TestInvalidConfigOptionsKeepDefaults(t *testing.T) {
 	c := newConfig(
-		WithDefaultExecutionTTL(0),
-		WithDefaultResultTTL(-1),
+		WithExecutionTTL(0),
+		WithResultTTL(-1),
 		WithFinalizationTimeout(0),
 	)
 
@@ -34,8 +34,8 @@ func TestInvalidConfigOptionsKeepDefaults(t *testing.T) {
 
 func TestExecuteOptions(t *testing.T) {
 	c := newConfig(
-		WithDefaultExecutionTTL(time.Minute),
-		WithDefaultResultTTL(time.Hour),
+		WithExecutionTTL(time.Minute),
+		WithResultTTL(time.Hour),
 	)
 	execution := newExecuteConfig(
 		c,

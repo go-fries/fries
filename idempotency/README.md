@@ -25,8 +25,8 @@ Create one Executor and reuse it across requests:
 store := memory.New()
 executor := idempotency.New(
 	store,
-	idempotency.WithDefaultExecutionTTL(time.Minute),
-	idempotency.WithDefaultResultTTL(24*time.Hour),
+	idempotency.WithExecutionTTL(time.Minute),
+	idempotency.WithResultTTL(24*time.Hour),
 )
 
 err := executor.Do(ctx, "orders:create:123", func(ctx context.Context) error {

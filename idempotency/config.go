@@ -25,26 +25,6 @@ func (f optionFunc) apply(c *config) {
 	f(c)
 }
 
-// WithDefaultExecutionTTL sets the execution claim TTL used when a call does
-// not provide WithExecutionTTL. Non-positive values are ignored.
-func WithDefaultExecutionTTL(ttl time.Duration) Option {
-	return optionFunc(func(c *config) {
-		if ttl > 0 {
-			c.executionTTL = ttl
-		}
-	})
-}
-
-// WithDefaultResultTTL sets the completed record TTL used when a call does not
-// provide WithResultTTL. Non-positive values are ignored.
-func WithDefaultResultTTL(ttl time.Duration) Option {
-	return optionFunc(func(c *config) {
-		if ttl > 0 {
-			c.resultTTL = ttl
-		}
-	})
-}
-
 // WithFinalizationTimeout sets the time available to complete or abort a
 // claim after Handler execution. Non-positive values are ignored.
 func WithFinalizationTimeout(timeout time.Duration) Option {
@@ -86,24 +66,70 @@ func (f executeOptionFunc) applyExecute(c *executeConfig) {
 	f(c)
 }
 
-// WithExecutionTTL overrides the execution claim TTL for one call.
-// Non-positive values are ignored.
-func WithExecutionTTL(ttl time.Duration) ExecuteOption {
-	return executeOptionFunc(func(c *executeConfig) {
-		if ttl > 0 {
-			c.executionTTL = ttl
-		}
-	})
+// ExecutionTTLOption configures the execution claim TTL for an Executor or one
+// Executor.Do call.
+type ExecutionTTLOption interface {
+	Option
+	ExecuteOption
+	executionTTLOption()
 }
 
-// WithResultTTL overrides the completed record TTL for one call.
-// Non-positive values are ignored.
-func WithResultTTL(ttl time.Duration) ExecuteOption {
-	return executeOptionFunc(func(c *executeConfig) {
-		if ttl > 0 {
-			c.resultTTL = ttl
-		}
-	})
+type executionTTLOption struct {
+	ttl time.Duration
+}
+
+func (o executionTTLOption) apply(c *config) {
+	if o.ttl > 0 {
+		c.executionTTL = o.ttl
+	}
+}
+
+func (o executionTTLOption) applyExecute(c *executeConfig) {
+	if o.ttl > 0 {
+		c.executionTTL = o.ttl
+	}
+}
+
+func (executionTTLOption) executionTTLOption() {}
+
+// WithExecutionTTL sets the execution claim TTL. When passed to New it changes
+// the Executor default; when passed to Executor.Do it overrides that default
+// for the current call. Non-positive values are ignored.
+func WithExecutionTTL(ttl time.Duration) ExecutionTTLOption {
+	return executionTTLOption{ttl: ttl}
+}
+
+// ResultTTLOption configures the completed record TTL for an Executor or one
+// Executor.Do call.
+type ResultTTLOption interface {
+	Option
+	ExecuteOption
+	resultTTLOption()
+}
+
+type resultTTLOption struct {
+	ttl time.Duration
+}
+
+func (o resultTTLOption) apply(c *config) {
+	if o.ttl > 0 {
+		c.resultTTL = o.ttl
+	}
+}
+
+func (o resultTTLOption) applyExecute(c *executeConfig) {
+	if o.ttl > 0 {
+		c.resultTTL = o.ttl
+	}
+}
+
+func (resultTTLOption) resultTTLOption() {}
+
+// WithResultTTL sets the completed record TTL. When passed to New it changes
+// the Executor default; when passed to Executor.Do it overrides that default
+// for the current call. Non-positive values are ignored.
+func WithResultTTL(ttl time.Duration) ResultTTLOption {
+	return resultTTLOption{ttl: ttl}
 }
 
 // WithFingerprint associates the key with stable input identity. An empty

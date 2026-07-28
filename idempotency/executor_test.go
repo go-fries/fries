@@ -104,8 +104,8 @@ func TestDoCompletesAcquiredClaim(t *testing.T) {
 	called := false
 	err := New(
 		store,
-		WithDefaultExecutionTTL(time.Minute),
-		WithDefaultResultTTL(time.Hour),
+		WithExecutionTTL(time.Minute),
+		WithResultTTL(time.Hour),
 	).Do(
 		t.Context(),
 		"orders:1",
