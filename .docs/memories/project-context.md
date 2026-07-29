@@ -82,6 +82,19 @@
   `PanicError` results, preventing a probe from terminating the process. When a
   checker error and Context cause both occur, the result joins them so callers
   can inspect either with `errors.Is` and `errors.As`.
+- The `idempotency/` module coordinates explicit business keys through atomic
+  Begin, Complete, and Abort Store transitions. Core execution remains
+  synchronous and does not own HTTP responses, queue settlement, retry policy,
+  key generation, or exactly-once guarantees.
+- Idempotency exposes `Executor.Do` for completion-only operations and the
+  package-level generic `DoValue` for encoded result replay. `DoValue` requires
+  an explicit Executor, uses `codec/json` by default, and accepts the shared
+  `codec.Codec` interface.
+- Idempotency execution claims use ownership tokens and a short execution TTL;
+  completed records use a separate result TTL. The memory adapter is
+  process-local and expires records lazily, while the Redis adapter uses Lua
+  scripts and an application-configurable key prefix for cross-process
+  coordination.
 
 ## Public Module Conventions
 
