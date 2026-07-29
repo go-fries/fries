@@ -114,9 +114,12 @@ func TestStoreReset(t *testing.T) {
 	assert.False(t, decision.Allowed)
 
 	require.NoError(t, store.Reset(t.Context(), request.Key))
+	assert.NotContains(t, store.records, request.Key)
+	assert.Empty(t, store.expirations)
 	decision, err = store.Take(t.Context(), request)
 	require.NoError(t, err)
 	assert.True(t, decision.Allowed)
+	assert.Len(t, store.expirations, 1)
 }
 
 func TestStoreCleansRecoveredRecordsAcrossKeys(t *testing.T) {
@@ -148,6 +151,61 @@ func TestStoreCleansRecoveredRecordsAcrossKeys(t *testing.T) {
 	assert.NotContains(t, store.records, "recovered")
 	assert.Contains(t, store.records, "active")
 	assert.Contains(t, store.records, "new")
+	assert.Len(t, store.expirations, 2)
+	assert.Equal(t, "new", store.expirations[0].key)
+}
+
+func TestStoreUpdatesExpirationInPlace(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	store := newStoreAt(&now)
+	request := ratelimit.TakeRequest{
+		Key:   "key",
+		Limit: ratelimit.Limit{Rate: 1, Period: time.Minute, Burst: 3},
+		Cost:  1,
+	}
+
+	for range request.Limit.Burst {
+		decision, err := store.Take(t.Context(), request)
+		require.NoError(t, err)
+		assert.True(t, decision.Allowed)
+		assert.Len(t, store.records, 1)
+		assert.Len(t, store.expirations, 1)
+		assert.Same(t, store.records[request.Key], store.expirations[0])
+		assert.Zero(t, store.expirations[0].index)
+	}
+}
+
+func TestStoreReordersAndRemovesExpirations(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	store := newStoreAt(&now)
+	ctx := t.Context()
+
+	_, err := store.Take(ctx, ratelimit.TakeRequest{
+		Key:   "long",
+		Limit: ratelimit.Limit{Rate: 1, Period: 10 * time.Minute, Burst: 1},
+		Cost:  1,
+	})
+	require.NoError(t, err)
+
+	short := ratelimit.TakeRequest{
+		Key:   "short",
+		Limit: ratelimit.Limit{Rate: 1, Period: time.Minute, Burst: 20},
+		Cost:  1,
+	}
+	for range 11 {
+		_, err = store.Take(ctx, short)
+		require.NoError(t, err)
+	}
+
+	require.Len(t, store.expirations, 2)
+	assert.Equal(t, "long", store.expirations[0].key)
+	assert.Equal(t, 0, store.records["long"].index)
+	assert.Equal(t, 1, store.records["short"].index)
+
+	require.NoError(t, store.Reset(ctx, "long"))
+	require.Len(t, store.expirations, 1)
+	assert.Equal(t, "short", store.expirations[0].key)
+	assert.Zero(t, store.records["short"].index)
 }
 
 func TestStoreRoundsEmissionIntervalUpToMicrosecond(t *testing.T) {

@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"container/heap"
 	"context"
 	"sync"
 	"time"
@@ -9,7 +10,41 @@ import (
 )
 
 type record struct {
-	tat int64
+	key   string
+	tat   int64
+	index int
+}
+
+type expirationHeap []*record
+
+func (h expirationHeap) Len() int {
+	return len(h)
+}
+
+func (h expirationHeap) Less(i, j int) bool {
+	return h[i].tat < h[j].tat
+}
+
+func (h expirationHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].index = i
+	h[j].index = j
+}
+
+func (h *expirationHeap) Push(value any) {
+	current := value.(*record)
+	current.index = len(*h)
+	*h = append(*h, current)
+}
+
+func (h *expirationHeap) Pop() any {
+	records := *h
+	last := len(records) - 1
+	current := records[last]
+	records[last] = nil
+	current.index = -1
+	*h = records[:last]
+	return current
 }
 
 // Store keeps rate-limit state in process memory.
@@ -18,9 +53,9 @@ type record struct {
 // opportunistically without starting a background goroutine.
 type Store struct {
 	mu          sync.Mutex
-	records     map[string]record
+	records     map[string]*record
+	expirations expirationHeap
 	now         func() time.Time
-	nextCleanup int64
 }
 
 var _ ratelimit.Store = (*Store)(nil)
@@ -28,7 +63,7 @@ var _ ratelimit.Store = (*Store)(nil)
 // New creates an empty [Store].
 func New() *Store {
 	return &Store{
-		records: make(map[string]record),
+		records: make(map[string]*record),
 		now:     time.Now,
 	}
 }
@@ -54,8 +89,9 @@ func (s *Store) Take(
 	interval := emissionInterval(request.Limit)
 	burstOffset := interval * int64(request.Limit.Burst)
 	increment := interval * int64(request.Cost)
+	current, exists := s.records[request.Key]
 	tat := now
-	if current, exists := s.records[request.Key]; exists && current.tat > tat {
+	if exists && current.tat > tat {
 		tat = current.tat
 	}
 
@@ -70,8 +106,17 @@ func (s *Store) Take(
 		}, nil
 	}
 
-	s.records[request.Key] = record{tat: newTAT}
-	s.scheduleCleanup(newTAT)
+	if exists {
+		current.tat = newTAT
+		heap.Fix(&s.expirations, current.index)
+	} else {
+		current = &record{
+			key: request.Key,
+			tat: newTAT,
+		}
+		s.records[request.Key] = current
+		heap.Push(&s.expirations, current)
+	}
 	return ratelimit.Decision{
 		Limit:      request.Limit,
 		Allowed:    true,
@@ -93,28 +138,17 @@ func (s *Store) Reset(ctx context.Context, key string) error {
 	}
 
 	s.cleanup(s.now().UnixMicro())
-	delete(s.records, key)
+	if current, exists := s.records[key]; exists {
+		heap.Remove(&s.expirations, current.index)
+		delete(s.records, key)
+	}
 	return nil
 }
 
 func (s *Store) cleanup(now int64) {
-	if s.nextCleanup == 0 || now < s.nextCleanup {
-		return
-	}
-
-	s.nextCleanup = 0
-	for key, current := range s.records {
-		if current.tat <= now {
-			delete(s.records, key)
-			continue
-		}
-		s.scheduleCleanup(current.tat)
-	}
-}
-
-func (s *Store) scheduleCleanup(at int64) {
-	if s.nextCleanup == 0 || at < s.nextCleanup {
-		s.nextCleanup = at
+	for s.expirations.Len() > 0 && s.expirations[0].tat <= now {
+		current := heap.Pop(&s.expirations).(*record)
+		delete(s.records, current.key)
 	}
 }
 
