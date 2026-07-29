@@ -82,6 +82,9 @@ fixes:
   - github.com/go-fries/fries/queue/adapter/redis/v4::queue/adapter/redis/
   - github.com/go-fries/fries/queue/kratos/server/v4::queue/kratos/server/
   - github.com/go-fries/fries/queue/middleware/recovery/v4::queue/middleware/recovery/
+  - github.com/go-fries/fries/ratelimit/v4::ratelimit/
+  - github.com/go-fries/fries/ratelimit/memory/v4::ratelimit/memory/
+  - github.com/go-fries/fries/ratelimit/redis/v4::ratelimit/redis/
   - github.com/go-fries/fries/mysql/canal/v4::mysql/canal/
   - github.com/go-fries/fries/mysql/canal/positioner/redis/v4::mysql/canal/positioner/redis/
   - github.com/go-fries/fries/mysql/canal/server/v4::mysql/canal/server/

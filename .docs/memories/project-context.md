@@ -95,6 +95,15 @@
   process-local and expires records lazily, while the Redis adapter uses Lua
   scripts and an application-configurable key prefix for cross-process
   coordination.
+- The `ratelimit/` component provides immediate key-based GCRA decisions through
+  a fixed `Limit` and atomic `Store` contract. A rejected request is represented
+  by `Decision.Allowed == false` with a nil error; errors are reserved for
+  invalid arguments, Context cancellation, and Store failures.
+- Rate-limit costs are all-or-nothing, and the first version intentionally does
+  not wait, reserve future capacity, retry, or own HTTP and Queue behavior. The
+  memory adapter is process-local and opportunistically cleans recovered keys;
+  the Redis adapter uses a single-key Lua script, Redis server time, TTL cleanup,
+  and an application-configurable prefix.
 
 ## Public Module Conventions
 

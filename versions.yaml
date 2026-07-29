@@ -119,6 +119,11 @@ module-sets:
       - github.com/go-fries/fries/queue/kratos/server/v4
       - github.com/go-fries/fries/queue/middleware/recovery/v4
 
+      # Rate Limit
+      - github.com/go-fries/fries/ratelimit/v4
+      - github.com/go-fries/fries/ratelimit/memory/v4
+      - github.com/go-fries/fries/ratelimit/redis/v4
+
       # MySQL
       - github.com/go-fries/fries/mysql/canal/v4
       - github.com/go-fries/fries/mysql/canal/positioner/redis/v4
