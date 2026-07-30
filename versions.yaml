@@ -162,6 +162,9 @@ module-sets:
       # UDP
       - github.com/go-fries/fries/udp/v4
 
+      # Webhook
+      - github.com/go-fries/fries/webhook/v4
+
       # X (Extra)
       - github.com/go-fries/fries/x/pagination/v4
       - github.com/go-fries/fries/x/prints/v4

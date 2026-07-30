@@ -68,6 +68,7 @@ and internal development tools are not included.
 | Support | [`support`](https://pkg.go.dev/github.com/go-fries/fries/support/v4) | General-purpose helper types and value utilities. |
 | Timezone | [`timezone`](https://pkg.go.dev/github.com/go-fries/fries/timezone/v4) | Time zone propagation through application contexts. |
 | UDP | [`udp`](https://pkg.go.dev/github.com/go-fries/fries/udp/v4) | A lifecycle-aware UDP server. |
+| Webhook | [`webhook`](https://pkg.go.dev/github.com/go-fries/fries/webhook/v4) | Standard Webhooks HMAC-SHA256 signing and verification with timestamp validation and secret rotation. |
 | X | [`x/pagination`](https://pkg.go.dev/github.com/go-fries/fries/x/pagination/v4)<br>[`x/prints`](https://pkg.go.dev/github.com/go-fries/fries/x/prints/v4)<br>[`x/container`](https://pkg.go.dev/github.com/go-fries/fries/x/container/v4) | Experimental pagination, terminal output, and dependency container utilities without compatibility guarantees. |
 
 ## Contributing
