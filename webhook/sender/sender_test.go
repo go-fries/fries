@@ -39,6 +39,12 @@ func TestSenderSend(t *testing.T) {
 				request.Header.Get("content-type"),
 			)
 			assert.Equal(t, "custom", request.Header.Get("x-custom"))
+			assert.Equal(
+				t,
+				"delivery_attempt",
+				request.Header.Get("idempotency-key"),
+			)
+			assert.Nil(t, request.GetBody)
 			assert.Len(t, request.Header.Values(webhook.HeaderID), 1)
 			assert.Len(t, request.Header.Values(webhook.HeaderTimestamp), 1)
 			assert.Len(t, request.Header.Values(webhook.HeaderSignature), 1)
@@ -65,6 +71,7 @@ func TestSenderSend(t *testing.T) {
 		Header: http.Header{
 			"content-type":            {"application/cloudevents+json"},
 			"x-custom":                {"custom"},
+			"idempotency-key":         {"delivery_attempt"},
 			webhook.HeaderID:          {"forged"},
 			webhook.HeaderTimestamp:   {"0"},
 			webhook.HeaderSignature:   {"v1,forged"},
@@ -394,6 +401,17 @@ func TestNewRejectsInvalidConfiguration(t *testing.T) {
 		},
 		"uppercase HTTPS": {
 			endpoint: "HTTPS://example.com/webhook",
+		},
+		"maximum port": {
+			endpoint: "https://example.com:65535/webhook",
+		},
+		"port above maximum": {
+			endpoint: "https://example.com:65536/webhook",
+			wantErr:  ErrInvalidEndpoint,
+		},
+		"large port": {
+			endpoint: "https://example.com:99999/webhook",
+			wantErr:  ErrInvalidEndpoint,
 		},
 	}
 

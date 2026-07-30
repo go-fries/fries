@@ -130,6 +130,10 @@ func (s *Sender) Send(
 			err,
 		)
 	}
+	// Prevent net/http from replaying a POST after a possible delivery. In
+	// particular, Transport treats requests with an idempotency header and a
+	// GetBody function as replayable.
+	request.GetBody = nil
 
 	request.Header = cloneHeader(message.Header)
 	if request.Header.Get("content-type") == "" {
@@ -166,6 +170,11 @@ func parseEndpoint(value string, allowHTTP bool) (*url.URL, error) {
 		endpoint.Fragment != "" ||
 		endpoint.Opaque != "" {
 		return nil, ErrInvalidEndpoint
+	}
+	if port := endpoint.Port(); port != "" {
+		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+			return nil, ErrInvalidEndpoint
+		}
 	}
 
 	scheme := strings.ToLower(endpoint.Scheme)
