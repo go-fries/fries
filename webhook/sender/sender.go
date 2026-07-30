@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -14,8 +13,6 @@ import (
 
 	"github.com/go-fries/fries/webhook/v4"
 )
-
-const maxResponseBodyDrain = 64 << 10
 
 // Message contains one outbound webhook message.
 type Message struct {
@@ -30,20 +27,22 @@ type Message struct {
 	Header http.Header
 }
 
-// Result describes an HTTP response received from a webhook endpoint.
-type Result struct {
-	// StatusCode is the response HTTP status code.
-	StatusCode int
-	// Header is a copy of the response headers.
-	Header http.Header
+// Response contains an HTTP response received from a webhook endpoint.
+//
+// Callers must close Body when Response is non-nil.
+type Response struct {
+	*http.Response
+
 	// RetryAfter is the delay requested by a valid Retry-After header. It is
 	// zero when the header is absent, invalid, or already elapsed.
 	RetryAfter time.Duration
 }
 
 // Successful reports whether StatusCode is between 200 and 299.
-func (r Result) Successful() bool {
-	return r.StatusCode >= http.StatusOK &&
+func (r *Response) Successful() bool {
+	return r != nil &&
+		r.Response != nil &&
+		r.StatusCode >= http.StatusOK &&
 		r.StatusCode < http.StatusMultipleChoices
 }
 
@@ -92,20 +91,21 @@ func New(
 // Send signs message and performs one HTTP POST request.
 //
 // Transport failures are returned as errors. HTTP responses, including 4xx
-// and 5xx responses, are returned as Result values with a nil error. Send does
-// not retain or modify message. A nil ctx returns [ErrInvalidContext].
+// and 5xx responses, are returned as Response values with a nil error. The
+// caller must close Response.Body. Send does not retain or modify message. A
+// nil ctx returns [ErrInvalidContext].
 func (s *Sender) Send(
 	ctx context.Context,
 	message Message,
-) (Result, error) {
+) (*Response, error) {
 	if ctx == nil {
-		return Result{}, ErrInvalidContext
+		return nil, ErrInvalidContext
 	}
 
 	for _, validator := range s.validators {
 		endpoint := s.endpoint
 		if err := validator(ctx, &endpoint); err != nil {
-			return Result{}, fmt.Errorf(
+			return nil, fmt.Errorf(
 				"%w: endpoint validator: %w",
 				ErrInvalidEndpoint,
 				err,
@@ -115,7 +115,7 @@ func (s *Sender) Send(
 
 	signatureHeaders, err := s.signer.Sign(message.ID, message.Payload)
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
 
 	request, err := http.NewRequestWithContext(
@@ -125,7 +125,7 @@ func (s *Sender) Send(
 		bytes.NewReader(message.Payload),
 	)
 	if err != nil {
-		return Result{}, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"webhook/sender: create request: %w",
 			err,
 		)
@@ -140,25 +140,18 @@ func (s *Sender) Send(
 		request.Header[name] = append([]string(nil), values...)
 	}
 
+	//nolint:bodyclose // Response ownership is transferred to the caller.
 	response, err := s.client.Do(request)
 	if err != nil {
-		return Result{}, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"webhook/sender: send request: %w",
 			err,
 		)
 	}
-	if response.Body != nil {
-		defer func() {
-			_ = response.Body.Close()
-		}()
-		drainResponseBody(response.Body)
-	}
 
-	headers := cloneHeader(response.Header)
-	return Result{
-		StatusCode: response.StatusCode,
-		Header:     headers,
-		RetryAfter: parseRetryAfter(headers.Get("retry-after"), s.now()),
+	return &Response{
+		Response:   response,
+		RetryAfter: parseRetryAfter(response.Header.Get("retry-after"), s.now()),
 	}, nil
 }
 
@@ -197,13 +190,6 @@ func cloneHeader(source http.Header) http.Header {
 		target[canonicalName] = append(target[canonicalName], values...)
 	}
 	return target
-}
-
-func drainResponseBody(body io.Reader) {
-	if body == nil {
-		return
-	}
-	_, _ = io.Copy(io.Discard, io.LimitReader(body, maxResponseBodyDrain))
 }
 
 func parseRetryAfter(value string, now time.Time) time.Duration {

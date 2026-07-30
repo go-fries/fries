@@ -46,6 +46,8 @@ result, err := outbound.Send(ctx, sender.Message{
 if err != nil {
 	return err
 }
+defer result.Body.Close()
+
 if !result.Successful() {
 	return fmt.Errorf("webhook returned HTTP %d", result.StatusCode)
 }
@@ -64,8 +66,24 @@ Sender:
 - uses a 30-second total request timeout by default;
 - defaults Content-Type to `application/json`;
 - overwrites all Standard Webhooks signature headers;
-- drains at most 64 KiB of the response body and closes it;
-- returns response status, headers, and a parsed `Retry-After` delay.
+- returns the underlying `http.Response` and a parsed `Retry-After` delay.
+
+The returned `sender.Response` embeds `*http.Response`, so standard response
+fields and methods remain available:
+
+```go
+response, err := outbound.Send(ctx, message)
+if err != nil {
+	return err
+}
+defer response.Body.Close()
+
+cookies := response.Cookies()
+location, err := response.Location()
+```
+
+The caller owns the response Body and must close it. Apply an appropriate size
+limit before reading responses from endpoints that are not fully trusted.
 
 Configure a custom HTTP client and timeout when required:
 
@@ -94,10 +112,10 @@ outbound, err := sender.New(
 )
 ```
 
-## Result and retries
+## Response and retries
 
-Transport failures, Context cancellation, and request construction failures
-are returned as errors. An HTTP response is returned as a `Result`, including
+Transport failures, context cancellation, and request construction failures
+are returned as errors. An HTTP response is returned as a `Response`, including
 4xx and 5xx responses:
 
 ```go
@@ -105,6 +123,7 @@ result, err := outbound.Send(ctx, message)
 if err != nil {
 	return err
 }
+defer result.Body.Close()
 
 switch {
 case result.Successful():

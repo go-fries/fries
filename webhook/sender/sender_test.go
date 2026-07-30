@@ -43,14 +43,18 @@ func TestSenderSend(t *testing.T) {
 			assert.Len(t, request.Header.Values(webhook.HeaderTimestamp), 1)
 			assert.Len(t, request.Header.Values(webhook.HeaderSignature), 1)
 
-			return newResponse(
+			response := newResponse(
 				http.StatusCreated,
 				http.Header{
-					"retry-after": {"12"},
-					"x-result":    {"received"},
+					"Retry-After": {"12"},
+					"X-Result":    {"received"},
+					"Set-Cookie":  {"session=active; Path=/"},
+					"Location":    {"/deliveries/msg_123"},
 				},
 				"accepted",
-			), nil
+			)
+			response.Request = request
+			return response, nil
 		}),
 	}
 
@@ -72,10 +76,23 @@ func TestSenderSend(t *testing.T) {
 	})
 
 	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer func() {
+		require.NoError(t, result.Body.Close())
+	}()
 	assert.Equal(t, http.StatusCreated, result.StatusCode)
 	assert.True(t, result.Successful())
 	assert.Equal(t, 12*time.Second, result.RetryAfter)
 	assert.Equal(t, "received", result.Header.Get("x-result"))
+	require.Len(t, result.Cookies(), 1)
+	assert.Equal(t, "session", result.Cookies()[0].Name)
+	location, err := result.Location()
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"https://example.com/deliveries/msg_123",
+		location.String(),
+	)
 }
 
 func TestSenderUsesDefaultContentType(t *testing.T) {
@@ -98,14 +115,18 @@ func TestSenderUsesDefaultContentType(t *testing.T) {
 	})
 
 	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer func() {
+		require.NoError(t, result.Body.Close())
+	}()
 	assert.True(t, result.Successful())
 }
 
-func TestSenderReturnsNonSuccessfulResponse(t *testing.T) {
+func TestSenderReturnsNonSuccessfulResponseBody(t *testing.T) {
 	t.Parallel()
 
 	body := &recordingBody{
-		Reader: strings.NewReader(strings.Repeat("x", maxResponseBodyDrain+1)),
+		Reader: strings.NewReader("unavailable"),
 	}
 	client := &http.Client{
 		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
@@ -123,10 +144,18 @@ func TestSenderReturnsNonSuccessfulResponse(t *testing.T) {
 	})
 
 	require.NoError(t, err)
+	require.NotNil(t, result)
 	assert.Equal(t, http.StatusServiceUnavailable, result.StatusCode)
 	assert.False(t, result.Successful())
+	assert.False(t, body.closed)
+	assert.Zero(t, body.read)
+
+	content, err := io.ReadAll(result.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "unavailable", string(content))
+	require.NoError(t, result.Body.Close())
 	assert.True(t, body.closed)
-	assert.Equal(t, int64(maxResponseBodyDrain), body.read)
+	assert.Equal(t, int64(len("unavailable")), body.read)
 }
 
 func TestSenderDoesNotFollowRedirects(t *testing.T) {
@@ -151,6 +180,10 @@ func TestSenderDoesNotFollowRedirects(t *testing.T) {
 	result, err := value.Send(t.Context(), Message{ID: "msg_redirect"})
 
 	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer func() {
+		require.NoError(t, result.Body.Close())
+	}()
 	assert.Equal(t, http.StatusTemporaryRedirect, result.StatusCode)
 	assert.Equal(t, int32(1), calls.Load())
 }
@@ -207,9 +240,13 @@ func TestSenderRunsSuccessfulEndpointValidator(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = value.Send(t.Context(), Message{ID: "msg_allowed"})
+	response, err := value.Send(t.Context(), Message{ID: "msg_allowed"})
 
 	require.NoError(t, err)
+	require.NotNil(t, response)
+	defer func() {
+		require.NoError(t, response.Body.Close())
+	}()
 	assert.True(t, validated.Load())
 }
 
@@ -223,9 +260,10 @@ func TestSenderRejectsNilContext(t *testing.T) {
 	require.NoError(t, err)
 
 	var ctx context.Context
-	_, err = value.Send(ctx, Message{ID: "msg_nil_context"})
+	response, err := value.Send(ctx, Message{ID: "msg_nil_context"})
 
 	assert.ErrorIs(t, err, ErrInvalidContext)
+	assert.Nil(t, response)
 }
 
 func TestSenderReturnsSigningError(t *testing.T) {
@@ -237,9 +275,10 @@ func TestSenderReturnsSigningError(t *testing.T) {
 	value, err := New("https://example.com", signer)
 	require.NoError(t, err)
 
-	_, err = value.Send(t.Context(), Message{})
+	response, err := value.Send(t.Context(), Message{})
 
 	assert.ErrorIs(t, err, webhook.ErrInvalidMessageID)
+	assert.Nil(t, response)
 }
 
 func TestSenderReturnsTransportError(t *testing.T) {
@@ -253,9 +292,10 @@ func TestSenderReturnsTransportError(t *testing.T) {
 	}
 	value := newTestSender(t, mustSecret(t), client)
 
-	_, err := value.Send(t.Context(), Message{ID: "msg_failed"})
+	response, err := value.Send(t.Context(), Message{ID: "msg_failed"})
 
 	assert.ErrorIs(t, err, sentinel)
+	assert.Nil(t, response)
 }
 
 func TestSenderReturnsContextError(t *testing.T) {
@@ -265,9 +305,10 @@ func TestSenderReturnsContextError(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := value.Send(ctx, Message{ID: "msg_canceled"})
+	response, err := value.Send(ctx, Message{ID: "msg_canceled"})
 
 	assert.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, response)
 }
 
 func TestSenderConcurrentUse(t *testing.T) {
@@ -287,8 +328,10 @@ func TestSenderConcurrentUse(t *testing.T) {
 			result, err := value.Send(t.Context(), Message{
 				ID: "msg_concurrent",
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
+			require.NotNil(t, result)
 			assert.True(t, result.Successful())
+			require.NoError(t, result.Body.Close())
 		})
 	}
 	wait.Wait()
@@ -416,17 +459,11 @@ func TestParseRetryAfter(t *testing.T) {
 	}
 }
 
-func TestDrainResponseBody(t *testing.T) {
+func TestResponseSuccessful(t *testing.T) {
 	t.Parallel()
 
-	body := &recordingBody{
-		Reader: strings.NewReader(strings.Repeat("x", maxResponseBodyDrain+1)),
-	}
-
-	drainResponseBody(body)
-	drainResponseBody(nil)
-
-	assert.Equal(t, int64(maxResponseBodyDrain), body.read)
+	assert.False(t, (*Response)(nil).Successful())
+	assert.False(t, (&Response{}).Successful())
 }
 
 type recordingBody struct {

@@ -44,6 +44,12 @@ func ExampleSender_Send() {
 		ID:      "msg_123",
 		Payload: []byte(`{"type":"order.created"}`),
 	})
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = result.Body.Close()
+	}()
 	fmt.Println(result.StatusCode, err)
 
 	// Output:
