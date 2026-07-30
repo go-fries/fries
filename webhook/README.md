@@ -171,27 +171,17 @@ passed the agreed transition period.
 
 ## Reliable delivery
 
-This package does not send HTTP requests, persist delivery records, or retry
-failed requests. For durable delivery, put the stable message ID and payload
-in a queue and sign them immediately before each HTTP attempt:
+Use `webhook/sender` when an application needs a standardized single HTTP
+delivery:
 
-```go
-func deliver(
-	ctx context.Context,
-	endpoint string,
-	messageID string,
-	payload []byte,
-) error {
-	headers, err := signer.Sign(messageID, payload)
-	if err != nil {
-		return err
-	}
-	return send(ctx, endpoint, headers, payload)
-}
+```bash
+go get github.com/go-fries/fries/webhook/sender/v4
 ```
 
-Signing immediately before the request ensures a delayed or retried delivery
-receives a current timestamp.
+The sender binds an endpoint to a Signer, applies safe HTTP defaults, signs
+immediately before each request, and returns the HTTP result. It does not
+persist or automatically retry deliveries. For durable delivery, invoke the
+sender from a queue handler using a stable message ID.
 
 ## Compatibility and boundaries
 
@@ -211,7 +201,7 @@ formats. Their deliveries cannot be verified directly with this package.
 - decode or define the payload schema;
 - guarantee exactly-once processing;
 - dispatch application events;
-- send, persist, or retry deliveries;
+- persist or retry deliveries;
 - log payloads, secrets, or signatures;
 - provide framework middleware or provider-specific adapters.
 

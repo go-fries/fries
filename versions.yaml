@@ -164,6 +164,7 @@ module-sets:
 
       # Webhook
       - github.com/go-fries/fries/webhook/v4
+      - github.com/go-fries/fries/webhook/sender/v4
 
       # X (Extra)
       - github.com/go-fries/fries/x/pagination/v4
