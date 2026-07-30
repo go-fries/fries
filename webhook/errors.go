@@ -14,7 +14,7 @@ var (
 	ErrInvalidMessageID = errors.New("webhook: invalid message id")
 	// ErrMissingHeader indicates that a required Webhook header is absent.
 	ErrMissingHeader = errors.New("webhook: missing required header")
-	// ErrInvalidTimestamp indicates that Webhook-Timestamp is malformed.
+	// ErrInvalidTimestamp indicates that webhook-timestamp is malformed.
 	ErrInvalidTimestamp = errors.New("webhook: invalid timestamp")
 	// ErrTimestampOutsideTolerance indicates that the message timestamp is too
 	// old or too far in the future.

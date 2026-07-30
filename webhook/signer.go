@@ -13,11 +13,11 @@ import (
 
 const (
 	// HeaderID contains the unique webhook message ID.
-	HeaderID = "Webhook-Id"
+	HeaderID = "webhook-id"
 	// HeaderTimestamp contains the message creation time as Unix seconds.
-	HeaderTimestamp = "Webhook-Timestamp"
+	HeaderTimestamp = "webhook-timestamp"
 	// HeaderSignature contains one or more versioned message signatures.
-	HeaderSignature = "Webhook-Signature"
+	HeaderSignature = "webhook-signature"
 
 	signatureVersion = "v1"
 )

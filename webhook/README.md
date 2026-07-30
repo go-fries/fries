@@ -65,7 +65,7 @@ request.Header = headers.Clone()
 request.Header.Set("Content-Type", "application/json")
 ```
 
-`Sign` returns `Webhook-Id`, `Webhook-Timestamp`, and `Webhook-Signature`.
+`Sign` returns `webhook-id`, `webhook-timestamp`, and `webhook-signature`.
 The message ID must contain only visible ASCII characters other than `.`.
 
 Sign the same payload bytes that will be sent. Formatting or marshaling the
@@ -198,9 +198,9 @@ receives a current timestamp.
 The package implements the Standard Webhooks symmetric `v1` signature format:
 
 ```text
-Webhook-Id: msg_123
-Webhook-Timestamp: 1700000000
-Webhook-Signature: v1,<base64-hmac-sha256>
+webhook-id: msg_123
+webhook-timestamp: 1700000000
+webhook-signature: v1,<base64-hmac-sha256>
 ```
 
 GitHub, Stripe, Slack, and other providers use their own header and signature
