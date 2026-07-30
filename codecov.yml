@@ -97,6 +97,8 @@ fixes:
   - github.com/go-fries/fries/support/v4::support/
   - github.com/go-fries/fries/timezone/v4::timezone/
   - github.com/go-fries/fries/udp/v4::udp/
+  - github.com/go-fries/fries/webhook/v4::webhook/
+  - github.com/go-fries/fries/webhook/sender/v4::webhook/sender/
   - github.com/go-fries/fries/x/container/v4::x/container/
   - github.com/go-fries/fries/x/pagination/v4::x/pagination/
   - github.com/go-fries/fries/x/prints/v4::x/prints/
