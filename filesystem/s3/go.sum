@@ -18,8 +18,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.33 h1:WWevlLzmBqgzR
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.33/go.mod h1:lRlrKO4OuKlBZsSGioD2lprkdvu2dI7SAATcC1CYt7U=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.106.1 h1:LE9F8L9PXkboje/lJrvthQGsvbhi3SPZZidPgYuNBxk=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.106.1/go.mod h1:BC1zJ0lDLKkzEJDsF8kyimsmMoear7ZcfUzzEFscQrk=
-github.com/aws/smithy-go v1.27.5 h1:d1ro7KpYOYwP6m73YFa+Kc/A130VsAdX68SpsJwARMM=
-github.com/aws/smithy-go v1.27.5/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
+github.com/aws/smithy-go v1.27.6 h1:0zjT8jgK3jbrTT7JJ3EE6JsMhX8JTrZ+f1sEndYDXrA=
+github.com/aws/smithy-go v1.27.6/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

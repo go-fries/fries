@@ -6,7 +6,7 @@ replace github.com/go-fries/fries/filesystem/v4 => ../
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.1
-	github.com/aws/smithy-go v1.27.5
+	github.com/aws/smithy-go v1.27.6
 	github.com/go-fries/fries/filesystem/v4 v4.0.0
 	github.com/stretchr/testify v1.11.1
 )
