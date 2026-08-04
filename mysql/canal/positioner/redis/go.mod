@@ -13,7 +13,7 @@ require (
 	github.com/go-fries/fries/codec/v4 v4.0.0
 	github.com/go-fries/fries/mysql/canal/v4 v4.0.0
 	github.com/go-mysql-org/go-mysql v1.13.0
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -36,6 +36,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
