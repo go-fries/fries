@@ -19,7 +19,6 @@ import (
 
 	"github.com/go-fries/fries/gorm/logger/otel/v4"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -33,10 +32,10 @@ func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 			otel.WithSlowThreshold(200*time.Millisecond),
 			otel.WithParameterizedQueries(true),
 			otel.WithAttributes(attribute.String("component", "gorm")),
-			otel.WithLogAttributes(log.String("db.system", "mysql")),
-			otel.WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
-				return []log.KeyValue{
-					log.String("tenant.id", tenantIDFromContext(ctx)),
+			otel.WithLogAttributes(attribute.String("db.system", "mysql")),
+			otel.WithLogAttributeFuncs(func(ctx context.Context) []attribute.KeyValue {
+				return []attribute.KeyValue{
+					attribute.String("tenant.id", tenantIDFromContext(ctx)),
 				}
 			}),
 		),

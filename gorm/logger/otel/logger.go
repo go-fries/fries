@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ var (
 // Logger emits GORM logs through the OpenTelemetry Logs API.
 type Logger struct {
 	logger                    log.Logger
-	logAttributes             []log.KeyValue
+	logAttributes             []attribute.KeyValue
 	logAttributeFuncs         []LogAttributeFunc
 	level                     logger.LogLevel
 	slowThreshold             time.Duration
@@ -112,12 +113,12 @@ func (l *Logger) ParamsFilter(_ context.Context, sql string, params ...any) (str
 	return sql, params
 }
 
-func (l *Logger) emit(ctx context.Context, severity log.Severity, severityText, body string, attrs []log.KeyValue) {
+func (l *Logger) emit(ctx context.Context, severity log.Severity, severityText, body string, attrs []attribute.KeyValue) {
 	var record log.Record
 	record.SetTimestamp(time.Now())
 	record.SetSeverity(severity)
 	record.SetSeverityText(severityText)
-	record.SetBody(log.StringValue(body))
+	record.SetBody(attribute.StringValue(body))
 	record.AddAttributes(attrs...)
 	record.AddAttributes(l.logAttributes...)
 	for _, fn := range l.logAttributeFuncs {
@@ -141,16 +142,16 @@ func (l *Logger) emitSQL(
 	elapsed time.Duration,
 	err error,
 ) {
-	attrs := []log.KeyValue{
-		log.String(string(semconv.DBQueryTextKey), sql),
-		log.Int64("gorm.rows_affected", rows),
-		log.Float64("gorm.elapsed_ms", float64(elapsed.Nanoseconds())/1e6),
-		log.String("gorm.event", eventName),
+	attrs := []attribute.KeyValue{
+		attribute.String(string(semconv.DBQueryTextKey), sql),
+		attribute.Int64("gorm.rows_affected", rows),
+		attribute.Float64("gorm.elapsed_ms", float64(elapsed.Nanoseconds())/1e6),
+		attribute.String("gorm.event", eventName),
 	}
 	if err != nil {
 		errorType := semconv.ErrorType(err)
-		attrs = append(attrs, log.String(string(errorType.Key), errorType.Value.AsString()))
-		attrs = append(attrs, log.String("error.message", err.Error()))
+		attrs = append(attrs, attribute.String(string(errorType.Key), errorType.Value.AsString()))
+		attrs = append(attrs, attribute.String("error.message", err.Error()))
 	}
 
 	l.emit(ctx, severity, severityText, eventName, attrs)
