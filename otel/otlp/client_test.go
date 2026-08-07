@@ -97,9 +97,11 @@ func TestClientLifecycle(t *testing.T) {
 		ctx := t.Context()
 
 		t.Cleanup(func() {
-			require.NoError(t, tracerProvider.Shutdown(context.Background()))
-			require.NoError(t, meterProvider.Shutdown(context.Background()))
-			require.NoError(t, loggerProvider.Shutdown(context.Background()))
+			cleanupCtx, cancel := newCleanupContext()
+			defer cancel()
+			require.NoError(t, tracerProvider.Shutdown(cleanupCtx))
+			require.NoError(t, meterProvider.Shutdown(cleanupCtx))
+			require.NoError(t, loggerProvider.Shutdown(cleanupCtx))
 		})
 
 		client := newTestClient(
