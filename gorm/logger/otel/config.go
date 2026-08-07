@@ -15,7 +15,7 @@ type config struct {
 	version                   string
 	schemaURL                 string
 	attributes                []attribute.KeyValue
-	logAttributes             []log.KeyValue
+	logAttributes             []attribute.KeyValue
 	logAttributeFuncs         []LogAttributeFunc
 	level                     logger.LogLevel
 	slowThreshold             time.Duration
@@ -24,7 +24,7 @@ type config struct {
 }
 
 // LogAttributeFunc returns OpenTelemetry log record attributes for ctx.
-type LogAttributeFunc func(ctx context.Context) []log.KeyValue
+type LogAttributeFunc func(ctx context.Context) []attribute.KeyValue
 
 // Option configures a [Logger].
 type Option interface {
@@ -76,7 +76,7 @@ func WithAttributes(attributes ...attribute.KeyValue) Option {
 
 // WithLogAttributes adds OpenTelemetry log record attributes emitted with each
 // log record.
-func WithLogAttributes(attributes ...log.KeyValue) Option {
+func WithLogAttributes(attributes ...attribute.KeyValue) Option {
 	return optionFunc(func(c *config) {
 		c.logAttributes = append(c.logAttributes, attributes...)
 	})

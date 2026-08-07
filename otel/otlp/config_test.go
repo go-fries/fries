@@ -86,11 +86,10 @@ func TestConfigCoreOptions(t *testing.T) {
 	logger := slog.New(&recordingHandler{})
 	sampler := sdktrace.NeverSample()
 
-	ctx := t.Context()
 	t.Cleanup(func() {
-		require.NoError(t, tracerProvider.Shutdown(ctx))
-		require.NoError(t, meterProvider.Shutdown(ctx))
-		require.NoError(t, loggerProvider.Shutdown(ctx))
+		require.NoError(t, tracerProvider.Shutdown(context.Background()))
+		require.NoError(t, meterProvider.Shutdown(context.Background()))
+		require.NoError(t, loggerProvider.Shutdown(context.Background()))
 	})
 
 	cfg := newConfig(
@@ -196,9 +195,9 @@ func TestConfigProviders(t *testing.T) {
 
 		ctx := t.Context()
 		t.Cleanup(func() {
-			require.NoError(t, tracerProvider.Shutdown(ctx))
-			require.NoError(t, meterProvider.Shutdown(ctx))
-			require.NoError(t, loggerProvider.Shutdown(ctx))
+			require.NoError(t, tracerProvider.Shutdown(context.Background()))
+			require.NoError(t, meterProvider.Shutdown(context.Background()))
+			require.NoError(t, loggerProvider.Shutdown(context.Background()))
 		})
 
 		cfg := newConfig(

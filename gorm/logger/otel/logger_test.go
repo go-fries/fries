@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/embedded"
 	"gorm.io/gorm/logger"
@@ -88,7 +89,7 @@ func TestInfoEmitsRecord(t *testing.T) {
 	assert.Same(t, ctx, provider.logger.ctx)
 	assert.Equal(t, log.SeverityInfo, provider.logger.record.Severity())
 	assert.Equal(t, "INFO", provider.logger.record.SeverityText())
-	assert.Equal(t, log.StringValue("hello gorm"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("hello gorm"), provider.logger.record.Body())
 }
 
 type attributeContextKey struct{}
@@ -98,11 +99,11 @@ func TestInfoEmitsConfiguredLogAttributes(t *testing.T) {
 	l := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(logger.Info),
-		WithLogAttributes(log.String("component", "gorm")),
-		WithLogAttributeFuncs(func(ctx context.Context) []log.KeyValue {
+		WithLogAttributes(attribute.String("component", "gorm")),
+		WithLogAttributeFuncs(func(ctx context.Context) []attribute.KeyValue {
 			tenantID, _ := ctx.Value(attributeContextKey{}).(string)
-			return []log.KeyValue{
-				log.String("tenant.id", tenantID),
+			return []attribute.KeyValue{
+				attribute.String("tenant.id", tenantID),
 			}
 		}),
 	)
@@ -128,7 +129,7 @@ func TestWarnAndErrorRespectLogLevel(t *testing.T) {
 	l.Error(t.Context(), "failed: %s", "db")
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityError, provider.logger.record.Severity())
-	assert.Equal(t, log.StringValue("failed: db"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("failed: db"), provider.logger.record.Body())
 }
 
 func TestEmitSkipsWhenDisabled(t *testing.T) {
@@ -198,9 +199,9 @@ func TestLogAttributeFuncsAreSkippedWhenDisabled(t *testing.T) {
 	l := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(logger.Info),
-		WithLogAttributeFuncs(func(context.Context) []log.KeyValue {
+		WithLogAttributeFuncs(func(context.Context) []attribute.KeyValue {
 			called = true
-			return []log.KeyValue{log.String("tenant.id", "tenant-1")}
+			return []attribute.KeyValue{attribute.String("tenant.id", "tenant-1")}
 		}),
 	)
 	provider.logger.enabled = false
@@ -223,7 +224,7 @@ func TestTraceError(t *testing.T) {
 
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityError, provider.logger.record.Severity())
-	assert.Equal(t, log.StringValue("gorm.sql.error"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("gorm.sql.error"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, "select * from users", attrs["db.query.text"].Value.AsString())
 	assert.Equal(t, int64(3), attrs["gorm.rows_affected"].Value.AsInt64())
@@ -273,7 +274,7 @@ func TestTraceSlowSQL(t *testing.T) {
 
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityWarn, provider.logger.record.Severity())
-	assert.Equal(t, log.StringValue("gorm.sql.slow"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("gorm.sql.slow"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, "update users set name = ?", attrs["db.query.text"].Value.AsString())
 	assert.Equal(t, int64(-1), attrs["gorm.rows_affected"].Value.AsInt64())
@@ -285,7 +286,7 @@ func TestTraceInfo(t *testing.T) {
 	l := New(
 		WithLoggerProvider(provider),
 		WithLogLevel(logger.Info),
-		WithLogAttributes(log.String("component", "gorm")),
+		WithLogAttributes(attribute.String("component", "gorm")),
 	)
 	provider.logger.enabled = true
 
@@ -295,7 +296,7 @@ func TestTraceInfo(t *testing.T) {
 
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityInfo, provider.logger.record.Severity())
-	assert.Equal(t, log.StringValue("gorm.sql"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("gorm.sql"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, int64(1), attrs["gorm.rows_affected"].Value.AsInt64())
 	assert.Equal(t, "gorm", attrs["component"].Value.AsString())
@@ -335,7 +336,7 @@ func TestTraceReportsRecordNotFoundWhenConfigured(t *testing.T) {
 
 	require.True(t, provider.logger.emitted)
 	assert.Equal(t, log.SeverityError, provider.logger.record.Severity())
-	assert.Equal(t, log.StringValue("gorm.sql.error"), provider.logger.record.Body())
+	assert.Equal(t, attribute.StringValue("gorm.sql.error"), provider.logger.record.Body())
 	attrs := recordAttributes(provider.logger.record)
 	assert.Equal(t, "select * from users", attrs["db.query.text"].Value.AsString())
 	assert.Equal(t, "record not found", attrs["error.message"].Value.AsString())
@@ -375,10 +376,10 @@ func TestParamsFilterParameterizedQueries(t *testing.T) {
 	assert.Nil(t, params)
 }
 
-func recordAttributes(record log.Record) map[string]log.KeyValue {
-	attrs := make(map[string]log.KeyValue)
-	record.WalkAttributes(func(attr log.KeyValue) bool {
-		attrs[attr.Key] = attr
+func recordAttributes(record log.Record) map[string]attribute.KeyValue {
+	attrs := make(map[string]attribute.KeyValue)
+	record.WalkAttributes(func(attr attribute.KeyValue) bool {
+		attrs[string(attr.Key)] = attr
 		return true
 	})
 	return attrs
