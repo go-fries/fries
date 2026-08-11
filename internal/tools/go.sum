@@ -2,12 +2,12 @@
 4d63.com/gocheckcompilerdirectives v1.4.0/go.mod h1:9ZOAiMOjqC/nRwci2fcUXVHUNLG/cH6r6rhUh+jTFtQ=
 4d63.com/gochecknoglobals v0.2.2 h1:H1vdnwnMaZdQW/N+NrkT1SZMTBmcwHe9Vq8lJcYYTtU=
 4d63.com/gochecknoglobals v0.2.2/go.mod h1:lLxwTQjL5eIesRbvnzIP3jZtG140FnTdz+AlMa+ogt0=
-buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.11-20260722160903-4d94f3df3a7b.1 h1:IbnjTSFlFUyPCRF50eY1u9EyPpU1wAyAN5neSgI5jyE=
-buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.11-20260722160903-4d94f3df3a7b.1/go.mod h1:1Znr6gmYBhbxWUPRrrVnSLXQsz8bvFVw1HHJq2bI3VQ=
+buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20250718181942-e35f9b667443.1 h1:pQpoYnG/9jTagEaD/30tCURn3ZgRV0RC8v1FqmwsA/s=
+buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20250718181942-e35f9b667443.1/go.mod h1:or0FXsDqcJfmWGc8Xx6cr8iAySi3CZ4o0K1+C39pTts=
 buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-20250109164928-1da0de137947.1 h1:HwzzCRS4ZrEm1++rzSDxHnO0DOjiT1b8I/24e8a4exY=
 buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-20250109164928-1da0de137947.1/go.mod h1:8PRKXhgNes29Tjrnv8KdZzg3I1QceOkzibW1QK7EXv0=
-buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1 h1:fXh8CsdNpjRr8R5vFdqtIxPt/Lno2IIJlYOdZBIZn0w=
-buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
+buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20250717185734-6c6e0d3c608e.1 h1:jmsddqA137GdygleDw+MOPQjCWaWSudK/t7cYqOICaE=
+buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20250717185734-6c6e0d3c608e.1/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
 buf.build/gen/go/bufbuild/registry/connectrpc/go v1.20.0-20260713175918-10d915f5b43b.1 h1:c4w6fQ6wAhZLgVI+HZozlWX9I2aVPN34vrl/8cuovVc=
 buf.build/gen/go/bufbuild/registry/connectrpc/go v1.20.0-20260713175918-10d915f5b43b.1/go.mod h1:mbcuFKpnCQsF8H2fBs1lN1dQVAiASPQKwFgTkXqYscI=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260713175918-10d915f5b43b.1 h1:qJUlFKLFdb3OFCpmA+r5AQbysgBD7WLRapE9lOs08r8=
