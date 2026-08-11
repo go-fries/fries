@@ -7,7 +7,7 @@ require (
 	buf.build/go/protovalidate v1.2.0
 	github.com/go-kratos/kratos/v3 v3.0.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
