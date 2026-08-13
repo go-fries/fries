@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1
-	buf.build/go/protovalidate v1.2.0
+	buf.build/go/protovalidate v1.3.0
 	github.com/go-kratos/kratos/v3 v3.0.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.12
