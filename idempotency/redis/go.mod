@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/idempotency/redis/v4
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/go-fries/fries/idempotency/v4 v4.0.0

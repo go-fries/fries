@@ -34,8 +34,7 @@ func TestServerDoesNotExposeEngine(t *testing.T) {
 	serverType := reflect.TypeFor[Server]()
 	engineType := reflect.TypeFor[*gin.Engine]()
 
-	for i := range serverType.NumField() {
-		field := serverType.Field(i)
+	for field := range serverType.Fields() {
 		assert.False(t, field.Anonymous && field.Type == engineType)
 	}
 }

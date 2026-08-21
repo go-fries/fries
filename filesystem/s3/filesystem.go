@@ -82,8 +82,8 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 		return nil, err
 	}
 	output, err := s.client.GetObject(ctx, &awss3.GetObjectInput{
-		Bucket: ptr(s.bucket),
-		Key:    ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		return nil, wrapPathError("open", path, err)
@@ -107,14 +107,14 @@ func (s *Filesystem) Put(
 		return wrapPathError("put", path, err)
 	}
 	input := &awss3.PutObjectInput{
-		Bucket:        ptr(s.bucket),
-		Key:           ptr(s.prefixer.Prefix(path)),
+		Bucket:        new(s.bucket),
+		Key:           new(s.prefixer.Prefix(path)),
 		Body:          src,
-		ContentLength: ptr(contentLength),
+		ContentLength: new(contentLength),
 		Metadata:      cloneMetadata(options.Metadata),
 	}
 	if options.ContentType != "" {
-		input.ContentType = ptr(options.ContentType)
+		input.ContentType = new(options.ContentType)
 	}
 	_, err = s.client.PutObject(ctx, input)
 	if err != nil {
@@ -129,8 +129,8 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 		return err
 	}
 	_, err := s.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
-		Bucket: ptr(s.bucket),
-		Key:    ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		return wrapPathError("delete", path, err)
@@ -151,8 +151,8 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
 	output, err := s.client.HeadObject(ctx, &awss3.HeadObjectInput{
-		Bucket: ptr(s.bucket),
-		Key:    ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		if isNotFound(err) {
@@ -184,9 +184,9 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 
 func (s *Filesystem) hasChildren(ctx context.Context, path string) (bool, error) {
 	output, err := s.client.ListObjectsV2(ctx, &awss3.ListObjectsV2Input{
-		Bucket:  ptr(s.bucket),
-		Prefix:  ptr(directoryPrefix(s.prefixer.Prefix(path))),
-		MaxKeys: ptr(int32(1)),
+		Bucket:  new(s.bucket),
+		Prefix:  new(directoryPrefix(s.prefixer.Prefix(path))),
+		MaxKeys: new(int32(1)),
 	})
 	if err != nil {
 		return false, err
@@ -205,16 +205,16 @@ func (s *Filesystem) ListFiles(
 		return filesystem.ListPage{}, err
 	}
 	input := &awss3.ListObjectsV2Input{
-		Bucket: ptr(s.bucket),
-		Prefix: ptr(directoryPrefix(s.prefixer.Prefix(path))),
+		Bucket: new(s.bucket),
+		Prefix: new(directoryPrefix(s.prefixer.Prefix(path))),
 	}
 	if !options.Recursive {
-		input.Delimiter = ptr("/")
+		input.Delimiter = new("/")
 	}
 	if options.Cursor != "" {
-		input.ContinuationToken = ptr(options.Cursor)
+		input.ContinuationToken = new(options.Cursor)
 	}
-	input.MaxKeys = ptr(int32(options.Limit))
+	input.MaxKeys = new(int32(options.Limit))
 
 	output, err := s.client.ListObjectsV2(ctx, input)
 	if err != nil {
@@ -238,9 +238,9 @@ func (s *Filesystem) Copy(ctx context.Context, src, dst string) error {
 	}
 	copySource := url.PathEscape(s.bucket + "/" + s.prefixer.Prefix(src))
 	_, err := s.client.CopyObject(ctx, &awss3.CopyObjectInput{
-		Bucket:     ptr(s.bucket),
-		CopySource: ptr(copySource),
-		Key:        ptr(s.prefixer.Prefix(dst)),
+		Bucket:     new(s.bucket),
+		CopySource: new(copySource),
+		Key:        new(s.prefixer.Prefix(dst)),
 	})
 	if err != nil {
 		return wrapPathError("copy", src, err)
@@ -301,16 +301,13 @@ func wrapPathError(op, path string, err error) error {
 }
 
 func isNotFound(err error) bool {
-	var notFound *types.NotFound
-	if errors.As(err, &notFound) {
+	if _, ok := errors.AsType[*types.NotFound](err); ok {
 		return true
 	}
-	var noSuchKey *types.NoSuchKey
-	if errors.As(err, &noSuchKey) {
+	if _, ok := errors.AsType[*types.NoSuchKey](err); ok {
 		return true
 	}
-	var apiError smithy.APIError
-	if errors.As(err, &apiError) {
+	if apiError, ok := errors.AsType[smithy.APIError](err); ok {
 		switch apiError.ErrorCode() {
 		case "NotFound", "NoSuchKey", "404":
 			return true
@@ -328,8 +325,4 @@ func dereference(value *string) string {
 		return ""
 	}
 	return *value
-}
-
-func ptr[T any](value T) *T {
-	return &value
 }

@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/jsonrpc/v4
 
-go 1.25.0
+go 1.26.0
 
 replace (
 	github.com/go-fries/fries/codec/json/v4 => ../codec/json

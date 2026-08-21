@@ -28,12 +28,12 @@ func TestNewConfig(t *testing.T) {
 		{
 			name:     "sets code",
 			options:  []Option{WithCode(200)},
-			wantCode: intPointer(200),
+			wantCode: new(200),
 		},
 		{
 			name:     "keeps zero code",
 			options:  []Option{WithCode(0)},
-			wantCode: intPointer(0),
+			wantCode: new(0),
 		},
 		{
 			name:     "replaces data",
@@ -79,8 +79,4 @@ func TestWithCodeDoesNotSharePointers(t *testing.T) {
 
 	assert.Equal(t, 500, *first.code)
 	assert.Equal(t, 200, *second.code)
-}
-
-func intPointer(value int) *int {
-	return &value
 }

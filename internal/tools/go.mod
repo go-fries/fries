@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v4
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/bufbuild/buf v1.65.0

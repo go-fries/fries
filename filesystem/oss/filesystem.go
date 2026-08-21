@@ -79,8 +79,8 @@ func (s *Filesystem) Open(ctx context.Context, path string) (io.ReadCloser, erro
 		return nil, err
 	}
 	result, err := s.client.GetObject(ctx, &aliyunoss.GetObjectRequest{
-		Bucket: aliyunoss.Ptr(s.bucket),
-		Key:    aliyunoss.Ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		return nil, wrapPathError("open", path, err)
@@ -104,14 +104,14 @@ func (s *Filesystem) Put(
 		return wrapPathError("put", path, err)
 	}
 	request := &aliyunoss.PutObjectRequest{
-		Bucket:        aliyunoss.Ptr(s.bucket),
-		Key:           aliyunoss.Ptr(s.prefixer.Prefix(path)),
+		Bucket:        new(s.bucket),
+		Key:           new(s.prefixer.Prefix(path)),
 		Body:          src,
-		ContentLength: aliyunoss.Ptr(contentLength),
+		ContentLength: new(contentLength),
 		Metadata:      cloneMetadata(options.Metadata),
 	}
 	if options.ContentType != "" {
-		request.ContentType = aliyunoss.Ptr(options.ContentType)
+		request.ContentType = new(options.ContentType)
 	}
 	_, err = s.client.PutObject(ctx, request)
 	if err != nil {
@@ -126,8 +126,8 @@ func (s *Filesystem) Delete(ctx context.Context, path string) error {
 		return err
 	}
 	_, err := s.client.DeleteObject(ctx, &aliyunoss.DeleteObjectRequest{
-		Bucket: aliyunoss.Ptr(s.bucket),
-		Key:    aliyunoss.Ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		return wrapPathError("delete", path, err)
@@ -148,8 +148,8 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
 	result, err := s.client.HeadObject(ctx, &aliyunoss.HeadObjectRequest{
-		Bucket: aliyunoss.Ptr(s.bucket),
-		Key:    aliyunoss.Ptr(s.prefixer.Prefix(path)),
+		Bucket: new(s.bucket),
+		Key:    new(s.prefixer.Prefix(path)),
 	})
 	if err != nil {
 		if isNotFound(err) {
@@ -179,8 +179,8 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 
 func (s *Filesystem) hasChildren(ctx context.Context, path string) (bool, error) {
 	result, err := s.client.ListObjectsV2(ctx, &aliyunoss.ListObjectsV2Request{
-		Bucket:  aliyunoss.Ptr(s.bucket),
-		Prefix:  aliyunoss.Ptr(directoryPrefix(s.prefixer.Prefix(path))),
+		Bucket:  new(s.bucket),
+		Prefix:  new(directoryPrefix(s.prefixer.Prefix(path))),
 		MaxKeys: 1,
 	})
 	if err != nil {
@@ -200,14 +200,14 @@ func (s *Filesystem) ListFiles(
 		return filesystem.ListPage{}, err
 	}
 	request := &aliyunoss.ListObjectsV2Request{
-		Bucket: aliyunoss.Ptr(s.bucket),
-		Prefix: aliyunoss.Ptr(directoryPrefix(s.prefixer.Prefix(path))),
+		Bucket: new(s.bucket),
+		Prefix: new(directoryPrefix(s.prefixer.Prefix(path))),
 	}
 	if !options.Recursive {
-		request.Delimiter = aliyunoss.Ptr("/")
+		request.Delimiter = new("/")
 	}
 	if options.Cursor != "" {
-		request.ContinuationToken = aliyunoss.Ptr(options.Cursor)
+		request.ContinuationToken = new(options.Cursor)
 	}
 	request.MaxKeys = int32(options.Limit)
 
@@ -231,10 +231,10 @@ func (s *Filesystem) Copy(ctx context.Context, src, dst string) error {
 		return err
 	}
 	_, err := s.client.CopyObject(ctx, &aliyunoss.CopyObjectRequest{
-		Bucket:       aliyunoss.Ptr(s.bucket),
-		Key:          aliyunoss.Ptr(s.prefixer.Prefix(dst)),
-		SourceBucket: aliyunoss.Ptr(s.bucket),
-		SourceKey:    aliyunoss.Ptr(s.prefixer.Prefix(src)),
+		Bucket:       new(s.bucket),
+		Key:          new(s.prefixer.Prefix(dst)),
+		SourceBucket: new(s.bucket),
+		SourceKey:    new(s.prefixer.Prefix(src)),
 	})
 	if err != nil {
 		return wrapPathError("copy", src, err)

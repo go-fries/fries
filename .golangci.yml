@@ -52,7 +52,7 @@ linters:
       replace-allow-list:
         - github.com/flc1125/go-cron/v4
       toolchain-forbidden: true
-      go-version-pattern: '^1\.25\.0$'
+      go-version-pattern: '^1\.26\.0$'
     nolintlint:
       require-specific: true
     usetesting:
@@ -67,6 +67,11 @@ linters:
         - '-ST1021' # https://staticcheck.dev/docs/checks#ST1021
         - '-ST1022' # https://staticcheck.dev/docs/checks#ST1022
   exclusions:
+    rules:
+      - linters:
+          - modernize
+        path: ^ptr/
+        text: "newexpr:"
     paths:
       - .gocache
 

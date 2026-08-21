@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/mysql/canal/v4
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/go-mysql-org/go-mysql v1.13.0

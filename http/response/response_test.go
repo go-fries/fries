@@ -65,14 +65,14 @@ func TestFromError(t *testing.T) {
 			name:       "applies options to success",
 			options:    []response.Option{response.WithCode(0), response.WithData("result")},
 			wantStatus: true,
-			wantCode:   intPointer(0),
+			wantCode:   new(0),
 			wantData:   "result",
 		},
 		{
 			name:        "applies options to failure",
 			err:         errors.New("invalid request"),
 			options:     []response.Option{response.WithCode(10422), response.WithData("details")},
-			wantCode:    intPointer(10422),
+			wantCode:    new(10422),
 			wantMessage: "invalid request",
 			wantData:    "details",
 		},
@@ -166,8 +166,4 @@ func TestBodyJSON(t *testing.T) {
 			assert.JSONEq(t, tt.want, string(payload))
 		})
 	}
-}
-
-func intPointer(value int) *int {
-	return &value
 }

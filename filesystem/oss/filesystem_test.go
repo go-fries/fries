@@ -19,14 +19,14 @@ func TestFilesystemList(t *testing.T) {
 		listResult: &aliyunoss.ListObjectsV2Result{
 			Contents: []aliyunoss.ObjectProperties{
 				{
-					Key:          aliyunoss.Ptr("root/dir/file.txt"),
+					Key:          new("root/dir/file.txt"),
 					Size:         7,
 					LastModified: &modified,
 				},
-				{Key: aliyunoss.Ptr("root/dir/marker/")},
+				{Key: new("root/dir/marker/")},
 			},
-			CommonPrefixes:        []aliyunoss.CommonPrefix{{Prefix: aliyunoss.Ptr("root/dir/nested/")}},
-			NextContinuationToken: aliyunoss.Ptr("next"),
+			CommonPrefixes:        []aliyunoss.CommonPrefix{{Prefix: new("root/dir/nested/")}},
+			NextContinuationToken: new("next"),
 		},
 	}
 	storage := newFilesystem(client, "bucket", WithRoot("root"))
@@ -97,7 +97,7 @@ func TestFilesystemStatVirtualDirectory(t *testing.T) {
 	client := &fakeClient{
 		headErr: &aliyunoss.ServiceError{StatusCode: 404, Code: "NoSuchKey"},
 		listResult: &aliyunoss.ListObjectsV2Result{
-			Contents: []aliyunoss.ObjectProperties{{Key: aliyunoss.Ptr("root/images/file.jpg")}},
+			Contents: []aliyunoss.ObjectProperties{{Key: new("root/images/file.jpg")}},
 		},
 	}
 	storage := newFilesystem(client, "bucket", WithRoot("root"))

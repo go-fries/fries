@@ -4,7 +4,7 @@
 
 **Fries** (formerly `go-kratos-ecosystem/components`) is a modular collection of Go libraries and components designed to build robust applications. It follows a toolkit approach where developers can pick and choose specific packages (like `event`, `cache`, `filesystem`) or use the `lifecycle` package to coordinate application startup and shutdown with a Service Provider pattern.
 
-*   **Language:** Go (>= 1.25.0)
+*   **Language:** Go (>= 1.26.0)
 *   **Architecture:** Modular, Component-based, Service Provider (DI) pattern.
 *   **Key Pattern:** The `lifecycle.Runner` manages application lifecycle via `Bootstrap` and `Shutdown` methods defined in `Provider` interfaces.
 
@@ -26,7 +26,7 @@ This project uses a `Makefile` to manage the build, test, and lint workflows acr
 
 ### Prerequisites
 
-*   Go >= 1.25.0
+*   Go >= 1.26.0
 *   `make`
 
 ### Common Commands
