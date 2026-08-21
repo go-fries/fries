@@ -17,8 +17,7 @@ func TestServerDoesNotExposeMux(t *testing.T) {
 	serverType := reflect.TypeFor[Server]()
 	muxType := reflect.TypeFor[*chi.Mux]()
 
-	for i := range serverType.NumField() {
-		field := serverType.Field(i)
+	for field := range serverType.Fields() {
 		assert.False(t, field.Anonymous && field.Type == muxType)
 	}
 }

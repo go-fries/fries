@@ -20,14 +20,14 @@ func TestFilesystemList(t *testing.T) {
 		listOutput: &awss3.ListObjectsV2Output{
 			Contents: []types.Object{
 				{
-					Key:          ptr("root/dir/file.txt"),
-					Size:         ptr(int64(7)),
+					Key:          new("root/dir/file.txt"),
+					Size:         new(int64(7)),
 					LastModified: &modified,
 				},
-				{Key: ptr("root/dir/marker/")},
+				{Key: new("root/dir/marker/")},
 			},
-			CommonPrefixes:        []types.CommonPrefix{{Prefix: ptr("root/dir/nested/")}},
-			NextContinuationToken: ptr("next"),
+			CommonPrefixes:        []types.CommonPrefix{{Prefix: new("root/dir/nested/")}},
+			NextContinuationToken: new("next"),
 		},
 	}
 	storage := newFilesystem(client, "bucket", WithRoot("root"))
@@ -97,7 +97,7 @@ func TestFilesystemStatVirtualDirectory(t *testing.T) {
 	client := &fakeClient{
 		headErr: &types.NoSuchKey{},
 		listOutput: &awss3.ListObjectsV2Output{
-			Contents: []types.Object{{Key: ptr("root/images/file.jpg")}},
+			Contents: []types.Object{{Key: new("root/images/file.jpg")}},
 		},
 	}
 	storage := newFilesystem(client, "bucket", WithRoot("root"))

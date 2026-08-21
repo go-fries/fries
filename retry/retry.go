@@ -150,13 +150,11 @@ type errorInfo struct {
 func inspectError(err error) errorInfo {
 	info := errorInfo{cause: err}
 
-	var permanentErr *permanentError
-	if errors.As(err, &permanentErr) {
+	if _, ok := errors.AsType[*permanentError](err); ok {
 		info.permanent = true
 	}
 
-	var afterErr *afterError
-	if errors.As(err, &afterErr) {
+	if afterErr, ok := errors.AsType[*afterError](err); ok {
 		info.override = true
 		info.overrideDelay = afterErr.delay
 	}

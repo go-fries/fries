@@ -69,8 +69,7 @@ test/%: DIR=$*
 test/%:
 	@echo "$(GO) test -timeout $(TIMEOUT)s $(ARGS) $(DIR)/..." \
 		&& cd $(DIR) \
-		&& $(GO) list ./... \
-		| xargs $(GO) test -timeout $(TIMEOUT)s $(ARGS)
+		&& $(GO) test -timeout $(TIMEOUT)s $(ARGS) ./...
 
 
 COVERAGE_MODE    = atomic
@@ -82,8 +81,7 @@ test-coverage: $(GOCOVMERGE)
 	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
 	  echo "$(GO) test -v -race -coverpkg=github.com/go-fries/fries/... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" $${dir}/..."; \
 	  (cd "$${dir}" && \
-	    $(GO) list ./... \
-	    | xargs $(GO) test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" && \
+	    $(GO) test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" ./... && \
 	  $(GO) tool cover -html=coverage.out -o coverage.html); \
 	done; \
 	$(GOCOVMERGE) $$(find . -name coverage.out) > coverage.txt
@@ -109,7 +107,7 @@ go-mod-tidy/%: DIR=$*
 go-mod-tidy/%:
 	@echo "$(GO) mod tidy in $(DIR)" \
 		&& cd $(DIR) \
-		&& $(GO) mod tidy -compat=1.22.0
+		&& $(GO) mod tidy -compat=1.26.0
 
 .PHONY: go-fix
 go-fix: $(ROOT_GO_MOD_DIRS:%=go-fix/%)
@@ -168,7 +166,7 @@ check-clean-work-tree:
 	fi
 
 # Upgrade Go version in all go.mod files to the version specified in the GO_VERSION env var
-# Example: make upgrade-go-version GO_VERSION=1.25.0
+# Example: make upgrade-go-version GO_VERSION=1.26.0
 .PHONY: upgrade-go-version
 upgrade-go-version: $(ALL_GO_MOD_DIRS:%=upgrade-go-version/%)
 upgrade-go-version/%: DIR=$*

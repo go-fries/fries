@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/kratos/middleware/cors/v4
 
-go 1.25.0
+go 1.26.0
 
 require github.com/go-kratos/kratos/v3 v3.0.0
 

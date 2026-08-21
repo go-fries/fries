@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/hashing/md5/v4
 
-go 1.25.0
+go 1.26.0
 
 replace github.com/go-fries/fries/hashing/v4 => ../
 

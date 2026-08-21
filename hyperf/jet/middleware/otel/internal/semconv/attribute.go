@@ -50,13 +50,11 @@ func ServerPort(port int) attribute.KeyValue {
 
 // ErrorAttributes returns semantic-convention attributes derived from err.
 func ErrorAttributes(err error) []attribute.KeyValue {
-	var rpcErr *jet.RPCResponseError
-	if errors.As(err, &rpcErr) {
+	if rpcErr, ok := errors.AsType[*jet.RPCResponseError](err); ok {
 		return RPCErrorAttributes(rpcErr.Code)
 	}
 
-	var httpErr *jet.HTTPTransporterServerError
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*jet.HTTPTransporterServerError](err); ok {
 		statusCode := strconv.Itoa(httpErr.StatusCode)
 		return []attribute.KeyValue{
 			HTTPResponseStatusCode(httpErr.StatusCode),

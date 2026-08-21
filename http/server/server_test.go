@@ -16,8 +16,7 @@ func TestServerDoesNotExposeHTTPServer(t *testing.T) {
 	serverType := reflect.TypeFor[Server]()
 	httpServerType := reflect.TypeFor[*http.Server]()
 
-	for i := range serverType.NumField() {
-		field := serverType.Field(i)
+	for field := range serverType.Fields() {
 		assert.False(t, field.Anonymous && field.Type == httpServerType)
 	}
 }

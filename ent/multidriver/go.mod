@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/ent/multidriver/v4
 
-go 1.25.0
+go 1.26.0
 
 require (
 	entgo.io/ent v0.14.6

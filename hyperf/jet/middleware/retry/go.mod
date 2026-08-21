@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/hyperf/jet/middleware/retry/v4
 
-go 1.25.0
+go 1.26.0
 
 replace (
 	github.com/go-fries/fries/hyperf/jet/middleware/timeout/v4 => ../timeout
