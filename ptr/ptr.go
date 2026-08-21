@@ -1,8 +1,10 @@
 package ptr
 
 // Ptr returns a pointer to value.
+//
+// Deprecated: use new(value) instead.
 func Ptr[T any](value T) *T {
-	return &value
+	return new(value)
 }
 
 // Value returns the value pointed to by value and reports whether value is non-nil.

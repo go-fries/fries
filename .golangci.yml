@@ -67,11 +67,6 @@ linters:
         - '-ST1021' # https://staticcheck.dev/docs/checks#ST1021
         - '-ST1022' # https://staticcheck.dev/docs/checks#ST1022
   exclusions:
-    rules:
-      - linters:
-          - modernize
-        path: ^ptr/
-        text: "newexpr:"
     paths:
       - .gocache
 

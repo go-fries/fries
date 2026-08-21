@@ -54,13 +54,13 @@ func TestPtr(t *testing.T) {
 
 func TestValue(t *testing.T) {
 	t.Run("value", func(t *testing.T) {
-		got, ok := ptr.Value(ptr.Ptr("foo"))
+		got, ok := ptr.Value(new("foo"))
 		assert.True(t, ok)
 		assert.Equal(t, "foo", got)
 	})
 
 	t.Run("zero value", func(t *testing.T) {
-		got, ok := ptr.Value(ptr.Ptr(""))
+		got, ok := ptr.Value(new(""))
 		assert.True(t, ok)
 		assert.Empty(t, got)
 	})
@@ -72,7 +72,7 @@ func TestValue(t *testing.T) {
 	})
 
 	t.Run("pointer containing nil", func(t *testing.T) {
-		got, ok := ptr.Value(ptr.Ptr[*int](nil))
+		got, ok := ptr.Value(new((*int)(nil)))
 		assert.True(t, ok)
 		assert.Nil(t, got)
 	})
@@ -80,11 +80,11 @@ func TestValue(t *testing.T) {
 
 func TestOr(t *testing.T) {
 	t.Run("value", func(t *testing.T) {
-		assert.Equal(t, "foo", ptr.Or(ptr.Ptr("foo"), "fallback"))
+		assert.Equal(t, "foo", ptr.Or(new("foo"), "fallback"))
 	})
 
 	t.Run("zero value", func(t *testing.T) {
-		assert.Empty(t, ptr.Or(ptr.Ptr(""), "fallback"))
+		assert.Empty(t, ptr.Or(new(""), "fallback"))
 	})
 
 	t.Run("nil pointer", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestOr(t *testing.T) {
 	})
 
 	t.Run("pointer containing nil", func(t *testing.T) {
-		fallback := ptr.Ptr(10)
-		assert.Nil(t, ptr.Or(ptr.Ptr[*int](nil), fallback))
+		fallback := new(10)
+		assert.Nil(t, ptr.Or(new((*int)(nil)), fallback))
 	})
 }

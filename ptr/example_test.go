@@ -14,7 +14,7 @@ func ExamplePtr() {
 }
 
 func ExampleValue() {
-	name, ok := ptr.Value(ptr.Ptr("fries"))
+	name, ok := ptr.Value(new("fries"))
 
 	fmt.Println(name, ok)
 	// Output: fries true
