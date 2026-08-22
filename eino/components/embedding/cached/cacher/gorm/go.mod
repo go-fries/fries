@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-fries/fries/eino/components/embedding/cached/v4 => ../../
 
 require (
-	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.0.0
+	github.com/go-fries/fries/eino/components/embedding/cached/v4 v4.1.0
 	gorm.io/datatypes v1.2.7
 	gorm.io/gorm v1.31.2
 )
