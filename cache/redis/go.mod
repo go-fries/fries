@@ -11,11 +11,11 @@ replace (
 )
 
 require (
-	github.com/go-fries/fries/cache/v4 v4.0.0
-	github.com/go-fries/fries/codec/json/v4 v4.0.0
-	github.com/go-fries/fries/codec/v4 v4.0.0
-	github.com/go-fries/fries/locker/redis/v4 v4.0.0
-	github.com/go-fries/fries/locker/v4 v4.0.0
+	github.com/go-fries/fries/cache/v4 v4.1.0
+	github.com/go-fries/fries/codec/json/v4 v4.1.0
+	github.com/go-fries/fries/codec/v4 v4.1.0
+	github.com/go-fries/fries/locker/redis/v4 v4.1.0
+	github.com/go-fries/fries/locker/v4 v4.1.0
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/stretchr/testify v1.11.1
 )

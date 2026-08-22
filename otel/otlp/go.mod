@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-fries/fries/lifecycle/v4 => ../../lifecycle
 
 require (
-	github.com/go-fries/fries/lifecycle/v4 v4.0.0
+	github.com/go-fries/fries/lifecycle/v4 v4.1.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/host v0.70.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.70.0
