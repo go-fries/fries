@@ -7,8 +7,8 @@ replace github.com/go-fries/fries/lifecycle/v4 => ../../lifecycle
 require (
 	github.com/go-fries/fries/lifecycle/v4 v4.1.0
 	github.com/stretchr/testify v1.12.1
-	go.opentelemetry.io/contrib/instrumentation/host v0.70.0
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.70.0
+	go.opentelemetry.io/contrib/instrumentation/host v0.71.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.71.0
 	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.22.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.22.0
