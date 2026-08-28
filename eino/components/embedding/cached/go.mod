@@ -3,7 +3,7 @@ module github.com/go-fries/fries/eino/components/embedding/cached/v4
 go 1.26.0
 
 require (
-	github.com/cloudwego/eino v0.9.15
+	github.com/cloudwego/eino v0.9.17
 	github.com/stretchr/testify v1.12.1
 )
 
