@@ -3,6 +3,7 @@
 package syslog
 
 import (
+	"bytes"
 	"errors"
 	"log/slog"
 	stdsyslog "log/syslog"
@@ -142,6 +143,16 @@ func TestWithFacilityMasksSeverityBits(t *testing.T) {
 	assert.Equal(t, stdsyslog.LOG_LOCAL0, cfg.facility)
 }
 
+func TestConfigOptions(t *testing.T) {
+	level := new(slog.LevelVar)
+	level.Set(slog.LevelWarn)
+	cfg := newConfig(nil, WithLevel(level), WithTag("fries"))
+
+	assert.Equal(t, stdsyslog.LOG_USER, cfg.facility)
+	assert.Same(t, level, cfg.level)
+	assert.Equal(t, "fries", cfg.tag)
+}
+
 func TestHandlerEnabledHonorsMinimumLevel(t *testing.T) {
 	writer := &recordingWriter{}
 	handler := NewHandler(writer, WithLevel(slog.LevelWarn))
@@ -177,6 +188,70 @@ func TestHandlerNoopsWhenWriterNil(t *testing.T) {
 	assert.NoError(t, handler.Handle(t.Context(), slog.NewRecord(timeNow(), slog.LevelInfo, "ignored", 0)))
 }
 
+func TestHandlerClose(t *testing.T) {
+	t.Run("writer without close", func(t *testing.T) {
+		handler := NewHandler(&recordingWriter{})
+
+		require.NoError(t, handler.Close())
+	})
+
+	t.Run("writer close success", func(t *testing.T) {
+		writer := &closingWriter{recordingWriter: &recordingWriter{}}
+		handler := NewHandler(writer)
+
+		require.NoError(t, handler.Close())
+		assert.Equal(t, 1, writer.closeCalls)
+	})
+
+	t.Run("writer close error", func(t *testing.T) {
+		sentinel := errors.New("close failed")
+		writer := &closingWriter{
+			recordingWriter: &recordingWriter{},
+			closeErr:        sentinel,
+		}
+		handler := NewHandler(writer)
+
+		err := handler.Close()
+
+		assert.ErrorIs(t, err, sentinel)
+		assert.Equal(t, 1, writer.closeCalls)
+	})
+}
+
+func TestHandlerFormatsValueKinds(t *testing.T) {
+	writer := &recordingWriter{}
+	handler := NewHandler(writer)
+	record := slog.NewRecord(timeNow(), slog.LevelInfo, "values", 0)
+	record.AddAttrs(
+		slog.Uint64("uint", 42),
+		slog.Float64("float", 1.5),
+		slog.Bool("bool", true),
+		slog.Duration("duration", 2*time.Second),
+		slog.Time("time", timeNow()),
+		slog.Any("any", []int{1, 2}),
+	)
+
+	require.NoError(t, handler.Handle(t.Context(), record))
+
+	require.Len(t, writer.records, 1)
+	assert.Contains(t, writer.records[0].message, "uint=42")
+	assert.Contains(t, writer.records[0].message, "float=1.5")
+	assert.Contains(t, writer.records[0].message, "bool=true")
+	assert.Contains(t, writer.records[0].message, "duration=2s")
+	assert.Contains(t, writer.records[0].message, "time="+timeNow().Format(time.RFC3339))
+	assert.Contains(t, writer.records[0].message, "any=[1 2]")
+}
+
+func TestAppendAttrIgnoresEmptyAttributes(t *testing.T) {
+	var buf bytes.Buffer
+
+	appendAttr(&buf, nil, slog.Attr{})
+	appendAttr(&buf, nil, slog.String("", "value"))
+	appendAttr(&buf, nil, slog.Group("empty"))
+
+	assert.Empty(t, buf.String())
+}
+
 type recordedWrite struct {
 	priority string
 	message  string
@@ -185,6 +260,17 @@ type recordedWrite struct {
 type recordingWriter struct {
 	records []recordedWrite
 	err     error
+}
+
+type closingWriter struct {
+	*recordingWriter
+	closeErr   error
+	closeCalls int
+}
+
+func (w *closingWriter) Close() error {
+	w.closeCalls++
+	return w.closeErr
 }
 
 func (w *recordingWriter) Debug(message string) error {
