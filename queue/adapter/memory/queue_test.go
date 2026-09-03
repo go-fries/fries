@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/queue/v4"
@@ -208,43 +209,39 @@ func TestQueue_ReceiveWaitsUntilTaskIsAvailable(t *testing.T) {
 }
 
 func TestQueue_ReceiveWakesWhenTaskIsEnqueued(t *testing.T) {
-	q := NewQueue()
-	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, consumer.Close())
+	synctest.Test(t, func(t *testing.T) {
+		q := NewQueue()
+		consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, consumer.Close())
+		})
+		type result struct {
+			delivery queue.Delivery
+			err      error
+		}
+		received := make(chan result, 1)
+		go func() {
+			delivery, err := consumer.Receive(t.Context())
+			received <- result{delivery: delivery, err: err}
+		}()
+		synctest.Wait()
+
+		require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
+			ID:   "enqueued",
+			Type: "send_email",
+		}))
+		synctest.Wait()
+
+		select {
+		case result := <-received:
+			require.NoError(t, result.err)
+			require.NotNil(t, result.delivery)
+			assert.Equal(t, "enqueued", result.delivery.Task().ID)
+		default:
+			require.FailNow(t, "receive did not wake after enqueue")
+		}
 	})
-	type result struct {
-		delivery queue.Delivery
-		err      error
-	}
-	receiving := make(chan struct{})
-	received := make(chan result, 1)
-	go func() {
-		close(receiving)
-		delivery, err := consumer.Receive(t.Context())
-		received <- result{delivery: delivery, err: err}
-	}()
-	<-receiving
-
-	select {
-	case result := <-received:
-		require.FailNowf(t, "receive returned before enqueue", "%v", result.err)
-	case <-time.After(20 * time.Millisecond):
-	}
-	require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
-		ID:   "enqueued",
-		Type: "send_email",
-	}))
-
-	select {
-	case result := <-received:
-		require.NoError(t, result.err)
-		require.NotNil(t, result.delivery)
-		assert.Equal(t, "enqueued", result.delivery.Task().ID)
-	case <-time.After(time.Second):
-		require.FailNow(t, "receive did not wake after enqueue")
-	}
 }
 
 func TestQueue_NilDeliveryHasNoTask(t *testing.T) {
