@@ -82,23 +82,17 @@ func NewID(v any) *ID {
 }
 
 func (i *ID) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		i.isNil = true
-		return nil
+	var value any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return fmt.Errorf("jsonrpc: unmarshal id: %w", err)
 	}
 
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		i.str = &s
-		return nil
+	id := NewID(value)
+	if id == nil {
+		return fmt.Errorf("jsonrpc: invalid id type %T: expected string, number, or null", value)
 	}
 
-	var n float64
-	if err := json.Unmarshal(data, &n); err == nil {
-		i.num = &n
-		return nil
-	}
-
+	*i = *id
 	return nil
 }
 
