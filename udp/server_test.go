@@ -78,9 +78,12 @@ func TestServerConfiguresReadChannelSize(t *testing.T) {
 func TestServerStartReturnsListenError(t *testing.T) {
 	server := NewServer("invalid-address")
 
-	err := server.Start(t.Context())
+	for range 2 {
+		err := server.Start(t.Context())
 
-	require.Error(t, err)
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, ErrAlreadyStarted)
+	}
 }
 
 func TestServerRecoversHandlerPanic(t *testing.T) {

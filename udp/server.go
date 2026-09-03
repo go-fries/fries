@@ -3,6 +3,7 @@ package udp
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log"
 	"net"
 	"sync"
@@ -15,6 +16,9 @@ type Message struct {
 	Addr net.Addr
 	Body []byte
 }
+
+// ErrAlreadyStarted is returned when a [Server] is already starting or running.
+var ErrAlreadyStarted = errors.New("udp: server already started")
 
 func newMessage(conn net.PacketConn, addr net.Addr, body []byte) *Message {
 	return &Message{
@@ -29,8 +33,10 @@ type Server struct {
 
 	bufSize int
 
-	connMu sync.Mutex
-	conn   net.PacketConn
+	connMu       sync.Mutex
+	conn         net.PacketConn
+	starting     bool
+	listenPacket func(network, address string) (net.PacketConn, error)
 
 	handler func(message *Message)
 
@@ -85,6 +91,7 @@ func NewServer(address string, opts ...Option) *Server {
 		bufSize:      1024, //nolint:mnd
 		readChanSize: 1024, //nolint:mnd
 		stoped:       make(chan struct{}),
+		listenPacket: net.ListenPacket,
 	}
 
 	for _, opt := range opts {
@@ -97,20 +104,34 @@ func NewServer(address string, opts ...Option) *Server {
 }
 
 func (s *Server) Start(_ context.Context) (err error) {
-	conn, err := net.ListenPacket("udp", s.address)
+	s.connMu.Lock()
+	if s.isStopped() {
+		s.connMu.Unlock()
+		return net.ErrClosed
+	}
+	if s.starting || s.conn != nil {
+		s.connMu.Unlock()
+		return ErrAlreadyStarted
+	}
+	s.starting = true
+	s.connMu.Unlock()
+
+	conn, err := s.listenPacket("udp", s.address)
+	s.connMu.Lock()
+	s.starting = false
+	if s.isStopped() {
+		s.connMu.Unlock()
+		if conn != nil {
+			_ = conn.Close()
+		}
+		return net.ErrClosed
+	}
 	if err != nil {
+		s.connMu.Unlock()
 		return err
 	}
-	s.connMu.Lock()
-	select {
-	case <-s.stoped:
-		s.connMu.Unlock()
-		_ = conn.Close()
-		return net.ErrClosed
-	default:
-		s.conn = conn
-		s.connMu.Unlock()
-	}
+	s.conn = conn
+	s.connMu.Unlock()
 	defer func() {
 		s.connMu.Lock()
 		if s.conn == conn {
@@ -195,4 +216,13 @@ func (s *Server) stop() {
 	s.stopedOnce.Do(func() {
 		close(s.stoped)
 	})
+}
+
+func (s *Server) isStopped() bool {
+	select {
+	case <-s.stoped:
+		return true
+	default:
+		return false
+	}
 }
