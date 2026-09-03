@@ -21,6 +21,15 @@ func (e marshalError) MarshalJSON() ([]byte, error) {
 	return nil, e.err
 }
 
+type structuredError struct {
+	Reason    string `json:"reason"`
+	Retryable bool   `json:"retryable"`
+}
+
+func (e structuredError) Error() string {
+	return e.Reason
+}
+
 func TestRPCResponseError(t *testing.T) {
 	sentinel := errors.New("upstream error")
 	err := &RPCResponseError{
@@ -152,6 +161,27 @@ func TestJSONRPCFormatterStructuredErrorData(t *testing.T) {
 	require.NotNil(t, envelope.Error)
 	require.Error(t, envelope.Error.Data)
 	assert.JSONEq(t, `{"retryable":true}`, envelope.Error.Data.Error())
+}
+
+func TestJSONRPCFormatterStructuredError(t *testing.T) {
+	formatter := NewJSONRPCFormatter()
+
+	data, err := formatter.FormatResponse(nil, &RPCResponseError{
+		ID:      "request-id",
+		Code:    -32603,
+		Message: "internal error",
+		Err: structuredError{
+			Reason:    "busy",
+			Retryable: true,
+		},
+	})
+	require.NoError(t, err)
+
+	var envelope JSONRPCFormatterResponse
+	require.NoError(t, json.Unmarshal(data, &envelope))
+	require.NotNil(t, envelope.Error)
+	require.Error(t, envelope.Error.Data)
+	assert.JSONEq(t, `{"reason":"busy","retryable":true}`, envelope.Error.Data.Error())
 }
 
 func TestJSONRPCFormatterEmptyErrorData(t *testing.T) {

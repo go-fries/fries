@@ -104,7 +104,10 @@ func (e JSONRPCFormatterResponseError) MarshalJSON() ([]byte, error) {
 		if _, ok := e.Data.(json.Marshaler); ok {
 			data, err = json.Marshal(e.Data)
 		} else {
-			data, err = json.Marshal(e.Data.Error())
+			data, err = json.Marshal(e.Data)
+			if err == nil && bytes.Equal(data, []byte("{}")) {
+				data, err = json.Marshal(e.Data.Error())
+			}
 		}
 		if err != nil {
 			return nil, err
