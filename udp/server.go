@@ -1,6 +1,7 @@
 package udp
 
 import (
+	"bytes"
 	"context"
 	"log"
 	"net"
@@ -15,12 +16,21 @@ type Message struct {
 	Body []byte
 }
 
+func newMessage(conn net.PacketConn, addr net.Addr, body []byte) *Message {
+	return &Message{
+		Conn: conn,
+		Addr: addr,
+		Body: bytes.Clone(body),
+	}
+}
+
 type Server struct {
 	address string
 
 	bufSize int
 
-	conn net.PacketConn
+	connMu sync.Mutex
+	conn   net.PacketConn
 
 	handler func(message *Message)
 
@@ -87,29 +97,56 @@ func NewServer(address string, opts ...Option) *Server {
 }
 
 func (s *Server) Start(_ context.Context) (err error) {
-	s.conn, err = net.ListenPacket("udp", s.address)
+	conn, err := net.ListenPacket("udp", s.address)
 	if err != nil {
 		return err
 	}
+	s.connMu.Lock()
+	select {
+	case <-s.stoped:
+		s.connMu.Unlock()
+		_ = conn.Close()
+		return net.ErrClosed
+	default:
+		s.conn = conn
+		s.connMu.Unlock()
+	}
+	defer func() {
+		s.connMu.Lock()
+		if s.conn == conn {
+			s.conn = nil
+		}
+		s.connMu.Unlock()
+		_ = conn.Close()
+	}()
 
 	log.Printf("udp server: listening on %s\n", s.address)
 
 	go s.start()
+	return s.serve(conn)
+}
 
+func (s *Server) serve(conn net.PacketConn) error {
 	buf := make([]byte, s.bufSize)
-
 	for {
-		n, addr, err := s.conn.ReadFrom(buf)
+		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
 			s.stop()
 			return err
 		}
 
-		s.readChan <- &Message{
-			Conn: s.conn,
-			Addr: addr,
-			Body: buf[:n],
+		if err := s.enqueue(newMessage(conn, addr, buf[:n])); err != nil {
+			return err
 		}
+	}
+}
+
+func (s *Server) enqueue(message *Message) error {
+	select {
+	case s.readChan <- message:
+		return nil
+	case <-s.stoped:
+		return net.ErrClosed
 	}
 }
 
@@ -143,11 +180,15 @@ func (s *Server) Stop(_ context.Context) error {
 
 	s.stop()
 
-	if s.conn == nil {
+	s.connMu.Lock()
+	conn := s.conn
+	s.conn = nil
+	s.connMu.Unlock()
+	if conn == nil {
 		return nil
 	}
 
-	return s.conn.Close()
+	return conn.Close()
 }
 
 func (s *Server) stop() {
