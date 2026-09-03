@@ -1,10 +1,12 @@
 package udp
 
 import (
+	"errors"
 	"net"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,6 +63,53 @@ func TestServer(t *testing.T) {
 		}
 		return false
 	}, 3*time.Second, 10*time.Millisecond)
+}
+
+func TestServerConfiguresReadChannelSize(t *testing.T) {
+	server := NewServer(
+		"127.0.0.1:0",
+		WithReadChanSize(8),
+		WithReadChanSize(0),
+	)
+
+	assert.Equal(t, 8, cap(server.readChan))
+}
+
+func TestServerStartReturnsListenError(t *testing.T) {
+	server := NewServer("invalid-address")
+
+	err := server.Start(t.Context())
+
+	require.Error(t, err)
+}
+
+func TestServerRecoversHandlerPanic(t *testing.T) {
+	sentinel := errors.New("handler panic")
+	message := &Message{Body: []byte("content")}
+	var recoveredMessage *Message
+	var recovered any
+	server := NewServer(
+		"127.0.0.1:0",
+		WithHandler(func(*Message) {
+			panic(sentinel)
+		}),
+		WithRecoveryHandler(func(message *Message, err any) {
+			recoveredMessage = message
+			recovered = err
+		}),
+	)
+
+	require.NotPanics(t, func() {
+		server.handle(message)
+	})
+	assert.Same(t, message, recoveredMessage)
+	assert.Equal(t, sentinel, recovered)
+}
+
+func TestServerStopBeforeStart(t *testing.T) {
+	server := NewServer("127.0.0.1:0")
+
+	require.NoError(t, server.Stop(t.Context()))
 }
 
 func newUDPAddr(t *testing.T) string {
