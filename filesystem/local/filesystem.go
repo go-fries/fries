@@ -134,6 +134,9 @@ func (s *Filesystem) Stat(ctx context.Context, path string) (filesystem.Entry, e
 	if err := ctx.Err(); err != nil {
 		return filesystem.Entry{}, err
 	}
+	if err := filesystem.ValidatePath(path); err != nil {
+		return filesystem.Entry{}, err
+	}
 	if path == "." {
 		return filesystem.Entry{Path: ".", Kind: filesystem.EntryKindDirectory}, nil
 	}
