@@ -42,6 +42,7 @@ func TestNewID(t *testing.T) {
 	}
 
 	assert.Nil(t, NewID(true))
+	assert.Equal(t, "null", (&ID{}).String())
 }
 
 func TestIDJSON(t *testing.T) {
@@ -75,7 +76,6 @@ func TestIDJSON(t *testing.T) {
 			{name: "nil", data: "null", want: "null"},
 			{name: "string", data: `"request-id"`, want: "request-id"},
 			{name: "number", data: "12.5", want: "12.5"},
-			{name: "unsupported value", data: "true", want: "null"},
 		}
 
 		for _, tt := range tests {
@@ -86,6 +86,41 @@ func TestIDJSON(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("reject invalid values without changing the ID", func(t *testing.T) {
+		tests := []struct {
+			name string
+			data string
+		}{
+			{name: "boolean", data: "true"},
+			{name: "array", data: "[]"},
+			{name: "object", data: "{}"},
+			{name: "malformed JSON", data: "{"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				id := NewID("existing-id")
+				err := id.UnmarshalJSON([]byte(tt.data))
+
+				require.Error(t, err)
+				assert.Equal(t, "existing-id", id.String())
+			})
+		}
+	})
+}
+
+func TestIDUnmarshalJSONReplacesPreviousValue(t *testing.T) {
+	id := NewID("first-id")
+
+	require.NoError(t, id.UnmarshalJSON([]byte("42")))
+	assert.Equal(t, "42", id.String())
+
+	require.NoError(t, id.UnmarshalJSON([]byte("null")))
+	assert.Equal(t, "null", id.String())
+
+	require.NoError(t, id.UnmarshalJSON([]byte(`"last-id"`)))
+	assert.Equal(t, "last-id", id.String())
 }
 
 func TestUUIDGenerator(t *testing.T) {
