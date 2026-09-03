@@ -99,10 +99,21 @@ func TestJSONRPCFormatterErrorResponse(t *testing.T) {
 		ID:      "request-id",
 		Code:    -32601,
 		Message: "method not found",
+		Err:     errors.New("upstream error"),
 	}
 
 	data, err := formatter.FormatResponse(nil, want)
 	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"jsonrpc": "2.0",
+		"result": null,
+		"id": "request-id",
+		"error": {
+			"code": -32601,
+			"message": "method not found",
+			"data": "upstream error"
+		}
+	}`, string(data))
 
 	response, err := formatter.ParseResponse(data)
 	assert.Nil(t, response)
@@ -111,7 +122,58 @@ func TestJSONRPCFormatterErrorResponse(t *testing.T) {
 	assert.Equal(t, want.ID, got.ID)
 	assert.Equal(t, want.Code, got.Code)
 	assert.Equal(t, want.Message, got.Message)
-	assert.NoError(t, got.Err)
+	require.Error(t, got.Err)
+	assert.Equal(t, "upstream error", got.Err.Error())
+}
+
+func TestJSONRPCFormatterStructuredErrorData(t *testing.T) {
+	formatter := NewJSONRPCFormatter()
+	data := []byte(`{
+		"jsonrpc": "2.0",
+		"id": "request-id",
+		"error": {
+			"code": -32603,
+			"message": "internal error",
+			"data": {"retryable": true}
+		}
+	}`)
+
+	response, err := formatter.ParseResponse(data)
+	assert.Nil(t, response)
+	var rpcErr *RPCResponseError
+	require.ErrorAs(t, err, &rpcErr)
+	require.Error(t, rpcErr.Err)
+	assert.JSONEq(t, `{"retryable":true}`, rpcErr.Err.Error())
+
+	encoded, err := formatter.FormatResponse(nil, rpcErr)
+	require.NoError(t, err)
+	var envelope JSONRPCFormatterResponse
+	require.NoError(t, json.Unmarshal(encoded, &envelope))
+	require.NotNil(t, envelope.Error)
+	require.Error(t, envelope.Error.Data)
+	assert.JSONEq(t, `{"retryable":true}`, envelope.Error.Data.Error())
+}
+
+func TestJSONRPCFormatterEmptyErrorData(t *testing.T) {
+	formatter := NewJSONRPCFormatter()
+	formatted, err := formatter.FormatResponse(nil, &RPCResponseError{
+		ID:      "request-id",
+		Code:    -32601,
+		Message: "method not found",
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, string(formatted), `"data"`)
+
+	for _, data := range []string{
+		`{"jsonrpc":"2.0","id":"request-id","error":{"code":-32601,"message":"method not found"}}`,
+		`{"jsonrpc":"2.0","id":"request-id","error":{"code":-32601,"message":"method not found","data":null}}`,
+	} {
+		response, err := formatter.ParseResponse([]byte(data))
+		assert.Nil(t, response)
+		var rpcErr *RPCResponseError
+		require.ErrorAs(t, err, &rpcErr)
+		assert.NoError(t, rpcErr.Err)
+	}
 }
 
 func TestJSONRPCFormatterResponseErrors(t *testing.T) {
@@ -125,4 +187,7 @@ func TestJSONRPCFormatterResponseErrors(t *testing.T) {
 	response, err := formatter.ParseResponse([]byte("not-json"))
 	assert.Nil(t, response)
 	require.Error(t, err)
+
+	var responseErr JSONRPCFormatterResponseError
+	require.Error(t, responseErr.UnmarshalJSON([]byte("not-json")))
 }

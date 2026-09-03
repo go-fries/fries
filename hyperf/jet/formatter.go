@@ -1,6 +1,7 @@
 package jet
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -71,7 +72,65 @@ type JSONRPCFormatterRequest struct {
 type JSONRPCFormatterResponseError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	Data    error
+	Data    error  `json:"data,omitempty"`
+}
+
+type jsonRPCFormatterResponseErrorWire struct {
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data,omitempty"`
+}
+
+type jsonRPCErrorData struct {
+	raw json.RawMessage
+}
+
+func (e jsonRPCErrorData) Error() string {
+	var message string
+	if err := json.Unmarshal(e.raw, &message); err == nil {
+		return message
+	}
+	return string(e.raw)
+}
+
+func (e jsonRPCErrorData) MarshalJSON() ([]byte, error) {
+	return e.raw, nil
+}
+
+func (e JSONRPCFormatterResponseError) MarshalJSON() ([]byte, error) {
+	var data json.RawMessage
+	if e.Data != nil {
+		var err error
+		if _, ok := e.Data.(json.Marshaler); ok {
+			data, err = json.Marshal(e.Data)
+		} else {
+			data, err = json.Marshal(e.Data.Error())
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return json.Marshal(jsonRPCFormatterResponseErrorWire{
+		Code:    e.Code,
+		Message: e.Message,
+		Data:    data,
+	})
+}
+
+func (e *JSONRPCFormatterResponseError) UnmarshalJSON(data []byte) error {
+	var decoded jsonRPCFormatterResponseErrorWire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	e.Code = decoded.Code
+	e.Message = decoded.Message
+	e.Data = nil
+	if len(decoded.Data) > 0 && !bytes.Equal(bytes.TrimSpace(decoded.Data), []byte("null")) {
+		e.Data = jsonRPCErrorData{raw: decoded.Data}
+	}
+	return nil
 }
 
 type JSONRPCFormatterResponse struct {
