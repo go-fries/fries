@@ -176,6 +176,113 @@ func TestQueue_NilDeliveryOperationsAreNoop(t *testing.T) {
 	assert.Empty(t, q.DeadLetters(queue.DefaultQueue))
 }
 
+func TestQueue_NewConsumerReturnsContextError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	consumer, err := NewQueue().NewConsumer(ctx, queue.ConsumerConfig{})
+
+	assert.Nil(t, consumer)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestQueue_ReceiveWaitsUntilTaskIsAvailable(t *testing.T) {
+	t.Parallel()
+
+	q := NewQueue()
+	require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
+		ID:          "delayed",
+		Type:        "send_email",
+		AvailableAt: time.Now().UTC().Add(50 * time.Millisecond),
+	}))
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+
+	delivery, err := receive(ctx, q, queue.DefaultQueue)
+
+	require.NoError(t, err)
+	require.NotNil(t, delivery)
+	assert.Equal(t, "delayed", delivery.Task().ID)
+}
+
+func TestQueue_ReceiveWakesWhenTaskIsEnqueued(t *testing.T) {
+	q := NewQueue()
+	consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, consumer.Close())
+	})
+	type result struct {
+		delivery queue.Delivery
+		err      error
+	}
+	receiving := make(chan struct{})
+	received := make(chan result, 1)
+	go func() {
+		close(receiving)
+		delivery, err := consumer.Receive(t.Context())
+		received <- result{delivery: delivery, err: err}
+	}()
+	<-receiving
+
+	select {
+	case result := <-received:
+		require.FailNowf(t, "receive returned before enqueue", "%v", result.err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
+		ID:   "enqueued",
+		Type: "send_email",
+	}))
+
+	select {
+	case result := <-received:
+		require.NoError(t, result.err)
+		require.NotNil(t, result.delivery)
+		assert.Equal(t, "enqueued", result.delivery.Task().ID)
+	case <-time.After(time.Second):
+		require.FailNow(t, "receive did not wake after enqueue")
+	}
+}
+
+func TestQueue_NilDeliveryHasNoTask(t *testing.T) {
+	t.Parallel()
+
+	var delivery *delivery
+
+	assert.Nil(t, delivery.Task())
+}
+
+func TestQueue_DeadLetterInitializesMetadataAndUsesDefaultQueue(t *testing.T) {
+	t.Parallel()
+
+	q := NewQueue()
+	require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
+		ID:   "task-1",
+		Type: "send_email",
+	}))
+	delivery, err := receive(t.Context(), q, queue.DefaultQueue)
+	require.NoError(t, err)
+
+	require.NoError(t, delivery.DeadLetter(t.Context(), "failed"))
+
+	dead := q.DeadLetters("")
+	require.Len(t, dead, 1)
+	assert.Equal(t, queue.DefaultQueue, dead[0].Queue)
+	assert.Equal(t, "failed", dead[0].Metadata["queue.dead_letter.reason"])
+}
+
+func TestStopTimerHandlesStoppedTimer(t *testing.T) {
+	t.Parallel()
+
+	timer := time.NewTimer(time.Hour)
+	require.True(t, timer.Stop())
+
+	stopTimer(timer)
+}
+
 func receive(ctx context.Context, q *Queue, queueName string) (queue.Delivery, error) {
 	consumer, err := q.NewConsumer(ctx, queue.ConsumerConfig{Queue: queueName})
 	if err != nil {
