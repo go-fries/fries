@@ -3,7 +3,9 @@ package crontab
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
@@ -59,22 +61,27 @@ func TestServer_ImplementsLifecycleServer(t *testing.T) {
 func TestServer_StartRunsUntilStop(t *testing.T) {
 	t.Parallel()
 
-	server := NewServer(cron.New())
-	done := make(chan error, 1)
+	synctest.Test(t, func(t *testing.T) {
+		server := NewServer(cron.New())
+		defer func() {
+			assert.NoError(t, server.Stop(context.WithoutCancel(t.Context())))
+			synctest.Wait()
+		}()
+		done := make(chan error, 1)
 
-	go func() {
-		done <- server.Start(t.Context())
-	}()
+		go func() {
+			done <- server.Start(t.Context())
+		}()
 
-	require.Eventually(t, server.Cron().IsRunning, time.Second, 10*time.Millisecond)
-	require.NoError(t, server.Stop(t.Context()))
-
-	select {
-	case err := <-done:
-		require.NoError(t, err)
-	case <-time.After(time.Second):
-		require.Fail(t, "timeout waiting for server to stop")
-	}
+		synctest.Wait()
+		assert.True(t, server.Cron().IsRunning())
+		require.Empty(t, done)
+		require.NoError(t, server.Stop(t.Context()))
+		synctest.Wait()
+		assert.False(t, server.Cron().IsRunning())
+		require.Len(t, done, 1)
+		require.NoError(t, <-done)
+	})
 }
 
 func TestServer_StopBeforeStart(t *testing.T) {
@@ -88,37 +95,61 @@ func TestServer_StopBeforeStart(t *testing.T) {
 func TestServer_StopRespectsContextWhileWaitingForJobs(t *testing.T) {
 	t.Parallel()
 
-	started := make(chan struct{})
-	release := make(chan struct{})
-	c := cron.New()
-	c.Schedule(&onceSchedule{next: time.Now().Add(10 * time.Millisecond)}, cron.JobFunc(func(context.Context) error {
-		close(started)
-		<-release
-		return nil
-	}))
-	server := NewServer(c)
-	done := make(chan error, 1)
+	synctest.Test(t, func(t *testing.T) {
+		started := make(chan struct{}, 1)
+		completed := make(chan struct{}, 1)
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		c := cron.New()
+		c.Schedule(&onceSchedule{next: time.Now().Add(time.Second)}, cron.JobFunc(func(context.Context) error {
+			started <- struct{}{}
+			<-release
+			completed <- struct{}{}
+			return nil
+		}))
+		server := NewServer(c)
+		defer func() {
+			unblock()
+			assert.NoError(t, server.Stop(context.WithoutCancel(t.Context())))
+			synctest.Wait()
+		}()
+		done := make(chan error, 1)
 
-	go func() {
-		done <- server.Start(t.Context())
-	}()
+		go func() {
+			done <- server.Start(t.Context())
+		}()
 
-	select {
-	case <-started:
-	case <-time.After(time.Second):
-		require.Fail(t, "timeout waiting for cron job to start")
-	}
+		synctest.Wait()
+		assert.True(t, c.IsRunning())
+		time.Sleep(time.Second - time.Nanosecond)
+		synctest.Wait()
+		require.Empty(t, started)
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, started, 1)
+		require.Empty(t, done)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
-	defer cancel()
-
-	require.ErrorIs(t, server.Stop(ctx), context.DeadlineExceeded)
-
-	close(release)
-	select {
-	case err := <-done:
-		require.NoError(t, err)
-	case <-time.After(time.Second):
-		require.Fail(t, "timeout waiting for server to stop")
-	}
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+		stopped := make(chan error, 1)
+		go func() { stopped <- server.Stop(ctx) }()
+		synctest.Wait()
+		assert.False(t, c.IsRunning())
+		require.Empty(t, stopped)
+		time.Sleep(time.Second - time.Nanosecond)
+		synctest.Wait()
+		require.Empty(t, stopped, "Stop returned before its deadline")
+		require.Empty(t, completed)
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, stopped, 1)
+		require.ErrorIs(t, <-stopped, context.DeadlineExceeded)
+		require.Empty(t, completed, "deadline must not imply job completion")
+		unblock()
+		require.NoError(t, server.Stop(t.Context()))
+		synctest.Wait()
+		require.Len(t, completed, 1)
+		require.Len(t, done, 1)
+		require.NoError(t, <-done)
+	})
 }
