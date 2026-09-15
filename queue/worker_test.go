@@ -3,7 +3,9 @@ package queue
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/retry/v4"
@@ -180,53 +182,46 @@ func TestWorker_ProcessesAndAcksTask(t *testing.T) {
 func TestWorker_RetriesThenDeadLetters(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
 
-	q := newTestQueue()
-	seen := make(chan int, 2)
-	worker := NewWorker(
-		q,
-		Handle("fail", HandlerFunc(func(_ context.Context, task *Task) error {
-			seen <- task.Attempt
-			return errors.New("temporary failure")
-		})),
-		WithMaxAttempts(2),
-		WithBackoff(retry.NoBackoff()),
-	)
+		q := newTestQueue()
+		seen := make(chan int, 2)
+		worker := NewWorker(
+			q,
+			Handle("fail", HandlerFunc(func(_ context.Context, task *Task) error {
+				seen <- task.Attempt
+				return errors.New("temporary failure")
+			})),
+			WithMaxAttempts(2),
+			WithBackoff(retry.NoBackoff()),
+		)
 
-	errs := make(chan error, 1)
-	go func() {
-		errs <- worker.Run(ctx)
-	}()
+		errs := make(chan error, 1)
+		go func() {
+			errs <- worker.Run(ctx)
+		}()
 
-	_, err := NewProducer(q).Enqueue(t.Context(), "fail", nil)
-	require.NoError(t, err)
+		_, err := NewProducer(q).Enqueue(t.Context(), "fail", nil)
+		require.NoError(t, err)
 
-	for range 2 {
-		select {
-		case <-seen:
-		case <-time.After(time.Second):
-			require.Fail(t, "timeout waiting for retry attempt")
-		}
-	}
+		synctest.Wait()
+		require.Len(t, seen, 2)
+		assert.Equal(t, 1, <-seen)
+		assert.Equal(t, 2, <-seen)
+		require.Len(t, q.DeadLetters(DefaultQueue), 1)
+		require.Empty(t, errs, "worker should keep waiting for tasks")
 
-	deadline := time.After(time.Second)
-	for len(q.DeadLetters(DefaultQueue)) != 1 {
-		select {
-		case <-deadline:
-			require.Fail(t, "timeout waiting for dead letter")
-		default:
-			time.Sleep(time.Millisecond)
-		}
-	}
+		cancel()
+		synctest.Wait()
+		require.Len(t, errs, 1)
+		require.NoError(t, <-errs)
 
-	cancel()
-	require.NoError(t, <-errs)
-
-	dead := q.DeadLetters(DefaultQueue)[0]
-	assert.Equal(t, 2, dead.Attempt)
-	assert.NotEmpty(t, dead.Metadata["queue.dead_letter.reason"])
+		dead := q.DeadLetters(DefaultQueue)[0]
+		assert.Equal(t, 2, dead.Attempt)
+		assert.NotEmpty(t, dead.Metadata["queue.dead_letter.reason"])
+	})
 }
 
 func TestWorker_ConsumesConfiguredQueue(t *testing.T) {
@@ -332,93 +327,137 @@ func TestWorker_DeadLettersTaskWithoutHandler(t *testing.T) {
 func TestWorker_HandlerTimeout(t *testing.T) {
 	t.Parallel()
 
-	worker := NewWorker(newTestQueue(), WithHandlerTimeout(time.Millisecond))
-	err := worker.handle(t.Context(), HandlerFunc(func(ctx context.Context, _ *Task) error {
-		<-ctx.Done()
-		return ctx.Err()
-	}), &Task{})
-
-	require.ErrorIs(t, err, context.DeadlineExceeded)
+	synctest.Test(t, func(t *testing.T) {
+		worker := NewWorker(newTestQueue(), WithHandlerTimeout(time.Second))
+		requireWorkerDeadline(t, time.Second, func(ctx context.Context) error {
+			return worker.handle(ctx, HandlerFunc(func(ctx context.Context, _ *Task) error {
+				<-ctx.Done()
+				return ctx.Err()
+			}), &Task{})
+		})
+	})
 }
 
 func TestWorker_HandlerTimeoutRetriesWithSettlementContext(t *testing.T) {
 	t.Parallel()
 
-	retried := make(chan time.Duration, 1)
-	worker := NewWorker(
-		newTestQueue(),
-		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
-			<-ctx.Done()
-			return ctx.Err()
-		})),
-		WithHandlerTimeout(time.Millisecond),
-		WithMaxAttempts(2),
-		WithBackoff(retry.NoBackoff()),
-	)
-	delivery := &recordingDelivery{
-		task: &Task{Type: "slow", Attempt: 1},
-		retry: func(ctx context.Context, delay time.Duration) error {
-			require.NoError(t, ctx.Err())
-			retried <- delay
-			return nil
-		},
-	}
+	synctest.Test(t, func(t *testing.T) {
+		started := time.Now()
+		retried := make(chan time.Duration, 1)
+		worker := NewWorker(
+			newTestQueue(),
+			Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+				<-ctx.Done()
+				return ctx.Err()
+			})),
+			WithHandlerTimeout(time.Second),
+			WithMaxAttempts(2),
+			WithBackoff(retry.NoBackoff()),
+		)
+		delivery := &recordingDelivery{
+			task: &Task{Type: "slow", Attempt: 1},
+			retry: func(ctx context.Context, delay time.Duration) error {
+				require.NoError(t, ctx.Err())
+				deadline, ok := ctx.Deadline()
+				require.True(t, ok)
+				assert.Equal(t, defaultSettlementTimeout, time.Until(deadline))
+				retried <- delay
+				return nil
+			},
+		}
 
-	err := worker.process(t.Context(), delivery)
+		err := worker.process(t.Context(), delivery)
 
-	require.NoError(t, err)
-	assert.Equal(t, time.Duration(0), <-retried)
+		require.NoError(t, err)
+		require.Len(t, retried, 1)
+		assert.Equal(t, time.Duration(0), <-retried)
+		assert.Equal(t, time.Second, time.Since(started))
+	})
 }
 
 func TestWorker_HandlerTimeoutDeadLettersWithSettlementContext(t *testing.T) {
 	t.Parallel()
 
-	deadLettered := make(chan string, 1)
-	worker := NewWorker(
-		newTestQueue(),
-		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
-			<-ctx.Done()
-			return ctx.Err()
-		})),
-		WithHandlerTimeout(time.Millisecond),
-		WithMaxAttempts(1),
-	)
-	delivery := &recordingDelivery{
-		task: &Task{Type: "slow", Attempt: 1},
-		deadLetter: func(ctx context.Context, reason string) error {
-			require.NoError(t, ctx.Err())
-			deadLettered <- reason
-			return nil
-		},
-	}
+	synctest.Test(t, func(t *testing.T) {
+		started := time.Now()
+		deadLettered := make(chan string, 1)
+		worker := NewWorker(
+			newTestQueue(),
+			Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+				<-ctx.Done()
+				return ctx.Err()
+			})),
+			WithHandlerTimeout(time.Second),
+			WithMaxAttempts(1),
+		)
+		delivery := &recordingDelivery{
+			task: &Task{Type: "slow", Attempt: 1},
+			deadLetter: func(ctx context.Context, reason string) error {
+				require.NoError(t, ctx.Err())
+				deadline, ok := ctx.Deadline()
+				require.True(t, ok)
+				assert.Equal(t, defaultSettlementTimeout, time.Until(deadline))
+				deadLettered <- reason
+				return nil
+			},
+		}
 
-	err := worker.process(t.Context(), delivery)
+		err := worker.process(t.Context(), delivery)
 
-	require.NoError(t, err)
-	assert.Contains(t, <-deadLettered, ErrRetryExhausted.Error())
+		require.NoError(t, err)
+		require.Len(t, deadLettered, 1)
+		assert.Contains(t, <-deadLettered, ErrRetryExhausted.Error())
+		assert.Equal(t, time.Second, time.Since(started))
+	})
 }
 
 func TestWorker_SettlementTimeout(t *testing.T) {
 	t.Parallel()
 
-	worker := NewWorker(
-		newTestQueue(),
-		Handle("ok", HandlerFunc(func(context.Context, *Task) error {
-			return nil
-		})),
-		WithSettlementTimeout(time.Millisecond),
-	)
-	delivery := &recordingDelivery{
-		task: &Task{Type: "ok"},
-		ack: func(ctx context.Context) error {
-			<-ctx.Done()
-			return ctx.Err()
-		},
-	}
+	synctest.Test(t, func(t *testing.T) {
+		worker := NewWorker(
+			newTestQueue(),
+			Handle("ok", HandlerFunc(func(context.Context, *Task) error {
+				return nil
+			})),
+			WithSettlementTimeout(time.Second),
+		)
+		delivery := &recordingDelivery{
+			task: &Task{Type: "ok"},
+			ack: func(ctx context.Context) error {
+				<-ctx.Done()
+				return ctx.Err()
+			},
+		}
 
-	err := worker.process(t.Context(), delivery)
+		requireWorkerDeadline(t, time.Second, func(ctx context.Context) error {
+			return worker.process(ctx, delivery)
+		})
+	})
+}
 
-	require.ErrorIs(t, err, context.DeadlineExceeded)
+// requireWorkerDeadline runs inside a synctest bubble. The operation owns its
+// deadline; the parent cancellation is only for failure-path cleanup.
+func requireWorkerDeadline(t *testing.T, timeout time.Duration, operation func(context.Context) error) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer func() {
+		cancel()
+		synctest.Wait()
+	}()
+	started := time.Now()
+	result := make(chan error, 1)
+	go func() { result <- operation(ctx) }()
+	synctest.Wait()
+	require.Empty(t, result)
+	time.Sleep(timeout - time.Nanosecond)
+	synctest.Wait()
+	require.Empty(t, result, "operation returned before its deadline")
+	time.Sleep(time.Nanosecond)
+	synctest.Wait()
+	require.Len(t, result, 1, "operation did not return at its deadline")
+	require.ErrorIs(t, <-result, context.DeadlineExceeded)
+	assert.Equal(t, timeout, time.Since(started))
 }
 
 func TestWorker_DiscardsTask(t *testing.T) {
@@ -562,92 +601,108 @@ func TestWorker_RunContextCancellationCancelsInFlightTask(t *testing.T) {
 func TestWorker_StopDrainsInFlightTask(t *testing.T) {
 	t.Parallel()
 
-	q := newTestQueue()
-	_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
-	require.NoError(t, err)
+	synctest.Test(t, func(t *testing.T) {
+		runCtx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
+		q := newTestQueue()
+		_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
+		require.NoError(t, err)
 
-	handlerCtxs := make(chan context.Context, 1)
-	release := make(chan struct{})
-	worker := NewWorker(
-		q,
-		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
-			handlerCtxs <- ctx
-			select {
-			case <-release:
-				return nil
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		})),
-	)
+		handlerCtxs := make(chan context.Context, 1)
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer unblock()
+		worker := NewWorker(
+			q,
+			Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+				handlerCtxs <- ctx
+				select {
+				case <-release:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			})),
+		)
 
-	errs := make(chan error, 1)
-	go func() {
-		errs <- worker.Run(t.Context())
-	}()
+		errs := make(chan error, 1)
+		go func() {
+			errs <- worker.Run(runCtx)
+		}()
 
-	var handlerCtx context.Context
-	select {
-	case handlerCtx = <-handlerCtxs:
-	case <-time.After(time.Second):
-		require.Fail(t, "timeout waiting for handler start")
-	}
-	stopErrs := make(chan error, 1)
-	go func() {
-		stopErrs <- worker.Stop(t.Context())
-	}()
+		synctest.Wait()
+		require.Len(t, handlerCtxs, 1)
+		handlerCtx := <-handlerCtxs
+		stopErrs := make(chan error, 1)
+		go func() {
+			stopErrs <- worker.Stop(t.Context())
+		}()
 
-	select {
-	case err := <-stopErrs:
-		require.Failf(t, "stop returned before in-flight task finished", "err=%v", err)
-	default:
-	}
-	select {
-	case <-handlerCtx.Done():
-		require.Fail(t, "handler context was canceled before drain timeout")
-	default:
-	}
+		synctest.Wait()
+		require.Empty(t, stopErrs, "Stop returned before in-flight task finished")
+		require.Empty(t, errs)
+		assert.NoError(t, handlerCtx.Err())
 
-	close(release)
-	require.NoError(t, <-stopErrs)
-	require.NoError(t, <-errs)
+		unblock()
+		synctest.Wait()
+		require.Len(t, stopErrs, 1)
+		require.Len(t, errs, 1)
+		require.NoError(t, <-stopErrs)
+		require.NoError(t, <-errs)
+	})
 }
 
 func TestWorker_StopCancelsInFlightTaskAfterContextDeadline(t *testing.T) {
 	t.Parallel()
 
-	q := newTestQueue()
-	_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
-	require.NoError(t, err)
+	synctest.Test(t, func(t *testing.T) {
+		runCtx, cancelRun := context.WithCancel(t.Context())
+		defer func() { cancelRun(); synctest.Wait() }()
+		q := newTestQueue()
+		_, err := NewProducer(q).Enqueue(t.Context(), "slow", nil)
+		require.NoError(t, err)
 
-	handlerStarted := make(chan struct{})
-	handlerDone := make(chan error, 1)
-	worker := NewWorker(
-		q,
-		Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
-			close(handlerStarted)
-			<-ctx.Done()
-			err := ctx.Err()
-			handlerDone <- err
-			return err
-		})),
-	)
+		handlerStarted := make(chan context.Context, 1)
+		handlerDone := make(chan error, 1)
+		worker := NewWorker(
+			q,
+			Handle("slow", HandlerFunc(func(ctx context.Context, _ *Task) error {
+				handlerStarted <- ctx
+				<-ctx.Done()
+				err := ctx.Err()
+				handlerDone <- err
+				return err
+			})),
+		)
 
-	errs := make(chan error, 1)
-	go func() {
-		errs <- worker.Run(t.Context())
-	}()
+		errs := make(chan error, 1)
+		go func() {
+			errs <- worker.Run(runCtx)
+		}()
 
-	select {
-	case <-handlerStarted:
-	case <-time.After(time.Second):
-		require.Fail(t, "timeout waiting for handler start")
-	}
-	stopCtx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
-	defer cancel()
-	require.ErrorIs(t, worker.Stop(stopCtx), context.DeadlineExceeded)
-	require.ErrorIs(t, <-handlerDone, context.Canceled)
-	require.ErrorIs(t, <-errs, context.Canceled)
+		synctest.Wait()
+		require.Len(t, handlerStarted, 1)
+		handlerCtx := <-handlerStarted
+		stopCtx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+		stopped := make(chan error, 1)
+		go func() { stopped <- worker.Stop(stopCtx) }()
+		synctest.Wait()
+		time.Sleep(time.Second - time.Nanosecond)
+		synctest.Wait()
+		assert.NoError(t, handlerCtx.Err())
+		require.Empty(t, handlerDone)
+		require.Empty(t, stopped)
+		require.Empty(t, errs)
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, stopped, 1)
+		require.ErrorIs(t, <-stopped, context.DeadlineExceeded)
+		require.Len(t, handlerDone, 1)
+		require.Len(t, errs, 1)
+		require.ErrorIs(t, <-handlerDone, context.Canceled)
+		require.ErrorIs(t, <-errs, context.Canceled)
+	})
 }
 
 func TestWorker_MiddlewareOrder(t *testing.T) {
