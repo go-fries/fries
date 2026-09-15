@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -270,29 +271,56 @@ func TestDispatchDoesNotDuplicateContextCause(t *testing.T) {
 }
 
 func TestDispatchWithConcurrencyIsBoundedAndWaits(t *testing.T) {
-	dispatcher := New()
-	var current, maximum, completed atomic.Int64
-	listeners := make([]Listener, 0, 6)
-	for range 6 {
-		listeners = append(listeners, HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
-			active := current.Add(1)
-			for {
-				observed := maximum.Load()
-				if active <= observed || maximum.CompareAndSwap(observed, active) {
-					break
+	synctest.Test(t, func(t *testing.T) {
+		const (
+			count = 6
+			limit = 2
+		)
+		dispatcher := New()
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			synctest.Wait()
+		}()
+		var current, maximum, completed atomic.Int64
+		listeners := make([]Listener, 0, count)
+		for range count {
+			listeners = append(listeners, HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
+				active := current.Add(1)
+				for {
+					observed := maximum.Load()
+					if active <= observed || maximum.CompareAndSwap(observed, active) {
+						break
+					}
 				}
-			}
-			time.Sleep(20 * time.Millisecond)
-			current.Add(-1)
-			completed.Add(1)
-			return nil
-		})))
-	}
-	dispatcher.Subscribe(listeners...)
+				<-release
+				current.Add(-1)
+				completed.Add(1)
+				return nil
+			})))
+		}
+		dispatcher.Subscribe(listeners...)
 
-	require.NoError(t, dispatcher.Dispatch(t.Context(), userEvent{}, WithConcurrency(2)))
-	assert.EqualValues(t, 2, maximum.Load())
-	assert.EqualValues(t, 6, completed.Load())
+		result := make(chan error, 1)
+		go func() {
+			result <- dispatcher.Dispatch(t.Context(), userEvent{}, WithConcurrency(limit))
+		}()
+
+		synctest.Wait()
+		assert.EqualValues(t, limit, current.Load())
+		assert.EqualValues(t, limit, maximum.Load())
+		assert.Zero(t, completed.Load())
+		require.Empty(t, result, "Dispatch returned before handlers were released")
+
+		unblock()
+		synctest.Wait()
+		require.Len(t, result, 1, "Dispatch did not finish after handlers were released")
+		require.NoError(t, <-result)
+		assert.EqualValues(t, limit, maximum.Load())
+		assert.EqualValues(t, count, completed.Load())
+		assert.Zero(t, current.Load())
+	})
 }
 
 func TestDispatchConcurrentFailFastCancelsRunningHandlers(t *testing.T) {
@@ -322,19 +350,54 @@ func TestDispatchConcurrentFailFastCancelsRunningHandlers(t *testing.T) {
 }
 
 func TestDispatchConcurrentContinueOnErrorKeepsRegistrationOrder(t *testing.T) {
-	dispatcher := New()
-	dispatcher.Subscribe(
-		HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
-			time.Sleep(30 * time.Millisecond)
-			return errors.New("first")
-		})),
-		HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
-			return errors.New("second")
-		})),
-	)
+	synctest.Test(t, func(t *testing.T) {
+		dispatcher := New()
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			synctest.Wait()
+		}()
+		firstError := errors.New("first")
+		secondError := errors.New("second")
+		started := make(chan struct{}, 2)
+		completed := make(chan string, 2)
+		dispatcher.Subscribe(
+			HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
+				started <- struct{}{}
+				<-release
+				completed <- "first"
+				return firstError
+			})),
+			HandlerFor[userEvent](HandlerFunc[userEvent](func(context.Context, userEvent) error {
+				started <- struct{}{}
+				completed <- "second"
+				return secondError
+			})),
+		)
 
-	err := dispatcher.Dispatch(t.Context(), userEvent{}, WithConcurrency(2), ContinueOnError())
-	assert.Equal(t, "first\nsecond", err.Error())
+		result := make(chan error, 1)
+		go func() {
+			result <- dispatcher.Dispatch(t.Context(), userEvent{}, WithConcurrency(2), ContinueOnError())
+		}()
+
+		synctest.Wait()
+		assert.Len(t, started, 2)
+		require.Len(t, completed, 1)
+		assert.Equal(t, "second", <-completed)
+		require.Empty(t, result, "Dispatch returned while the first handler was blocked")
+
+		unblock()
+		synctest.Wait()
+		require.Len(t, completed, 1)
+		assert.Equal(t, "first", <-completed)
+		require.Len(t, result, 1)
+		err := <-result
+		require.Error(t, err)
+		assert.ErrorIs(t, err, firstError)
+		assert.ErrorIs(t, err, secondError)
+		assert.Equal(t, "first\nsecond", err.Error())
+	})
 }
 
 func TestWithConcurrencyIgnoresNonPositiveValues(t *testing.T) {
