@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type utilMockStore struct {
@@ -97,32 +98,39 @@ func TestUtils_Get(t *testing.T) {
 }
 
 func TestUtils_Remember(t *testing.T) {
-	ctx := t.Context()
-	repo := NewRepository(newUtilMockStore())
-	var total int32
+	synctest.Test(t, func(t *testing.T) {
+		const ttl = time.Second
+		ctx := t.Context()
+		repo := NewRepository(newUtilMockStore())
+		var calls int
+		remember := func(loadValue string) string {
+			t.Helper()
+			value, err := Remember(ctx, repo, "test_key", ttl, func() (string, error) {
+				calls++
+				return loadValue, nil
+			})
+			require.NoError(t, err)
+			return value
+		}
 
-	rememberFunc := func(value string) (string, error) {
-		return Remember(ctx, repo, "test_key", time.Millisecond*100, func() (string, error) {
-			atomic.AddInt32(&total, 1)
-			return value, nil
-		})
-	}
+		assert.Equal(t, "value1", remember("value1"))
+		assert.Equal(t, 1, calls)
 
-	assert.Equal(t, int32(0), total)
+		time.Sleep(ttl - time.Nanosecond)
+		assert.Equal(t, "value1", remember("before expiry"))
+		assert.Equal(t, 1, calls)
 
-	v1, err1 := rememberFunc("value1")
-	assert.NoError(t, err1)
-	assert.Equal(t, "value1", v1)
-	assert.Equal(t, int32(1), total)
+		// The mock store keeps entries valid at their exact expiration time.
+		time.Sleep(time.Nanosecond)
+		assert.Equal(t, "value1", remember("at expiry"))
+		assert.Equal(t, 1, calls)
 
-	v2, err2 := rememberFunc("value2")
-	assert.NoError(t, err2)
-	assert.Equal(t, "value1", v2)
-	assert.Equal(t, int32(1), total)
+		time.Sleep(time.Nanosecond)
+		assert.Equal(t, "value2", remember("value2"))
+		assert.Equal(t, 2, calls)
 
-	time.Sleep(time.Millisecond * 200)
-	v3, err3 := rememberFunc("value3")
-	assert.NoError(t, err3)
-	assert.Equal(t, "value3", v3)
-	assert.Equal(t, int32(2), total)
+		time.Sleep(ttl - time.Nanosecond)
+		assert.Equal(t, "value2", remember("cached again"))
+		assert.Equal(t, 2, calls)
+	})
 }
