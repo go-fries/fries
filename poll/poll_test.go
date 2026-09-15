@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/poll/v4"
@@ -39,14 +40,19 @@ func TestUntilCallsConditionImmediately(t *testing.T) {
 }
 
 func TestUntilPollsUntilComplete(t *testing.T) {
-	attempts := 0
-	err := poll.Until(t.Context(), time.Millisecond, func(context.Context) (bool, error) {
-		attempts++
-		return attempts == 3, nil
-	})
+	synctest.Test(t, func(t *testing.T) {
+		const interval = time.Second
+		started := time.Now()
+		var calledAt []time.Duration
+		err := poll.Until(t.Context(), interval, func(context.Context) (bool, error) {
+			calledAt = append(calledAt, time.Since(started))
+			return len(calledAt) == 3, nil
+		})
 
-	require.NoError(t, err)
-	assert.Equal(t, 3, attempts)
+		require.NoError(t, err)
+		assert.Equal(t, []time.Duration{0, interval, 2 * interval}, calledAt)
+		assert.Equal(t, 2*interval, time.Since(started))
+	})
 }
 
 func TestUntilReturnsConditionError(t *testing.T) {
@@ -59,33 +65,64 @@ func TestUntilReturnsConditionError(t *testing.T) {
 }
 
 func TestUntilReturnsCancellationDuringWait(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	conditionCalled := make(chan struct{})
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		started := time.Now()
+		result := make(chan error, 1)
+		var attempts atomic.Int32
+		go func() {
+			result <- poll.Until(ctx, time.Hour, func(context.Context) (bool, error) {
+				attempts.Add(1)
+				return false, nil
+			})
+		}()
 
-	go func() {
-		<-conditionCalled
+		synctest.Wait()
+		assert.Equal(t, int32(1), attempts.Load())
+		require.Empty(t, result, "polling returned before cancellation")
+
 		cancel()
-	}()
-
-	started := time.Now()
-	err := poll.Until(ctx, time.Hour, func(context.Context) (bool, error) {
-		close(conditionCalled)
-		return false, nil
+		synctest.Wait()
+		require.Len(t, result, 1, "cancellation did not interrupt the polling interval")
+		require.ErrorIs(t, <-result, context.Canceled)
+		assert.Equal(t, int32(1), attempts.Load())
+		assert.Zero(t, time.Since(started))
 	})
-
-	require.ErrorIs(t, err, context.Canceled)
-	assert.Less(t, time.Since(started), time.Second)
 }
 
 func TestUntilReturnsDeadlineExceeded(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
-	defer cancel()
+	synctest.Test(t, func(t *testing.T) {
+		const timeout = time.Second
+		ctx, cancel := context.WithTimeout(t.Context(), timeout)
+		defer cancel()
+		started := time.Now()
+		result := make(chan error, 1)
+		var attempts atomic.Int32
+		go func() {
+			result <- poll.Until(ctx, time.Hour, func(context.Context) (bool, error) {
+				attempts.Add(1)
+				return false, nil
+			})
+		}()
 
-	err := poll.Until(ctx, time.Hour, func(context.Context) (bool, error) {
-		return false, nil
+		synctest.Wait()
+		assert.Equal(t, int32(1), attempts.Load())
+		require.Empty(t, result)
+
+		time.Sleep(timeout - time.Nanosecond)
+		synctest.Wait()
+		assert.NoError(t, ctx.Err())
+		assert.Equal(t, int32(1), attempts.Load())
+		require.Empty(t, result, "polling returned before its deadline")
+
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, result, 1, "deadline did not interrupt the polling interval")
+		require.ErrorIs(t, <-result, context.DeadlineExceeded)
+		assert.Equal(t, int32(1), attempts.Load())
+		assert.Equal(t, timeout, time.Since(started))
 	})
-
-	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestUntilContextErrorTakesPrecedence(t *testing.T) {
@@ -102,24 +139,32 @@ func TestUntilContextErrorTakesPrecedence(t *testing.T) {
 }
 
 func TestUntilWaitsAfterConditionReturns(t *testing.T) {
-	const interval = 30 * time.Millisecond
+	synctest.Test(t, func(t *testing.T) {
+		const (
+			interval      = 3 * time.Second
+			conditionTime = 2 * time.Second
+		)
+		started := time.Now()
+		var attempts int
+		var firstReturnedAt time.Time
+		var secondCalledAt time.Time
+		err := poll.Until(t.Context(), interval, func(context.Context) (bool, error) {
+			attempts++
+			if attempts == 1 {
+				time.Sleep(conditionTime)
+				firstReturnedAt = time.Now()
+				return false, nil
+			}
+			secondCalledAt = time.Now()
+			return true, nil
+		})
 
-	attempts := 0
-	var firstReturnedAt time.Time
-	var secondCalledAt time.Time
-	err := poll.Until(t.Context(), interval, func(context.Context) (bool, error) {
-		attempts++
-		if attempts == 1 {
-			time.Sleep(20 * time.Millisecond)
-			firstReturnedAt = time.Now()
-			return false, nil
-		}
-		secondCalledAt = time.Now()
-		return true, nil
+		require.NoError(t, err)
+		assert.Equal(t, 2, attempts)
+		assert.Equal(t, conditionTime, firstReturnedAt.Sub(started))
+		assert.Equal(t, interval, secondCalledAt.Sub(firstReturnedAt))
+		assert.Equal(t, conditionTime+interval, time.Since(started))
 	})
-
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, secondCalledAt.Sub(firstReturnedAt), interval)
 }
 
 func TestUntilPanicsForNilCondition(t *testing.T) {
@@ -141,22 +186,27 @@ func TestUntilPanicsForNonPositiveInterval(t *testing.T) {
 }
 
 func TestUntilValueReturnsCompletedValue(t *testing.T) {
-	attempts := 0
-	value, err := poll.UntilValue(
-		t.Context(),
-		time.Millisecond,
-		func(context.Context) (string, bool, error) {
-			attempts++
-			value := "pending"
-			if attempts == 2 {
-				value = "ready"
-			}
-			return value, attempts == 2, nil
-		},
-	)
+	synctest.Test(t, func(t *testing.T) {
+		const interval = time.Second
+		started := time.Now()
+		var calledAt []time.Duration
+		value, err := poll.UntilValue(
+			t.Context(),
+			interval,
+			func(context.Context) (string, bool, error) {
+				calledAt = append(calledAt, time.Since(started))
+				if len(calledAt) == 2 {
+					return "ready", true, nil
+				}
+				return "pending", false, nil
+			},
+		)
 
-	require.NoError(t, err)
-	assert.Equal(t, "ready", value)
+		require.NoError(t, err)
+		assert.Equal(t, "ready", value)
+		assert.Equal(t, []time.Duration{0, interval}, calledAt)
+		assert.Equal(t, interval, time.Since(started))
+	})
 }
 
 func TestUntilValueReturnsZeroValueWhenCanceledBeforeCondition(t *testing.T) {
@@ -186,21 +236,42 @@ func TestUntilValueReturnsValueWithConditionError(t *testing.T) {
 }
 
 func TestUntilValueReturnsLatestValueWhenCanceledDuringWait(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	conditionCalled := make(chan struct{})
+	synctest.Test(t, func(t *testing.T) {
+		const interval = time.Second
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		type result struct {
+			value int
+			err   error
+		}
+		results := make(chan result, 1)
+		var attempts atomic.Int32
+		go func() {
+			value, err := poll.UntilValue(ctx, interval, func(context.Context) (int, bool, error) {
+				return 40 + int(attempts.Add(1)), false, nil
+			})
+			results <- result{value: value, err: err}
+		}()
 
-	go func() {
-		<-conditionCalled
+		synctest.Wait()
+		assert.Equal(t, int32(1), attempts.Load())
+		require.Empty(t, results)
+
+		time.Sleep(interval)
+		synctest.Wait()
+		assert.Equal(t, int32(2), attempts.Load())
+		require.Empty(t, results, "polling returned before cancellation")
+
+		canceledAt := time.Now()
 		cancel()
-	}()
-
-	value, err := poll.UntilValue(ctx, time.Hour, func(context.Context) (int, bool, error) {
-		close(conditionCalled)
-		return 42, false, nil
+		synctest.Wait()
+		require.Len(t, results, 1, "cancellation did not interrupt the polling interval")
+		got := <-results
+		require.ErrorIs(t, got.err, context.Canceled)
+		assert.Equal(t, 42, got.value)
+		assert.Equal(t, int32(2), attempts.Load())
+		assert.Zero(t, time.Since(canceledAt))
 	})
-
-	require.ErrorIs(t, err, context.Canceled)
-	assert.Equal(t, 42, value)
 }
 
 func TestUntilValueReturnsLatestValueWhenCanceledDuringCondition(t *testing.T) {
