@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -336,91 +337,89 @@ func TestWorker_ObserverEventsForSettlementFailure(t *testing.T) {
 func TestWorker_ObserverEventsForRunLifecycleAndReceive(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
 
-	q := newTestQueue()
-	_, err := NewProducer(q).Enqueue(t.Context(), "send_email", nil)
-	require.NoError(t, err)
+		q := newTestQueue()
+		_, err := NewProducer(q).Enqueue(t.Context(), "send_email", nil)
+		require.NoError(t, err)
 
-	observer := &recordingObserver{}
-	worker := NewWorker(
-		q,
-		WithObserver(observer),
-		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
-			return nil
-		})),
-	)
+		observer := &recordingObserver{}
+		worker := NewWorker(
+			q,
+			WithObserver(observer),
+			Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
+				return nil
+			})),
+		)
 
-	errs := make(chan error, 1)
-	go func() {
-		errs <- worker.Run(ctx)
-	}()
+		errs := make(chan error, 1)
+		go func() {
+			errs <- worker.Run(ctx)
+		}()
 
-	require.Eventually(t, func() bool {
-		return hasEventKind(observer.Events(), EventTaskAcked)
-	}, time.Second, time.Millisecond)
-	cancel()
-	require.NoError(t, <-errs)
+		synctest.Wait()
+		assert.Equal(t, []EventKind{EventWorkerStarted, EventTaskReceived, EventHandlerStarted, EventHandlerSucceeded, EventTaskAcked}, observer.Kinds())
+		require.Empty(t, errs)
+		cancel()
+		synctest.Wait()
+		require.Len(t, errs, 1)
+		require.NoError(t, <-errs)
 
-	events := observer.Events()
-	assert.True(t, hasEventKind(events, EventWorkerStarted))
-	assert.True(t, hasEventKind(events, EventTaskReceived))
-	assert.True(t, hasEventKind(events, EventWorkerStopped))
+		events := observer.Events()
+		assert.True(t, hasEventKind(events, EventWorkerStarted))
+		assert.True(t, hasEventKind(events, EventTaskReceived))
+		assert.True(t, hasEventKind(events, EventWorkerStopped))
+		assert.Equal(t, EventWorkerStopped, events[len(events)-1].Kind)
+	})
 }
 
 func TestWorker_ObserverPassesRunLifecycleContext(t *testing.T) {
 	t.Parallel()
 
-	key := contextValueKey("worker-lifecycle")
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	synctest.Test(t, func(t *testing.T) {
+		key := contextValueKey("worker-lifecycle")
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
 
-	q := newTestQueue()
-	started := make(chan struct{}, 1)
-	stopped := make(chan struct{}, 1)
-	observer := ObserverFunc(func(ctx context.Context, event Event) context.Context {
-		switch event.Kind {
-		case EventWorkerStarted:
-			started <- struct{}{}
-			return context.WithValue(ctx, key, "worker")
-		case EventWorkerStopped:
-			assert.Equal(t, "worker", ctx.Value(key))
-			stopped <- struct{}{}
-		}
-		return ctx
+		q := newTestQueue()
+		started := make(chan struct{}, 1)
+		stopped := make(chan any, 1)
+		observer := ObserverFunc(func(ctx context.Context, event Event) context.Context {
+			switch event.Kind {
+			case EventWorkerStarted:
+				started <- struct{}{}
+				return context.WithValue(ctx, key, "worker")
+			case EventWorkerStopped:
+				stopped <- ctx.Value(key)
+			}
+			return ctx
+		})
+		worker := NewWorker(
+			q,
+			WithObserver(observer),
+			Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
+				return nil
+			})),
+		)
+
+		errs := make(chan error, 1)
+		go func() {
+			errs <- worker.Run(ctx)
+		}()
+
+		synctest.Wait()
+		require.Len(t, started, 1)
+		require.Empty(t, stopped)
+		require.Empty(t, errs)
+		require.NoError(t, worker.Stop(t.Context()))
+		synctest.Wait()
+		require.Len(t, errs, 1)
+		require.NoError(t, <-errs)
+		require.Len(t, stopped, 1)
+		assert.Equal(t, "worker", <-stopped)
 	})
-	worker := NewWorker(
-		q,
-		WithObserver(observer),
-		Handle("send_email", HandlerFunc(func(context.Context, *Task) error {
-			return nil
-		})),
-	)
-
-	errs := make(chan error, 1)
-	go func() {
-		errs <- worker.Run(ctx)
-	}()
-
-	require.Eventually(t, func() bool {
-		select {
-		case <-started:
-			return true
-		default:
-			return false
-		}
-	}, time.Second, time.Millisecond)
-	require.NoError(t, worker.Stop(t.Context()))
-	require.NoError(t, <-errs)
-	require.Eventually(t, func() bool {
-		select {
-		case <-stopped:
-			return true
-		default:
-			return false
-		}
-	}, time.Second, time.Millisecond)
 }
 
 type enqueueErrorQueue struct {
