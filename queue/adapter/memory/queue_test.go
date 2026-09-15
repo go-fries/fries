@@ -41,32 +41,37 @@ func TestQueue_EnqueueDefaultsQueueAndClonesTask(t *testing.T) {
 func TestQueue_ReceiveHonorsAvailability(t *testing.T) {
 	t.Parallel()
 
-	ctx := t.Context()
-	q := NewQueue()
-	now := time.Now().UTC()
-	require.NoError(t, q.Enqueue(ctx, &queue.Task{
-		ID:          "future",
-		Type:        "send_email",
-		AvailableAt: now.Add(time.Minute),
-	}))
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		q := NewQueue()
+		now := time.Now().UTC()
+		require.NoError(t, q.Enqueue(ctx, &queue.Task{
+			ID:          "future",
+			Type:        "send_email",
+			AvailableAt: now.Add(time.Minute),
+		}))
 
-	receiveCtx, cancel := context.WithTimeout(ctx, time.Millisecond)
-	_, err := receive(receiveCtx, q, queue.DefaultQueue)
-	cancel()
-	require.ErrorIs(t, err, context.DeadlineExceeded)
+		receiveCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		delivery, err := receive(receiveCtx, q, queue.DefaultQueue)
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Nil(t, delivery)
+		assert.Equal(t, time.Second, time.Since(now))
 
-	require.NoError(t, q.Enqueue(ctx, &queue.Task{
-		ID:          "ready",
-		Type:        "send_email",
-		AvailableAt: now.Add(-time.Minute),
-	}))
+		require.NoError(t, q.Enqueue(ctx, &queue.Task{
+			ID:          "ready",
+			Type:        "send_email",
+			AvailableAt: now.Add(-time.Minute),
+		}))
 
-	delivery, err := receive(ctx, q, queue.DefaultQueue)
-	require.NoError(t, err)
-	require.NotNil(t, delivery)
-	require.NotNil(t, delivery.Task())
-	assert.Equal(t, "ready", delivery.Task().ID)
-	assert.Equal(t, 1, delivery.Task().Attempt)
+		delivery, err = receive(ctx, q, queue.DefaultQueue)
+		require.NoError(t, err)
+		require.NotNil(t, delivery)
+		require.NotNil(t, delivery.Task())
+		assert.Equal(t, "ready", delivery.Task().ID)
+		assert.Equal(t, 1, delivery.Task().Attempt)
+		assert.Equal(t, time.Second, time.Since(now), "ready task must not wait behind the future task")
+	})
 }
 
 func TestQueue_RetryReenqueuesTask(t *testing.T) {
@@ -192,20 +197,45 @@ func TestQueue_NewConsumerReturnsContextError(t *testing.T) {
 func TestQueue_ReceiveWaitsUntilTaskIsAvailable(t *testing.T) {
 	t.Parallel()
 
-	q := NewQueue()
-	require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
-		ID:          "delayed",
-		Type:        "send_email",
-		AvailableAt: time.Now().UTC().Add(50 * time.Millisecond),
-	}))
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
-	defer cancel()
-
-	delivery, err := receive(ctx, q, queue.DefaultQueue)
-
-	require.NoError(t, err)
-	require.NotNil(t, delivery)
-	assert.Equal(t, "delayed", delivery.Task().ID)
+	synctest.Test(t, func(t *testing.T) {
+		const delay = time.Minute
+		started := time.Now()
+		q := NewQueue()
+		require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
+			ID:          "delayed",
+			Type:        "send_email",
+			AvailableAt: started.UTC().Add(delay),
+		}))
+		consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
+		require.NoError(t, err)
+		defer func() {
+			assert.NoError(t, consumer.Close())
+			synctest.Wait()
+		}()
+		type result struct {
+			delivery queue.Delivery
+			err      error
+		}
+		received := make(chan result, 1)
+		go func() {
+			delivery, err := consumer.Receive(t.Context())
+			received <- result{delivery: delivery, err: err}
+		}()
+		synctest.Wait()
+		require.Empty(t, received)
+		time.Sleep(delay - time.Nanosecond)
+		synctest.Wait()
+		require.Empty(t, received, "task was received before AvailableAt")
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, received, 1, "task was not received at AvailableAt")
+		got := <-received
+		require.NoError(t, got.err)
+		require.NotNil(t, got.delivery)
+		assert.Equal(t, "delayed", got.delivery.Task().ID)
+		assert.Equal(t, 1, got.delivery.Task().Attempt)
+		assert.Equal(t, delay, time.Since(started))
+	})
 }
 
 func TestQueue_ReceiveWakesWhenTaskIsEnqueued(t *testing.T) {
@@ -213,9 +243,10 @@ func TestQueue_ReceiveWakesWhenTaskIsEnqueued(t *testing.T) {
 		q := NewQueue()
 		consumer, err := q.NewConsumer(t.Context(), queue.ConsumerConfig{})
 		require.NoError(t, err)
-		t.Cleanup(func() {
-			require.NoError(t, consumer.Close())
-		})
+		defer func() {
+			assert.NoError(t, consumer.Close())
+			synctest.Wait()
+		}()
 		type result struct {
 			delivery queue.Delivery
 			err      error
@@ -227,6 +258,7 @@ func TestQueue_ReceiveWakesWhenTaskIsEnqueued(t *testing.T) {
 		}()
 		synctest.Wait()
 
+		require.Empty(t, received, "Receive returned before a task was enqueued")
 		require.NoError(t, q.Enqueue(t.Context(), &queue.Task{
 			ID:   "enqueued",
 			Type: "send_email",
