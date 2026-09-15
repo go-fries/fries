@@ -2,6 +2,12 @@
 
 Timeout middleware for Jet.
 
+The middleware returns `ErrTimeout` when its configured deadline or an earlier
+parent deadline expires. Parent cancellation returns `context.Canceled`.
+The handler receives the timeout context; if it ignores cancellation, it may
+continue running after the middleware returns. Completed handler responses and
+errors are passed through.
+
 ## Usage Example
 
 ```go
