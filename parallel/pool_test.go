@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/parallel/v4"
@@ -30,28 +31,7 @@ func TestNewPoolConfiguration(t *testing.T) {
 }
 
 func TestPoolUnbufferedQueueAppliesBackpressure(t *testing.T) {
-	pool := requirePool(t, 1, parallel.WithQueueSize(0))
-	started := make(chan struct{})
-	release := make(chan struct{})
-
-	first, err := pool.Submit(t.Context(), func(context.Context) error {
-		close(started)
-		<-release
-
-		return nil
-	})
-	require.NoError(t, err)
-	<-started
-
-	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
-	defer cancel()
-	second, err := pool.Submit(ctx, func(context.Context) error { return nil })
-	require.ErrorIs(t, err, context.DeadlineExceeded)
-	assert.Nil(t, second)
-
-	close(release)
-	require.NoError(t, first.Wait(t.Context()))
-	require.NoError(t, pool.Shutdown(t.Context()))
+	testPoolBackpressure(t, 0)
 }
 
 func TestPoolValidatesAndReturnsTaskErrors(t *testing.T) {
@@ -108,67 +88,116 @@ func TestPoolSubmitRunsAsynchronously(t *testing.T) {
 }
 
 func TestPoolExecuteWaitsForCompletion(t *testing.T) {
-	pool := requirePool(t, 1)
-	started := make(chan struct{})
-	release := make(chan struct{})
-	result := make(chan error, 1)
+	synctest.Test(t, func(t *testing.T) {
+		pool := requirePool(t, 1)
+		started := make(chan struct{})
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			assert.NoError(t, pool.Shutdown(context.WithoutCancel(t.Context())))
+			synctest.Wait()
+		}()
+		result := make(chan error, 1)
+		wantErr := errors.New("task failed")
 
-	go func() {
-		result <- pool.Execute(t.Context(), func(context.Context) error {
-			close(started)
-			<-release
+		go func() {
+			result <- pool.Execute(t.Context(), func(context.Context) error {
+				close(started)
+				<-release
 
-			return nil
-		})
-	}()
+				return wantErr
+			})
+		}()
 
-	<-started
-	select {
-	case <-result:
-		require.FailNow(t, "Execute returned before the task completed")
-	default:
-	}
+		synctest.Wait()
+		assertClosed(t, started)
+		require.Empty(t, result, "Execute returned before the task completed")
 
-	close(release)
-	require.NoError(t, <-result)
-	require.NoError(t, pool.Shutdown(t.Context()))
+		unblock()
+		synctest.Wait()
+		require.Len(t, result, 1)
+		require.ErrorIs(t, <-result, wantErr)
+		require.NoError(t, pool.Shutdown(t.Context()))
+	})
 }
 
 func TestPoolAppliesQueueBackpressure(t *testing.T) {
-	pool := requirePool(t, 1, parallel.WithQueueSize(1))
-	started := make(chan struct{}, 1)
-	release := make(chan struct{}, 2)
-	task := func(ctx context.Context) error {
-		select {
-		case started <- struct{}{}:
-		default:
-		}
+	testPoolBackpressure(t, 1)
+}
 
-		select {
-		case <-release:
+func testPoolBackpressure(t *testing.T, queueSize int) {
+	t.Helper()
+
+	synctest.Test(t, func(t *testing.T) {
+		const timeout = time.Second
+		pool := requirePool(t, 1, parallel.WithQueueSize(queueSize))
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			assert.NoError(t, pool.Shutdown(context.WithoutCancel(t.Context())))
+			synctest.Wait()
+		}()
+		var calls atomic.Int32
+		task := func(context.Context) error {
+			calls.Add(1)
+			<-release
+
 			return nil
-		case <-ctx.Done():
-			return context.Cause(ctx)
 		}
-	}
+		first, err := pool.Submit(t.Context(), task)
+		require.NoError(t, err)
+		synctest.Wait()
+		assert.Equal(t, int32(1), calls.Load())
+		accepted := make([]*parallel.Future, 1, 1+queueSize)
+		accepted[0] = first
+		for range queueSize {
+			future, err := pool.Submit(t.Context(), task)
+			require.NoError(t, err)
+			accepted = append(accepted, future)
+		}
 
-	first, err := pool.Submit(t.Context(), task)
-	require.NoError(t, err)
-	<-started
-	second, err := pool.Submit(t.Context(), task)
-	require.NoError(t, err)
+		type submission struct {
+			future *parallel.Future
+			err    error
+		}
+		result := make(chan submission, 1)
+		var rejectedCalled atomic.Bool
+		ctx, cancel := context.WithTimeout(t.Context(), timeout)
+		defer cancel()
+		started := time.Now()
+		go func() {
+			future, err := pool.Submit(ctx, func(context.Context) error {
+				rejectedCalled.Store(true)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
-	defer cancel()
-	third, err := pool.Submit(ctx, task)
-	require.ErrorIs(t, err, context.DeadlineExceeded)
-	assert.Nil(t, third)
+				return nil
+			})
+			result <- submission{future: future, err: err}
+		}()
 
-	release <- struct{}{}
-	release <- struct{}{}
-	require.NoError(t, first.Wait(t.Context()))
-	require.NoError(t, second.Wait(t.Context()))
-	require.NoError(t, pool.Shutdown(t.Context()))
+		synctest.Wait()
+		require.Empty(t, result, "Submit did not apply backpressure")
+		time.Sleep(timeout - time.Nanosecond)
+		synctest.Wait()
+		assert.Equal(t, int32(1), calls.Load())
+		require.Empty(t, result, "Submit returned before its deadline")
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, result, 1, "deadline did not unblock Submit")
+		got := <-result
+		require.ErrorIs(t, got.err, context.DeadlineExceeded)
+		assert.Nil(t, got.future)
+		assert.Equal(t, timeout, time.Since(started))
+
+		unblock()
+		for _, future := range accepted {
+			require.NoError(t, future.Wait(t.Context()))
+		}
+		require.NoError(t, pool.Shutdown(t.Context()))
+		assert.Equal(t, int32(1+queueSize), calls.Load())
+		assert.False(t, rejectedCalled.Load())
+	})
 }
 
 func TestFutureWaitCancellationDoesNotCancelTask(t *testing.T) {
@@ -228,57 +257,72 @@ func TestPoolShutdownDrainsAcceptedTasks(t *testing.T) {
 }
 
 func TestPoolShutdownUnblocksWaitingSubmit(t *testing.T) {
-	pool := requirePool(t, 1, parallel.WithQueueSize(1))
-	started := make(chan struct{}, 1)
-	release := make(chan struct{}, 2)
-	task := func(ctx context.Context) error {
-		select {
-		case started <- struct{}{}:
-		default:
+	synctest.Test(t, func(t *testing.T) {
+		pool := requirePool(t, 1, parallel.WithQueueSize(1))
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			assert.NoError(t, pool.Shutdown(context.WithoutCancel(t.Context())))
+			synctest.Wait()
+		}()
+		var calls atomic.Int32
+		task := func(ctx context.Context) error {
+			calls.Add(1)
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return context.Cause(ctx)
+			}
 		}
 
-		select {
-		case <-release:
-			return nil
-		case <-ctx.Done():
-			return context.Cause(ctx)
+		first, err := pool.Submit(t.Context(), task)
+		require.NoError(t, err)
+		synctest.Wait()
+		assert.Equal(t, int32(1), calls.Load())
+		second, err := pool.Submit(t.Context(), task)
+		require.NoError(t, err)
+
+		type submission struct {
+			future *parallel.Future
+			err    error
 		}
-	}
+		third := make(chan submission, 1)
+		go func() {
+			future, err := pool.Submit(t.Context(), task)
+			third <- submission{future: future, err: err}
+		}()
 
-	first, err := pool.Submit(t.Context(), task)
-	require.NoError(t, err)
-	<-started
-	second, err := pool.Submit(t.Context(), task)
-	require.NoError(t, err)
+		synctest.Wait()
+		require.Empty(t, third, "Submit did not apply backpressure")
+		assert.Equal(t, int32(1), calls.Load())
 
-	type submission struct {
-		future *parallel.Future
-		err    error
-	}
-	third := make(chan submission, 1)
-	go func() {
-		future, err := pool.Submit(t.Context(), task)
-		third <- submission{future: future, err: err}
-	}()
+		waitContext, cancel := context.WithCancel(t.Context())
+		cancel()
+		require.ErrorIs(t, pool.Shutdown(waitContext), context.Canceled)
+		synctest.Wait()
+		require.Len(t, third, 1, "Shutdown did not unblock Submit")
+		got := <-third
+		require.ErrorIs(t, got.err, parallel.ErrPoolClosed)
+		assert.Nil(t, got.future)
 
-	select {
-	case <-third:
-		require.FailNow(t, "Submit did not apply backpressure")
-	case <-time.After(50 * time.Millisecond):
-	}
+		shutdown := make(chan error, 1)
+		go func() {
+			shutdown <- pool.Shutdown(t.Context())
+		}()
+		synctest.Wait()
+		require.Empty(t, shutdown, "Shutdown returned before accepted tasks completed")
+		assert.Equal(t, int32(1), calls.Load())
 
-	waitContext, cancel := context.WithCancel(t.Context())
-	cancel()
-	require.ErrorIs(t, pool.Shutdown(waitContext), context.Canceled)
-	got := <-third
-	require.ErrorIs(t, got.err, parallel.ErrPoolClosed)
-	assert.Nil(t, got.future)
-
-	release <- struct{}{}
-	release <- struct{}{}
-	require.NoError(t, first.Wait(t.Context()))
-	require.NoError(t, second.Wait(t.Context()))
-	require.NoError(t, pool.Shutdown(t.Context()))
+		unblock()
+		synctest.Wait()
+		require.NoError(t, first.Wait(t.Context()))
+		require.NoError(t, second.Wait(t.Context()))
+		require.Len(t, shutdown, 1)
+		require.NoError(t, <-shutdown)
+		assert.Equal(t, int32(2), calls.Load())
+	})
 }
 
 func TestTaskContextCancellationStopsRunningAndQueuedTasks(t *testing.T) {
