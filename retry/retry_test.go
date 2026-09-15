@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -102,29 +103,65 @@ func TestDoContext(t *testing.T) {
 
 	t.Run("canceled while waiting", func(t *testing.T) {
 		t.Parallel()
-		ctx, cancel := context.WithCancel(t.Context())
-		var attempts int
-		err := Do(
-			ctx,
-			func(context.Context) error {
-				attempts++
-				return assert.AnError
-			},
-			WithBackoff(Fixed(time.Hour)),
-			WithNotify(func(context.Context, Event) { cancel() }),
-		)
-		require.ErrorIs(t, err, context.Canceled)
-		assert.Equal(t, 1, attempts)
+		synctest.Test(t, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			started := time.Now()
+			result := make(chan error, 1)
+			var attempts atomic.Int32
+			go func() {
+				result <- Do(ctx, func(context.Context) error {
+					attempts.Add(1)
+					return assert.AnError
+				}, WithBackoff(Fixed(time.Hour)))
+			}()
+
+			synctest.Wait()
+			assert.Equal(t, int32(1), attempts.Load())
+			require.Empty(t, result, "retry returned before cancellation")
+
+			cancel()
+			synctest.Wait()
+			require.Len(t, result, 1, "cancellation did not interrupt backoff")
+			require.ErrorIs(t, <-result, context.Canceled)
+			assert.Equal(t, int32(1), attempts.Load())
+			assert.Zero(t, time.Since(started))
+		})
 	})
 
 	t.Run("deadline while waiting", func(t *testing.T) {
 		t.Parallel()
-		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
-		defer cancel()
-		err := Do(ctx, func(context.Context) error {
-			return assert.AnError
-		}, WithBackoff(Fixed(time.Hour)))
-		require.ErrorIs(t, err, context.DeadlineExceeded)
+		synctest.Test(t, func(t *testing.T) {
+			const timeout = time.Second
+			ctx, cancel := context.WithTimeout(t.Context(), timeout)
+			defer cancel()
+			started := time.Now()
+			result := make(chan error, 1)
+			var attempts atomic.Int32
+			go func() {
+				result <- Do(ctx, func(context.Context) error {
+					attempts.Add(1)
+					return assert.AnError
+				}, WithBackoff(Fixed(time.Hour)))
+			}()
+
+			synctest.Wait()
+			assert.Equal(t, int32(1), attempts.Load())
+			require.Empty(t, result)
+
+			time.Sleep(timeout - time.Nanosecond)
+			synctest.Wait()
+			assert.NoError(t, ctx.Err())
+			assert.Equal(t, int32(1), attempts.Load())
+			require.Empty(t, result, "retry returned before its deadline")
+
+			time.Sleep(time.Nanosecond)
+			synctest.Wait()
+			require.Len(t, result, 1, "deadline did not interrupt backoff")
+			require.ErrorIs(t, <-result, context.DeadlineExceeded)
+			assert.Equal(t, int32(1), attempts.Load())
+			assert.Equal(t, timeout, time.Since(started))
+		})
 	})
 
 	t.Run("operation cancellation wins", func(t *testing.T) {
@@ -236,25 +273,42 @@ func TestAfter(t *testing.T) {
 	marked := After(time.Second, assert.AnError)
 	require.ErrorIs(t, marked, assert.AnError)
 
-	var (
-		attempts int
-		event    Event
-	)
-	err := Do(
-		t.Context(), func(context.Context) error {
-			attempts++
-			if attempts == 1 {
-				return After(0, assert.AnError)
-			}
-			return nil
-		},
-		WithBackoff(Fixed(time.Hour)),
-		WithNotify(func(_ context.Context, got Event) { event = got }),
-	)
-	require.NoError(t, err)
-	assert.Equal(t, 2, attempts)
-	assert.Zero(t, event.Delay)
-	assert.Equal(t, assert.AnError, event.Err)
+	tests := []struct {
+		name  string
+		delay time.Duration
+	}{
+		{name: "zero delay", delay: 0},
+		{name: "non-zero delay", delay: 2 * time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			synctest.Test(t, func(t *testing.T) {
+				started := time.Now()
+				var calledAt []time.Duration
+				var events []Event
+				err := Do(
+					t.Context(), func(context.Context) error {
+						calledAt = append(calledAt, time.Since(started))
+						if len(calledAt) == 1 {
+							return After(tt.delay, assert.AnError)
+						}
+						return nil
+					},
+					WithMaxAttempts(2),
+					WithBackoff(Fixed(time.Hour)),
+					WithNotify(func(_ context.Context, event Event) {
+						events = append(events, event)
+					}),
+				)
+				require.NoError(t, err)
+				assert.Equal(t, []time.Duration{0, tt.delay}, calledAt)
+				assert.Equal(t, tt.delay, time.Since(started))
+				require.Len(t, events, 1)
+				assert.Equal(t, Event{Attempt: 1, MaxAttempts: 2, Err: assert.AnError, Delay: tt.delay}, events[0])
+			})
+		})
+	}
 }
 
 func TestAfterPreservesWrappingContext(t *testing.T) {
@@ -287,21 +341,31 @@ func TestAfterPreservesWrappingContext(t *testing.T) {
 func TestNotify(t *testing.T) {
 	t.Parallel()
 
-	var events []Event
-	err := Do(
-		t.Context(), func(context.Context) error {
-			return assert.AnError
-		},
-		WithMaxAttempts(3),
-		WithBackoff(Linear(time.Nanosecond)),
-		WithNotify(func(_ context.Context, event Event) {
-			events = append(events, event)
-		}),
-	)
-	require.ErrorIs(t, err, assert.AnError)
-	require.Len(t, events, 2)
-	assert.Equal(t, Event{Attempt: 1, MaxAttempts: 3, Err: assert.AnError, Delay: time.Nanosecond}, events[0])
-	assert.Equal(t, Event{Attempt: 2, MaxAttempts: 3, Err: assert.AnError, Delay: 2 * time.Nanosecond}, events[1])
+	synctest.Test(t, func(t *testing.T) {
+		const delay = time.Second
+		started := time.Now()
+		var calledAt, notifiedAt []time.Duration
+		var events []Event
+		err := Do(
+			t.Context(), func(context.Context) error {
+				calledAt = append(calledAt, time.Since(started))
+				return assert.AnError
+			},
+			WithMaxAttempts(3),
+			WithBackoff(Linear(delay)),
+			WithNotify(func(_ context.Context, event Event) {
+				events = append(events, event)
+				notifiedAt = append(notifiedAt, time.Since(started))
+			}),
+		)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, []time.Duration{0, delay, 3 * delay}, calledAt)
+		assert.Equal(t, []time.Duration{0, delay}, notifiedAt)
+		assert.Equal(t, 3*delay, time.Since(started))
+		require.Len(t, events, 2)
+		assert.Equal(t, Event{Attempt: 1, MaxAttempts: 3, Err: assert.AnError, Delay: delay}, events[0])
+		assert.Equal(t, Event{Attempt: 2, MaxAttempts: 3, Err: assert.AnError, Delay: 2 * delay}, events[1])
+	})
 }
 
 func TestBackoffIsNotCalledAfterFinalAttempt(t *testing.T) {
