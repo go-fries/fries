@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -252,19 +253,44 @@ func TestRunnerRunShutdownIgnoresRuntimeCancellation(t *testing.T) {
 }
 
 func TestRunnerRunShutdownTimeout(t *testing.T) {
-	provider := &testProvider{
-		shutdown: func(ctx context.Context) (context.Context, error) {
-			<-ctx.Done()
-			return ctx, ctx.Err()
-		},
-	}
-
-	err := New(
-		WithProviders(provider),
-		WithShutdownTimeout(time.Millisecond),
-	).Run(t.Context(), func(context.Context) error { return nil })
-
-	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	synctest.Test(t, func(t *testing.T) {
+		const timeout = time.Second
+		release := make(chan struct{})
+		defer func() {
+			close(release)
+			synctest.Wait()
+		}()
+		started := make(chan context.Context, 1)
+		provider := &testProvider{
+			shutdown: func(ctx context.Context) (context.Context, error) {
+				started <- ctx
+				select {
+				case <-ctx.Done():
+				case <-release:
+				}
+				return ctx, ctx.Err()
+			},
+		}
+		runner := New(WithProviders(provider), WithShutdownTimeout(timeout))
+		result := make(chan error, 1)
+		begin := time.Now()
+		go func() {
+			result <- runner.Run(t.Context(), func(context.Context) error { return nil })
+		}()
+		synctest.Wait()
+		require.Len(t, started, 1)
+		shutdownCtx := <-started
+		require.Empty(t, result)
+		time.Sleep(timeout - time.Nanosecond)
+		synctest.Wait()
+		assert.NoError(t, shutdownCtx.Err())
+		require.Empty(t, result, "Run returned before the shutdown deadline")
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, result, 1)
+		assert.ErrorIs(t, <-result, context.DeadlineExceeded)
+		assert.Equal(t, timeout, time.Since(begin))
+	})
 }
 
 func TestRunnerRunOnlyOnce(t *testing.T) {
@@ -274,23 +300,40 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 }
 
 func TestRunnerRunConcurrentlyOnlyOnce(t *testing.T) {
-	runner := New()
-	started := make(chan struct{})
-	release := make(chan struct{})
-	done := make(chan error, 1)
+	synctest.Test(t, func(t *testing.T) {
+		runner := New()
+		started := make(chan struct{}, 1)
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			synctest.Wait()
+		}()
+		done := make(chan error, 1)
 
-	go func() {
-		done <- runner.Run(t.Context(), func(context.Context) error {
-			close(started)
-			<-release
+		go func() {
+			done <- runner.Run(t.Context(), func(context.Context) error {
+				started <- struct{}{}
+				<-release
+				return nil
+			})
+		}()
+		synctest.Wait()
+		require.Len(t, started, 1)
+		require.Empty(t, done)
+
+		var secondCalled bool
+		assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error {
+			secondCalled = true
 			return nil
-		})
-	}()
-	<-started
-
-	assert.ErrorIs(t, runner.Run(t.Context(), func(context.Context) error { return nil }), ErrAlreadyStarted)
-	close(release)
-	assert.NoError(t, <-done)
+		}), ErrAlreadyStarted)
+		assert.False(t, secondCalled)
+		require.Empty(t, done, "the first Run should still be waiting")
+		unblock()
+		synctest.Wait()
+		require.Len(t, done, 1)
+		assert.NoError(t, <-done)
+	})
 }
 
 func TestRunnerRunOptionalArguments(t *testing.T) {
