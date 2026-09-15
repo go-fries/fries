@@ -3,9 +3,11 @@ package cache
 import (
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type snapshotValue struct {
@@ -139,64 +141,71 @@ func TestSnapshotWithErr_Reset(t *testing.T) {
 }
 
 func TestSnapshotWithExpireAndErr(t *testing.T) {
-	var (
-		snap  SnapshotWithExpireAndErr[string, *snapshotValue]
-		total atomic.Int32
-	)
+	synctest.Test(t, func(t *testing.T) {
+		const ttl = time.Second
+		var snap SnapshotWithExpireAndErr[string, *snapshotValue]
+		var calls int
+		lookup := func(loadValue string) *snapshotValue {
+			t.Helper()
+			value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+				calls++
+				return &snapshotValue{value: loadValue}, nil
+			}, ttl)
+			require.NoError(t, err)
+			return value
+		}
 
-	value, err := snap.Lookup("key", func() (*snapshotValue, error) {
-		total.Add(1)
-		return &snapshotValue{value: "value"}, nil
-	}, time.Millisecond*10)
-	assert.NoError(t, err)
-	assert.Equal(t, "value", value.value)
+		assert.Equal(t, &snapshotValue{value: "value"}, lookup("value"))
+		assert.Equal(t, 1, calls)
 
-	value, err = snap.Lookup("key", func() (*snapshotValue, error) {
-		total.Add(1)
-		return &snapshotValue{value: "value1"}, nil
-	}, time.Millisecond*10)
-	assert.NoError(t, err)
-	assert.Equal(t, "value", value.value)
+		time.Sleep(ttl - time.Nanosecond)
+		assert.Equal(t, &snapshotValue{value: "value"}, lookup("before expiry"))
+		assert.Equal(t, 1, calls)
 
-	// after 10ms, the value should be expired
-	time.Sleep(time.Millisecond * 20)
-	value, err = snap.Lookup("key", func() (*snapshotValue, error) {
-		total.Add(1)
-		return &snapshotValue{value: "value2"}, nil
-	}, time.Millisecond*10)
-	assert.NoError(t, err)
-	assert.Equal(t, "value2", value.value)
+		// Expiration is exclusive: the cached value is still valid at the deadline.
+		time.Sleep(time.Nanosecond)
+		assert.Equal(t, &snapshotValue{value: "value"}, lookup("at expiry"))
+		assert.Equal(t, 1, calls)
 
-	assert.Equal(t, int32(2), total.Load())
+		time.Sleep(time.Nanosecond)
+		assert.Equal(t, &snapshotValue{value: "new_value"}, lookup("new_value"))
+		assert.Equal(t, 2, calls)
+
+		time.Sleep(ttl - time.Nanosecond)
+		assert.Equal(t, &snapshotValue{value: "new_value"}, lookup("cached again"))
+		assert.Equal(t, 2, calls)
+	})
 }
 
 func TestSnapshotWithExpireAndErr_Reset(t *testing.T) {
-	var (
-		snap  SnapshotWithExpireAndErr[string, *snapshotValue]
-		total atomic.Int32
-	)
+	synctest.Test(t, func(t *testing.T) {
+		const ttl = time.Second
+		var snap SnapshotWithExpireAndErr[string, *snapshotValue]
+		var calls int
+		lookup := func(loadValue string) *snapshotValue {
+			t.Helper()
+			value, err := snap.Lookup("key", func() (*snapshotValue, error) {
+				calls++
+				return &snapshotValue{value: loadValue}, nil
+			}, ttl)
+			require.NoError(t, err)
+			return value
+		}
 
-	for range 100 {
-		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
-			total.Add(1)
-			return &snapshotValue{value: "value"}, nil
-		}, time.Millisecond*10)
-		assert.NoError(t, err)
-		assert.Equal(t, "value", value.value)
-	}
+		assert.Equal(t, &snapshotValue{value: "value"}, lookup("value"))
+		assert.Equal(t, 1, calls)
 
-	assert.Equal(t, int32(1), total.Load())
+		time.Sleep(ttl / 2)
+		assert.Equal(t, &snapshotValue{value: "value"}, lookup("before reset"))
+		assert.Equal(t, 1, calls)
 
-	snap.Reset()
+		snap.Reset()
+		assert.Equal(t, &snapshotValue{value: "new_value"}, lookup("new_value"))
+		assert.Equal(t, 2, calls)
 
-	for range 100 {
-		value, err := snap.Lookup("key", func() (*snapshotValue, error) {
-			total.Add(1)
-			return &snapshotValue{value: "new_value"}, nil
-		}, time.Millisecond*10)
-		assert.NoError(t, err)
-		assert.Equal(t, "new_value", value.value)
-	}
-
-	assert.Equal(t, int32(2), total.Load())
+		// The replacement outlives the original entry's expiration time.
+		time.Sleep(ttl/2 + time.Nanosecond)
+		assert.Equal(t, &snapshotValue{value: "new_value"}, lookup("after reset"))
+		assert.Equal(t, 2, calls)
+	})
 }
