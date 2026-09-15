@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/queue/v4"
@@ -48,11 +49,10 @@ type fakeChannel struct {
 	qosErr             error
 	consumeErr         error
 	closeErr           error
-	publishHook        func()
+	confirmSink        chan amqp.Confirmation
 	deliveries         []amqp.Delivery
 	confirms           []amqp.Confirmation
 	suppressConfirm    bool
-	closeConfirm       bool
 	declares           []declareCall
 	publishes          []publishCall
 	qoses              []qosCall
@@ -91,15 +91,13 @@ func (c *fakeChannel) Confirm(bool) error {
 
 func (c *fakeChannel) NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation {
 	c.notifyPublishCalls++
-	if len(c.confirms) == 0 && !c.suppressConfirm && !c.closeConfirm {
+	c.confirmSink = confirm
+	if len(c.confirms) == 0 && !c.suppressConfirm {
 		confirm <- amqp.Confirmation{Ack: true}
 		return confirm
 	}
 	for _, confirmation := range c.confirms {
 		confirm <- confirmation
-	}
-	if c.closeConfirm {
-		close(confirm)
 	}
 	return confirm
 }
@@ -119,9 +117,6 @@ func (c *fakeChannel) PublishWithContext(
 		immediate: immediate,
 		msg:       msg,
 	})
-	if c.publishHook != nil {
-		c.publishHook()
-	}
 	return c.publishErr
 }
 
@@ -301,17 +296,31 @@ func TestQueue_EnqueuePublishesDelayedTask(t *testing.T) {
 func TestQueue_EnqueueWithPublisherConfirmWaitsForAck(t *testing.T) {
 	t.Parallel()
 
-	ch := &fakeChannel{confirms: []amqp.Confirmation{{Ack: true}}}
-	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
+		ch := &fakeChannel{suppressConfirm: true}
+		q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
 
-	err := q.Enqueue(t.Context(), &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
-	require.NoError(t, err)
+		result := make(chan error, 1)
+		go func() {
+			result <- q.Enqueue(ctx, &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+		}()
+		synctest.Wait()
+		require.Empty(t, result, "Enqueue returned before Ack")
+		assert.Zero(t, ch.closed)
 
-	assert.Equal(t, 1, ch.confirmCalls)
-	assert.Equal(t, 1, ch.notifyPublishCalls)
-	require.Len(t, ch.publishes, 1)
-	assert.Equal(t, "emails", ch.publishes[0].key)
-	assert.Equal(t, 1, ch.closed)
+		assert.Equal(t, 1, ch.confirmCalls)
+		assert.Equal(t, 1, ch.notifyPublishCalls)
+		require.Len(t, ch.publishes, 1)
+		assert.Equal(t, "emails", ch.publishes[0].key)
+		require.NotNil(t, ch.confirmSink)
+		ch.confirmSink <- amqp.Confirmation{Ack: true}
+		synctest.Wait()
+		require.Len(t, result, 1)
+		require.NoError(t, <-result)
+		assert.Equal(t, 1, ch.closed)
+	})
 }
 
 func TestQueue_EnqueueWithPublisherConfirmReturnsNack(t *testing.T) {
@@ -331,30 +340,80 @@ func TestQueue_EnqueueWithPublisherConfirmReturnsNack(t *testing.T) {
 func TestQueue_EnqueueWithPublisherConfirmReturnsContextError(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
-	ch := &fakeChannel{publishHook: cancel, suppressConfirm: true}
-	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
-
-	err := q.Enqueue(ctx, &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
-
-	require.ErrorIs(t, err, context.Canceled)
-	assert.Equal(t, 1, ch.confirmCalls)
-	assert.Equal(t, 1, ch.notifyPublishCalls)
-	assert.Equal(t, 1, ch.closed)
+	for _, deadline := range []bool{false, true} {
+		name := "cancel"
+		if deadline {
+			name = "deadline"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				var ctx context.Context
+				var cancel context.CancelFunc
+				if deadline {
+					ctx, cancel = context.WithTimeout(t.Context(), time.Second)
+				} else {
+					ctx, cancel = context.WithCancel(t.Context())
+				}
+				defer func() { cancel(); synctest.Wait() }()
+				ch := &fakeChannel{suppressConfirm: true}
+				q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+				result := make(chan error, 1)
+				started := time.Now()
+				go func() {
+					result <- q.Enqueue(ctx, &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
+				}()
+				synctest.Wait()
+				require.Len(t, ch.publishes, 1)
+				require.Empty(t, result, "Enqueue must wait for confirmation")
+				wantErr := context.Canceled
+				if deadline {
+					time.Sleep(time.Second - time.Nanosecond)
+					synctest.Wait()
+					require.Empty(t, result)
+					time.Sleep(time.Nanosecond)
+					wantErr = context.DeadlineExceeded
+				} else {
+					cancel()
+				}
+				synctest.Wait()
+				require.Len(t, result, 1)
+				require.ErrorIs(t, <-result, wantErr)
+				if deadline {
+					assert.Equal(t, time.Second, time.Since(started))
+				} else {
+					assert.Zero(t, time.Since(started))
+				}
+				assert.Equal(t, 1, ch.confirmCalls)
+				assert.Equal(t, 1, ch.notifyPublishCalls)
+				assert.Equal(t, 1, ch.closed)
+			})
+		})
+	}
 }
 
 func TestQueue_EnqueueWithPublisherConfirmReturnsClosedConfirmation(t *testing.T) {
 	t.Parallel()
 
-	ch := &fakeChannel{closeConfirm: true}
-	q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() { cancel(); synctest.Wait() }()
+		ch := &fakeChannel{suppressConfirm: true}
+		q := newTestQueue(&fakeChannelOpener{channels: []*fakeChannel{ch}}, WithPublisherConfirm(true))
 
-	err := q.Enqueue(t.Context(), &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"})
-
-	require.ErrorIs(t, err, errPublishConfirmClosed)
-	assert.Equal(t, 1, ch.confirmCalls)
-	assert.Equal(t, 1, ch.notifyPublishCalls)
-	assert.Equal(t, 1, ch.closed)
+		result := make(chan error, 1)
+		go func() { result <- q.Enqueue(ctx, &queue.Task{ID: "task-1", Type: "send_email", Queue: "emails"}) }()
+		synctest.Wait()
+		require.Len(t, ch.publishes, 1)
+		require.Empty(t, result)
+		require.NotNil(t, ch.confirmSink)
+		close(ch.confirmSink)
+		synctest.Wait()
+		require.Len(t, result, 1)
+		require.ErrorIs(t, <-result, errPublishConfirmClosed)
+		assert.Equal(t, 1, ch.confirmCalls)
+		assert.Equal(t, 1, ch.notifyPublishCalls)
+		assert.Equal(t, 1, ch.closed)
+	})
 }
 
 func TestQueue_ReceiveReturnsErrorWhenDeliveriesClose(t *testing.T) {
