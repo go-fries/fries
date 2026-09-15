@@ -3,8 +3,10 @@ package health_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/go-fries/fries/health/v4"
@@ -29,26 +31,38 @@ func TestRegistryEmpty(t *testing.T) {
 }
 
 func TestRegistryCheckPreservesRegistrationOrder(t *testing.T) {
-	registry := health.New(health.WithConcurrency(3))
-	expectedErrors := []error{errors.New("first"), nil, errors.New("third")}
-	delays := []time.Duration{30 * time.Millisecond, 10 * time.Millisecond, 0}
-	names := []string{"first", "second", "third"}
+	synctest.Test(t, func(t *testing.T) {
+		registry := health.New(health.WithConcurrency(3))
+		expectedErrors := []error{errors.New("first"), nil, errors.New("third")}
+		delays := []time.Duration{3 * time.Second, time.Second, 0}
+		names := []string{"first", "second", "third"}
+		completed := make(chan string, len(names))
 
-	for i, name := range names {
-		registry.Register(name, health.CheckFunc(func(context.Context) error {
-			time.Sleep(delays[i])
-			return expectedErrors[i]
-		}))
-	}
+		for i, name := range names {
+			registry.Register(name, health.CheckFunc(func(context.Context) error {
+				time.Sleep(delays[i])
+				completed <- name
+				return expectedErrors[i]
+			}))
+		}
 
-	report := registry.Check(t.Context())
+		started := time.Now()
+		report := registry.Check(t.Context())
 
-	require.Len(t, report.Results, len(names))
-	assert.False(t, report.Healthy())
-	for i, result := range report.Results {
-		assert.Equal(t, names[i], result.Name)
-		assert.ErrorIs(t, result.Err, expectedErrors[i])
-	}
+		require.Len(t, completed, len(names))
+		assert.Equal(t, "third", <-completed)
+		assert.Equal(t, "second", <-completed)
+		assert.Equal(t, "first", <-completed)
+		require.Len(t, report.Results, len(names))
+		assert.False(t, report.Healthy())
+		assert.Equal(t, started, report.StartedAt)
+		assert.Equal(t, 3*time.Second, report.Duration)
+		for i, result := range report.Results {
+			assert.Equal(t, names[i], result.Name)
+			assert.ErrorIs(t, result.Err, expectedErrors[i])
+			assert.Equal(t, delays[i], result.Duration)
+		}
+	})
 }
 
 func TestRegistryCheckContinuesAfterErrors(t *testing.T) {
@@ -72,53 +86,62 @@ func TestRegistryCheckContinuesAfterErrors(t *testing.T) {
 }
 
 func TestRegistryCheckBoundsConcurrency(t *testing.T) {
-	const (
-		checks      = 8
-		concurrency = 4
-	)
+	synctest.Test(t, func(t *testing.T) {
+		const (
+			checks      = 8
+			concurrency = 4
+		)
 
-	registry := health.New(health.WithConcurrency(concurrency))
-	started := make(chan struct{}, checks)
-	release := make(chan struct{})
-	var (
-		active    atomic.Int32
-		maxActive atomic.Int32
-	)
+		registry := health.New(health.WithConcurrency(concurrency))
+		started := make(chan struct{}, checks)
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			synctest.Wait()
+		}()
+		var (
+			active    atomic.Int32
+			maxActive atomic.Int32
+		)
 
-	for i := range checks {
-		registry.Register(string(rune('a'+i)), health.CheckFunc(func(context.Context) error {
-			current := active.Add(1)
-			for {
-				maximum := maxActive.Load()
-				if current <= maximum || maxActive.CompareAndSwap(maximum, current) {
-					break
+		for i := range checks {
+			registry.Register(string(rune('a'+i)), health.CheckFunc(func(context.Context) error {
+				current := active.Add(1)
+				for {
+					maximum := maxActive.Load()
+					if current <= maximum || maxActive.CompareAndSwap(maximum, current) {
+						break
+					}
 				}
-			}
-			started <- struct{}{}
-			<-release
-			active.Add(-1)
-			return nil
-		}))
-	}
+				started <- struct{}{}
+				<-release
+				active.Add(-1)
+				return nil
+			}))
+		}
 
-	done := make(chan health.Report, 1)
-	go func() {
-		done <- registry.Check(t.Context())
-	}()
+		done := make(chan health.Report, 1)
+		go func() {
+			done <- registry.Check(t.Context())
+		}()
 
-	for range concurrency {
-		<-started
-	}
-	select {
-	case <-started:
-		t.Fatal("more checks started than the configured concurrency")
-	case <-time.After(20 * time.Millisecond):
-	}
-	close(release)
+		synctest.Wait()
+		assert.Len(t, started, concurrency)
+		assert.Equal(t, int32(concurrency), active.Load())
+		require.Empty(t, done, "check returned before blocked checkers were released")
+		unblock()
+		synctest.Wait()
 
-	report := <-done
-	assert.True(t, report.Healthy())
-	assert.LessOrEqual(t, maxActive.Load(), int32(concurrency))
+		require.Len(t, done, 1)
+		report := <-done
+		assert.True(t, report.Healthy())
+		assert.Len(t, report.Results, checks)
+		assert.Len(t, started, checks)
+		assert.Equal(t, int32(concurrency), maxActive.Load())
+		assert.Zero(t, active.Load())
+		assert.Zero(t, report.Duration)
+	})
 }
 
 func TestRegistryCheckCanceledBeforeStart(t *testing.T) {
@@ -143,62 +166,109 @@ func TestRegistryCheckCanceledBeforeStart(t *testing.T) {
 }
 
 func TestRegistryCheckTimeoutStopsUnstartedChecks(t *testing.T) {
-	registry := health.New(
-		health.WithTimeout(20*time.Millisecond),
-		health.WithConcurrency(1),
-	)
-	var calls atomic.Int32
-	registry.Register("running", health.CheckFunc(func(ctx context.Context) error {
-		calls.Add(1)
-		<-ctx.Done()
-		return nil
-	}))
-	registry.Register("waiting", health.CheckFunc(func(context.Context) error {
-		calls.Add(1)
-		return nil
-	}))
+	synctest.Test(t, func(t *testing.T) {
+		const timeout = time.Second
+		registry := health.New(
+			health.WithTimeout(timeout),
+			health.WithConcurrency(1),
+		)
+		var calls atomic.Int32
+		registry.Register("running", health.CheckFunc(func(ctx context.Context) error {
+			calls.Add(1)
+			<-ctx.Done()
+			return nil
+		}))
+		registry.Register("waiting", health.CheckFunc(func(context.Context) error {
+			calls.Add(1)
+			return nil
+		}))
 
-	report := registry.Check(t.Context())
+		ctx, cancel := context.WithCancel(t.Context())
+		defer func() {
+			cancel()
+			synctest.Wait()
+		}()
+		started := time.Now()
+		done := make(chan health.Report, 1)
+		go func() {
+			done <- registry.Check(ctx)
+		}()
 
-	assert.Equal(t, int32(1), calls.Load())
-	require.Len(t, report.Results, 2)
-	assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
-	assert.ErrorIs(t, report.Results[1].Err, context.DeadlineExceeded)
-	assert.False(t, report.Healthy())
+		synctest.Wait()
+		assert.Equal(t, int32(1), calls.Load())
+		require.Empty(t, done)
+		time.Sleep(timeout - time.Nanosecond)
+		synctest.Wait()
+		assert.Equal(t, int32(1), calls.Load())
+		require.Empty(t, done, "check returned before its deadline")
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		require.Len(t, done, 1, "check did not finish at its deadline")
+		report := <-done
+
+		assert.Equal(t, int32(1), calls.Load())
+		require.Len(t, report.Results, 2)
+		assert.Equal(t, "running", report.Results[0].Name)
+		assert.Equal(t, "waiting", report.Results[1].Name)
+		assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+		assert.ErrorIs(t, report.Results[1].Err, context.DeadlineExceeded)
+		assert.Equal(t, timeout, report.Results[0].Duration)
+		assert.Zero(t, report.Results[1].Duration)
+		assert.Equal(t, timeout, report.Duration)
+		assert.Equal(t, timeout, time.Since(started))
+		assert.False(t, report.Healthy())
+	})
 }
 
 func TestRegistryCheckMarksLateSuccessCanceled(t *testing.T) {
-	registry := health.New(
-		health.WithTimeout(5*time.Millisecond),
-		health.WithConcurrency(1),
-	)
-	registry.Register("slow", health.CheckFunc(func(context.Context) error {
-		time.Sleep(20 * time.Millisecond)
-		return nil
-	}))
+	synctest.Test(t, func(t *testing.T) {
+		const (
+			timeout       = time.Second
+			checkDuration = 2 * time.Second
+		)
+		registry := health.New(
+			health.WithTimeout(timeout),
+			health.WithConcurrency(1),
+		)
+		registry.Register("slow", health.CheckFunc(func(context.Context) error {
+			time.Sleep(checkDuration)
+			return nil
+		}))
 
-	report := registry.Check(t.Context())
+		started := time.Now()
+		report := registry.Check(t.Context())
 
-	require.Len(t, report.Results, 1)
-	assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+		require.Len(t, report.Results, 1)
+		assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+		assert.Equal(t, checkDuration, report.Results[0].Duration)
+		assert.Equal(t, checkDuration, report.Duration)
+		assert.Equal(t, checkDuration, time.Since(started))
+		assert.False(t, report.Healthy())
+	})
 }
 
 func TestRegistryCheckJoinsCheckerErrorAndContextCause(t *testing.T) {
-	registry := health.New(
-		health.WithTimeout(5*time.Millisecond),
-		health.WithConcurrency(1),
-	)
-	checkErr := errors.New("check failed")
-	registry.Register("slow", health.CheckFunc(func(ctx context.Context) error {
-		<-ctx.Done()
-		return checkErr
-	}))
+	synctest.Test(t, func(t *testing.T) {
+		const timeout = time.Second
+		registry := health.New(
+			health.WithTimeout(timeout),
+			health.WithConcurrency(1),
+		)
+		checkErr := errors.New("check failed")
+		registry.Register("slow", health.CheckFunc(func(ctx context.Context) error {
+			<-ctx.Done()
+			return checkErr
+		}))
 
-	report := registry.Check(t.Context())
+		report := registry.Check(t.Context())
 
-	require.Len(t, report.Results, 1)
-	assert.ErrorIs(t, report.Results[0].Err, checkErr)
-	assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+		require.Len(t, report.Results, 1)
+		assert.ErrorIs(t, report.Results[0].Err, checkErr)
+		assert.ErrorIs(t, report.Results[0].Err, context.DeadlineExceeded)
+		assert.Equal(t, timeout, report.Results[0].Duration)
+		assert.Equal(t, timeout, report.Duration)
+		assert.False(t, report.Healthy())
+	})
 }
 
 func TestRegistryCheckRecoversCheckerPanic(t *testing.T) {
@@ -223,33 +293,52 @@ func TestRegistryCheckRecoversCheckerPanic(t *testing.T) {
 }
 
 func TestRegistryCheckUsesSnapshot(t *testing.T) {
-	registry := health.New(health.WithConcurrency(1))
-	started := make(chan struct{}, 1)
-	release := make(chan struct{})
-	registry.Register("first", health.CheckFunc(func(context.Context) error {
-		started <- struct{}{}
-		<-release
-		return nil
-	}))
+	synctest.Test(t, func(t *testing.T) {
+		registry := health.New(health.WithConcurrency(1))
+		var firstCalls, secondCalls atomic.Int32
+		release := make(chan struct{})
+		unblock := sync.OnceFunc(func() { close(release) })
+		defer func() {
+			unblock()
+			synctest.Wait()
+		}()
+		registry.Register("first", health.CheckFunc(func(context.Context) error {
+			firstCalls.Add(1)
+			<-release
+			return nil
+		}))
 
-	done := make(chan health.Report, 1)
-	go func() {
-		done <- registry.Check(t.Context())
-	}()
-	<-started
+		done := make(chan health.Report, 1)
+		go func() {
+			done <- registry.Check(t.Context())
+		}()
+		synctest.Wait()
+		assert.Equal(t, int32(1), firstCalls.Load())
+		require.Empty(t, done, "check returned before its snapshot was released")
 
-	registry.Register("second", health.CheckFunc(func(context.Context) error {
-		return nil
-	}))
-	close(release)
+		registry.Register("second", health.CheckFunc(func(context.Context) error {
+			secondCalls.Add(1)
+			return nil
+		}))
+		unblock()
+		synctest.Wait()
 
-	firstReport := <-done
-	secondReport := registry.Check(t.Context())
+		require.Len(t, done, 1)
+		firstReport := <-done
+		assert.Zero(t, secondCalls.Load())
+		assert.True(t, firstReport.Healthy())
+		require.Len(t, firstReport.Results, 1)
+		assert.Equal(t, "first", firstReport.Results[0].Name)
 
-	require.Len(t, firstReport.Results, 1)
-	assert.Equal(t, "first", firstReport.Results[0].Name)
-	require.Len(t, secondReport.Results, 2)
-	assert.Equal(t, "second", secondReport.Results[1].Name)
+		secondReport := registry.Check(t.Context())
+
+		assert.True(t, secondReport.Healthy())
+		assert.Equal(t, int32(2), firstCalls.Load())
+		assert.Equal(t, int32(1), secondCalls.Load())
+		require.Len(t, secondReport.Results, 2)
+		assert.Equal(t, "first", secondReport.Results[0].Name)
+		assert.Equal(t, "second", secondReport.Results[1].Name)
+	})
 }
 
 func TestRegistryRegisterPanicsForInvalidArguments(t *testing.T) {
