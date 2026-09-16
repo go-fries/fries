@@ -170,3 +170,31 @@ For protobuf changes, use the Buf targets defined by the repository:
 - `make buf-build`
 - `make buf-validate`
 - `make buf-generate`
+
+### Test command options
+
+Test targets run each selected module with a default per-package timeout of 60 seconds. Override it with `TIMEOUT=120` (in seconds), and select a Go executable with `GO=/path/to/go`.
+
+| Target | Default test arguments |
+| --- | --- |
+| `make test`, `make test/MODULE` | None |
+| `make test-default`, `make test-race` | `-race` |
+| `make test-short` | `-short` |
+| `make test-verbose` | `-v -race` |
+| `make test-concurrent-safe` | `-run=ConcurrentSafe -count=100 -race`, with a 120-second timeout |
+| `make test-coverage` | `-race`, plus coverage collection flags |
+
+Command-line `ARGS` replaces the target's default test arguments. Include `-race` explicitly when overriding `ARGS` if you want race detection; `ARGS=` clears the default arguments. Coverage collection flags and the configured timeout are still passed.
+
+```sh
+make test/cache ARGS='-short -race -count=1' TIMEOUT=120
+make test-coverage ARGS='-race -count=1'
+```
+
+Keep shell quoting inside `ARGS` for test-name regular expressions containing shell metacharacters:
+
+```sh
+make test/cache ARGS="-short -race -run='TestSnapshotWithExpireAndErr|TestUtils_Remember'"
+```
+
+Make also interprets dollar signs: an end anchor must reach Make as `$$`, protected from expansion by the invoking shell. Omitting the anchor is simpler when the test-name prefix is already unique. Test logs show the module and the argument values passed to Go.

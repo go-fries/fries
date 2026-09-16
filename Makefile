@@ -58,7 +58,7 @@ build/%:
 # Tests
 TEST_TARGETS := test-default test-short test-verbose test-race test-concurrent-safe
 .PHONY: $(TEST_TARGETS) test
-test-default test-race: ARGS=-race
+test-default test-race test-coverage: ARGS=-race
 test-short:   ARGS=-short
 test-verbose: ARGS=-v -race
 test-concurrent-safe: ARGS=-run=ConcurrentSafe -count=100 -race
@@ -67,9 +67,10 @@ $(TEST_TARGETS): test
 test: $(ROOT_GO_MOD_DIRS:%=test/%)
 test/%: DIR=$*
 test/%:
-	@echo "$(GO) test -timeout $(TIMEOUT)s $(ARGS) $(DIR)/..." \
-		&& cd $(DIR) \
-		&& $(GO) test -timeout $(TIMEOUT)s $(ARGS) ./...
+	@cd "$(DIR)" && \
+		set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) ./... && \
+		printf '%s\n' "[$(DIR)] $$*" && \
+		"$$@"
 
 
 COVERAGE_MODE    = atomic
@@ -79,10 +80,11 @@ test-coverage: $(GOCOVMERGE)
 	@set -e; \
 	printf "" > coverage.txt; \
 	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
-	  echo "$(GO) test -v -race -coverpkg=github.com/go-fries/fries/... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" $${dir}/..."; \
 	  (cd "$${dir}" && \
-	    $(GO) test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" ./... && \
-	  $(GO) tool cover -html=coverage.out -o coverage.html); \
+	    set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" ./... && \
+	    printf '%s\n' "[$${dir}] $$*" && \
+	    "$$@" && \
+	    "$(GO)" tool cover -html=coverage.out -o coverage.html); \
 	done; \
 	$(GOCOVMERGE) $$(find . -name coverage.out) > coverage.txt
 
