@@ -10,6 +10,8 @@ GO = go
 GIT = git
 TIMEOUT = 60
 
+include internal/testing/modules.mk
+
 # Tools
 
 TOOLS = $(CURDIR)/.tools
@@ -57,18 +59,23 @@ build/%:
 
 # Tests
 TEST_TARGETS := test-default test-short test-verbose test-race test-concurrent-safe
-.PHONY: $(TEST_TARGETS) test
-test-default test-race test-coverage: ARGS=-race
+.PHONY: $(TEST_TARGETS) test test-unit test-integration
+test-default test-race test-coverage test-unit test-integration: ARGS=-race
 test-short:   ARGS=-short
 test-verbose: ARGS=-v -race
 test-concurrent-safe: ARGS=-run=ConcurrentSafe -count=100 -race
 test-concurrent-safe: TIMEOUT=120
 $(TEST_TARGETS): test
+test-unit: TEST_MODE_ARGS=-short
+test-unit: test
+test-integration: TEST_MODE_ARGS=-short=false -count=1 -v
+test-integration: $(INTEGRATION_GO_MOD_DIRS:%=test/%)
+	@test -n "$(strip $(INTEGRATION_GO_MOD_DIRS))" || { echo 'No integration modules selected' >&2; exit 1; }
 test: $(ROOT_GO_MOD_DIRS:%=test/%)
 test/%: DIR=$*
 test/%:
 	@cd "$(DIR)" && \
-		set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) ./... && \
+		set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) $(TEST_MODE_ARGS) ./... && \
 		printf '%s\n' "[$(DIR)] $$*" && \
 		"$$@"
 

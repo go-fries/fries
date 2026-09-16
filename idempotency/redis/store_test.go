@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -15,8 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var testPrefixSequence atomic.Uint64
 
 func TestStoreLifecycle(t *testing.T) {
 	store, client := newTestStore(t)
@@ -265,24 +264,20 @@ func newTestStore(t *testing.T) (*Store, *goredis.Client) {
 		addr = "localhost:6379"
 	}
 	client := goredis.NewClient(&goredis.Options{
-		Addr:         addr,
-		DialTimeout:  time.Second,
-		ReadTimeout:  time.Second,
-		WriteTimeout: time.Second,
+		Addr:                  addr,
+		DialTimeout:           time.Second,
+		ReadTimeout:           time.Second,
+		WriteTimeout:          time.Second,
+		ContextTimeoutEnabled: true,
+		MaxRetries:            -1,
 	})
-	t.Cleanup(func() { _ = client.Close() })
+	t.Cleanup(func() { assert.NoError(t, client.Close()) })
 
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
-	if err := client.Ping(ctx).Err(); err != nil {
-		t.Skipf("Redis is unavailable at %s: %v", addr, err)
-	}
+	require.NoError(t, client.Ping(ctx).Err(), "Redis is unavailable at %s", addr)
 
-	prefix := fmt.Sprintf(
-		"fries:test:idempotency:%d:%d",
-		time.Now().UnixNano(),
-		testPrefixSequence.Add(1),
-	)
+	prefix := "fries:test:idempotency:" + rand.Text()
 	return New(client, WithPrefix(prefix)), client
 }
 
@@ -293,6 +288,8 @@ func cleanupKeys(t *testing.T, client *goredis.Client, store *Store, keys ...str
 		for i, key := range keys {
 			redisKeys[i] = store.prefix + key
 		}
-		_ = client.Del(context.WithoutCancel(t.Context()), redisKeys...).Err()
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 3*time.Second)
+		defer cancel()
+		assert.NoError(t, client.Del(ctx, redisKeys...).Err())
 	})
 }

@@ -2,12 +2,12 @@ package redis
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"crypto/rand"
 	"testing"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkTakeScript(b *testing.B) {
@@ -101,33 +101,8 @@ func benchmarkTakeScript(
 
 func newBenchmarkStore(b *testing.B) (*Store, *goredis.Client) {
 	b.Helper()
-	if testing.Short() {
-		b.Skip("Redis integration benchmark")
-	}
-
-	addr := os.Getenv("REDIS_ADDR")
-	if addr == "" {
-		addr = "localhost:6379"
-	}
-	client := goredis.NewClient(&goredis.Options{
-		Addr:         addr,
-		DialTimeout:  time.Second,
-		ReadTimeout:  time.Second,
-		WriteTimeout: time.Second,
-	})
-	b.Cleanup(func() { _ = client.Close() })
-
-	ctx, cancel := context.WithTimeout(b.Context(), time.Second)
-	defer cancel()
-	if err := client.Ping(ctx).Err(); err != nil {
-		b.Skipf("Redis is unavailable at %s: %v", addr, err)
-	}
-
-	prefix := fmt.Sprintf(
-		"fries:benchmark:ratelimit:%d:%d",
-		time.Now().UnixNano(),
-		testPrefixSequence.Add(1),
-	)
+	client := newRedisClient(b)
+	prefix := "fries:benchmark:ratelimit:" + rand.Text()
 	return New(client, WithPrefix(prefix)), client
 }
 
@@ -138,6 +113,8 @@ func cleanupBenchmarkKey(
 ) {
 	b.Helper()
 	b.Cleanup(func() {
-		_ = client.Del(context.WithoutCancel(b.Context()), key).Err()
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(b.Context()), 3*time.Second)
+		defer cancel()
+		assert.NoError(b, client.Del(ctx, key).Err())
 	})
 }

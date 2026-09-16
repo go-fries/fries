@@ -183,6 +183,8 @@ Test targets run each selected module with a default per-package timeout of 60 s
 | `make test-verbose` | `-v -race` |
 | `make test-concurrent-safe` | `-run=ConcurrentSafe -count=100 -race`, with a 120-second timeout |
 | `make test-coverage` | `-race`, plus coverage collection flags |
+| `make test-unit` | `-race`, with `-short` appended after `ARGS` |
+| `make test-integration` | `-race`, with `-short=false -count=1 -v` appended after `ARGS` |
 
 Command-line `ARGS` replaces the target's default test arguments. Include `-race` explicitly when overriding `ARGS` if you want race detection; `ARGS=` clears the default arguments. Coverage collection flags and the configured timeout are still passed.
 
@@ -198,6 +200,23 @@ make test/cache ARGS="-short -race -run='TestSnapshotWithExpireAndErr|TestUtils_
 ```
 
 Make also interprets dollar signs: an end anchor must reach Make as `$$`, protected from expansion by the invoking shell. Omitting the anchor is simpler when the test-name prefix is already unique. Test logs show the module and the argument values passed to Go.
+
+### Service-independent and integration suites
+
+Run `make test-unit` to test all component and example modules without separately provisioned services. Tests may still use temporary files, local sockets, or test HTTP servers. The tools module is excluded. This target appends `-short` after `ARGS` so argument customization does not accidentally enable service tests.
+
+Run `make test-integration` with Redis and MySQL available to execute the full suites of the service-backed modules listed in [`internal/testing/modules.mk`](internal/testing/modules.mk). It appends `-short=false -count=1 -v` so integration runs execute rather than use cached results, and report individual test outcomes. Invoke unit and integration targets separately; both reuse the module test targets.
+
+```sh
+make test-unit
+REDIS_ADDR=localhost:6379 \
+MYSQL_DSN='gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True&loc=Local' \
+  make test-integration
+```
+
+All service-backed tests skip only in short mode. Otherwise a connection, setup, or cleanup error fails the test. `REDIS_ADDR` and `MYSQL_DSN` default to the values shown above. Redis tests use unique key namespaces; MySQL tests use randomly prefixed tables within an existing database.
+
+Use `make test/MODULE` with explicit flags for filtered debugging runs. The CI full-coverage command explicitly enables non-short, uncached, verbose execution and provides both service addresses. See the [module test inventory](internal/testing/README.md) for the audit and integration entry points. When introducing service-backed tests, update the manifest and inventory in the same change.
 
 ### Coverage artifacts
 
