@@ -81,3 +81,28 @@ Notable audit findings:
 When a module gains service-backed tests, update `modules.mk` and move it to the corresponding inventory section. Keep short-mode checks before service initialization, make full-mode connection failures fatal, and register cleanup before creating test data. Use `make test/MODULE` for deliberately filtered diagnostic runs; CI runs complete suites with verbose output.
 
 This audit describes the current test suite, not backend capabilities. Missing tests for a backend remain coverage gaps rather than implicit integration coverage.
+
+## CI grouping and coverage
+
+The Go Test workflow partitions the 91 coverage modules using `modules.mk` and Make's existing module discovery:
+
+| Group | Modules | Go versions | Services | Test mode |
+| --- | --- | --- | --- | --- |
+| `unit` | 84: all coverage modules except service modules | 1.26.x, 1.27.x | None | Short |
+| `redis` | 6: `REDIS_TEST_MOD_DIRS` | 1.26.x, 1.27.x | Redis | Full |
+| `mysql-latest` | 1: `MYSQL_TEST_MOD_DIRS` | 1.26.x, 1.27.x | MySQL latest | Full |
+| `mysql-5.7` | Same MySQL module | 1.26.x, 1.27.x | MySQL 5.7 | Full |
+
+Every test job uses `-race -v -count=1`. Service-module in-process tests run with their service group, so the unit group can exclude these modules entirely. New service-independent modules enter the unit group automatically. `make verify-test-groups` rejects overlapping Redis/MySQL groups or service modules outside the coverage selection. Example and tool modules retain the existing coverage exclusions; the broader contributor command `make test-unit` still includes examples.
+
+The matrix is limited to four concurrent jobs and leaves sibling jobs running after a failure, preserving diagnostics across Go/service versions. A newer run for the same PR or branch cancels the older run. Each test job has a 20-minute job timeout, in addition to Go's per-package timeout. No module-level parallel subprocesses are added within a runner.
+
+Successful jobs upload `coverage-GO-SUITE` artifacts. Two downstream coverage jobs each download exactly one Go version's reports and explicitly require nonempty atomic profiles for `unit`, `redis`, `mysql-latest`, and `mysql-5.7`. They merge only those four paths with the pinned `gocovmerge`, retain `merged-coverage-GO`, and upload that report to Codecov with automatic report discovery disabled. MySQL profiles are combined within each Go version; profiles from different Go versions are never passed to the same merge. Artifacts are retained for seven days.
+
+Coverage jobs depend on the entire test matrix succeeding. Missing artifacts, empty/header-only profiles, malformed merge input, or upload failures fail the workflow; partial test runs are not published as complete coverage.
+
+### Sizing baseline
+
+The preceding [successful run](https://github.com/go-fries/fries/actions/runs/35056077727) ran all 91 modules in each of four jobs. Job durations were 300–369 seconds, totaling 1,353 runner-seconds; test steps took 249–320 seconds each. Measured per-module wall time (including command/build and HTML-report overhead) was largest for Gin (19–26s), the root module (18–25s), Cache Redis (17–22s), and MySQL Canal (13–19s).
+
+Grouping reduces module-suite executions from 364 to 184 per workflow while retaining both Go versions and both MySQL versions. Only GORM Scope is repeated across the MySQL matrix. The initial concurrency cap matches the previous four runners; avoiding additional unit shards limits repeated dependency compilation and runner setup. Compare actual job time and summed runner time after CI execution rather than treating the execution-count reduction as a measured speedup.
