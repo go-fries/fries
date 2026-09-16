@@ -2,11 +2,11 @@ package redis
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"math"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -559,28 +559,34 @@ func TestQueue_DeadLetterWritesReasonAndAcksDelivery(t *testing.T) {
 func TestQueue_DelayedTaskPromotion(t *testing.T) {
 	t.Parallel()
 
-	q, _ := newRedisTestQueue(t)
+	q, client := newRedisTestQueue(t)
 	ctx := t.Context()
 
-	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"), queue.WithDelay(20*time.Millisecond))
+	_, err := queue.NewProducer(q).Enqueue(ctx, "send_email", []byte("hello"), queue.WithQueue("critical"), queue.WithDelay(time.Hour))
 	require.NoError(t, err)
 
-	_, err = receiveCriticalWithTimeout(ctx, q, 20*time.Millisecond)
-	require.ErrorIs(t, err, context.DeadlineExceeded)
+	require.NoError(t, q.promoteDue(ctx, "critical"))
+	length, err := client.XLen(ctx, q.streamKey("critical")).Result()
+	require.NoError(t, err)
+	assert.Zero(t, length)
 
-	var delivery queue.Delivery
-	require.Eventually(t, func() bool {
-		got, err := receiveCriticalWithTimeout(ctx, q, 50*time.Millisecond)
-		if errors.Is(err, context.DeadlineExceeded) {
-			return false
-		}
-		require.NoError(t, err)
-		delivery = got
-		return true
-	}, time.Second, 10*time.Millisecond)
+	entries, err := client.ZRange(ctx, q.delayedKey("critical"), 0, -1).Result()
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	// Make the owned entry due without racing the wall clock or changing its payload.
+	require.NoError(t, client.ZAddXX(ctx, q.delayedKey("critical"), goredis.Z{
+		Score:  0,
+		Member: entries[0],
+	}).Err())
+
+	delivery, err := receiveCriticalWithTimeout(ctx, q, 3*time.Second)
+	require.NoError(t, err)
 	require.NotNil(t, delivery)
 	require.NotNil(t, delivery.Task())
 	assert.Equal(t, "send_email", delivery.Task().Type)
+	length, err = client.ZCard(ctx, q.delayedKey("critical")).Result()
+	require.NoError(t, err)
+	assert.Zero(t, length)
 }
 
 func TestQueue_ReceiveAcksMalformedStreamMessage(t *testing.T) {
@@ -624,21 +630,28 @@ func receiveCriticalWithTimeout(ctx context.Context, q *Queue, timeout time.Dura
 
 func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("Redis integration test")
+	}
 
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
 		addr = "localhost:6379"
 	}
 
-	client := goredis.NewClient(&goredis.Options{Addr: addr})
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	client := goredis.NewClient(&goredis.Options{
+		Addr:         addr,
+		DialTimeout:  time.Second,
+		ReadTimeout:  time.Second,
+		WriteTimeout: time.Second,
+		MaxRetries:   -1,
+	})
+	t.Cleanup(func() { assert.NoError(t, client.Close()) })
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
-	if err := client.Ping(ctx).Err(); err != nil {
-		require.NoError(t, client.Close())
-		t.Skipf("redis is not available at %s: %v", addr, err)
-	}
+	require.NoError(t, client.Ping(ctx).Err(), "Redis is unavailable at %s", addr)
 
-	prefix := "queue-test:" + sanitizeRedisKey(t.Name()) + ":" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	prefix := "queue-test:" + sanitizeRedisKey(t.Name()) + ":" + rand.Text()
 	options := append([]Option{
 		WithPrefix(prefix),
 		WithGroup("workers"),
@@ -650,7 +663,7 @@ func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(t.Context()), 2*time.Second)
 		defer cleanupCancel()
-		_ = client.Del(
+		assert.NoError(t, client.Del(
 			cleanupCtx,
 			q.streamKey(queue.DefaultQueue),
 			q.delayedKey(queue.DefaultQueue),
@@ -658,8 +671,7 @@ func newRedisTestQueue(t *testing.T, opts ...Option) (*Queue, *goredis.Client) {
 			q.streamKey("critical"),
 			q.delayedKey("critical"),
 			q.deadLetterKey("critical"),
-		).Err()
-		_ = client.Close()
+		).Err())
 	})
 
 	return q, client
