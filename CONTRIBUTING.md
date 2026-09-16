@@ -198,3 +198,21 @@ make test/cache ARGS="-short -race -run='TestSnapshotWithExpireAndErr|TestUtils_
 ```
 
 Make also interprets dollar signs: an end anchor must reach Make as `$$`, protected from expansion by the invoking shell. Omitting the anchor is simpler when the test-name prefix is already unique. Test logs show the module and the argument values passed to Go.
+
+### Coverage artifacts
+
+`make test-coverage` includes repository modules except `internal/tools` and modules within `example` or `examples` directories. Override `ALL_COVERAGE_MOD_DIRS` to select specific modules:
+
+```sh
+make test-coverage ALL_COVERAGE_MOD_DIRS='./cache ./retry'
+```
+
+Each invocation writes profiles under a unique `.coverage/run.XXXXXX/` directory, preserving module paths. `COVERAGE_PROFILE` selects the profile filename (default `coverage.out`, without directory components); HTML reports use that filename plus `.html`. The artifact directory is logged and retained for inspection, including on failure. Old profiles elsewhere in the repository are never merged.
+
+The final report defaults to `coverage.txt`, as expected by CI. Use `COVERAGE_OUTPUT` to choose another destination. Concurrent invocations must use different output paths; a second invocation targeting an output already in use fails without touching the active run's report.
+
+```sh
+make test-coverage ALL_COVERAGE_MOD_DIRS='./cache' COVERAGE_OUTPUT=coverage.cache.txt
+```
+
+After acquiring its output lock, a run removes the previous final report. It publishes a replacement only after tests, HTML generation, and merging all succeed. Missing profiles, an empty module selection, or a run with no covered statements fail without publishing a final report. Modules with header-only profiles contribute no statements and are skipped during HTML generation and merging.
