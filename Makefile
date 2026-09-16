@@ -4,7 +4,7 @@ TOOLS_MOD_PATH := $(patsubst ./%,%,$(TOOLS_MOD_DIR))
 
 ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
 ROOT_GO_MOD_DIRS := $(filter-out $(TOOLS_MOD_DIR), $(ALL_GO_MOD_DIRS))
-ALL_COVERAGE_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | grep -E -v '^./example|^$(TOOLS_MOD_DIR)' | sort)
+ALL_COVERAGE_MOD_DIRS := $(shell printf '%s\n' $(ROOT_GO_MOD_DIRS) | grep -E -v '(^|/)(example|examples)(/|$$)')
 
 GO = go
 GIT = git
@@ -75,18 +75,52 @@ test/%:
 
 COVERAGE_MODE    = atomic
 COVERAGE_PROFILE = coverage.out
+COVERAGE_OUTPUT  = coverage.txt
 .PHONY: test-coverage
 test-coverage: $(GOCOVMERGE)
 	@set -e; \
-	printf "" > coverage.txt; \
+	output="$(COVERAGE_OUTPUT)"; \
+	case "$$output" in /*) ;; *) output="$(CURDIR)/$$output" ;; esac; \
+	mkdir -p "$$(dirname "$$output")"; \
+	lock="$$output.lock"; \
+	if ! mkdir "$$lock"; then \
+	  printf '%s\n' "Coverage output is already in use: $$output" >&2; exit 1; \
+	fi; \
+	trap 'rmdir "$$lock"' 0; \
+	trap 'exit 1' 1 2 15; \
+	rm -f "$$output"; \
+	case "$(COVERAGE_PROFILE)" in ''|.|..|*/*) \
+	  printf '%s\n' 'COVERAGE_PROFILE must be a filename' >&2; exit 1 ;; esac; \
+	mkdir -p "$(CURDIR)/.coverage"; \
+	run_dir=$$(mktemp -d "$(CURDIR)/.coverage/run.XXXXXX"); \
+	printf '%s\n' "Coverage artifacts: $$run_dir"; \
+	set --; \
 	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
+	  mkdir -p "$$run_dir/$$dir"; \
+	  profile="$$run_dir/$$dir/$(COVERAGE_PROFILE)"; \
 	  (cd "$${dir}" && \
-	    set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" ./... && \
+	    set -- "$(GO)" test -timeout $(TIMEOUT)s $(ARGS) -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$$profile" ./... && \
 	    printf '%s\n' "[$${dir}] $$*" && \
-	    "$$@" && \
-	    "$(GO)" tool cover -html=coverage.out -o coverage.html); \
+	    "$$@"); \
+	  if ! test -s "$$profile"; then \
+	    printf '%s\n' "Missing coverage profile: $$dir" >&2; exit 1; \
+	  fi; \
+	  if test "$$(wc -l < "$$profile")" -gt 1; then \
+	    (cd "$$dir" && "$(GO)" tool cover -html="$$profile" -o "$$profile.html"); \
+	    set -- "$$@" "$$profile"; \
+	  fi; \
 	done; \
-	$(GOCOVMERGE) $$(find . -name coverage.out) > coverage.txt
+	if test "$$#" -eq 0; then \
+	  printf '%s\n' 'No coverage statements were collected' >&2; exit 1; \
+	fi; \
+	merged=$$(mktemp "$$output.tmp.XXXXXX"); \
+	trap 'rm -f "$$merged"; rmdir "$$lock"' 0; \
+	"$(GOCOVMERGE)" "$$@" > "$$merged"; \
+	if ! test "$$(wc -l < "$$merged")" -gt 1; then \
+	  printf '%s\n' 'Coverage merge produced no statements' >&2; exit 1; \
+	fi; \
+	mv -f "$$merged" "$$output"; \
+	printf '%s\n' "Coverage report: $$output"
 
 .PHONY: golangci-lint golangci-lint-fix
 golangci-lint-fix: ARGS=--fix
