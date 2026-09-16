@@ -1,5 +1,22 @@
 # Gorm/Scopes
 
+## Tests
+
+Run commands from the repository root:
+
+```sh
+# Compile the examples and skip MySQL integration tests.
+make test/gorm/scope ARGS='-short -race -count=1'
+
+# Run integration tests against an existing MySQL database.
+MYSQL_DSN='gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True&loc=Local' \
+  make test/gorm/scope ARGS='-race -count=1'
+```
+
+The DSN above is the default when `MYSQL_DSN` is unset. Outside short mode, connection or setup failures fail the test. The helper enables time parsing and defaults unset connection, read, and write timeouts to three seconds.
+
+Each test creates its own randomly prefixed `users` table in the configured database and drops that table before closing its SQL connection pool. The database must already exist; the account needs table creation, index creation, querying, insertion, and table deletion privileges within it. Database creation privileges are not required. Existing tables and rows are preserved, so independent test processes can share the same database.
+
 ## Example
 
 ```go
