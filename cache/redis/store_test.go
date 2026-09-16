@@ -2,7 +2,8 @@ package redis
 
 import (
 	"context"
-	"errors"
+	"crypto/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -11,20 +12,48 @@ import (
 	"github.com/go-fries/fries/locker/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-var ctx = context.Background()
 
 const noExpiration = -1 * time.Nanosecond
 
-func createRedis(t *testing.T) redis.UniversalClient {
+func newTestStore(t *testing.T, keys ...string) *Store {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("Redis integration test")
+	}
+
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379"
+	}
 	client := redis.NewClient(&redis.Options{
-		Addr: ":6379",
+		Addr:                  addr,
+		DialTimeout:           time.Second,
+		ReadTimeout:           time.Second,
+		WriteTimeout:          time.Second,
+		ContextTimeoutEnabled: true,
+		MaxRetries:            -1,
 	})
+	t.Cleanup(func() { assert.NoError(t, client.Close()) })
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	require.NoError(t, client.Ping(ctx).Err(), "Redis is unavailable at %s", addr)
+
+	store := New(client, Prefix("fries:test:cache:"+rand.Text()), Codec(json.Codec{}))
+	redisKeys := make([]string, 0, 2*len(keys))
+	for _, key := range keys {
+		redisKeys = append(redisKeys, store.prefix+key, "locker:"+store.prefix+key)
+	}
 	t.Cleanup(func() {
-		client.FlushAll(ctx)
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 3*time.Second)
+		defer cancel()
+		if len(redisKeys) > 0 {
+			assert.NoError(t, client.Del(ctx, redisKeys...).Err())
+		}
 	})
-	return client
+	return store
 }
 
 func TestRedis_Prefix(t *testing.T) {
@@ -37,218 +66,184 @@ func TestRedis_Prefix(t *testing.T) {
 }
 
 func TestRedis_Base(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis"), Codec(json.Codec{}))
+	store := newTestStore(t, "test")
+	ctx := t.Context()
 
-	ok1, err := store.Put(ctx, "test", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok1)
+	ok, err := store.Put(ctx, "test", "test", time.Second)
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	var v string
-	assert.Nil(t, store.Get(ctx, "test", &v))
-	assert.Equal(t, "test", v)
+	var value string
+	require.NoError(t, store.Get(ctx, "test", &value))
+	assert.Equal(t, "test", value)
 
-	ok2, err := store.Has(ctx, "test")
-	assert.Nil(t, err)
-	assert.True(t, ok2)
+	ok, err = store.Has(ctx, "test")
+	require.NoError(t, err)
+	assert.True(t, ok)
 
-	time.Sleep(time.Second + 500*time.Millisecond)
-
-	ok3, err := store.Has(ctx, "test")
-	assert.Nil(t, err)
-	assert.False(t, ok3)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		ok, err := store.Has(ctx, "test")
+		assert.NoError(c, err)
+		assert.False(c, ok)
+	}, 5*time.Second, 20*time.Millisecond)
 }
 
 func TestRedis_IncrAndDecr(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis"))
+	store := newTestStore(t, "test:inc", "test:inc:type")
+	ctx := t.Context()
 
-	_, err := store.Forget(ctx, "test:inc")
-	assert.Nil(t, err)
+	ok, err := store.Forget(ctx, "test:inc")
+	require.NoError(t, err)
+	assert.False(t, ok)
 
-	v1, err := store.Increment(ctx, "test:inc", 1)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, v1)
+	value, err := store.Increment(ctx, "test:inc", 1)
+	require.NoError(t, err)
+	assert.Equal(t, 1, value)
 
-	v2, err := store.Increment(ctx, "test:inc", 10)
-	assert.Nil(t, err)
-	assert.Equal(t, 11, v2)
+	value, err = store.Increment(ctx, "test:inc", 10)
+	require.NoError(t, err)
+	assert.Equal(t, 11, value)
 
-	v3, err := store.Decrement(ctx, "test:inc", 1)
-	assert.Nil(t, err)
-	assert.Equal(t, 10, v3)
+	value, err = store.Decrement(ctx, "test:inc", 1)
+	require.NoError(t, err)
+	assert.Equal(t, 10, value)
 
-	// put another type
-	ok1, err := store.Put(ctx, "test:inc:type", "test", time.Second*3)
-	assert.Nil(t, err)
-	assert.True(t, ok1)
+	ok, err = store.Put(ctx, "test:inc:type", "test", time.Minute)
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	v4, err := store.Increment(ctx, "test:inc:type", 1)
-	t.Log(err)
+	value, err = store.Increment(ctx, "test:inc:type", 1)
 	assert.Error(t, err)
-	assert.Zero(t, v4)
+	assert.Zero(t, value)
 
-	v5, err := store.Decrement(ctx, "test:inc:type", 1)
+	value, err = store.Decrement(ctx, "test:inc:type", 1)
 	assert.Error(t, err)
-	assert.Zero(t, v5)
+	assert.Zero(t, value)
 }
 
 func TestRedis_Forever(t *testing.T) {
-	client := createRedis(t)
-	store := New(client, Prefix("cache:redis"))
+	store := newTestStore(t, "test:forever", "test:forever:ttl")
+	ctx := t.Context()
 
-	ok1, err := store.Forever(ctx, "test:forever", "test")
-	assert.Nil(t, err)
-	assert.True(t, ok1)
+	ok, err := store.Forever(ctx, "test:forever", "test")
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	// ttl
-	ttl, err := client.TTL(ctx, "cache:redis:test:forever").Result()
-	assert.Nil(t, err)
+	ttl, err := store.redis.TTL(ctx, store.prefix+"test:forever").Result()
+	require.NoError(t, err)
 	assert.Equal(t, noExpiration, ttl)
 
-	ok2, err := store.Put(ctx, "test:forever:ttl", "test", time.Minute)
-	assert.Nil(t, err)
-	assert.True(t, ok2)
+	ok, err = store.Put(ctx, "test:forever:ttl", "test", time.Minute)
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	ttl, err = client.TTL(ctx, "cache:redis:test:forever:ttl").Result()
-	assert.Nil(t, err)
-	assert.True(t, ttl > 0)
+	ttl, err = store.redis.TTL(ctx, store.prefix+"test:forever:ttl").Result()
+	require.NoError(t, err)
+	assert.Positive(t, ttl)
 
-	ok3, err := store.Forever(ctx, "test:forever:ttl", "forever-value")
-	assert.Nil(t, err)
-	assert.True(t, ok3)
+	ok, err = store.Forever(ctx, "test:forever:ttl", "forever-value")
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	var v string
-	assert.Nil(t, store.Get(ctx, "test:forever:ttl", &v))
-	assert.Equal(t, "forever-value", v)
+	var value string
+	require.NoError(t, store.Get(ctx, "test:forever:ttl", &value))
+	assert.Equal(t, "forever-value", value)
 
-	ttl, err = client.TTL(ctx, "cache:redis:test:forever:ttl").Result()
-	assert.Nil(t, err)
+	ttl, err = store.redis.TTL(ctx, store.prefix+"test:forever:ttl").Result()
+	require.NoError(t, err)
 	assert.Equal(t, noExpiration, ttl)
 }
 
 func TestRedis_Flush(t *testing.T) {
-	client := createRedis(t)
-	store := New(client, Prefix("cache:redis"))
-	otherStore := New(client, Prefix("cache:other"))
+	store := newTestStore(t, "test:flush", "test:flush:another")
+	otherStore := newTestStore(t, "test:flush")
+	ctx := t.Context()
 
-	ok1, err := store.Put(ctx, "test:flush", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok1)
+	for _, key := range []string{"test:flush", "test:flush:another"} {
+		ok, err := store.Forever(ctx, key, "test")
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
+	ok, err := otherStore.Forever(ctx, "test:flush", "other-value")
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	ok2, err := store.Put(ctx, "test:flush:another", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok2)
+	ok, err = store.Flush(ctx)
+	require.NoError(t, err)
+	assert.True(t, ok)
 
-	ok3, err := otherStore.Put(ctx, "test:flush", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok3)
-
-	okFlush, err := store.Flush(ctx)
-	assert.Nil(t, err)
-	assert.True(t, okFlush)
-
-	hasKey, err := store.Has(ctx, "test:flush")
-	assert.NoError(t, err)
-	assert.False(t, hasKey)
-
-	hasAnotherKey, err := store.Has(ctx, "test:flush:another")
-	assert.NoError(t, err)
-	assert.False(t, hasAnotherKey)
-
-	hasOtherKey, err := otherStore.Has(ctx, "test:flush")
-	assert.NoError(t, err)
-	assert.True(t, hasOtherKey)
-}
-
-func TestRedis_FlushWithoutPrefix(t *testing.T) {
-	client := createRedis(t)
-	store := New(client)
-	prefixedStore := New(client, Prefix("cache:redis"))
-
-	ok1, err := store.Put(ctx, "test:flush", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok1)
-
-	ok2, err := prefixedStore.Put(ctx, "test:flush", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok2)
-
-	okFlush, err := store.Flush(ctx)
-	assert.Nil(t, err)
-	assert.True(t, okFlush)
-
-	hasKey, err := store.Has(ctx, "test:flush")
-	assert.NoError(t, err)
-	assert.False(t, hasKey)
-
-	hasPrefixedKey, err := prefixedStore.Has(ctx, "test:flush")
-	assert.NoError(t, err)
-	assert.False(t, hasPrefixedKey)
-}
-
-func TestRedis_FlushClusterClient(t *testing.T) {
-	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: []string{":6379"},
-	})
-	t.Cleanup(func() {
-		assert.NoError(t, client.Close())
-	})
-	store := New(client, Prefix("cache:redis"))
-
-	ok, err := store.Flush(ctx)
-	assert.NotErrorIs(t, err, ErrFlushUnsupported)
-	assert.True(t, ok || err != nil)
+	for _, key := range []string{"test:flush", "test:flush:another"} {
+		hasKey, err := store.Has(ctx, key)
+		require.NoError(t, err)
+		assert.False(t, hasKey)
+	}
+	var value string
+	require.NoError(t, otherStore.Get(ctx, "test:flush", &value))
+	assert.Equal(t, "other-value", value)
 }
 
 func TestRedis_Add(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis"))
+	store := newTestStore(t, "test:add")
+	ctx := t.Context()
 
-	ok1, err := store.Add(ctx, "test:add", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok1)
+	ok, err := store.Add(ctx, "test:add", "first", time.Second)
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	ok2, err := store.Add(ctx, "test:add", "test", time.Second)
-	assert.Nil(t, err)
-	assert.False(t, ok2)
+	ok, err = store.Add(ctx, "test:add", "replacement", time.Minute)
+	require.NoError(t, err)
+	assert.False(t, ok)
 
-	time.Sleep(time.Second + 500*time.Millisecond)
-	ok3, err := store.Add(ctx, "test:add", "test", time.Second)
-	assert.Nil(t, err)
-	assert.True(t, ok3)
+	var value string
+	require.NoError(t, store.Get(ctx, "test:add", &value))
+	assert.Equal(t, "first", value)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		exists, err := store.Has(ctx, "test:add")
+		assert.NoError(c, err)
+		assert.False(c, exists)
+	}, 5*time.Second, 20*time.Millisecond)
+
+	ok, err = store.Add(ctx, "test:add", "replacement", time.Minute)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	require.NoError(t, store.Get(ctx, "test:add", &value))
+	assert.Equal(t, "replacement", value)
 }
 
 func TestRedis_Lock(t *testing.T) {
-	r := New(createRedis(t), Prefix("cache:redis"))
-	lock := r.Lock("test", 5*time.Second)
-	lease, err := lock.TryAcquire(t.Context())
-	assert.NoError(t, err)
-	assert.NotNil(t, lease)
-	exists, err := r.redis.Exists(t.Context(), "locker:cache:redis:test").Result()
-	assert.NoError(t, err)
+	store := newTestStore(t, "test")
+	ctx := t.Context()
+	lock := store.Lock("test", 5*time.Second)
+	lease, err := lock.TryAcquire(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+	exists, err := store.redis.Exists(ctx, "locker:"+store.prefix+"test").Result()
+	require.NoError(t, err)
 	assert.Equal(t, int64(1), exists)
 
-	err = locker.Try(t.Context(), r.Lock("test", 5*time.Second), func(context.Context) error {
+	err = locker.Try(ctx, store.Lock("test", 5*time.Second), func(context.Context) error {
 		return nil
 	})
 	assert.ErrorIs(t, err, locker.ErrNotAcquired)
-	assert.NoError(t, lease.Release(t.Context()))
+	require.NoError(t, lease.Release(ctx))
 
-	err = locker.Try(t.Context(), r.Lock("test", 5*time.Second), func(context.Context) error {
+	err = locker.Try(ctx, store.Lock("test", 5*time.Second), func(context.Context) error {
 		return nil
 	})
 	assert.NoError(t, err)
 }
 
 func TestRedis_ErrNotFound(t *testing.T) {
-	store := New(createRedis(t), Prefix("cache:redis:notfound"))
+	store := newTestStore(t)
+	ctx := t.Context()
 
-	// Has
-	ok1, err := store.Has(ctx, "test:notfound:has")
-	assert.Nil(t, err)
-	assert.False(t, ok1)
+	ok, err := store.Has(ctx, "test:notfound:has")
+	require.NoError(t, err)
+	assert.False(t, ok)
 
-	// Get
-	var v string
-	err = store.Get(ctx, "test:notfound:get", &v)
-	assert.True(t, errors.Is(err, cache.ErrNotFound))
-	assert.Empty(t, v)
+	var value string
+	err = store.Get(ctx, "test:notfound:get", &value)
+	assert.ErrorIs(t, err, cache.ErrNotFound)
+	assert.Empty(t, value)
 }

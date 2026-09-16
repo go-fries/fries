@@ -91,3 +91,19 @@ func main() {
 	}
 }
 ```
+
+## Redis adapter tests
+
+Run commands from the repository root:
+
+```sh
+# In-process tests; no Redis server is needed.
+make test/cache/redis ARGS='-short -race -count=1'
+
+# Full suite against a running Redis server.
+REDIS_ADDR=localhost:6379 make test/cache/redis ARGS='-race -count=1'
+```
+
+`REDIS_ADDR` defaults to `localhost:6379`. Full-suite runs fail if Redis is unavailable. Each integration test uses a random key prefix, deletes only its declared cache and lock keys, and closes its client. Expiration checks observe the real Redis server with a bounded wait.
+
+Unprefixed flush and cluster dispatch are tested with in-process command hooks. These tests run in short mode and verify SCAN/DEL requests without sending them to a server.
