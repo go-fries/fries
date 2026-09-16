@@ -10,28 +10,56 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   GOPROXY: "https://proxy.golang.org"
 
 jobs:
   test:
-    name: "go test"
+    name: "${{ matrix.suite }} (Go ${{ matrix.go-version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
+      max-parallel: 4
       matrix:
-        go-version: [ 1.26.x, 1.27.x ]
-        platform: [ ubuntu-latest ]
-        mysql-version: [ 'mysql:latest', 'mysql:5.7' ]
-    runs-on: ${{ matrix.platform }}
+        suite: [unit, redis, mysql-latest, mysql-5.7]
+        go-version: [1.26.x, 1.27.x]
+        include:
+          - suite: unit
+            coverage-group: unit
+            short: true
+            redis-image: ''
+            mysql-image: ''
+          - suite: redis
+            coverage-group: redis
+            short: false
+            redis-image: redis
+            mysql-image: ''
+          - suite: mysql-latest
+            coverage-group: mysql
+            short: false
+            redis-image: ''
+            mysql-image: mysql:latest
+          - suite: mysql-5.7
+            coverage-group: mysql
+            short: false
+            redis-image: ''
+            mysql-image: mysql:5.7
 
+    # An empty image disables that service for the matrix entry.
     services:
       redis:
-        image: redis
+        image: ${{ matrix.redis-image }}
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 6379:6379
       mysql:
-        image: ${{ matrix.mysql-version }}
+        image: ${{ matrix.mysql-image }}
         env:
           MYSQL_DATABASE: gorm
           MYSQL_USER: gorm
@@ -58,16 +86,78 @@ jobs:
           cache-dependency-path: "**/go.sum"
       - run: go version
 
-      - name: Run full suite with strict integration tests
+      - name: Verify module groups
+        run: make verify-test-groups
+
+      - name: Run grouped tests with coverage
         env:
           REDIS_ADDR: localhost:6379
           MYSQL_DSN: "gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True&loc=Local"
-        run: make test-coverage ARGS='-race -v -count=1 -short=false'
+          COVERAGE_GROUP: ${{ matrix.coverage-group }}
+          SHORT: ${{ matrix.short }}
+        run: make test-coverage COVERAGE_GROUP="$COVERAGE_GROUP" ARGS="-race -v -count=1 -short=$SHORT"
+
+      - name: Upload group coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.go-version }}-${{ matrix.suite }}
+          path: coverage.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  coverage:
+    name: "coverage (Go ${{ matrix.go-version }})"
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [1.26.x, 1.27.x]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: internal/tools/go.sum
+
+      - name: Download group coverage
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-${{ matrix.go-version }}-*
+          path: coverage-parts
+
+      - name: Merge complete toolchain coverage
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          profiles=()
+          for suite in unit redis mysql-latest mysql-5.7; do
+            profile="coverage-parts/coverage-$GO_VERSION-$suite/coverage.txt"
+            test -s "$profile"
+            test "$(head -n 1 "$profile")" = 'mode: atomic'
+            test "$(wc -l < "$profile")" -gt 1
+            profiles+=("$profile")
+          done
+          make "$GITHUB_WORKSPACE/.tools/gocovmerge"
+          .tools/gocovmerge "${profiles[@]}" > coverage.txt
+          test "$(wc -l < coverage.txt)" -gt 1
+
+      - name: Retain merged coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: merged-coverage-${{ matrix.go-version }}
+          path: coverage.txt
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+          disable_search: true
           files: ./coverage.txt
           verbose: true

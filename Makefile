@@ -83,9 +83,24 @@ test/%:
 COVERAGE_MODE    = atomic
 COVERAGE_PROFILE = coverage.out
 COVERAGE_OUTPUT  = coverage.txt
+COVERAGE_GROUP   = all
+COVERAGE_GROUP_all = $(ALL_COVERAGE_MOD_DIRS)
+COVERAGE_GROUP_unit = $(filter-out $(INTEGRATION_GO_MOD_DIRS),$(ALL_COVERAGE_MOD_DIRS))
+COVERAGE_GROUP_redis = $(filter $(REDIS_TEST_MOD_DIRS),$(ALL_COVERAGE_MOD_DIRS))
+COVERAGE_GROUP_mysql = $(filter $(MYSQL_TEST_MOD_DIRS),$(ALL_COVERAGE_MOD_DIRS))
+
+.PHONY: verify-test-groups
+verify-test-groups:
+	@test -n "$(strip $(REDIS_TEST_MOD_DIRS))" && test -n "$(strip $(MYSQL_TEST_MOD_DIRS))"
+	@test -z "$(filter $(REDIS_TEST_MOD_DIRS),$(MYSQL_TEST_MOD_DIRS))" || { echo 'Service test groups overlap' >&2; exit 1; }
+	@test -z "$(filter-out $(ALL_COVERAGE_MOD_DIRS),$(INTEGRATION_GO_MOD_DIRS))" || { echo 'Service test modules must belong to coverage selection' >&2; exit 1; }
+	@printf '%s\n' 'Coverage groups: $(words $(COVERAGE_GROUP_unit)) unit, $(words $(COVERAGE_GROUP_redis)) Redis, $(words $(COVERAGE_GROUP_mysql)) MySQL'
+
 .PHONY: test-coverage
 test-coverage: $(GOCOVMERGE)
 	@set -e; \
+	case "$(COVERAGE_GROUP)" in all|unit|redis|mysql) ;; *) \
+	  printf '%s\n' 'COVERAGE_GROUP must be all, unit, redis, or mysql' >&2; exit 1 ;; esac; \
 	output="$(COVERAGE_OUTPUT)"; \
 	case "$$output" in /*) ;; *) output="$(CURDIR)/$$output" ;; esac; \
 	mkdir -p "$$(dirname "$$output")"; \
@@ -102,7 +117,7 @@ test-coverage: $(GOCOVMERGE)
 	run_dir=$$(mktemp -d "$(CURDIR)/.coverage/run.XXXXXX"); \
 	printf '%s\n' "Coverage artifacts: $$run_dir"; \
 	set --; \
-	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
+	for dir in $(COVERAGE_GROUP_$(COVERAGE_GROUP)); do \
 	  mkdir -p "$$run_dir/$$dir"; \
 	  profile="$$run_dir/$$dir/$(COVERAGE_PROFILE)"; \
 	  (cd "$${dir}" && \

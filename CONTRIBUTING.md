@@ -216,7 +216,7 @@ MYSQL_DSN='gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True&loc=Lo
 
 All service-backed tests skip only in short mode. Otherwise a connection, setup, or cleanup error fails the test. `REDIS_ADDR` and `MYSQL_DSN` default to the values shown above. Redis tests use unique key namespaces; MySQL tests use randomly prefixed tables within an existing database.
 
-Use `make test/MODULE` with explicit flags for filtered debugging runs. The CI full-coverage command explicitly enables non-short, uncached, verbose execution and provides both service addresses. See the [module test inventory](internal/testing/README.md) for the audit and integration entry points. When introducing service-backed tests, update the manifest and inventory in the same change.
+Use `make test/MODULE` with explicit flags for filtered debugging runs. CI runs service-independent modules in short mode and service-backed modules in full mode, with race detection, uncached execution, and verbose output in every group. See the [module test inventory](internal/testing/README.md) for the audit and integration entry points. When introducing service-backed tests, update the manifest and inventory in the same change.
 
 ### Coverage artifacts
 
@@ -225,6 +225,16 @@ Use `make test/MODULE` with explicit flags for filtered debugging runs. The CI f
 ```sh
 make test-coverage ALL_COVERAGE_MOD_DIRS='./cache ./retry'
 ```
+
+`COVERAGE_GROUP` selects `all` (the default), `unit`, `redis`, or `mysql`. The unit group excludes service-backed modules; Redis and MySQL groups each run the full suites of their listed modules, including in-process tests. Groups filter `ALL_COVERAGE_MOD_DIRS`, so an explicit module selection can narrow them further. An unknown group or empty selection fails. Group selection does not change test flags:
+
+```sh
+make verify-test-groups
+make test-coverage COVERAGE_GROUP=unit ARGS='-race -short -count=1'
+REDIS_ADDR=localhost:6379 make test-coverage COVERAGE_GROUP=redis ARGS='-race -short=false -count=1 -v'
+```
+
+CI uses these groups for both supported Go versions, with only the MySQL group repeated for MySQL latest and 5.7. At most four test jobs run concurrently. Each job uploads a uniquely named report; a downstream job requires all four reports for its Go version before merging and uploading to Codecov. Reports from different Go versions are kept separate because their coverage instrumentation can differ. See [CI grouping and coverage](internal/testing/README.md#ci-grouping-and-coverage) for failure and cancellation behavior.
 
 Each invocation writes profiles under a unique `.coverage/run.XXXXXX/` directory, preserving module paths. `COVERAGE_PROFILE` selects the profile filename (default `coverage.out`, without directory components); HTML reports use that filename plus `.html`. The artifact directory is logged and retained for inspection, including on failure. Old profiles elsewhere in the repository are never merged.
 
