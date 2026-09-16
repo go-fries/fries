@@ -48,5 +48,10 @@ jobs:
       - name: Build
         run: make build
 
+      - name: Verify release metadata and tool tests
+        run: |
+          make verify-mods
+          make test/internal/tools ARGS='-race -count=1'
+
       - name: Check clean repository
         run: make check-clean-work-tree

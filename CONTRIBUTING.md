@@ -245,3 +245,45 @@ make test-coverage ALL_COVERAGE_MOD_DIRS='./cache' COVERAGE_OUTPUT=coverage.cach
 ```
 
 After acquiring its output lock, a run removes the previous final report. It publishes a replacement only after tests, HTML generation, and merging all succeed. Missing profiles, an empty module selection, or a run with no covered statements fail without publishing a final report. Modules with header-only profiles contribute no statements and are skipped during HTML generation and merging.
+
+## Release Checks
+
+`versions.yaml` is the release manifest. Its module sets define candidate versions and published module paths; `excluded-modules` lists tools and standalone examples. `make verify-mods` checks that every local module is accounted for, set versions are valid, and intra-repository dependency constraints are consistent. It does not check public API compatibility.
+
+The release check targets first run `verify-mods`, then resolve manifest module paths to local directories. They skip excluded modules, reject unknown sets/directories and empty selections, and check selected modules sequentially. Each module's full diagnostic output and exit status are retained. Checks continue after a module fails, and the overall command exits nonzero if any check fails. Metadata, selection, and tool-build failures stop before module checks.
+
+| Command | Purpose |
+| --- | --- |
+| `make gorelease` | Compare every release module with an inferred published baseline and suggest its next version |
+| `make gorelease MODSET=stable` | Compare only the named module set |
+| `make gorelease/cache` | Compare a single manifest-listed directory; use `gorelease/.` for the root module |
+| `make release-check MODSET=stable` | Validate every selected module against its candidate version from `versions.yaml` |
+
+Omitting `MODSET` selects all sets. `MODSET` accepts one set name. For a focused candidate check, use `make release-check MODSET=stable RELEASE_DIR=cache`. `release-check` always uses the manifest version; it does not use `GORELEASE_VERSION`.
+
+### Baselines and candidate versions
+
+An empty `GORELEASE_BASE` preserves the pinned gorelease tool's inference: it selects an applicable released version, taking the proposed version into account when one is supplied. Set an explicit baseline for reproducible comparisons. `GORELEASE_VERSION` supplies a proposed version to the diagnostic `gorelease` targets:
+
+```sh
+make gorelease/cache GORELEASE_BASE=v4.2.0
+make gorelease/cache GORELEASE_BASE=v4.2.0 GORELEASE_VERSION=v4.3.0
+make release-check MODSET=stable GORELEASE_BASE=v4.2.0
+```
+
+Candidate versions must be unpublished, valid for each module path, and consistent with its API changes. Updating only the version number cannot make an incompatible `/v4` API change acceptable. For a new major release, migrate module paths and dependencies first. Compare one migrated module to its old path explicitly, for example `GORELEASE_BASE=github.com/go-fries/fries/cache/v4@v4.2.0` on a future `/v5` module. Use `GORELEASE_BASE=none` only for an intentional first release or new major with no API comparison. A missing baseline or download error remains a failure; it never falls back to `none`.
+
+### Release sequence and prerequisites
+
+The repository uses Make and multimod for release preparation and tagging:
+
+1. Set the intended candidate version in `versions.yaml` and commit it.
+2. Run `make prerelease MODSET=stable`. Multimod prepares version/dependency changes and creates a release branch and commit.
+3. On the prepared candidate, run `make release-check MODSET=stable` with the chosen baseline and module source available. Resolve all reported failures before tagging that candidate.
+4. Use `make add-tags MODSET=stable COMMIT=HEAD`, then the existing `make push-tags TAG=...` command when publishing the checked candidate.
+
+The check commands are read-only with respect to repository files and tags. They require a clean committed working tree, the Go toolchain, and access to baseline modules and dependencies through `GOPROXY`/VCS and the configured checksum service. Gorelease loads the module as a consumer would, so local `replace` directives do not substitute unpublished sibling modules. For a coordinated release whose updated sibling versions are not yet published, provide those candidate modules through a staging module proxy before running the final check. Dependency-resolution failures must be resolved rather than suppressed.
+
+Run checks from the exact candidate commit you intend to tag. `add-tags COMMIT=...` can target another commit; a check of the current checkout does not validate that other snapshot. The strict release entry point is `make release-check`; `prerelease` and `add-tags` retain their metadata checks and preparation/tagging roles.
+
+Gorelease reports both incompatible APIs and loading/tool failures as nonzero results (some share exit code 1); use its preserved diagnostics to identify the cause. Ordinary CI runs metadata verification and the release-selection tool tests. Candidate compatibility checks run through the release entry point with an explicit candidate and available dependencies.

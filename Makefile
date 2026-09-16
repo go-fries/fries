@@ -29,6 +29,10 @@ $(TOOLS)/golangci-lint: PACKAGE=github.com/golangci/golangci-lint/v2/cmd/golangc
 GORELEASE = $(TOOLS)/gorelease
 $(GORELEASE): PACKAGE=golang.org/x/exp/cmd/gorelease
 
+RELEASEMODS = $(TOOLS)/releasemods
+$(RELEASEMODS): PACKAGE=github.com/go-fries/fries/$(TOOLS_MOD_PATH)/v4/releasemods
+$(RELEASEMODS): $(wildcard $(TOOLS_MOD_DIR)/releasemods/*.go)
+
 GOCOVMERGE = $(TOOLS)/gocovmerge
 $(TOOLS)/gocovmerge: PACKAGE=github.com/wadey/gocovmerge
 
@@ -45,7 +49,7 @@ BUF = $(TOOLS)/buf
 $(TOOLS)/buf: PACKAGE=github.com/bufbuild/buf/cmd/buf
 
 .PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(CROSSLINK) $(BUF)
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(RELEASEMODS) $(GOCOVMERGE) $(MULTIMOD) $(CODECOVFIX) $(CROSSLINK) $(BUF)
 	@echo "✅ Tools are ready"
 
 # Build
@@ -245,14 +249,42 @@ crosslink: $(CROSSLINK)
 	@echo "Updating intra-repository dependencies in all go modules" \
 		&& $(CROSSLINK) --root=$(shell pwd) --prune
 
-.PHONY: gorelease
-gorelease: $(ROOT_GO_MOD_DIRS:%=gorelease/%)
-gorelease/%: DIR=$*
-gorelease/%:| $(GORELEASE)
-	@echo "gorelease in $(DIR):" \
-		&& cd $(DIR) \
-		&& $(GORELEASE) \
-		|| echo ""
+GORELEASE_BASE ?=
+GORELEASE_VERSION ?=
+
+.PHONY: gorelease release-check
+release-check: CHECK_RELEASE_VERSION=true
+release-check: gorelease
+gorelease: verify-mods $(GORELEASE) $(RELEASEMODS)
+	@set -e; \
+	selection=$$(mktemp); \
+	trap 'rm -f "$$selection"' 0; \
+	trap 'exit 1' 1 2 15; \
+	"$(RELEASEMODS)" -modset="$(MODSET)" -dir="$(RELEASE_DIR)" > "$$selection"; \
+	status=0; failed=0; checked=0; \
+	while IFS="$$(printf '\t')" read -r dir version; do \
+	  set -- "$(GORELEASE)"; \
+	  if test -n "$(GORELEASE_BASE)"; then set -- "$$@" "-base=$(GORELEASE_BASE)"; fi; \
+	  if test "$(CHECK_RELEASE_VERSION)" = true; then \
+	    set -- "$$@" "-version=$$version"; \
+	  elif test -n "$(GORELEASE_VERSION)"; then \
+	    set -- "$$@" "-version=$(GORELEASE_VERSION)"; \
+	  fi; \
+	  printf '\n[%s] %s\n' "$$dir" "$$*"; \
+	  checked=$$((checked + 1)); \
+	  if (cd "$$dir" && "$$@"); then \
+	    printf '[%s] PASS\n' "$$dir"; \
+	  else \
+	    code=$$?; status=1; failed=$$((failed + 1)); \
+	    printf '[%s] FAIL (exit %s)\n' "$$dir" "$$code" >&2; \
+	  fi; \
+	done < "$$selection"; \
+	test "$$checked" -gt 0 || { echo 'No release modules checked' >&2; exit 1; }; \
+	printf '\nRelease checks: %s checked, %s failed\n' "$$checked" "$$failed"; \
+	exit "$$status"
+
+gorelease/%:
+	@$(MAKE) gorelease RELEASE_DIR="$*"
 
 .PHONY: verify-mods
 verify-mods: $(MULTIMOD)
