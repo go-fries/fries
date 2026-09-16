@@ -58,8 +58,11 @@ jobs:
           cache-dependency-path: "**/go.sum"
       - run: go version
 
-      - name: Run tests
-        run: make test-coverage
+      - name: Run full suite with strict integration tests
+        env:
+          REDIS_ADDR: localhost:6379
+          MYSQL_DSN: "gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True&loc=Local"
+        run: make test-coverage ARGS='-race -v -count=1 -short=false'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7

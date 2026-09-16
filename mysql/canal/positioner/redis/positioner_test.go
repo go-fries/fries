@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"os"
 	"sync"
@@ -28,22 +29,33 @@ func createRedisClient(t *testing.T) redis.UniversalClient {
 		addr = "localhost:6379"
 	}
 	client := redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr:                  addr,
+		DialTimeout:           time.Second,
+		ReadTimeout:           time.Second,
+		WriteTimeout:          time.Second,
+		ContextTimeoutEnabled: true,
+		MaxRetries:            -1,
 	})
 
 	t.Cleanup(func() {
 		assert.NoError(t, client.Close())
 	})
-	require.NoError(t, client.Ping(t.Context()).Err())
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	require.NoError(t, client.Ping(ctx).Err(), "Redis is unavailable at %s", addr)
 
 	return client
 }
 
 func TestPositioner(t *testing.T) {
 	client := createRedisClient(t)
-	prefix := fmt.Sprintf("%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := "fries:test:positioner:" + rand.Text()
 	positioner := NewPositioner(client, WithPrefix(prefix), WithCodec(json.Codec{}))
-	t.Cleanup(func() { assert.NoError(t, client.Del(ctx, positioner.prefix+name).Err()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 3*time.Second)
+		defer cancel()
+		assert.NoError(t, client.Del(ctx, positioner.prefix+name).Err())
+	})
 	assert.Equal(t, prefix+":"+name, positioner.prefix+name)
 	assert.Equal(t, json.Codec{}, positioner.codec)
 
@@ -65,13 +77,15 @@ func TestPositioner(t *testing.T) {
 
 func TestBufferedPositioner(t *testing.T) {
 	client := createRedisClient(t)
-	prefix := fmt.Sprintf("%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := "fries:test:positioner:" + rand.Text()
 	positioner := NewBufferedPositioner(
 		client,
 		WithPrefix(prefix), WithCodec(json.Codec{}),
 		WithFlushInterval(5*time.Second), WithBatchSize(100),
 	)
 	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 3*time.Second)
+		defer cancel()
 		positioner.Close(ctx)
 		assert.NoError(t, client.Del(ctx, positioner.prefix+name).Err())
 	})
