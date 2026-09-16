@@ -74,7 +74,10 @@ Notable audit findings:
 | `eino/components/embedding/cached/example` | Example module compiled by the unit target |
 | `mysql/canal` | Compiled; no live MySQL replication test |
 | `queue/examples/tasker` | Example module compiled by the unit target |
-| `internal/tools` | Excluded from component test targets; pinned build tools |
+
+## Tooling tests
+
+`internal/tools` contains release-manifest selection tests. Run `make test/internal/tools ARGS='-race -count=1'`; the Go Lint workflow also runs them alongside `make verify-mods`. This module remains excluded from component test and coverage targets.
 
 ## Maintenance
 
