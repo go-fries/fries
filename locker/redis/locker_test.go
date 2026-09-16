@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -27,8 +29,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("options", func(t *testing.T) {
-		client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
-		t.Cleanup(func() { _ = client.Close() })
+		client := redis.NewClient(&redis.Options{Addr: "unused:6379"})
+		t.Cleanup(func() { assert.NoError(t, client.Close()) })
 
 		backend := New(
 			client,
@@ -163,7 +165,7 @@ func TestLockValidation(t *testing.T) {
 
 func TestLockTryAcquire(t *testing.T) {
 	client := newRedis(t)
-	lock := newLock(client, time.Second)
+	lock := newLock(t, client, time.Minute)
 
 	first, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
@@ -183,8 +185,9 @@ func TestLockTryAcquire(t *testing.T) {
 func TestRedisKeyPrefix(t *testing.T) {
 	client := newRedis(t)
 	name := "test:" + uuid.NewString()
-	defaultLock := New(client).Lock(name, time.Second)
-	customLock := New(client, WithPrefix("billing:locker:")).Lock(name, time.Second)
+	cleanupKeys(t, client, defaultPrefix+name, "billing:locker:"+name)
+	defaultLock := New(client).Lock(name, time.Minute)
+	customLock := New(client, WithPrefix("billing:locker:")).Lock(name, time.Minute)
 
 	defaultLease, err := defaultLock.TryAcquire(t.Context())
 	require.NoError(t, err)
@@ -207,62 +210,60 @@ func TestRedisKeyPrefix(t *testing.T) {
 
 func TestLockAcquireWaitsUntilReleased(t *testing.T) {
 	client := newRedis(t)
-	name := "locker:test:" + uuid.NewString()
-	backend := New(client, WithWaitInterval(5*time.Millisecond, 5*time.Millisecond))
-	lock := backend.Lock(name, time.Second)
+	lock := newLock(t, client, time.Minute, WithWaitInterval(5*time.Millisecond, 5*time.Millisecond))
 
 	first, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
 
-	released := make(chan error, 1)
-	go func() {
-		time.Sleep(30 * time.Millisecond)
-		released <- first.Release(t.Context())
-	}()
+	contended := observeContention(client)
+	acquired := acquireAsync(t.Context(), t, lock)
+	requireContention(t, contended)
+	select {
+	case result := <-acquired:
+		t.Fatalf("Acquire returned before release: %+v", result)
+	default:
+	}
 
-	second, err := lock.Acquire(t.Context())
-	require.NoError(t, err)
-	require.NoError(t, <-released)
-	require.NoError(t, second.Release(t.Context()))
+	require.NoError(t, first.Release(t.Context()))
+	result := requireAcquireResult(t, acquired)
+	require.NoError(t, result.err)
+	require.NotNil(t, result.lease)
+	require.NoError(t, result.lease.Release(t.Context()))
 }
 
 func TestLockAcquireContext(t *testing.T) {
 	client := newRedis(t)
-	name := "locker:test:" + uuid.NewString()
-	backend := New(client, WithWaitInterval(time.Second, time.Second))
-	lock := backend.Lock(name, time.Second)
+	lock := newLock(t, client, time.Minute, WithWaitInterval(time.Hour, time.Hour))
 
-	lease, err := lock.TryAcquire(t.Context())
+	_, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = lease.Release(context.WithoutCancel(t.Context())) })
 
-	ctx, cancel := context.WithTimeout(t.Context(), 40*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 250*time.Millisecond)
 	defer cancel()
-	started := time.Now()
-
-	acquired, err := lock.Acquire(ctx)
-	assert.Nil(t, acquired)
-	assert.ErrorIs(t, err, context.DeadlineExceeded)
-	assert.Less(t, time.Since(started), 500*time.Millisecond)
+	contended := observeContention(client)
+	acquired := acquireAsync(ctx, t, lock)
+	requireContention(t, contended)
+	result := requireAcquireResult(t, acquired)
+	assert.Nil(t, result.lease)
+	assert.ErrorIs(t, result.err, context.DeadlineExceeded)
 }
 
 func TestLockAcquireCanceled(t *testing.T) {
 	client := newRedis(t)
-	name := "locker:test:" + uuid.NewString()
-	backend := New(client, WithWaitInterval(time.Second, time.Second))
-	lock := backend.Lock(name, time.Second)
+	lock := newLock(t, client, time.Minute, WithWaitInterval(time.Hour, time.Hour))
 
-	lease, err := lock.TryAcquire(t.Context())
+	_, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = lease.Release(context.WithoutCancel(t.Context())) })
 
 	ctx, cancel := context.WithCancel(t.Context())
-	timer := time.AfterFunc(20*time.Millisecond, cancel)
-	defer timer.Stop()
 	defer cancel()
-	acquired, err := lock.Acquire(ctx)
-	assert.Nil(t, acquired)
-	assert.ErrorIs(t, err, context.Canceled)
+	contended := observeContention(client)
+	acquired := acquireAsync(ctx, t, lock)
+	requireContention(t, contended)
+	cancel()
+	result := requireAcquireResult(t, acquired)
+	assert.Nil(t, result.lease)
+	assert.ErrorIs(t, result.err, context.Canceled)
 }
 
 func TestLockCanceledContextDoesNotAccessRedis(t *testing.T) {
@@ -281,17 +282,18 @@ func TestLockCanceledContextDoesNotAccessRedis(t *testing.T) {
 
 func TestLeaseCannotReleaseSuccessor(t *testing.T) {
 	client := newRedis(t)
-	lock := newLock(client, 60*time.Millisecond)
+	lock := newLock(t, client, 60*time.Millisecond)
 
 	oldLease, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
-	time.Sleep(90 * time.Millisecond)
+	requireExpired(t, client, lock.key)
 
-	newLease, err := lock.TryAcquire(t.Context())
+	successor := New(client).Lock(lock.name, time.Minute)
+	newLease, err := successor.TryAcquire(t.Context())
 	require.NoError(t, err)
 	assert.ErrorIs(t, oldLease.Release(t.Context()), locker.ErrLeaseLost)
 
-	contender, err := lock.TryAcquire(t.Context())
+	contender, err := successor.TryAcquire(t.Context())
 	assert.Nil(t, contender)
 	assert.ErrorIs(t, err, locker.ErrNotAcquired)
 	require.NoError(t, newLease.Release(t.Context()))
@@ -299,11 +301,11 @@ func TestLeaseCannotReleaseSuccessor(t *testing.T) {
 
 func TestLeaseExpired(t *testing.T) {
 	client := newRedis(t)
-	lock := newLock(client, 40*time.Millisecond)
+	lock := newLock(t, client, 40*time.Millisecond)
 
 	lease, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
-	time.Sleep(70 * time.Millisecond)
+	requireExpired(t, client, lock.key)
 	assert.ErrorIs(t, lease.Release(t.Context()), locker.ErrLeaseLost)
 	assert.ErrorIs(
 		t,
@@ -314,21 +316,24 @@ func TestLeaseExpired(t *testing.T) {
 
 func TestLeaseRefresh(t *testing.T) {
 	client := newRedis(t)
-	lock := newLock(client, 120*time.Millisecond)
+	lock := newLock(t, client, time.Minute)
 
 	lease, err := lock.TryAcquire(t.Context())
 	require.NoError(t, err)
 	renewable := lease.(locker.RenewableLease)
 
-	time.Sleep(80 * time.Millisecond)
-	require.NoError(t, renewable.Refresh(t.Context(), 200*time.Millisecond))
-	time.Sleep(80 * time.Millisecond)
+	require.NoError(t, renewable.Refresh(t.Context(), 2*time.Minute))
+	ttl, err := client.PTTL(t.Context(), lock.key).Result()
+	require.NoError(t, err)
+	assert.Greater(t, ttl, time.Minute)
+	assert.LessOrEqual(t, ttl, 2*time.Minute)
 
 	contender, err := lock.TryAcquire(t.Context())
 	assert.Nil(t, contender)
 	assert.ErrorIs(t, err, locker.ErrNotAcquired)
 
-	time.Sleep(150 * time.Millisecond)
+	require.NoError(t, renewable.Refresh(t.Context(), 50*time.Millisecond))
+	requireExpired(t, client, lock.key)
 	contender, err = lock.TryAcquire(t.Context())
 	require.NoError(t, err)
 	assert.ErrorIs(t, lease.Release(t.Context()), locker.ErrLeaseLost)
@@ -363,12 +368,12 @@ func TestLockRestore(t *testing.T) {
 
 	t.Run("transferred token", func(t *testing.T) {
 		client := newRedis(t)
-		lock := newLock(client, time.Second)
+		lock := newLock(t, client, time.Minute)
 		lease, err := lock.TryAcquire(t.Context())
 		require.NoError(t, err)
 
 		token := lease.(locker.TransferableLease).Token()
-		restored, err := lock.(locker.RestorableLock).Restore(token)
+		restored, err := lock.Restore(token)
 		require.NoError(t, err)
 		require.NoError(t, restored.Release(t.Context()))
 		assert.ErrorIs(t, lease.Release(t.Context()), locker.ErrLeaseLost)
@@ -376,12 +381,11 @@ func TestLockRestore(t *testing.T) {
 
 	t.Run("unknown token", func(t *testing.T) {
 		client := newRedis(t)
-		lock := newLock(client, time.Second)
-		lease, err := lock.TryAcquire(t.Context())
+		lock := newLock(t, client, time.Minute)
+		_, err := lock.TryAcquire(t.Context())
 		require.NoError(t, err)
-		t.Cleanup(func() { _ = lease.Release(context.WithoutCancel(t.Context())) })
 
-		restored, err := lock.(locker.RestorableLock).Restore("unknown-token")
+		restored, err := lock.Restore("unknown-token")
 		require.NoError(t, err)
 		assert.ErrorIs(t, restored.Release(t.Context()), locker.ErrLeaseLost)
 	})
@@ -410,7 +414,7 @@ func TestBackendErrorIsNotContention(t *testing.T) {
 		},
 		MaxRetries: -1,
 	})
-	t.Cleanup(func() { _ = client.Close() })
+	t.Cleanup(func() { assert.NoError(t, client.Close()) })
 	lock := New(client).Lock("locker:test", time.Second)
 
 	lease, err := lock.Acquire(t.Context())
@@ -435,22 +439,127 @@ func TestWaitInterval(t *testing.T) {
 	assert.Equal(t, time.Millisecond, lock.waitInterval())
 }
 
-func newRedis(t *testing.T) redis.UniversalClient {
+func newRedis(t *testing.T) *redis.Client {
 	t.Helper()
-
-	client := redis.NewClient(&redis.Options{
-		Addr:        "localhost:6379",
-		DialTimeout: 10 * time.Millisecond,
-		MaxRetries:  -1,
-	})
-	if err := client.Ping(t.Context()).Err(); err != nil {
-		_ = client.Close()
-		t.Skipf("Redis is not available: %v", err)
+	if testing.Short() {
+		t.Skip("Redis integration test")
 	}
-	t.Cleanup(func() { _ = client.Close() })
+
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+	client := redis.NewClient(&redis.Options{
+		Addr:                  addr,
+		DialTimeout:           time.Second,
+		ReadTimeout:           time.Second,
+		WriteTimeout:          time.Second,
+		ContextTimeoutEnabled: true,
+		MaxRetries:            -1,
+	})
+	t.Cleanup(func() { assert.NoError(t, client.Close()) })
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	require.NoError(t, client.Ping(ctx).Err(), "Redis is unavailable at %s", addr)
 	return client
 }
 
-func newLock(client redis.UniversalClient, ttl time.Duration) locker.Lock {
-	return New(client).Lock("locker:test:"+uuid.NewString(), ttl)
+func newLock(t *testing.T, client *redis.Client, ttl time.Duration, opts ...Option) *Lock {
+	t.Helper()
+	lock := New(client, opts...).Lock("locker:test:"+uuid.NewString(), ttl).(*Lock)
+	cleanupKeys(t, client, lock.key)
+	return lock
+}
+
+func cleanupKeys(t *testing.T, client *redis.Client, keys ...string) {
+	t.Helper()
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 3*time.Second)
+		defer cancel()
+		assert.NoError(t, client.Del(ctx, keys...).Err())
+	})
+}
+
+func requireExpired(t *testing.T, client *redis.Client, key string) {
+	t.Helper()
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		exists, err := client.Exists(t.Context(), key).Result()
+		assert.NoError(c, err)
+		assert.Zero(c, exists)
+	}, 3*time.Second, 10*time.Millisecond)
+}
+
+type acquireResult struct {
+	lease locker.Lease
+	err   error
+}
+
+func acquireAsync(ctx context.Context, t *testing.T, lock locker.Lock) <-chan acquireResult {
+	t.Helper()
+	ctx, cancel := context.WithCancel(ctx)
+	result := make(chan acquireResult, 1)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		lease, err := lock.Acquire(ctx)
+		result <- acquireResult{lease: lease, err: err}
+	}()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			t.Error("Acquire goroutine did not stop")
+		}
+	})
+	return result
+}
+
+func requireAcquireResult(t *testing.T, acquired <-chan acquireResult) acquireResult {
+	t.Helper()
+	select {
+	case result := <-acquired:
+		return result
+	case <-time.After(3 * time.Second):
+		t.Fatal("Acquire did not return")
+		return acquireResult{}
+	}
+}
+
+func requireContention(t *testing.T, contended <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-contended:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Acquire did not observe Redis lock contention")
+	}
+}
+
+type contentionHook struct {
+	once      sync.Once
+	contended chan struct{}
+}
+
+func observeContention(client *redis.Client) <-chan struct{} {
+	hook := &contentionHook{contended: make(chan struct{})}
+	client.AddHook(hook)
+	return hook.contended
+}
+
+func (h *contentionHook) DialHook(next redis.DialHook) redis.DialHook {
+	return next
+}
+
+func (h *contentionHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		err := next(ctx, cmd)
+		if result, ok := cmd.(*redis.BoolCmd); ok && cmd.Name() == "set" && err == nil && !result.Val() {
+			h.once.Do(func() { close(h.contended) })
+		}
+		return err
+	}
+}
+
+func (h *contentionHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return next
 }

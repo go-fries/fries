@@ -10,6 +10,28 @@ renewal, and ownership-token transfer.
 go get github.com/go-fries/fries/locker/redis/v4
 ```
 
+## Tests
+
+Run commands from the repository root:
+
+```sh
+# Validation and in-process backend-error tests; no Redis server is needed.
+make test/locker/redis ARGS='-short -race -count=1'
+
+# Full suite, including real Redis expiration and Lua script behavior.
+REDIS_ADDR=localhost:6379 make test/locker/redis ARGS='-race -count=1'
+```
+
+`REDIS_ADDR` defaults to `localhost:6379`. Full-suite runs fail if the server is
+unavailable; use `-short` to explicitly skip Redis integration tests locally.
+Each integration test uses unique lock names, deletes only its own keys, and
+closes its client. Cleanup also cancels and joins acquisition goroutines before
+deleting keys and closing the connection.
+
+Acquisition tests observe actual Redis contention before release or cancellation.
+Expiration tests use bounded server-state checks, and renewal tests inspect the
+remaining TTL rather than relying on fixed sleeps.
+
 ## Usage
 
 Create one reusable backend, then create a `Lock` for each resource name and
