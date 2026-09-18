@@ -24,7 +24,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/eino-contrib/jsonschema v1.0.3 // indirect
 	github.com/go-fries/fries/codec/sonic/v4 v4.2.0 // indirect
 	github.com/go-fries/fries/codec/v4 v4.2.0 // indirect
