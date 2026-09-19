@@ -210,7 +210,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
-	github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261 // indirect
+	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
