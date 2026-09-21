@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/go-playground/form/v4 v4.3.1 // indirect
+	github.com/go-playground/form/v4 v4.5.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
