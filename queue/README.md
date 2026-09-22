@@ -23,37 +23,42 @@ go get github.com/go-fries/fries/queue/adapter/memory/v4
 ## Recommended usage
 
 Create a backend, Producer and Worker during application setup. For business
-payloads, start with [Typed Tasks](#typed-tasks): `EnqueueFor` encodes a value,
-and `HandlePayload` registers a function that receives the decoded value. The
-payload type is inferred from the function's argument. Use `HandleFor` with a
-handler object or `HandlerFuncFor[T]` when delivery metadata is needed.
+payloads, share a `queue.Define[T](name)` between producer and consumer code.
+Its `Enqueue` method encodes a value, and `Handle` registers a function that
+receives the decoded value. See [Typed Tasks](#typed-tasks) for a complete
+in-memory example and [Shared Task Definitions](#shared-task-definitions) for
+separate producer and consumer packages.
 
-Define a stable task name once in application code and share it between
-producer and consumer. `Tasker` and `HandleTasker` are useful when one object
-should own the task name and its handling behavior. `TaskFor[T].Payload`
-contains the decoded value; `TaskFor[T].Task` exposes delivery metadata.
+Use a definition's `HandleFor` with a handler object or `HandlerFuncFor[T]` when
+delivery metadata is needed. `TaskFor[T].Payload` contains the decoded value;
+`TaskFor[T].Task` exposes delivery metadata. `Tasker` and `HandleTasker` remain
+useful when one object should own the task name and its handling behavior.
 
 Enqueueing returns a task and an error; successful enqueueing does not mean
 the handler has run. Handlers return errors to the Worker's retry and settlement
 policy. Pass producer/worker options during construction and enqueue options
 for individual tasks, then arrange [graceful shutdown](#shutdown).
 
-Use `HandlePayloadWithCodec` for a payload-only function with a custom codec.
+Pass `queue.WithCodec(codec)` to `Define` to select a custom codec for both sides.
 See [Raw Tasks](#raw-tasks) for already encoded payloads and manual decoding.
 
 ## Basic Usage
 
 ### Typed Tasks
 
-`EnqueueFor` and `HandlePayload` use JSON by default. Define the task name once
-and use it for both sending and registration:
+Define the task name and payload type once. This complete program uses the
+in-memory adapter, enqueues one task, waits for the handler and stops the Worker.
+It uses channel synchronization rather than a sleep; the timeout bounds the run.
 
 ```go
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/go-fries/fries/queue/adapter/memory/v4"
 	"github.com/go-fries/fries/queue/v4"
@@ -64,28 +69,52 @@ type SendEmail struct {
 	Subject string `json:"subject"`
 }
 
-const sendEmailTaskType = "send_email"
+var sendEmail = queue.Define[SendEmail]("notifications.send_email.v1")
+
+func main() {
+	if err := run(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func run(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	q := memory.NewQueue() // use Redis or RabbitMQ for durable production storage
 
+	handled := make(chan struct{})
 	producer := queue.NewProducer(q)
 	worker := queue.NewWorker(
 		q,
-		queue.HandlePayload(sendEmailTaskType, func(_ context.Context, payload SendEmail) error {
+		sendEmail.Handle(func(_ context.Context, payload SendEmail) error {
 			fmt.Printf("send %s email to user %d\n", payload.Subject, payload.UserID)
+			close(handled) // this example sends exactly one task
 			return nil
 		}),
 	)
 
-	if _, err := queue.EnqueueFor(ctx, producer, sendEmailTaskType, SendEmail{
+	if _, err := sendEmail.Enqueue(ctx, producer, SendEmail{
 		UserID:  1,
 		Subject: "welcome",
 	}); err != nil {
 		return err
 	}
 
-	return worker.Run(ctx)
+	done := make(chan error, 1)
+	go func() { done <- worker.Run(ctx) }()
+	select {
+	case <-handled:
+		// Stop waits for the handler and delivery settlement to finish.
+		stopErr := worker.Stop(ctx)
+		cancel()
+		return errors.Join(stopErr, <-done)
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		cancel()
+		<-done
+		return ctx.Err()
+	}
 }
 ```
 
@@ -93,20 +122,115 @@ func run(ctx context.Context) error {
 services, call `Worker.Stop(ctx)` during shutdown to stop receiving new tasks
 and wait for in-flight handlers.
 
-`HandlePayload` returns a Worker option and follows the existing registration
-rules: an empty task name or nil function is ignored, and the last registered
-handler for a name wins. Decode errors skip the payload function and go through
-the same middleware and retry policy as handler errors. Handler control errors
-such as `ErrDiscard`, `RetryAfter` and `DeadLetter` retain their usual meaning.
+## Shared Task Definitions
 
-For a custom codec, use
-`HandlePayloadWithCodec(taskType, codec, handler)` and pair it with
-`EnqueueForWithCodec`. A nil codec selects JSON.
+Place the payload and definition in a small application contract package:
+
+```go
+package tasks
+
+import "github.com/go-fries/fries/queue/v4"
+
+type WelcomeEmail struct {
+	UserID int `json:"user_id"`
+}
+
+var SendWelcome = queue.Define[WelcomeEmail]("notifications.welcome_email.v1")
+```
+
+Producer code imports that package and supplies its Producer. Given `tasks`,
+`ctx`, `producer` and `userID` from the application:
+
+```go
+task, err := tasks.SendWelcome.Enqueue(ctx, producer, tasks.WelcomeEmail{UserID: userID},
+	queue.WithQueue("mail"),
+	queue.WithID("welcome-42"),
+	queue.WithDelay(time.Minute),
+	queue.WithMetadataValue("tenant", "acme"),
+)
+```
+
+Consumer code imports the same contract and supplies its service dependencies:
+
+```go
+worker := queue.NewWorker(backend,
+	queue.WithQueue("mail"),
+	tasks.SendWelcome.Handle(func(ctx context.Context, payload tasks.WelcomeEmail) error {
+		return mailer.SendWelcome(ctx, payload.UserID)
+	}),
+)
+```
+
+The producer does not need the mailer or a consumer-side handler object.
+`Define[T]` returns a `Definition[T]` value containing the task name and codec. It
+holds no Producer or handler and can be reused with different instances.
+Treat a shared package-level definition as fixed after initialization.
+
+### Names, registration and codecs
+
+- Names are explicit wire identifiers returned by `TaskType()`. They are not
+  inferred from Go type names. Keep them stable across deployments and coordinate
+  payload schema changes between producers and consumers.
+- An empty name or zero-value `Definition[T]` returns `ErrInvalidTaskType` from
+  `Enqueue` before encoding or invoking the Producer. Registration
+  with an empty name is ignored.
+- `Handle` ignores nil functions. `HandleFor` follows
+  the existing `HandlerFor` rules: nil interfaces are ignored. As with existing
+  handlers, an interface holding a typed nil is not a nil interface.
+- Definitions share the Worker's existing handler map: the last non-ignored
+  registration for a name wins, including registrations via the old helpers.
+  Different payload types with the same name do not create separate routes.
+- JSON is the default. Configure `queue.WithCodec(codec)` once on `Define`;
+  `Enqueue`, `Handle` and `HandleFor` all use that codec. `WithCodec(nil)` selects
+  JSON, and the last codec option wins. The codec instance is retained, not
+  cloned, so it must support concurrent use when the definition is shared.
+  The task envelope does not record the codec; definitions in separate services
+  must still use compatible encodings.
+- Enqueue options, Producer observer events, middleware, decoding errors, retry
+  decisions and settlement all follow the existing Queue paths. Decode errors
+  skip the handler. `ErrDiscard`, `RetryAfter` and `DeadLetter` retain their usual
+  meaning. The stored task envelope is unchanged.
+
+For an existing `customCodec`, define the encoding alongside the task name:
+
+```go
+var SendWelcome = queue.Define[WelcomeEmail](
+	"notifications.welcome_email.v1",
+	queue.WithCodec(customCodec),
+)
+```
+
+Both sides then use the same `SendWelcome.Enqueue`, `SendWelcome.Handle` or
+`SendWelcome.HandleFor` calls as with JSON. Lower-level per-call codec selection
+remains available through `EnqueueForWithCodec`, `HandlePayloadWithCodec` and
+`HandleForWithCodec`.
+
+### Existing typed helpers and Tasker
+
+For a one-off task, `EnqueueFor` and `HandlePayload` remain available. For example,
+the same task previously required the name at both call sites:
+
+```go
+queue.EnqueueFor(ctx, producer, "send_email", SendEmail{UserID: 42})
+queue.HandlePayload("send_email", func(ctx context.Context, payload SendEmail) error {
+	return send(ctx, payload)
+})
+```
+
+A shared `sendEmail := queue.Define[SendEmail]("send_email")` changes those calls
+to `sendEmail.Enqueue(ctx, producer, payload)` and `sendEmail.Handle(handler)`;
+the task name and payload type are tied together at the definition.
+
+`Tasker` is still appropriate when a concrete object owns its task name, service
+dependencies and typed handling behavior, possibly with a business-specific
+enqueue method. Use a `Definition` when producer and consumer need a shared
+contract without sharing that handler object. See [examples/tasker](examples/tasker)
+for the object-owned style.
 
 ## Task Metadata
 
-Use `HandleFor` when a handler needs both the decoded Payload and delivery
-metadata. `TaskFor[T].Task` exposes fields such as ID, Attempt and Metadata:
+Use a definition's `HandleFor` when a handler needs both the decoded Payload and
+delivery metadata. `TaskFor[T].Task` exposes fields such as ID, Attempt and Metadata:
 
 ```go
 package main
@@ -124,16 +248,16 @@ type SendEmail struct {
 }
 
 func register(ctx context.Context, q queue.Queue, producer *queue.Producer) (*queue.Worker, error) {
-	const taskType = "send_email"
+	sendEmail := queue.Define[SendEmail]("send_email")
 	worker := queue.NewWorker(
 		q,
-		queue.HandleFor(taskType, queue.HandlerFuncFor[SendEmail](func(_ context.Context, task *queue.TaskFor[SendEmail]) error {
+		sendEmail.HandleFor(queue.HandlerFuncFor[SendEmail](func(_ context.Context, task *queue.TaskFor[SendEmail]) error {
 			fmt.Printf("task %s, attempt %d: email user %d\n", task.Task.ID, task.Task.Attempt, task.Payload.UserID)
 			return nil
 		})),
 	)
 
-	_, err := queue.EnqueueFor(ctx, producer, taskType, SendEmail{
+	_, err := sendEmail.Enqueue(ctx, producer, SendEmail{
 		UserID:  1,
 		Subject: "welcome",
 	})
