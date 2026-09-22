@@ -15,6 +15,34 @@ go get github.com/go-fries/fries/cache/v4
 *   **Automatic Serialization:** seamless handling of complex Go types using JSON (or other codecs).
 *   **Cache-aside `Remember`:** fetches cached values, or calls a callback and stores the result on cache miss.
 
+## Recommended usage
+
+Create the backend and Repository once, then pass the Repository to application
+services. Use these entry points for common operations:
+
+| Intent | Entry point |
+| --- | --- |
+| Read a typed value | `cache.Get[T](ctx, repository, key)` |
+| Load and cache a value on a miss | `cache.Remember(ctx, repository, key, ttl, loader)` |
+| Store a value | `repository.Set(ctx, key, value, ttl)` |
+| Remove a value | `repository.Delete(ctx, key)` |
+| Check existence | `repository.Has(ctx, key)` |
+
+`Set` and `Delete` delegate to the Store's `Put` and `Forget`. Both pairs remain
+supported. Use `repository.Get(ctx, key, &value)` when decoding into an existing
+destination. A `Get` miss returns `ErrNotFound`; `Remember` invokes its loader
+only on a miss, and concurrent misses may invoke that loader more than once.
+
+The current write and delete methods return `(bool, error)`. Inspect the error
+and use the status when it matters to the operation; for example, Redis deletion
+returns `false, nil` when the key was already absent. `Add` is a conditional
+write whose atomicity depends on the backend: the Repository fallback checks
+existence before writing.
+
+Configure Redis with its existing `Prefix` and `Codec` options. These names
+remain supported even though new component options generally use `WithXxx`.
+The example below shows setup, writes, reads, cache-aside loading and locking.
+
 ## Usage
 
 ```go

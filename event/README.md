@@ -16,6 +16,24 @@ Install the optional panic recovery middleware separately:
 go get github.com/go-fries/fries/event/middleware/recovery/v4
 ```
 
+## Recommended usage
+
+Create a Dispatcher with `event.New`, register handlers during application
+startup, and inject the Dispatcher into services that dispatch events.
+`Subscribe` returns a Subscription; use `Unsubscribe` when those registrations
+are no longer needed.
+
+Use `HandlerFor[T]` for a handler object that owns dependencies. For an inline
+function, the current API requires
+`HandlerFor[T](HandlerFunc[T](handler))`. Both forms register the same exact
+event type and use the same dispatch and middleware behavior.
+
+`Dispatch(ctx, value)` returns an error after synchronous handling completes.
+Use Queue with a durable backend when work needs persistent asynchronous
+delivery. Configure dispatcher options at startup; choose per-dispatch behavior
+such as `WithConcurrency` at the call site. See [Default dispatcher](#default-dispatcher) for the
+package-level alternative and its process-wide scope.
+
 ## Usage
 
 ```go

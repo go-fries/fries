@@ -20,6 +20,26 @@ go get github.com/go-fries/fries/queue/adapter/rabbitmq/v4
 go get github.com/go-fries/fries/queue/adapter/memory/v4
 ```
 
+## Recommended usage
+
+Create a backend, Producer and Worker during application setup. For business
+payloads, start with [Typed Tasks](#typed-tasks): `EnqueueFor` encodes a value,
+and `HandleFor` registers its typed handler. Adapt an inline function with
+`HandlerFuncFor[T]`; use a handler object when it owns dependencies.
+
+Define a stable task name once in application code and share it between
+producer and consumer. `Tasker` and `HandleTasker` are useful when one object
+should own the task name and its handling behavior. `TaskFor[T].Payload`
+contains the decoded value; `TaskFor[T].Task` exposes delivery metadata.
+
+Enqueueing returns a task and an error; successful enqueueing does not mean
+the handler has run. Handlers return errors to the Worker's retry and settlement
+policy. Pass producer/worker options during construction and enqueue options
+for individual tasks, then arrange [graceful shutdown](#shutdown).
+
+Use `Producer.Enqueue` and `Handle` for already encoded payloads or custom
+serialization. The basic example below demonstrates that raw-byte path.
+
 ## Basic Usage
 
 ```go
