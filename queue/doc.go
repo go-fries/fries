@@ -5,6 +5,11 @@
 // at least once: handlers should be idempotent because a task may be delivered
 // again after a process crash, timeout, or retryable error.
 //
+// Use [EnqueueFor] to encode a typed payload and [HandlePayload] to register a
+// function that receives the decoded value. Use [HandleFor] with [TaskFor] when
+// a handler also needs the task's delivery metadata, or [HandlePayloadWithCodec]
+// to select a custom codec for a payload-only function.
+//
 // Consumers use a blocking receive model. Consumer.Receive returns a delivery,
 // the receive context error, ErrConsumerClosed when the consumer is closed, or a
 // backend error. Malformed backend messages are returned as backend errors so

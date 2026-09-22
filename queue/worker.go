@@ -133,6 +133,27 @@ func Handle(taskType string, handler Handler) WorkerOption {
 	})
 }
 
+// HandlePayload registers a function that receives the task payload decoded as T
+// with the default JSON codec. T is inferred from handler.
+//
+// An empty taskType or nil handler is ignored, matching [Handle]. Decode and
+// handler errors follow the Worker's usual middleware, retry and settlement
+// behavior. Use [HandleFor] when the handler needs task metadata as well.
+func HandlePayload[T any](taskType string, handler func(context.Context, T) error) WorkerOption {
+	return HandlePayloadWithCodec(taskType, defaultCodec, handler)
+}
+
+// HandlePayloadWithCodec is [HandlePayload] with a custom codec. A nil codec
+// selects the default JSON codec. An empty taskType or nil handler is ignored.
+func HandlePayloadWithCodec[T any](taskType string, codec codec.Codec, handler func(context.Context, T) error) WorkerOption {
+	if handler == nil {
+		return Handle(taskType, nil)
+	}
+	return HandleForWithCodec(taskType, codec, HandlerFuncFor[T](func(ctx context.Context, task *TaskFor[T]) error {
+		return handler(ctx, task.Payload)
+	}))
+}
+
 // HandleFor decodes task payloads with the default JSON codec before calling handler.
 func HandleFor[T any](taskType string, handler HandlerFor[T]) WorkerOption {
 	return HandleForWithCodec(taskType, defaultCodec, handler)
