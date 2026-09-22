@@ -25,6 +25,54 @@ Framework and library integrations should follow the existing package layout for
 - Prefer established repository patterns over new local styles unless the component has a clear reason to differ.
 - Avoid over-design. Add abstractions only when they reduce real complexity, remove meaningful duplication, or make public behavior easier to understand.
 
+## Public API Usage
+
+Design the common call around the application's intent. A convenience API should remove repeated setup, adaptation, or protocol details while preserving the operation's error and cancellation behavior.
+
+### Recommended vocabulary
+
+Use these existing entry points in application examples. Follow the component's vocabulary when extending it rather than adding interchangeable names.
+
+| Component | Construction | Recommended application operations | Configuration and lower-level access |
+| --- | --- | --- | --- |
+| [Cache](cache/README.md#recommended-usage) | Backend constructor, then `cache.NewRepository(store)` | `cache.Get[T]`, `cache.Remember`, `Repository.Set`, `Repository.Delete`, `Repository.Has` | Configure the backend once; the Store contract uses `Get`, `Put` and `Forget`. |
+| [Filesystem](filesystem/README.md#recommended-usage) | Backend constructor, then `filesystem.NewRepository(driver)` | `ReadFile`, `WriteFile`, `Delete`, `Exists`, `ListFiles` | Use `PutOptions` / `ListOptions` per operation; use `Open` / `Put` for streams and `Driver()` for optional backend capabilities. |
+| [Event](event/README.md#recommended-usage) | `event.New` | `Dispatcher.Subscribe`, `event.HandlerFor[T]`, `Dispatcher.Dispatch`, `Subscription.Unsubscribe` | Configure the dispatcher with `WithXxx` options; adapt functions with `HandlerFunc[T]`. |
+| [Queue](queue/README.md#recommended-usage) | Backend constructor, then `queue.NewProducer` and `queue.NewWorker` | `queue.EnqueueFor`, `queue.HandleFor`, or `Tasker` / `HandleTasker` for a task-owned API | Adapt functions with `HandlerFuncFor[T]`; use `TaskFor[T].Task` for metadata and `Producer.Enqueue` / `Handle` for raw payloads. |
+
+Cache's `Set` and `Delete` are Repository aliases for `Put` and `Forget`. All four remain supported; backend implementations continue to satisfy the existing Store contract. Cache's `Has` and Filesystem's `Exists` also keep their existing names. Consistency means choosing a predictable recommended path, not renaming working APIs across components.
+
+### Choosing an API shape
+
+- Use function callbacks for small operations and inline handlers. A helper is useful when it removes repeated function-to-interface adaptation without creating a separate execution path.
+- Use handler objects when behavior owns dependencies or state. For example, an event receipt handler can receive its mailer through a constructor.
+- Prefer small interfaces at consumption boundaries. Derive them from the operations the caller needs, so a cache reader does not have to implement locking or counters just to supply a test double.
+- Use typed functions or objects when callers share a payload or result type. Keep wire identifiers, such as queue task names, explicit and stable across Go refactors.
+- Keep the full operation available for callers that need stream handling, task metadata, custom codecs, or backend-specific capabilities.
+- Assemble reusable dependencies at application startup and inject them into business services. Document resource ownership and keep per-operation Contexts explicit.
+
+### Results and guarantees
+
+For new operations whose only result is success or failure, return `error`. Add a boolean or structured result when it describes a meaningful outcome, such as whether a conditional insert happened, a key exists, or a rate limit allowed the request. Value-producing operations should return their value and error.
+
+Document the meaning of every result state, including `false, nil`, missing values, and any usable value returned alongside an error. Existing Cache write signatures return `(bool, error)` and remain supported; this convention does not change their signatures or justify silently discarding a meaningful status in a new wrapper.
+
+Convenience layers should preserve errors, cancellation, middleware and retry decisions. State guarantees precisely: a check followed by a write is not an atomic conditional insert; synchronous event dispatch is not durable delivery; a callback after transaction commit is not atomic message publication. Do not infer a stronger guarantee just because two implementations satisfy the same broad interface.
+
+### Compatibility and review
+
+Backward compatibility is the default within v4. Prefer additive helpers and views over changing public method sets or signatures. Adding a method to a public interface can break user implementations. Changing an argument to a variadic option can break interface conformance and method values even when ordinary calls still compile.
+
+When proposing a convenience API, include a before-and-after example for the same task and review:
+
+- explicit type conversions and adapter calls required for a normal handler
+- empty option values supplied just to request default behavior
+- repeated task names, payload types, or configuration
+- concepts the caller must learn before performing the operation
+- visibility of errors, cancellation, delivery guarantees, and resource ownership
+
+A shorter call is useful when it reduces these costs without hiding important behavior. Record the baseline and explain the improvement in the PR. Proposed APIs must be labeled as proposals until implemented; runnable documentation should use available APIs only.
+
 ## Public Modules
 
 New releasable component modules should update repository release and reporting metadata in the same change.
@@ -47,6 +95,8 @@ Keep examples close to the APIs they document:
 - put common usage and required setup in the component README
 - use package-local `example_test.go` files for compile-checked Go documentation examples
 - keep external-service scenarios in integration tests beside the component and honor `testing.Short()`
+
+Lead business-oriented examples with typed payloads and results where supported. Show the operation first, and link to complete setup and lifecycle examples. Label fragments that assume existing dependencies; complete examples should show who creates and closes resources, handles errors, and stops background work. Present raw payload and backend-specific APIs as advanced paths when the typed path covers the common case.
 
 Avoid standalone example modules unless the example has an independent release or dependency lifecycle that cannot be represented clearly inside the component.
 
@@ -93,6 +143,8 @@ func WithServiceName(name string) Option {
 	})
 }
 ```
+
+Apply this naming to new configuration helpers. Existing exceptions, such as `cache/redis.Prefix` and `cache/redis.Codec`, remain valid public APIs. If a component introduces `WithXxx` replacements, add them compatibly, share their implementation with the old names, and update examples only once the replacements exist. Renaming or removing existing helpers is not part of adopting this convention.
 
 Place option definitions in this order:
 

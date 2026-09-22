@@ -20,6 +20,22 @@ go get github.com/go-fries/fries/filesystem/v4
 go get github.com/go-fries/fries/filesystem/local/v4
 ```
 
+## Recommended usage
+
+Create a driver and wrap it with `filesystem.NewRepository` for application
+code. Use `ReadFile` and `WriteFile` for byte slices, `Delete` to remove a file,
+`Exists` to check for it, and `ListFiles` to read a page of entries.
+
+`WriteFile` and `ListFiles` currently require `PutOptions` and `ListOptions`;
+pass their zero values when the defaults are sufficient. Writes and deletes
+return an error, while `Exists` returns `(bool, error)`. Deleting an absent
+file succeeds, and checking an absent file returns `false, nil`.
+
+For streams, use `Open` and `Put`; the caller closes the reader returned by
+`Open`. Use `Driver()` when an optional backend capability is needed. These
+operations complement the whole-file helpers rather than requiring application
+code to work directly with a particular backend.
+
 ## Usage
 
 ```go
