@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fries/fries/codec/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,13 +50,10 @@ func TestDefinitionEnqueueOptionsAndObserver(t *testing.T) {
 func TestDefinitionEnqueueErrors(t *testing.T) {
 	t.Parallel()
 
-	for _, definition := range []Definition[string]{{}, Define[string]("")} {
+	for _, definition := range []Definition[string]{{}, Define[string](""), Define[string]("", WithCodec(failingCodec{marshalErr: assert.AnError}))} {
 		assert.Empty(t, definition.TaskType())
 		// Invalid definitions fail before nil producer or codec validation.
 		task, err := definition.Enqueue(t.Context(), nil, "value")
-		require.ErrorIs(t, err, ErrInvalidTaskType)
-		assert.Nil(t, task)
-		task, err = definition.EnqueueWithCodec(t.Context(), nil, "value", failingCodec{marshalErr: assert.AnError})
 		require.ErrorIs(t, err, ErrInvalidTaskType)
 		assert.Nil(t, task)
 	}
@@ -68,7 +64,8 @@ func TestDefinitionEnqueueErrors(t *testing.T) {
 
 	observer := &recordingObserver{}
 	producer := NewProducer(newTestQueue(), WithObserver(observer))
-	_, err = definition.EnqueueWithCodec(t.Context(), producer, "value", failingCodec{marshalErr: assert.AnError})
+	badDefinition := Define[string]("message", WithCodec(failingCodec{marshalErr: assert.AnError}))
+	_, err = badDefinition.Enqueue(t.Context(), producer, "value")
 	require.ErrorIs(t, err, assert.AnError)
 	assert.Empty(t, observer.Events())
 
@@ -87,23 +84,29 @@ func TestDefinitionEnqueueErrors(t *testing.T) {
 func TestDefinitionHandlerCodecsAndEnvelope(t *testing.T) {
 	t.Parallel()
 
-	definition := Define[string]("message.v1")
+	// Reuse options across concurrently constructed, independent definitions.
+	rawOption := WithCodec(passthroughCodec{})
+	jsonOption := WithCodec(nil)
 	for _, tt := range []struct {
 		name     string
-		codec    codec.Codec
+		opts     []DefinitionOption
 		wire     string
 		fullTask bool
 	}{
 		{name: "payload JSON", wire: `"hello"`},
-		{name: "payload custom codec", codec: passthroughCodec{}, wire: "hello"},
+		{name: "payload custom codec", opts: []DefinitionOption{rawOption}, wire: "hello"},
 		{name: "full task JSON", wire: `"hello"`, fullTask: true},
-		{name: "full task custom codec", codec: passthroughCodec{}, wire: "hello", fullTask: true},
+		{name: "full task custom codec", opts: []DefinitionOption{rawOption}, wire: "hello", fullTask: true},
+		{name: "nil codec selects JSON", opts: []DefinitionOption{jsonOption}, wire: `"hello"`},
+		{name: "last codec wins", opts: []DefinitionOption{WithCodec(failingCodec{marshalErr: assert.AnError}), rawOption}, wire: "hello"},
+		{name: "nil codec resets to JSON", opts: []DefinitionOption{rawOption, jsonOption}, wire: `"hello"`, fullTask: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctx := t.Context()
+			definition := Define[string]("message.v1", tt.opts...)
 			q := newTestQueue()
-			task, err := definition.EnqueueWithCodec(ctx, NewProducer(q), "hello", tt.codec,
+			task, err := definition.Enqueue(ctx, NewProducer(q), "hello",
 				WithID("task-1"), WithMetadataValue("tenant", "acme"))
 			require.NoError(t, err)
 			assert.Equal(t, tt.wire, string(task.Payload))
@@ -116,12 +119,12 @@ func TestDefinitionHandlerCodecsAndEnvelope(t *testing.T) {
 				assert.Equal(t, "hello", payload)
 				calls = append(calls, "handler")
 			}
-			option := definition.HandleWithCodec(tt.codec, func(received context.Context, payload string) error {
+			option := definition.Handle(func(received context.Context, payload string) error {
 				checkPayload(received, payload)
 				return nil
 			})
 			if tt.fullTask {
-				option = definition.HandleForWithCodec(tt.codec, HandlerFuncFor[string](func(received context.Context, task *TaskFor[string]) error {
+				option = definition.HandleFor(HandlerFuncFor[string](func(received context.Context, task *TaskFor[string]) error {
 					assert.Same(t, delivery.Task(), task.Task)
 					assert.Equal(t, "task-1", task.Task.ID)
 					assert.Equal(t, 1, task.Task.Attempt)
@@ -158,11 +161,9 @@ func TestDefinitionRegistration(t *testing.T) {
 	noop := func(context.Context, string) error { return nil }
 	full := HandlerFuncFor[string](func(context.Context, *TaskFor[string]) error { return nil })
 	config := newWorkerConfig(
-		zero.Handle(noop), zero.HandleWithCodec(nil, noop),
-		zero.HandleFor(full), zero.HandleForWithCodec(nil, full),
+		zero.Handle(noop), zero.HandleFor(full),
 		Define[string]("").Handle(noop),
-		definition.Handle(nil), definition.HandleWithCodec(nil, nil),
-		definition.HandleFor(nil), definition.HandleForWithCodec(nil, nil),
+		definition.Handle(nil), definition.HandleFor(nil),
 	)
 	assert.Empty(t, config.handlers)
 
@@ -186,16 +187,16 @@ func TestDefinitionRegistration(t *testing.T) {
 func TestDefinitionDecodeFailureSkipsHandler(t *testing.T) {
 	t.Parallel()
 
-	definition := Define[string]("message")
 	for _, fullTask := range []bool{false, true} {
 		called := false
 		badCodec := failingCodec{unmarshalErr: assert.AnError}
-		option := definition.HandleWithCodec(badCodec, func(context.Context, string) error {
+		definition := Define[string]("message", WithCodec(badCodec))
+		option := definition.Handle(func(context.Context, string) error {
 			called = true
 			return nil
 		})
 		if fullTask {
-			option = definition.HandleForWithCodec(badCodec, HandlerFuncFor[string](func(context.Context, *TaskFor[string]) error {
+			option = definition.HandleFor(HandlerFuncFor[string](func(context.Context, *TaskFor[string]) error {
 				called = true
 				return nil
 			}))

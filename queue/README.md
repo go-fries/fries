@@ -39,7 +39,7 @@ the handler has run. Handlers return errors to the Worker's retry and settlement
 policy. Pass producer/worker options during construction and enqueue options
 for individual tasks, then arrange [graceful shutdown](#shutdown).
 
-Use a definition's `EnqueueWithCodec` and `HandleWithCodec` for a custom codec.
+Pass `queue.WithCodec(codec)` to `Define` to select a custom codec for both sides.
 See [Raw Tasks](#raw-tasks) for already encoded payloads and manual decoding.
 
 ## Basic Usage
@@ -162,8 +162,8 @@ worker := queue.NewWorker(backend,
 ```
 
 The producer does not need the mailer or a consumer-side handler object.
-`Define[T]` returns a `Definition[T]` value containing only the task name. It
-holds no Producer, codec or handler and can be reused with different instances.
+`Define[T]` returns a `Definition[T]` value containing the task name and codec. It
+holds no Producer or handler and can be reused with different instances.
 Treat a shared package-level definition as fixed after initialization.
 
 ### Names, registration and codecs
@@ -172,23 +172,38 @@ Treat a shared package-level definition as fixed after initialization.
   inferred from Go type names. Keep them stable across deployments and coordinate
   payload schema changes between producers and consumers.
 - An empty name or zero-value `Definition[T]` returns `ErrInvalidTaskType` from
-  either enqueue method before encoding or invoking the Producer. Registration
+  `Enqueue` before encoding or invoking the Producer. Registration
   with an empty name is ignored.
-- `Handle` and `HandleWithCodec` ignore nil functions. `HandleFor` variants follow
+- `Handle` ignores nil functions. `HandleFor` follows
   the existing `HandlerFor` rules: nil interfaces are ignored. As with existing
   handlers, an interface holding a typed nil is not a nil interface.
 - Definitions share the Worker's existing handler map: the last non-ignored
   registration for a name wins, including registrations via the old helpers.
   Different payload types with the same name do not create separate routes.
-- JSON is the default. Use `definition.EnqueueWithCodec(ctx, producer, payload,
-  codec, opts...)` with `definition.HandleWithCodec(codec, handler)`, or
-  `definition.HandleForWithCodec(codec, handler)` for metadata-aware handling.
-  A nil codec selects JSON. The definition and task envelope do not record the
-  codec; both sides must select compatible encodings.
+- JSON is the default. Configure `queue.WithCodec(codec)` once on `Define`;
+  `Enqueue`, `Handle` and `HandleFor` all use that codec. `WithCodec(nil)` selects
+  JSON, and the last codec option wins. The codec instance is retained, not
+  cloned, so it must support concurrent use when the definition is shared.
+  The task envelope does not record the codec; definitions in separate services
+  must still use compatible encodings.
 - Enqueue options, Producer observer events, middleware, decoding errors, retry
   decisions and settlement all follow the existing Queue paths. Decode errors
   skip the handler. `ErrDiscard`, `RetryAfter` and `DeadLetter` retain their usual
   meaning. The stored task envelope is unchanged.
+
+For an existing `customCodec`, define the encoding alongside the task name:
+
+```go
+var SendWelcome = queue.Define[WelcomeEmail](
+	"notifications.welcome_email.v1",
+	queue.WithCodec(customCodec),
+)
+```
+
+Both sides then use the same `SendWelcome.Enqueue`, `SendWelcome.Handle` or
+`SendWelcome.HandleFor` calls as with JSON. Lower-level per-call codec selection
+remains available through `EnqueueForWithCodec`, `HandlePayloadWithCodec` and
+`HandleForWithCodec`.
 
 ### Existing typed helpers and Tasker
 
