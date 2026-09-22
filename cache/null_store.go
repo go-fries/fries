@@ -7,6 +7,8 @@ import (
 	"github.com/go-fries/fries/locker/v4"
 )
 
+// NullStore is a no-op Store. It reports keys as present and writes, deletions
+// and clearing as successful without storing or removing data.
 type NullStore struct{}
 
 var _ Store = (*NullStore)(nil)

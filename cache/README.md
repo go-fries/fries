@@ -27,6 +27,7 @@ services. Use these entry points for common operations:
 | Store a value | `repository.Set(ctx, key, value, ttl)` |
 | Remove a value | `repository.Delete(ctx, key)` |
 | Check existence | `repository.Has(ctx, key)` |
+| Store a value only if absent | `repository.Add(ctx, key, value, ttl)` (atomicity depends on the backend) |
 
 `Set` and `Delete` delegate to the Store's `Put` and `Forget`. Both pairs remain
 supported. Use `repository.Get(ctx, key, &value)` when decoding into an existing
@@ -42,6 +43,42 @@ existence before writing.
 Configure Redis with its existing `Prefix` and `Codec` options. These names
 remain supported even though new component options generally use `WithXxx`.
 The example below shows setup, writes, reads, cache-aside loading and locking.
+
+## Operation results
+
+Check the error before interpreting a boolean result. Repository aliases return
+the backend's result and error unchanged.
+
+| Operation | `true, nil` | `false, nil` |
+| --- | --- | --- |
+| `Put` / `Set`, `Forever` | Backend reports a successful write. | Negative write status; success was not confirmed. |
+| `Forget` / `Delete` | Backend reports deletion. | Key was already absent. |
+| `Has` | Key exists. | Key does not exist. |
+| `Add` | Backend reports insertion. | Key exists, or the fallback's `Put` reports a negative status. |
+| `Flush` | Backend reports a successful clearing pass. | Backend reports a negative clearing status. |
+
+A non-nil error means the operation could not be completed or confirmed. A write
+may already have reached the backend before an error was observed, so an error
+does not prove that the key was unchanged. These helpers preserve backend TTL
+and encoding rules.
+
+Redis reports successful `SET` operations as `true, nil`, and deleting an absent
+key as `false, nil`. Its prefix-based `Flush` scans and removes matching keys;
+success does not mean that the pass was atomic or that concurrent writers could
+not add keys. `NullStore` is a no-op implementation: it reports existence and
+successful writes, deletions and clearing without storing data.
+
+## Conditional writes
+
+`Repository.Add` calls the backend's `Add` when it implements `Addable`.
+Otherwise, it checks existence before calling `Put`. That fallback is not
+atomic: another writer can insert a value between the check and the write,
+and the fallback can overwrite it.
+
+The Redis adapter implements `Add` using `SET NX`, so its absence check and
+write are atomic. When the key already exists, it returns `false, nil` and
+leaves the value and expiration unchanged. For other backends, consult their
+`Add` contract; implementing `Addable` alone does not guarantee atomicity.
 
 ## Usage
 
