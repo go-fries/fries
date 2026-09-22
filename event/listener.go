@@ -18,6 +18,15 @@ func (f HandlerFunc[T]) Handle(ctx context.Context, value T) error {
 	return f(ctx, value)
 }
 
+// Listen registers handler on dispatcher for the exact concrete event type T.
+// T is inferred from handler. The returned Subscription owns this registration.
+// Listen uses the same middleware and dispatch behavior as [Dispatcher.Subscribe].
+//
+// Listen panics if dispatcher or handler is nil, or if T is an interface type.
+func Listen[T any](dispatcher *Dispatcher, handler func(context.Context, T) error) *Subscription {
+	return dispatcher.Subscribe(HandlerFor[T](HandlerFunc[T](handler)))
+}
+
 // Listener is a type-aware handler accepted by [Dispatcher.Subscribe]. Listener
 // values are created by [HandlerFor].
 type Listener interface {

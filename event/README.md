@@ -23,10 +23,16 @@ startup, and inject the Dispatcher into services that dispatch events.
 `Subscribe` returns a Subscription; use `Unsubscribe` when those registrations
 are no longer needed.
 
-Use `HandlerFor[T]` for a handler object that owns dependencies. For an inline
-function, the current API requires
-`HandlerFor[T](HandlerFunc[T](handler))`. Both forms register the same exact
-event type and use the same dispatch and middleware behavior.
+Use `event.Listen(dispatcher, handler)` for an inline function or method value;
+the event type is inferred from the handler's argument. Use `Subscribe` with
+`HandlerFor[T]` for handler objects or registrations grouped under one
+Subscription. Both forms register the same exact event type and use the same
+dispatch and middleware behavior.
+
+`Listen` returns a Subscription that owns only that registration. It panics for
+a nil dispatcher, a nil function, or an interface event type, following the
+existing registration rules. Registering a pointer type is supported; `T` and
+`*T` are distinct event types.
 
 `Dispatch(ctx, value)` returns an error after synchronous handling completes.
 Use Queue with a durable backend when work needs persistent asynchronous
@@ -76,14 +82,14 @@ func main() {
 
 	subscription := dispatcher.Subscribe(
 		event.HandlerFor[OrderPaid](ReceiptHandler{}),
-		event.HandlerFor[OrderPaid](
-			event.HandlerFunc[OrderPaid](func(_ context.Context, value OrderPaid) error {
-				fmt.Println("paid order:", value.OrderID)
-				return nil
-			}),
-		),
 	)
 	defer subscription.Unsubscribe()
+
+	logSubscription := event.Listen(dispatcher, func(_ context.Context, value OrderPaid) error {
+		fmt.Println("paid order:", value.OrderID)
+		return nil
+	})
+	defer logSubscription.Unsubscribe()
 
 	if err := dispatcher.Dispatch(
 		context.Background(),
