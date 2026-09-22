@@ -24,3 +24,23 @@ func ExampleHandlePayload() {
 	}
 	_ = newEmailWorker
 }
+
+func ExampleDefine() {
+	// Put the payload type and definition in a package shared by both services.
+	type WelcomeEmail struct {
+		UserID int `json:"user_id"`
+	}
+	welcomeEmail := queue.Define[WelcomeEmail]("notifications.welcome_email.v1")
+
+	// Producer-side code only needs the shared definition and its Producer.
+	enqueueWelcome := func(ctx context.Context, producer *queue.Producer, userID int) error {
+		_, err := welcomeEmail.Enqueue(ctx, producer, WelcomeEmail{UserID: userID})
+		return err
+	}
+
+	// Consumer-side code supplies its own backend and business dependencies.
+	newWorker := func(backend queue.Queue, sendEmail func(context.Context, WelcomeEmail) error) *queue.Worker {
+		return queue.NewWorker(backend, welcomeEmail.Handle(sendEmail))
+	}
+	_, _ = enqueueWelcome, newWorker
+}

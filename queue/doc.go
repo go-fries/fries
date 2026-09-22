@@ -5,6 +5,10 @@
 // at least once: handlers should be idempotent because a task may be delivered
 // again after a process crash, timeout, or retryable error.
 //
+// Use [Define] to bind a stable task name to a payload type shared by producers
+// and consumers. A [Definition] enqueues typed payloads and registers handlers
+// without coupling the sender to the consumer's service dependencies.
+//
 // Use [EnqueueFor] to encode a typed payload and [HandlePayload] to register a
 // function that receives the decoded value. Use [HandleFor] with [TaskFor] when
 // a handler also needs the task's delivery metadata, or [HandlePayloadWithCodec]
