@@ -19,8 +19,8 @@ func DefaultRetryIf(err error) bool {
 		return true
 	}
 
-	var serverErr *jet.HTTPTransporterServerError
-	if !errors.As(err, &serverErr) {
+	serverErr, ok := errors.AsType[*jet.HTTPTransporterServerError](err)
+	if !ok {
 		return false
 	}
 

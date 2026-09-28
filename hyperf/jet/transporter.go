@@ -90,8 +90,8 @@ func isHTTPTransporterServerFailed(resp *http.Response) bool {
 
 // IsHTTPTransporterServerError reports whether err was created by HTTPTransporterServerError.
 func IsHTTPTransporterServerError(err error) bool {
-	var target *HTTPTransporterServerError
-	return errors.As(err, &target)
+	_, ok := errors.AsType[*HTTPTransporterServerError](err)
+	return ok
 }
 
 type HTTPTransporterServerError struct {

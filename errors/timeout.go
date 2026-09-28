@@ -27,6 +27,6 @@ func (e *TimeoutError) Unwrap() error {
 }
 
 func IsTimeoutError(err error) bool {
-	var target *TimeoutError
-	return errors.As(err, &target)
+	_, ok := errors.AsType[*TimeoutError](err)
+	return ok
 }
