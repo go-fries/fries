@@ -2,6 +2,7 @@ package oss
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -73,7 +74,7 @@ func TestFilesystemPutContentLength(t *testing.T) {
 }
 
 func TestFilesystemNotFound(t *testing.T) {
-	client := &fakeClient{getErr: &aliyunoss.ServiceError{StatusCode: 404, Code: "NoSuchKey"}}
+	client := &fakeClient{getErr: fmt.Errorf("request failed: %w", &aliyunoss.ServiceError{StatusCode: 404, Code: "NoSuchKey"})}
 	storage := newFilesystem(client, "bucket")
 
 	_, err := storage.Open(t.Context(), "missing.txt")

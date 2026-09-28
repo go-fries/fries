@@ -36,8 +36,8 @@ func (e *retryAfterError) Error() string {
 }
 
 func retryAfterDelay(err error) (time.Duration, bool) {
-	var target *retryAfterError
-	if !errors.As(err, &target) {
+	target, ok := errors.AsType[*retryAfterError](err)
+	if !ok {
 		return 0, false
 	}
 	return target.delay, true
@@ -63,8 +63,8 @@ func (e *deadLetterError) Error() string {
 }
 
 func deadLetterReason(err error) (string, bool) {
-	var target *deadLetterError
-	if !errors.As(err, &target) {
+	target, ok := errors.AsType[*deadLetterError](err)
+	if !ok {
 		return "", false
 	}
 	return target.reason, true

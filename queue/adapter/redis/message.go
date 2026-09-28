@@ -30,13 +30,13 @@ func malformedMessage(messageID string, err error) error {
 }
 
 func isMalformedMessage(err error) bool {
-	var target malformedMessageError
-	return errors.As(err, &target)
+	_, ok := errors.AsType[malformedMessageError](err)
+	return ok
 }
 
 func malformedMessageID(err error) string {
-	var target malformedMessageError
-	if !errors.As(err, &target) {
+	target, ok := errors.AsType[malformedMessageError](err)
+	if !ok {
 		return ""
 	}
 	return target.messageID

@@ -296,8 +296,8 @@ func wrapPathError(op, path string, err error) error {
 }
 
 func isNotFound(err error) bool {
-	var serviceError *aliyunoss.ServiceError
-	if !errors.As(err, &serviceError) {
+	serviceError, ok := errors.AsType[*aliyunoss.ServiceError](err)
+	if !ok {
 		return false
 	}
 	if serviceError.StatusCode == 404 {
