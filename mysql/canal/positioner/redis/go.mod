@@ -22,7 +22,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
-	github.com/goccy/go-json v0.10.6 // indirect
+	github.com/goccy/go-json v0.11.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
 	github.com/pingcap/errors v0.11.5-0.20260523003111-3697ad564b43 // indirect
