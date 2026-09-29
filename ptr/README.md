@@ -1,6 +1,6 @@
 # Ptr
 
-`ptr` constructs pointers and reads optional pointer values. It is useful when an API distinguishes an omitted value from a value's zero value.
+`ptr` reads optional pointer values. It is useful when an API distinguishes an omitted value from a value's zero value. With Go 1.26, use `new(value)` to construct pointers directly; `ptr.Ptr` remains available for compatibility but is deprecated.
 
 ## Installation
 
@@ -13,8 +13,6 @@ go get github.com/go-fries/fries/ptr/v4
 ```go
 package main
 
-import "github.com/go-fries/fries/ptr/v4"
-
 type Config struct {
 	Name    *string
 	Enabled *bool
@@ -22,13 +20,13 @@ type Config struct {
 
 func config() Config {
 	return Config{
-		Name:    ptr.Ptr("fries"),
-		Enabled: ptr.Ptr(true),
+		Name:    new("fries"),
+		Enabled: new(true),
 	}
 }
 ```
 
-`Ptr` always returns a pointer to the supplied value, including zero values and typed nil pointers.
+`new(value)` returns a pointer to a new variable initialized with the supplied value, including zero values and typed nil pointers.
 
 ## Read a pointer
 
