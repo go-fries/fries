@@ -22,8 +22,7 @@ func (f optionFunc) apply(c *config) {
 // [Write].
 func WithCode(code int) Option {
 	return optionFunc(func(c *config) {
-		value := code
-		c.code = &value
+		c.code = new(code)
 	})
 }
 
