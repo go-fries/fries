@@ -50,3 +50,13 @@ func TestMiddlewaresFromContext(t *testing.T) {
 	invalidCtx := context.WithValue(t.Context(), middlewareContextKey{}, "not middleware")
 	assert.Nil(t, middlewaresFromContext(invalidCtx))
 }
+
+func TestContextWithMiddlewaresCopiesInput(t *testing.T) {
+	middlewares := []Middleware{func(next Handler) Handler { return next }}
+	ctx := ContextWithMiddlewares(t.Context(), middlewares...)
+	middlewares[0] = nil
+
+	stored := middlewaresFromContext(ctx)
+	require.Len(t, stored, 1)
+	assert.NotNil(t, stored[0])
+}

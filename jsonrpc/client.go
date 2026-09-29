@@ -2,6 +2,7 @@ package jsonrpc
 
 import (
 	"context"
+	"slices"
 
 	"github.com/go-fries/fries/codec/json/v4"
 	"github.com/go-fries/fries/codec/v4"
@@ -19,6 +20,10 @@ type Client interface {
 	// Example:
 	//	client := NewClient(transport)
 	//	client.Use(loggingMiddleware, authMiddleware)
+	//
+	// Use is a configuration operation. Do not call it concurrently with other
+	// methods on the same client; configure the client before sharing it across
+	// goroutines.
 	Use(middlewares ...Middleware)
 
 	// Namespace returns a new Client instance scoped to the specified namespace.
@@ -34,9 +39,10 @@ type Client interface {
 	// Note: The namespace is typically a string that groups related methods together,
 	// such as a service name or module identifier.
 	//
-	// Concurrency Note:
-	// Returns a new Client instance with the specified namespace. The method does not support concurrency
-	// safety; ensure that the returned Client is used in a single-threaded context or manage synchronization externally.
+	// The new client has its own middleware configuration. Subsequent calls to
+	// Use on either client do not affect the other. The transport, codec, and ID
+	// generator remain shared. Do not call Namespace concurrently with Use on
+	// the same client.
 	Namespace(name string) Client
 
 	// Invoke invokes a remote method with the given arguments and populates the result.
@@ -84,8 +90,10 @@ func (f optionFunc) apply(c *client) {
 	f(c)
 }
 
-// WithMiddlewares adds one or more middlewares to the client.
+// WithMiddlewares adds one or more middlewares to the client. It copies the
+// supplied middleware slice when the option is created.
 func WithMiddlewares(middlewares ...Middleware) Option {
+	middlewares = slices.Clone(middlewares)
 	return optionFunc(func(cl *client) {
 		cl.middlewares = append(cl.middlewares, middlewares...)
 	})
@@ -120,7 +128,8 @@ func NewClient(transport Transport, opts ...Option) Client {
 }
 
 // Use adds one or more middlewares to the client. These middlewares will be applied
-// to all requests made by the client.
+// to all requests made by the client. It must not be called concurrently with
+// other methods on the same client.
 func (c *client) Use(middlewares ...Middleware) {
 	c.middlewares = append(c.middlewares, middlewares...)
 }
@@ -129,6 +138,7 @@ func (c *client) Use(middlewares ...Middleware) {
 func (c *client) Namespace(name string) Client {
 	nc := new(client)
 	*nc = *c
+	nc.middlewares = slices.Clone(c.middlewares)
 	nc.namespace = name
 	return nc
 }
@@ -169,5 +179,9 @@ func (c *client) invoke(ctx context.Context, result any, method string, args []a
 
 // combineMiddlewares merges the client's middlewares with those extracted from the context.
 func combineMiddlewares(ctx context.Context, original []Middleware) []Middleware {
-	return append(original, middlewaresFromContext(ctx)...)
+	request := middlewaresFromContext(ctx)
+	if len(request) == 0 {
+		return original
+	}
+	return slices.Concat(original, request)
 }

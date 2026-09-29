@@ -116,6 +116,11 @@ Intercept and process requests (e.g., logging, authentication).
 client.Use(loggingMiddleware, authMiddleware)
 ```
 
+Configure middleware with `WithMiddlewares` or `Use` before sharing a client
+across goroutines. `Use` must not run concurrently with other methods on the
+same client. Request-specific middleware added with `ContextWithMiddlewares`
+does not change the client's configuration.
+
 ### Namespace
 
 Organize methods under different contexts.
@@ -123,6 +128,10 @@ Organize methods under different contexts.
 ```go
 adminClient := client.Namespace("admin")
 ```
+
+Namespace clients have independent middleware configurations: a later `Use`
+on one does not affect the others. They still share the transport, codec, and
+ID generator.
 
 ## Options
 

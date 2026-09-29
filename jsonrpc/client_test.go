@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,6 +76,79 @@ func TestNewClientOptions(t *testing.T) {
 	assert.Empty(t, clientWithDefaults.middlewares)
 }
 
+func TestWithMiddlewaresCopiesInput(t *testing.T) {
+	middlewares := []Middleware{func(next Handler) Handler { return next }}
+	option := WithMiddlewares(middlewares...)
+	middlewares[0] = nil
+
+	client := NewClient(nil, option).(*client)
+	require.Len(t, client.middlewares, 1)
+	assert.NotNil(t, client.middlewares[0])
+}
+
+func TestClientNamespaceMiddlewaresAreIndependent(t *testing.T) {
+	var calls []string
+	transport := transportFunc(func(_ context.Context, namespace string, _ *Request) (*Response, error) {
+		calls = append(calls, "transport:"+namespace)
+		return &Response{Result: json.RawMessage(`null`)}, nil
+	})
+	parent := NewClient(transport).(*client)
+	parent.middlewares = make([]Middleware, 0, 6)
+	parent.Use(traceMiddleware("first", &calls), traceMiddleware("second", &calls), traceMiddleware("third", &calls))
+
+	first := parent.Namespace("first").(*client)
+	second := parent.Namespace("second").(*client)
+	first.Use(traceMiddleware("first-only", &calls))
+	second.Use(traceMiddleware("second-only", &calls))
+	parent.Use(traceMiddleware("parent-only", &calls))
+
+	for _, tt := range []struct {
+		name   string
+		client Client
+		want   []string
+	}{
+		{"first", first, []string{"first", "second", "third", "first-only", "transport:first"}},
+		{"second", second, []string{"first", "second", "third", "second-only", "transport:second"}},
+		{"parent", parent, []string{"first", "second", "third", "parent-only", "transport:"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			calls = nil
+			var result any
+			_, err := tt.client.Invoke(t.Context(), &result, "method")
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, calls)
+		})
+	}
+}
+
+func TestCombineMiddlewaresDoesNotModifyClientBacking(t *testing.T) {
+	var calls []string
+	original := make([]Middleware, 1, 2)
+	original[0] = traceMiddleware("client", &calls)
+	original[:2][1] = traceMiddleware("reserved", &calls)
+	ctx := ContextWithMiddlewares(t.Context(), traceMiddleware("request", &calls))
+	combined := combineMiddlewares(ctx, original)
+
+	final := func(context.Context, string, *Request) (*Response, error) { return &Response{}, nil }
+	_, err := chain(combined...)(final)(ctx, "", &Request{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"client", "request"}, calls)
+
+	calls = nil
+	_, err = chain(original[:2]...)(final)(ctx, "", &Request{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"client", "reserved"}, calls)
+}
+
+func traceMiddleware(name string, calls *[]string) Middleware {
+	return func(next Handler) Handler {
+		return func(ctx context.Context, namespace string, req *Request) (*Response, error) {
+			*calls = append(*calls, name)
+			return next(ctx, namespace, req)
+		}
+	}
+}
+
 func TestClientInvoke(t *testing.T) {
 	id := NewID("fixed-id")
 	var calls []string
@@ -123,6 +197,40 @@ func TestClientInvoke(t *testing.T) {
 		"context:after",
 		"client:after",
 	}, calls)
+}
+
+func TestClientInvokeConcurrentContextMiddlewares(t *testing.T) {
+	const requests = 32
+	type requestKey struct{}
+	client := NewClient(transportFunc(func(context.Context, string, *Request) (*Response, error) {
+		return &Response{Result: json.RawMessage(`null`)}, nil
+	})).(*client)
+	client.middlewares = make([]Middleware, 1, requests+1)
+	client.middlewares[0] = func(next Handler) Handler { return next }
+
+	start := make(chan struct{})
+	errs := make(chan error, requests)
+	for i := range requests {
+		go func() {
+			<-start
+			ctx := context.WithValue(t.Context(), requestKey{}, i)
+			ctx = ContextWithMiddlewares(ctx, func(next Handler) Handler {
+				return func(ctx context.Context, namespace string, req *Request) (*Response, error) {
+					if ctx.Value(requestKey{}) != i {
+						return nil, fmt.Errorf("middleware %d ran for a different request", i)
+					}
+					return next(ctx, namespace, req)
+				}
+			})
+			var result any
+			_, err := client.Invoke(ctx, &result, "method")
+			errs <- err
+		}()
+	}
+	close(start)
+	for range requests {
+		assert.NoError(t, <-errs)
+	}
 }
 
 func TestClientInvokeErrors(t *testing.T) {

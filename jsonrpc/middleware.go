@@ -31,9 +31,10 @@ type middlewareContextKey struct{}
 // ContextWithMiddlewares returns a new context with the provided middlewares attached.
 //
 // These middlewares will be applied to any requests made with this context,
-// in addition to any middlewares configured on the Client.
+// in addition to any middlewares configured on the Client. The supplied
+// middleware slice is copied.
 func ContextWithMiddlewares(ctx context.Context, mws ...Middleware) context.Context {
-	return context.WithValue(ctx, middlewareContextKey{}, mws)
+	return context.WithValue(ctx, middlewareContextKey{}, slices.Clone(mws))
 }
 
 // middlewaresFromContext retrieves middlewares from the context.
