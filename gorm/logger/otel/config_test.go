@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm/logger"
 )
 
@@ -16,7 +16,7 @@ func TestNewConfigDefaults(t *testing.T) {
 	cfg := newConfig()
 
 	require.NotNil(t, cfg.provider)
-	assert.Equal(t, global.GetLoggerProvider(), cfg.provider)
+	assert.Equal(t, otel.GetLoggerProvider(), cfg.provider)
 	assert.Equal(t, Version(), cfg.version)
 	assert.Empty(t, cfg.schemaURL)
 	assert.Empty(t, cfg.attributes)
@@ -26,6 +26,20 @@ func TestNewConfigDefaults(t *testing.T) {
 	assert.Equal(t, 200*time.Millisecond, cfg.slowThreshold)
 	assert.True(t, cfg.ignoreRecordNotFoundError)
 	assert.False(t, cfg.parameterizedQueries)
+}
+
+func TestNewConfigUsesGlobalLoggerProvider(t *testing.T) {
+	previous := otel.GetLoggerProvider()
+	t.Cleanup(func() {
+		otel.SetLoggerProvider(previous)
+	})
+
+	provider := &recordingLoggerProvider{}
+	otel.SetLoggerProvider(provider)
+
+	cfg := newConfig()
+
+	assert.Same(t, provider, cfg.provider)
 }
 
 func TestConfigOptions(t *testing.T) {
@@ -71,7 +85,7 @@ func TestConfigSkipsEmptyScopeOptions(t *testing.T) {
 		WithSchemaURL(""),
 	)
 
-	assert.Equal(t, global.GetLoggerProvider(), cfg.provider)
+	assert.Equal(t, otel.GetLoggerProvider(), cfg.provider)
 	assert.Equal(t, Version(), cfg.version)
 	assert.Empty(t, cfg.schemaURL)
 }

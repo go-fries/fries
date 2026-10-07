@@ -17,23 +17,23 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-fries/fries/gorm/logger/otel/v4"
+	gormotel "github.com/go-fries/fries/gorm/logger/otel/v4"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 func openDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	return gorm.Open(dialector, &gorm.Config{
-		Logger: otel.New(
-			otel.WithLoggerProvider(global.GetLoggerProvider()),
-			otel.WithLogLevel(logger.Warn),
-			otel.WithSlowThreshold(200*time.Millisecond),
-			otel.WithParameterizedQueries(true),
-			otel.WithAttributes(attribute.String("component", "gorm")),
-			otel.WithLogAttributes(attribute.String("db.system", "mysql")),
-			otel.WithLogAttributeFuncs(func(ctx context.Context) []attribute.KeyValue {
+		Logger: gormotel.New(
+			gormotel.WithLoggerProvider(otel.GetLoggerProvider()),
+			gormotel.WithLogLevel(logger.Warn),
+			gormotel.WithSlowThreshold(200*time.Millisecond),
+			gormotel.WithParameterizedQueries(true),
+			gormotel.WithAttributes(attribute.String("component", "gorm")),
+			gormotel.WithLogAttributes(attribute.String("db.system", "mysql")),
+			gormotel.WithLogAttributeFuncs(func(ctx context.Context) []attribute.KeyValue {
 				return []attribute.KeyValue{
 					attribute.String("tenant.id", tenantIDFromContext(ctx)),
 				}
