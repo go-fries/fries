@@ -26,8 +26,8 @@ buf.build/go/protovalidate v1.4.0 h1:UjLrYbt5VX7+TMOs2+pG5FhZhIG1mSfK4EIopbb4LcM
 buf.build/go/protovalidate v1.4.0/go.mod h1:8vJfzNT6NIG2qm3uFsJDXMlRmG+bQJzbcIn1Aa0vPGs=
 buf.build/go/protoyaml v0.7.0 h1:z4oVoFicbpPefhT7WAykxUdfp0yEQlhMQ2mCZOY5V38=
 buf.build/go/protoyaml v0.7.0/go.mod h1:+a0cavd0uMvirb87xdu2ZMMmjlIQoiH/N2Ich5MGSQ0=
-buf.build/go/spdx v0.2.0 h1:IItqM0/cMxvFJJumcBuP8NrsIzMs/UYjp/6WSpq8LTw=
-buf.build/go/spdx v0.2.0/go.mod h1:bXdwQFem9Si3nsbNy8aJKGPoaPi5DKwdeEp5/ArZ6w8=
+buf.build/go/spdx v0.3.0 h1:vVxy1W0x1n3sqhZmJ7VZ/UtzNwK3xm0QowGGtwric4Y=
+buf.build/go/spdx v0.3.0/go.mod h1:bXdwQFem9Si3nsbNy8aJKGPoaPi5DKwdeEp5/ArZ6w8=
 buf.build/go/standard v0.1.0 h1:g98T9IyvAl0vS3Pq8iVk6Cvj2ZiFvoUJRtfyGa0120U=
 buf.build/go/standard v0.1.0/go.mod h1:PiqpHz/7ZFq+kqvYhc/SK3lxFIB9N/aiH2CFC2JHIQg=
 cel.dev/cel-go v0.32.0 h1:irvpFKr5EuGPyxeME03ERh0rii1TX+BDAnB9eL3IvNk=
