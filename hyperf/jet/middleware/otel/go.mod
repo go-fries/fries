@@ -8,7 +8,7 @@ require (
 	github.com/go-fries/fries/hyperf/jet/v4 v4.2.0
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.47.0
-	go.opentelemetry.io/otel/sdk v1.46.0
+	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 )
 
