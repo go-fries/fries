@@ -16,7 +16,7 @@ require (
 	4d63.com/gochecknoglobals v0.2.2 // indirect
 	buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20261002170247-538130002972.2 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 // indirect
-	buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20260930211409-f406cd0c7485.1 // indirect
+	buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20261006190621-8c688359738f.1 // indirect
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261006190621-8c688359738f.2 // indirect
 	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2 // indirect
 	buf.build/go/app v0.2.0 // indirect
