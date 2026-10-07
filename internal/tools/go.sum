@@ -816,5 +816,5 @@ mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8 h1:Re1NRyLpiAt9kB+ImaaoapwWi
 mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8/go.mod h1:MrS/+zJ1M2xvGXhKktiHbNQeQPyg3Qel+KkzT+f7/i4=
 mvdan.cc/xurls/v2 v2.6.0 h1:3NTZpeTxYVWNSokW3MKeyVkz/j7uYXYiMtXRUfmjbgI=
 mvdan.cc/xurls/v2 v2.6.0/go.mod h1:bCvEZ1XvdA6wDnxY7jPPjEmigDtvtvPXAD/Exa9IMSk=
-pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1 h1:ijwXS090rZ+N13Rpwwz5Ku/+49aNUE73Jof1Pw/fCaw=
-pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1/go.mod h1:ro2Em10qmKefBGOLc9HMAjRlJwJpfBS33pqfLtLj+JI=
+pluginrpc.com/pluginrpc v0.6.0 h1:Dx5r3y9Nbbt02NSm+bKHvs+WgXM34lalD5grkjd8sno=
+pluginrpc.com/pluginrpc v0.6.0/go.mod h1:9FPMdIy8nmkALE5eSe2ipE42G83WpZnA2+I7M7ADijY=

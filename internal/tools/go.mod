@@ -311,5 +311,5 @@ require (
 	mvdan.cc/gofumpt v0.12.0 // indirect
 	mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
-	pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1 // indirect
+	pluginrpc.com/pluginrpc v0.6.0 // indirect
 )
