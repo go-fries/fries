@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -126,7 +125,7 @@ func TestClientLifecycle(t *testing.T) {
 		assert.Equal(t, propagator, otel.GetTextMapPropagator())
 		assert.IsType(t, tracerProvider, otel.GetTracerProvider())
 		assert.IsType(t, meterProvider, otel.GetMeterProvider())
-		assert.IsType(t, loggerProvider, global.GetLoggerProvider())
+		assert.Same(t, loggerProvider, otel.GetLoggerProvider())
 	})
 
 	t.Run("configure twice", func(t *testing.T) {
@@ -399,12 +398,12 @@ func saveGlobalProviders(t *testing.T) func() {
 
 	oldTracerProvider := otel.GetTracerProvider()
 	oldMeterProvider := otel.GetMeterProvider()
-	oldLoggerProvider := global.GetLoggerProvider()
+	oldLoggerProvider := otel.GetLoggerProvider()
 
 	return func() {
 		otel.SetTracerProvider(oldTracerProvider)
 		otel.SetMeterProvider(oldMeterProvider)
-		global.SetLoggerProvider(oldLoggerProvider)
+		otel.SetLoggerProvider(oldLoggerProvider)
 	}
 }
 

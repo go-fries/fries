@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm/logger"
 )
 
@@ -127,7 +127,7 @@ func WithParameterizedQueries(parameterized bool) Option {
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		provider:                  global.GetLoggerProvider(),
+		provider:                  otel.GetLoggerProvider(),
 		version:                   Version(),
 		level:                     logger.Warn,
 		slowThreshold:             200 * time.Millisecond,

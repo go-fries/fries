@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/log/global"
 )
 
 var (
@@ -196,7 +195,7 @@ func (c *Client) configureLoggerProvider(ctx context.Context) error {
 	}
 
 	c.config.loggerProvider = provider
-	global.SetLoggerProvider(provider)
+	otel.SetLoggerProvider(provider)
 	return nil
 }
 

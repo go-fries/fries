@@ -5,8 +5,8 @@
 //
 //	import (
 //		"github.com/go-fries/fries/gorm/logger/multi/v4"
-//		"github.com/go-fries/fries/gorm/logger/otel/v4"
-//		"go.opentelemetry.io/otel/log/global"
+//		gormotel "github.com/go-fries/fries/gorm/logger/otel/v4"
+//		"go.opentelemetry.io/otel"
 //		"gorm.io/gorm"
 //		"gorm.io/gorm/logger"
 //	)
@@ -14,7 +14,7 @@
 //	db, err := gorm.Open(dialector, &gorm.Config{
 //		Logger: multi.New(
 //			logger.Default,
-//			otel.New(otel.WithLoggerProvider(global.GetLoggerProvider())),
+//			gormotel.New(gormotel.WithLoggerProvider(otel.GetLoggerProvider())),
 //		),
 //	})
 package multi
