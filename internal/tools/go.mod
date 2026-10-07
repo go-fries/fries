@@ -25,7 +25,7 @@ require (
 	buf.build/go/interrupt v1.1.0 // indirect
 	buf.build/go/protovalidate v1.4.0 // indirect
 	buf.build/go/protoyaml v0.7.0 // indirect
-	buf.build/go/spdx v0.2.0 // indirect
+	buf.build/go/spdx v0.3.0 // indirect
 	buf.build/go/standard v0.1.0 // indirect
 	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.3 // indirect
