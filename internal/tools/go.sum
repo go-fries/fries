@@ -16,8 +16,8 @@ buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-
 buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2/go.mod h1:+0bw+k8FY5MU3tojFh33HeA5xMfGWjAUQpr+maW5Z3o=
 buf.build/go/app v0.2.0 h1:NYaH13A+RzPb7M5vO8uZYZ2maBZI5+MS9A9tQm66fy8=
 buf.build/go/app v0.2.0/go.mod h1:0XVOYemubVbxNXVY0DnsVgWeGkcbbAvjDa1fmhBC+Wo=
-buf.build/go/bufplugin v0.10.0 h1:vZBX0mq9as5UIBug8U+/DkGRaHNlM/HVOw59O8fvOIU=
-buf.build/go/bufplugin v0.10.0/go.mod h1:ax7obVurKDH1I2nR4pFTS+TE6K3kZhTmwDCN2YgdV8I=
+buf.build/go/bufplugin v0.11.1 h1:fegT6xiiGVwyNiLlxBz07ochKTX/DAtIKe/oPdrqrCs=
+buf.build/go/bufplugin v0.11.1/go.mod h1:0xoAhb/CPqXwS/FUup9vwIRBYxDcXYXeOhYXHca5uuc=
 buf.build/go/bufprivateusage v0.1.0 h1:SzCoCcmzS3zyXHEXHeSQhGI7OTkgtljoknLzsUz9Gg4=
 buf.build/go/bufprivateusage v0.1.0/go.mod h1:GlCCJ3VVF7EqqU0CoRmo1FzAwwaKymEWSr+ty69xU5w=
 buf.build/go/interrupt v1.1.0 h1:olBuhgv9Sav4/9pkSLoxgiOsZDgM5VhRhvRpn3DL0lE=
@@ -814,5 +814,5 @@ mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8 h1:Re1NRyLpiAt9kB+ImaaoapwWi
 mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8/go.mod h1:MrS/+zJ1M2xvGXhKktiHbNQeQPyg3Qel+KkzT+f7/i4=
 mvdan.cc/xurls/v2 v2.6.0 h1:3NTZpeTxYVWNSokW3MKeyVkz/j7uYXYiMtXRUfmjbgI=
 mvdan.cc/xurls/v2 v2.6.0/go.mod h1:bCvEZ1XvdA6wDnxY7jPPjEmigDtvtvPXAD/Exa9IMSk=
-pluginrpc.com/pluginrpc v0.5.0 h1:tOQj2D35hOmvHyPu8e7ohW2/QvAnEtKscy2IJYWQ2yo=
-pluginrpc.com/pluginrpc v0.5.0/go.mod h1:UNWZ941hcVAoOZUn8YZsMmOZBzbUjQa3XMns8RQLp9o=
+pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1 h1:ijwXS090rZ+N13Rpwwz5Ku/+49aNUE73Jof1Pw/fCaw=
+pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1/go.mod h1:ro2Em10qmKefBGOLc9HMAjRlJwJpfBS33pqfLtLj+JI=

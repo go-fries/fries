@@ -20,7 +20,7 @@ require (
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261006190621-8c688359738f.2 // indirect
 	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2 // indirect
 	buf.build/go/app v0.2.0 // indirect
-	buf.build/go/bufplugin v0.10.0 // indirect
+	buf.build/go/bufplugin v0.11.1 // indirect
 	buf.build/go/bufprivateusage v0.1.0 // indirect
 	buf.build/go/interrupt v1.1.0 // indirect
 	buf.build/go/protovalidate v1.4.0 // indirect
@@ -310,5 +310,5 @@ require (
 	mvdan.cc/gofumpt v0.12.0 // indirect
 	mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
-	pluginrpc.com/pluginrpc v0.5.0 // indirect
+	pluginrpc.com/pluginrpc v0.5.1-0.20260825152034-473fc805d0d1 // indirect
 )
