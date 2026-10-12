@@ -63,7 +63,7 @@ and internal development tools are not included.
 | Poll | [`poll`](https://pkg.go.dev/github.com/go-fries/fries/poll/v4) | Context-aware condition polling for eventually consistent state and asynchronous work. |
 | Ptr | [`ptr`](https://pkg.go.dev/github.com/go-fries/fries/ptr/v4) | Generic pointer helpers. |
 | Recovery | [`recovery`](https://pkg.go.dev/github.com/go-fries/fries/recovery/v4) | Shared panic recovery utilities. |
-| Signal | [`signal`](https://pkg.go.dev/github.com/go-fries/fries/signal/v4) | Signal handling integrated with application server lifecycles. |
+| Signal | [`signal`](https://pkg.go.dev/github.com/go-fries/fries/signal/v4) | Explicit OS signal routing with serial registration workers and graceful shutdown. |
 | Slices | [`slices`](https://pkg.go.dev/github.com/go-fries/fries/slices/v4) | Generic slice helpers. |
 | Strings | [`strings`](https://pkg.go.dev/github.com/go-fries/fries/strings/v4) | String helpers for common application code. |
 | Support | [`support`](https://pkg.go.dev/github.com/go-fries/fries/support/v4) | General-purpose helper types and value utilities. |

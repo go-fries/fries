@@ -5,17 +5,16 @@ import (
 	"os"
 )
 
-// Handler processes subscribed operating system signals.
+// Handler processes an operating system signal. Returning an error reports a
+// failed operation; it does not stop the Router or retry the operation.
 type Handler interface {
-	// Listen returns the signals that should be routed to this handler.
-	Listen() []os.Signal
-
-	// Handle processes a received signal.
-	Handle(context.Context, os.Signal)
+	Handle(context.Context, os.Signal) error
 }
 
-// AsyncHandler marks a Handler that should run asynchronously.
-// External handlers opt in by embedding AsyncHandler.
-type AsyncHandler interface {
-	async()
+// HandlerFunc adapts a function to [Handler].
+type HandlerFunc func(context.Context, os.Signal) error
+
+// Handle calls f with the handler context and received signal.
+func (f HandlerFunc) Handle(ctx context.Context, sig os.Signal) error {
+	return f(ctx, sig)
 }
