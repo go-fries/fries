@@ -2,24 +2,21 @@ package signal
 
 import (
 	"context"
+	"errors"
 	"os"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type mockAsyncHandler struct {
-	AsyncHandler
-}
-
-func (h *mockAsyncHandler) Listen() []os.Signal {
-	return []os.Signal{syscall.SIGUSR1}
-}
-
-func (h *mockAsyncHandler) Handle(context.Context, os.Signal) {}
-
-func TestAsyncHandler(t *testing.T) {
-	assert.Implements(t, (*AsyncHandler)(nil), (*mockAsyncHandler)(nil))
-	assert.Implements(t, (*Handler)(nil), (*mockAsyncHandler)(nil))
+func TestHandlerFunc(t *testing.T) {
+	ctx := t.Context()
+	wantErr := errors.New("reload failed")
+	handler := HandlerFunc(func(gotCtx context.Context, sig os.Signal) error {
+		assert.Same(t, ctx, gotCtx)
+		assert.Equal(t, os.Interrupt, sig)
+		return wantErr
+	})
+	assert.Implements(t, (*Handler)(nil), handler)
+	assert.ErrorIs(t, handler.Handle(ctx, os.Interrupt), wantErr)
 }
