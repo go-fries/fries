@@ -39,8 +39,8 @@ func TestBatcherBackpressure(t *testing.T) {
 				go func() { result <- b.Add(ctx, 3) }()
 				synctest.Wait()
 				select {
-				case <-result:
-					t.Fatal("Add returned while capacity was unavailable")
+				case err := <-result:
+					t.Fatalf("Add returned while capacity was unavailable: %v", err)
 				default:
 				}
 				wantErr := errors.New("admission canceled")
