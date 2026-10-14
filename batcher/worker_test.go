@@ -159,8 +159,8 @@ func TestWorkerResultCallbackIsPartOfCompletion(t *testing.T) {
 		go func() { flushed <- b.Flush(t.Context()) }()
 		synctest.Wait()
 		select {
-		case <-flushed:
-			t.Fatal("Flush returned before the result callback finished")
+		case err := <-flushed:
+			t.Fatalf("Flush returned before the result callback finished: %v", err)
 		default:
 		}
 		ctx, cancel := context.WithCancel(t.Context())
