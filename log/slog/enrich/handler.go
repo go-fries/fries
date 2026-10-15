@@ -1,4 +1,4 @@
-package ctxvaluer
+package enrich
 
 import (
 	"context"
@@ -18,7 +18,7 @@ type group struct {
 //
 // Create a Handler with [NewHandler]. Its configuration and derived handlers are
 // immutable. Concurrent use is safe if the wrapped handler and each registered
-// [Valuer] are safe for concurrent use.
+// [Valuer] and [Extractor] are safe for concurrent use.
 type Handler struct {
 	next   slog.Handler
 	config *config
@@ -31,30 +31,32 @@ type Handler struct {
 // [Handler.WithGroup]. To keep them at the output's top level, next must be
 // ungrouped. Use [WithCurrentGroup] to delegate group behavior to next.
 //
-// NewHandler panics if next or a [Valuer] registered with [WithValue] is nil.
+// NewHandler panics if next or any callback registered with [WithValue] or
+// [WithExtractors] is nil.
 func NewHandler(next slog.Handler, opts ...Option) *Handler {
 	if next == nil {
-		panic("ctxvaluer: nil handler")
+		panic("enrich: nil handler")
 	}
 	return &Handler{next: next, config: newConfig(opts...)}
 }
 
 // Enabled reports whether the wrapped handler accepts the context and level.
-// It delegates to [slog.Handler.Enabled] without evaluating any [Valuer].
+// It delegates to [slog.Handler.Enabled] without evaluating any [Valuer] or
+// [Extractor].
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.next.Enabled(ctx, level)
 }
 
-// Handle evaluates registered [Valuer] functions and passes the augmented record
-// to the wrapped handler.
+// Handle evaluates registered [Valuer] and [Extractor] functions and passes the
+// augmented record to the wrapped handler.
 //
 // Values are evaluated once per call, in registration order. Handle preserves
 // record metadata and does not modify shared record attributes. Errors from the
-// wrapped handler and panics from [Valuer] functions propagate unchanged.
+// wrapped handler and panics from registered callbacks propagate unchanged.
 //
 // Handle assumes [Handler.Enabled] has returned true for ctx and record.Level.
 func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
-	if len(h.config.fields) == 0 && len(h.groups) == 0 {
+	if len(h.config.sources) == 0 && len(h.groups) == 0 {
 		return h.next.Handle(ctx, record)
 	}
 
@@ -62,14 +64,20 @@ func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 	// attributes together so it can grow the record's overflow storage only once.
 	var buf [16]slog.Attr
 	attrs := buf[:0]
-	size := len(h.config.fields) + record.NumAttrs()
+	// Each source is only a capacity hint: extractors can return any number of
+	// attributes, so append must still handle expansion beyond this estimate.
+	size := len(h.config.sources) + record.NumAttrs()
 	if len(h.groups) > 0 {
-		size = len(h.config.fields) + 1
+		size = len(h.config.sources) + 1
 	}
 	if size > len(buf) {
 		attrs = make([]slog.Attr, 0, size)
 	}
-	for _, f := range h.config.fields {
+	for _, f := range h.config.sources {
+		if f.extract != nil {
+			attrs = append(attrs, f.extract(ctx)...)
+			continue
+		}
 		value := f.value(ctx)
 		if value.Kind() == slog.KindGroup && len(value.Group()) == 0 {
 			continue
@@ -126,7 +134,7 @@ func (h *Handler) groupAttr(record slog.Record) slog.Attr {
 // [slog.LogValuer] values may therefore resolve for each record. When
 // [WithCurrentGroup] is set, all attributes delegate to the wrapped handler.
 //
-// WithAttrs never evaluates registered [Valuer] functions.
+// WithAttrs never evaluates registered [Valuer] or [Extractor] functions.
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	if len(attrs) == 0 {
 		return h

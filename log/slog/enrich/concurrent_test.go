@@ -1,4 +1,4 @@
-package ctxvaluer_test
+package enrich_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/go-fries/fries/log/slog/enrich/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,14 +23,18 @@ func TestHandlerConcurrentSafe(t *testing.T) {
 			const workers, logs = 128, 4
 			var buf bytes.Buffer
 			var calls atomic.Int64
-			opts := []ctxvaluer.Option{ctxvaluer.WithValue("user_id", func(ctx context.Context) slog.Value {
+			var extractCalls atomic.Int64
+			opts := []enrich.Option{enrich.WithValue("user_id", func(ctx context.Context) slog.Value {
 				calls.Add(1)
 				return contextID(ctx)
+			}), enrich.WithExtractors(func(ctx context.Context) []slog.Attr {
+				extractCalls.Add(1)
+				return []slog.Attr{{Key: "batch_user_id", Value: contextID(ctx)}, slog.String("batch_source", "context")}
 			})}
 			if currentGroup {
-				opts = append(opts, ctxvaluer.WithCurrentGroup())
+				opts = append(opts, enrich.WithCurrentGroup())
 			}
-			shared := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
+			shared := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
 				With("service", "api").WithGroup("request").With("source", "http")
 			var wg sync.WaitGroup
 			for id := range workers {
@@ -51,6 +55,7 @@ func TestHandlerConcurrentSafe(t *testing.T) {
 			results := decodeLines(t, buf.Bytes())
 			assert.Len(t, results, workers*logs)
 			assert.Equal(t, int64(workers*logs), calls.Load())
+			assert.Equal(t, int64(workers*logs), extractCalls.Load())
 			seen := make(map[[2]int]bool, workers*logs)
 			for _, result := range results {
 				request, ok := result["request"].(map[string]any)
@@ -68,6 +73,12 @@ func TestHandlerConcurrentSafe(t *testing.T) {
 				require.IsType(t, float64(0), id)
 				require.IsType(t, float64(0), fields["sequence"])
 				assert.Equal(t, fields["expected"], id, "fields crossed contexts: %v", result)
+				batch := result
+				if currentGroup {
+					batch = fields
+				}
+				assert.Equal(t, fields["expected"], batch["batch_user_id"], "extractor fields crossed contexts: %v", result)
+				assert.Equal(t, "context", batch["batch_source"])
 				assert.Equal(t, "api", result["service"])
 				assert.Equal(t, "http", request["source"])
 				key := [2]int{int(id.(float64)), int(fields["sequence"].(float64))}

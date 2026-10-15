@@ -1,8 +1,9 @@
-// Package ctxvaluer adds context-aware attributes to [log/slog] handlers.
+// Package enrich adds context-aware attributes to [log/slog] handlers.
 //
-// Register a [Valuer] with [WithValue] and wrap a [slog.Handler] with [NewHandler].
-// The resulting [Handler] works with the standard [slog.Logger]. Use methods such
-// as [slog.Logger.InfoContext] to supply the context for each log call.
+// Register individual values with [WithValue] or batches of attributes with
+// [WithExtractors], then wrap a [slog.Handler] with [NewHandler]. The resulting
+// [Handler] works with the standard [slog.Logger]. Use methods such as
+// [slog.Logger.InfoContext] to supply the context for each log call.
 //
 // # Groups
 //
@@ -24,11 +25,12 @@
 //
 // # Evaluation and errors
 //
-// [Handler.Handle] evaluates each registered [Valuer] once per handled record,
-// in registration order. Duplicate keys are preserved, not merged. Return the
-// value produced by [Omit] to omit an attribute; a zero [slog.Value] is a nil
-// value, not an omission.
+// [Handler.Handle] evaluates each registered [Valuer] and [Extractor] once per
+// handled record, in mixed registration order. Each extractor's attribute order
+// is preserved. Duplicate keys are preserved, not merged. Return the value
+// produced by [Omit] to omit a single value, or a nil or empty slice to omit a
+// batch. A zero [slog.Value] is a nil value, not an omission.
 //
-// Panics from [Valuer] functions and errors from the wrapped handler propagate
+// Panics from registered callbacks and errors from the wrapped handler propagate
 // unchanged. The standard [slog.Logger] discards handler errors.
-package ctxvaluer
+package enrich

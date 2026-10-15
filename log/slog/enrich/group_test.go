@@ -1,4 +1,4 @@
-package ctxvaluer_test
+package enrich_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/go-fries/fries/log/slog/enrich/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,8 +49,8 @@ func TestGroupParityWithNativeHandlers(t *testing.T) {
 				var native, wrapped bytes.Buffer
 				baseline := tc.bind(slog.New(factory(&native, outputOptions())))
 				baseline.LogAttrs(t.Context(), slog.LevelInfo, "message", tc.attrs...)
-				logger := tc.bind(slog.New(ctxvaluer.NewHandler(factory(&wrapped, outputOptions()),
-					ctxvaluer.WithValue("missing", func(context.Context) slog.Value { return ctxvaluer.Omit() }),
+				logger := tc.bind(slog.New(enrich.NewHandler(factory(&wrapped, outputOptions()),
+					enrich.WithValue("missing", func(context.Context) slog.Value { return enrich.Omit() }),
 				)))
 				logger.LogAttrs(t.Context(), slog.LevelInfo, "message", tc.attrs...)
 				assert.Equal(t, native.String(), wrapped.String())
@@ -63,11 +63,11 @@ func TestDynamicGroupScope(t *testing.T) {
 	for _, currentGroup := range []bool{false, true} {
 		t.Run(fmt.Sprintf("current_group=%t", currentGroup), func(t *testing.T) {
 			var buf bytes.Buffer
-			opts := []ctxvaluer.Option{ctxvaluer.WithValue("user_id", contextID)}
+			opts := []enrich.Option{enrich.WithValue("user_id", contextID)}
 			if currentGroup {
-				opts = append(opts, ctxvaluer.WithCurrentGroup())
+				opts = append(opts, enrich.WithCurrentGroup())
 			}
-			logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
+			logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
 				WithGroup("order").With("source", "marketplace").WithGroup("payment").With("method", "card")
 			logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "created", "id", 1001)
 			want := "{\"level\":\"INFO\",\"msg\":\"created\",\"user_id\":123,\"order\":{\"source\":\"marketplace\",\"payment\":{\"method\":\"card\",\"id\":1001}}}\n"
@@ -81,7 +81,7 @@ func TestDynamicGroupScope(t *testing.T) {
 
 func TestGroupedDuplicatesAreNotMerged(t *testing.T) {
 	var buf bytes.Buffer
-	logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), ctxvaluer.WithValue("id", contextID))).
+	logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), enrich.WithValue("id", contextID))).
 		WithGroup("order").With("id", 1).With("id", 2)
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 0), "duplicates", "id", 3)
 	want := "{\"level\":\"INFO\",\"msg\":\"duplicates\",\"id\":0,\"order\":{\"id\":1,\"id\":2,\"id\":3}}\n"
@@ -92,11 +92,11 @@ func TestEmptyRecordGroupScope(t *testing.T) {
 	for _, currentGroup := range []bool{false, true} {
 		t.Run(fmt.Sprintf("current_group=%t", currentGroup), func(t *testing.T) {
 			var buf bytes.Buffer
-			opts := []ctxvaluer.Option{ctxvaluer.WithValue("user_id", contextID)}
+			opts := []enrich.Option{enrich.WithValue("user_id", contextID)}
 			if currentGroup {
-				opts = append(opts, ctxvaluer.WithCurrentGroup())
+				opts = append(opts, enrich.WithCurrentGroup())
 			}
-			logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).WithGroup("order")
+			logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).WithGroup("order")
 			logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "empty")
 			want := "{\"level\":\"INFO\",\"msg\":\"empty\",\"user_id\":123}\n"
 			if currentGroup {
@@ -108,9 +108,9 @@ func TestEmptyRecordGroupScope(t *testing.T) {
 }
 
 func TestEmptyGroupsDoNotAddRecordAttributes(t *testing.T) {
-	opts := make([]ctxvaluer.Option, 0, 5)
+	opts := make([]enrich.Option, 0, 5)
 	for i := range 5 {
-		opts = append(opts, ctxvaluer.WithValue(fmt.Sprintf("dynamic_%d", i), func(context.Context) slog.Value {
+		opts = append(opts, enrich.WithValue(fmt.Sprintf("dynamic_%d", i), func(context.Context) slog.Value {
 			return slog.IntValue(i)
 		}))
 	}
@@ -118,12 +118,12 @@ func TestEmptyGroupsDoNotAddRecordAttributes(t *testing.T) {
 		assert.Equal(t, 5, record.NumAttrs(), "empty groups added attributes: %v", recordAttrs(record))
 		return nil
 	}}
-	slog.New(ctxvaluer.NewHandler(next, opts...)).WithGroup("empty").WithGroup("nested").InfoContext(t.Context(), "message")
+	slog.New(enrich.NewHandler(next, opts...)).WithGroup("empty").WithGroup("nested").InfoContext(t.Context(), "message")
 }
 
 func TestTextDynamicFieldsRemainAtRoot(t *testing.T) {
 	var buf bytes.Buffer
-	logger := slog.New(ctxvaluer.NewHandler(slog.NewTextHandler(&buf, outputOptions()), ctxvaluer.WithValue("user_id", contextID))).
+	logger := slog.New(enrich.NewHandler(slog.NewTextHandler(&buf, outputOptions()), enrich.WithValue("user_id", contextID))).
 		WithGroup("order").With("source", "marketplace")
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "created", "id", 1001)
 	want := "level=INFO msg=created user_id=123 order.source=marketplace order.id=1001\n"
@@ -132,7 +132,7 @@ func TestTextDynamicFieldsRemainAtRoot(t *testing.T) {
 
 func TestDerivedHandlersAreIndependent(t *testing.T) {
 	var buf bytes.Buffer
-	base := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), ctxvaluer.WithValue("user_id", contextID)))
+	base := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), enrich.WithValue("user_id", contextID)))
 	parent := base.WithGroup("order").With("shared", 1)
 	left := parent.With("side", "left").WithGroup("payment").With("method", "card")
 	right := parent.With("side", "right").WithGroup("shipment").With("carrier", "mail")
@@ -161,11 +161,11 @@ func TestDelegationModes(t *testing.T) {
 				calls = append(calls, "group:"+name)
 				return next
 			}
-			var opts []ctxvaluer.Option
+			var opts []enrich.Option
 			if currentGroup {
-				opts = append(opts, ctxvaluer.WithCurrentGroup())
+				opts = append(opts, enrich.WithCurrentGroup())
 			}
-			slog.New(ctxvaluer.NewHandler(next, opts...)).With("root", 1).WithGroup("order").With("bound", 2)
+			slog.New(enrich.NewHandler(next, opts...)).With("root", 1).WithGroup("order").With("bound", 2)
 			want := []string{"attrs:root"}
 			if currentGroup {
 				want = append(want, "group:order", "attrs:bound")
@@ -183,7 +183,7 @@ func TestReplaceAttrReceivesCorrectGroupPaths(t *testing.T) {
 		}
 		return a
 	}})
-	logger := slog.New(ctxvaluer.NewHandler(next, ctxvaluer.WithValue("dynamic", func(context.Context) slog.Value { return slog.IntValue(1) }))).
+	logger := slog.New(enrich.NewHandler(next, enrich.WithValue("dynamic", func(context.Context) slog.Value { return slog.IntValue(1) }))).
 		WithGroup("order").With("bound", 2).WithGroup("payment")
 	logger.InfoContext(t.Context(), "message", "record", 3)
 	want := []string{"dynamic:[]", "bound:[order]", "record:[order payment]"}
@@ -196,8 +196,8 @@ func (f logValueFunc) LogValue() slog.Value { return f() }
 
 func TestLogValuerResolutionTiming(t *testing.T) {
 	var rootCalls, groupCalls, dynamicCalls int
-	logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(io.Discard, nil),
-		ctxvaluer.WithValue("dynamic", func(context.Context) slog.Value {
+	logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(io.Discard, nil),
+		enrich.WithValue("dynamic", func(context.Context) slog.Value {
 			return slog.AnyValue(logValueFunc(func() slog.Value {
 				dynamicCalls++
 				return slog.IntValue(1)
@@ -219,7 +219,7 @@ func TestLogValuerResolutionTiming(t *testing.T) {
 func TestPreGroupedHandlerCannotBeUngrouped(t *testing.T) {
 	var buf bytes.Buffer
 	next := slog.NewJSONHandler(&buf, outputOptions()).WithGroup("existing")
-	logger := slog.New(ctxvaluer.NewHandler(next, ctxvaluer.WithValue("user_id", contextID))).WithGroup("order")
+	logger := slog.New(enrich.NewHandler(next, enrich.WithValue("user_id", contextID))).WithGroup("order")
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "message", "id", 1)
 	want := "{\"level\":\"INFO\",\"msg\":\"message\",\"existing\":{\"user_id\":123,\"order\":{\"id\":1}}}\n"
 	assert.Equal(t, want, buf.String())

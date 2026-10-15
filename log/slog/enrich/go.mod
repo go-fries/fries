@@ -1,4 +1,4 @@
-module github.com/go-fries/fries/log/slog/ctxvaluer/v4
+module github.com/go-fries/fries/log/slog/enrich/v4
 
 go 1.26.0
 
