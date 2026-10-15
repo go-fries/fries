@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/stretchr/testify/require"
 )
 
 type benchmarkKey struct{}
@@ -50,7 +51,8 @@ func BenchmarkHandler(b *testing.B) {
 		b.Run(format+"/filtered_dynamic_10", func(b *testing.B) {
 			opts := benchmarkOptions(10)
 			opts[0] = ctxvaluer.WithValue("never", func(context.Context) slog.Value {
-				panic("filtered log evaluated a Valuer")
+				require.FailNow(b, "filtered log evaluated a Valuer")
+				return ctxvaluer.Omit()
 			})
 			logger := slog.New(ctxvaluer.NewHandler(factory(), opts...))
 			benchmarkLog(b, logger, slog.LevelDebug)

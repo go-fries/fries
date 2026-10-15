@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"reflect"
-	"slices"
 	"strings"
 	"testing"
 	"testing/slogtest"
 	"time"
 
 	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type contextKey struct{}
@@ -48,9 +48,7 @@ func TestInfoContextAndLogAttrs(t *testing.T) {
 	logger.LogAttrs(context.WithValue(t.Context(), contextKey{}, 456), slog.LevelInfo, "paid", slog.Int("order_id", 1002))
 	want := "{\"level\":\"INFO\",\"msg\":\"created\",\"user_id\":123,\"order_id\":1001}\n" +
 		"{\"level\":\"INFO\",\"msg\":\"paid\",\"user_id\":456,\"order_id\":1002}\n"
-	if got := buf.String(); got != want {
-		t.Fatalf("output:\n%s\nwant:\n%s", got, want)
-	}
+	assert.Equal(t, want, buf.String())
 }
 
 func TestRegistrationOrderAndExactlyOnce(t *testing.T) {
@@ -65,17 +63,12 @@ func TestRegistrationOrderAndExactlyOnce(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
 		With("service", "api").WithGroup("order").With("source", "marketplace")
-	if len(order) != 0 {
-		t.Fatal("With/WithGroup evaluated values")
-	}
+	assert.Empty(t, order, "With/WithGroup must not evaluate values")
 	logger.InfoContext(t.Context(), "first", "id", 1)
 	logger.LogAttrs(t.Context(), slog.LevelInfo, "second", slog.Int("id", 2))
-	if !slices.Equal(order, []int{0, 1, 2, 0, 1, 2}) {
-		t.Fatalf("evaluation order: %v", order)
-	}
-	if !stringsContainInOrder(buf.String(), `"value_0":0`, `"value_1":1`, `"value_2":2`, `"order":`) {
-		t.Fatalf("attribute order: %s", buf.String())
-	}
+	assert.Equal(t, []int{0, 1, 2, 0, 1, 2}, order)
+	assert.True(t, stringsContainInOrder(buf.String(), `"value_0":0`, `"value_1":1`, `"value_2":2`, `"order":`),
+		"attribute order: %s", buf.String())
 }
 
 func stringsContainInOrder(s string, parts ...string) bool {
@@ -94,9 +87,7 @@ func TestEnabledDelegatesWithoutEvaluation(t *testing.T) {
 	var levels []slog.Level
 	var calls int
 	next := &probeHandler{enabled: func(got context.Context, level slog.Level) bool {
-		if got != ctx {
-			t.Error("Enabled received a different context")
-		}
+		assert.Same(t, ctx, got, "Enabled received a different context")
 		levels = append(levels, level)
 		return level >= slog.LevelWarn
 	}}
@@ -107,12 +98,9 @@ func TestEnabledDelegatesWithoutEvaluation(t *testing.T) {
 	logger := slog.New(h)
 	logger.DebugContext(ctx, "filtered")
 	logger.InfoContext(ctx, "filtered")
-	if !logger.Enabled(ctx, slog.LevelWarn) {
-		t.Error("enabled level not delegated")
-	}
-	if calls != 0 || !slices.Equal(levels, []slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn}) {
-		t.Fatalf("values=%d, levels=%v", calls, levels)
-	}
+	assert.True(t, logger.Enabled(ctx, slog.LevelWarn), "enabled level not delegated")
+	assert.Zero(t, calls)
+	assert.Equal(t, []slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn}, levels)
 }
 
 func TestValuesAndDuplicateKeys(t *testing.T) {
@@ -144,9 +132,7 @@ func TestValuesAndDuplicateKeys(t *testing.T) {
 			// Check raw output, not a map: decoding duplicate keys would discard data.
 			want := "{\"level\":\"INFO\",\"msg\":\"values\",\"duplicate\":0,\"zero\":0,\"false\":false,\"empty\":\"\",\"nil\":null," +
 				"\"nested\":{\"name\":\"value\",\"inner\":{\"id\":7}},\"inline\":\"value\",\"duplicate\":1,\"duplicate\":2,\"duplicate\":3}\n"
-			if got := buf.String(); got != want {
-				t.Fatalf("output:\n%s\nwant:\n%s", got, want)
-			}
+			assert.Equal(t, want, buf.String())
 		})
 	}
 }
@@ -157,9 +143,7 @@ func TestNilAndCanceledContext(t *testing.T) {
 	logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()),
 		ctxvaluer.WithValue("id", func(ctx context.Context) slog.Value {
 			calls++
-			if ctx == nil {
-				t.Fatal("slog passed a nil context")
-			}
+			require.NotNil(t, ctx, "slog passed a nil context")
 			return contextID(ctx)
 		}),
 	))
@@ -168,16 +152,11 @@ func TestNilAndCanceledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.WithValue(t.Context(), contextKey{}, 42))
 	cancel()
 	logger.InfoContext(ctx, "canceled")
-	if calls != 3 {
-		t.Fatalf("calls=%d, want 3", calls)
-	}
+	assert.Equal(t, 3, calls)
 	results := decodeLines(t, buf.Bytes())
-	if _, ok := results[0]["id"]; ok {
-		t.Fatal("missing context value was not omitted")
-	}
-	if got := results[2]["id"]; got != float64(42) {
-		t.Fatalf("canceled context lost its value: %v", got)
-	}
+	require.Len(t, results, 3)
+	assert.NotContains(t, results[0], "id", "missing context value was not omitted")
+	assert.Equal(t, float64(42), results[2]["id"], "canceled context lost its value")
 }
 
 func TestRecordIsolationAndMetadata(t *testing.T) {
@@ -191,22 +170,22 @@ func TestRecordIsolationAndMetadata(t *testing.T) {
 			var count int
 			next := &probeHandler{handle: func(ctx context.Context, got slog.Record) error {
 				count++
-				if ctx != t.Context() || !got.Time.Equal(record.Time) || got.Level != record.Level ||
-					got.Message != record.Message || got.PC != record.PC {
-					t.Error("context or record metadata changed")
-				}
+				assert.Same(t, t.Context(), ctx)
+				assert.Equal(t, record.Time, got.Time)
+				assert.Equal(t, record.Level, got.Level)
+				assert.Equal(t, record.Message, got.Message)
+				assert.Equal(t, record.PC, got.PC)
 				attrs := recordAttrs(got)
-				if attrs[0].Key != "dynamic" {
-					t.Errorf("unexpected attributes: %v", attrs)
-				}
+				require.NotEmpty(t, attrs)
+				assert.Equal(t, "dynamic", attrs[0].Key)
 				if grouped {
+					require.Len(t, attrs, 2)
+					require.Equal(t, slog.KindGroup, attrs[1].Value.Kind())
 					attrs = attrs[1].Value.Group()
 				} else {
 					attrs = attrs[1:]
 				}
-				if !reflect.DeepEqual(attrs, before) {
-					t.Errorf("record attrs changed: %v", attrs)
-				}
+				assert.Equal(t, before, attrs, "record attrs changed")
 				got.AddAttrs(slog.String("child", "mutation"))
 				return nil
 			}}
@@ -217,17 +196,12 @@ func TestRecordIsolationAndMetadata(t *testing.T) {
 				h = h.WithGroup("group")
 			}
 			for range 2 {
-				if err := h.Handle(t.Context(), record); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, h.Handle(t.Context(), record))
 			}
-			if count != 2 || !reflect.DeepEqual(recordAttrs(record), before) {
-				t.Fatal("handling modified the original record")
-			}
+			assert.Equal(t, 2, count)
+			assert.Equal(t, before, recordAttrs(record), "handling modified the original record")
 			record.AddAttrs(slog.Int("after", 10))
-			if record.NumAttrs() != 10 {
-				t.Fatalf("unsafe record copy detected: %v", recordAttrs(record))
-			}
+			assert.Equal(t, 10, record.NumAttrs(), "unsafe record copy detected: %v", recordAttrs(record))
 		})
 	}
 }
@@ -243,10 +217,12 @@ func TestLargeRegistrationAndOptionReuse(t *testing.T) {
 		var buf bytes.Buffer
 		logger := slog.New(ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...))
 		logger.InfoContext(t.Context(), "large", "record", 21)
-		result := decodeLines(t, buf.Bytes())[0]
-		if len(result) != 23 || result["dynamic_19"] != float64(19) || result["record"] != float64(21) {
-			t.Fatalf("large registration lost fields: %v", result)
-		}
+		results := decodeLines(t, buf.Bytes())
+		require.Len(t, results, 1)
+		result := results[0]
+		assert.Len(t, result, 23)
+		assert.Equal(t, float64(19), result["dynamic_19"])
+		assert.Equal(t, float64(21), result["record"])
 	}
 }
 
@@ -254,23 +230,18 @@ func TestHandleErrorAndPanicPropagation(t *testing.T) {
 	want := errors.New("write failed")
 	h := ctxvaluer.NewHandler(&probeHandler{handle: func(context.Context, slog.Record) error { return want }},
 		ctxvaluer.WithValue("id", contextID))
-	if got := h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "", 0)); got != want {
-		t.Fatalf("error=%v, want %v", got, want)
-	}
+	err := h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "", 0))
+	require.ErrorIs(t, err, want)
+	assert.Same(t, want, err, "handler error must propagate unchanged")
 	var handled bool
 	h = ctxvaluer.NewHandler(&probeHandler{handle: func(context.Context, slog.Record) error {
 		handled = true
 		return nil
 	}}, ctxvaluer.WithValue("panic", func(context.Context) slog.Value { panic(want) }))
-	defer func() {
-		if got := recover(); got != want {
-			t.Errorf("panic=%v, want %v", got, want)
-		}
-		if handled {
-			t.Error("child handled a record after a Valuer panic")
-		}
-	}()
-	slog.New(h).InfoContext(t.Context(), "panic")
+	assert.PanicsWithValue(t, want, func() {
+		slog.New(h).InfoContext(t.Context(), "panic")
+	})
+	assert.False(t, handled, "child handled a record after a Valuer panic")
 }
 
 func TestConstructorValidationAndEmptyDerivation(t *testing.T) {
@@ -279,21 +250,13 @@ func TestConstructorValidationAndEmptyDerivation(t *testing.T) {
 		"nil_valuer":  func() { ctxvaluer.NewHandler(slog.NewJSONHandler(io.Discard, nil), ctxvaluer.WithValue("id", nil)) },
 	} {
 		t.Run(name, func(t *testing.T) {
-			defer func() {
-				if recover() == nil {
-					t.Error("constructor did not panic")
-				}
-			}()
-			create()
+			assert.Panics(t, create)
 		})
 	}
 	h := ctxvaluer.NewHandler(slog.NewJSONHandler(io.Discard, nil))
-	if h.WithAttrs(nil) != h || h.WithGroup("") != h {
-		t.Error("empty derivation did not return the receiver")
-	}
-	if err := h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "empty", 0)); err != nil {
-		t.Fatal(err)
-	}
+	assert.Same(t, h, h.WithAttrs(nil))
+	assert.Same(t, h, h.WithGroup(""))
+	require.NoError(t, h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "empty", 0)))
 }
 
 func TestSlogHandlerConformance(t *testing.T) {
@@ -311,9 +274,7 @@ func TestSlogHandlerConformance(t *testing.T) {
 				opts = append(opts, ctxvaluer.WithCurrentGroup())
 			}
 			h := ctxvaluer.NewHandler(slog.NewJSONHandler(&buf, nil), opts...)
-			if err := slogtest.TestHandler(h, func() []map[string]any { return decodeLines(t, buf.Bytes()) }); err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, slogtest.TestHandler(h, func() []map[string]any { return decodeLines(t, buf.Bytes()) }))
 		})
 	}
 }
@@ -324,9 +285,7 @@ func decodeLines(t *testing.T, data []byte) []map[string]any {
 	results := make([]map[string]any, 0, len(lines))
 	for _, line := range lines {
 		var result map[string]any
-		if err := json.Unmarshal(line, &result); err != nil {
-			t.Fatalf("invalid JSON %s: %v", line, err)
-		}
+		require.NoError(t, json.Unmarshal(line, &result), "invalid JSON: %s", line)
 		results = append(results, result)
 	}
 	return results

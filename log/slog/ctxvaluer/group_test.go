@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"slices"
 	"testing"
 
 	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGroupParityWithNativeHandlers(t *testing.T) {
@@ -53,9 +53,7 @@ func TestGroupParityWithNativeHandlers(t *testing.T) {
 					ctxvaluer.WithValue("missing", func(context.Context) slog.Value { return ctxvaluer.Omit() }),
 				)))
 				logger.LogAttrs(t.Context(), slog.LevelInfo, "message", tc.attrs...)
-				if wrapped.String() != native.String() {
-					t.Fatalf("wrapped:\n%s\nnative:\n%s", wrapped.String(), native.String())
-				}
+				assert.Equal(t, native.String(), wrapped.String())
 			})
 		}
 	}
@@ -76,9 +74,7 @@ func TestDynamicGroupScope(t *testing.T) {
 			if currentGroup {
 				want = "{\"level\":\"INFO\",\"msg\":\"created\",\"order\":{\"source\":\"marketplace\",\"payment\":{\"method\":\"card\",\"user_id\":123,\"id\":1001}}}\n"
 			}
-			if got := buf.String(); got != want {
-				t.Fatalf("output:\n%s\nwant:\n%s", got, want)
-			}
+			assert.Equal(t, want, buf.String())
 		})
 	}
 }
@@ -89,9 +85,7 @@ func TestGroupedDuplicatesAreNotMerged(t *testing.T) {
 		WithGroup("order").With("id", 1).With("id", 2)
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 0), "duplicates", "id", 3)
 	want := "{\"level\":\"INFO\",\"msg\":\"duplicates\",\"id\":0,\"order\":{\"id\":1,\"id\":2,\"id\":3}}\n"
-	if got := buf.String(); got != want {
-		t.Fatalf("output=%q, want %q", got, want)
-	}
+	assert.Equal(t, want, buf.String())
 }
 
 func TestEmptyRecordGroupScope(t *testing.T) {
@@ -108,9 +102,7 @@ func TestEmptyRecordGroupScope(t *testing.T) {
 			if currentGroup {
 				want = "{\"level\":\"INFO\",\"msg\":\"empty\",\"order\":{\"user_id\":123}}\n"
 			}
-			if got := buf.String(); got != want {
-				t.Fatalf("output=%q, want %q", got, want)
-			}
+			assert.Equal(t, want, buf.String())
 		})
 	}
 }
@@ -123,9 +115,7 @@ func TestEmptyGroupsDoNotAddRecordAttributes(t *testing.T) {
 		}))
 	}
 	next := &probeHandler{handle: func(_ context.Context, record slog.Record) error {
-		if record.NumAttrs() != 5 {
-			t.Errorf("empty groups added attributes: %v", recordAttrs(record))
-		}
+		assert.Equal(t, 5, record.NumAttrs(), "empty groups added attributes: %v", recordAttrs(record))
 		return nil
 	}}
 	slog.New(ctxvaluer.NewHandler(next, opts...)).WithGroup("empty").WithGroup("nested").InfoContext(t.Context(), "message")
@@ -137,9 +127,7 @@ func TestTextDynamicFieldsRemainAtRoot(t *testing.T) {
 		WithGroup("order").With("source", "marketplace")
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "created", "id", 1001)
 	want := "level=INFO msg=created user_id=123 order.source=marketplace order.id=1001\n"
-	if got := buf.String(); got != want {
-		t.Fatalf("output=%q, want %q", got, want)
-	}
+	assert.Equal(t, want, buf.String())
 }
 
 func TestDerivedHandlersAreIndependent(t *testing.T) {
@@ -157,9 +145,7 @@ func TestDerivedHandlersAreIndependent(t *testing.T) {
 		"{\"level\":\"INFO\",\"msg\":\"parent\",\"user_id\":123,\"order\":{\"shared\":1}}\n" +
 		"{\"level\":\"INFO\",\"msg\":\"left\",\"user_id\":123,\"order\":{\"shared\":1,\"side\":\"left\",\"payment\":{\"method\":\"card\",\"id\":2}}}\n" +
 		"{\"level\":\"INFO\",\"msg\":\"right\",\"user_id\":123,\"order\":{\"shared\":1,\"side\":\"right\",\"shipment\":{\"carrier\":\"mail\",\"id\":3}}}\n"
-	if got := buf.String(); got != want {
-		t.Fatalf("output:\n%s\nwant:\n%s", got, want)
-	}
+	assert.Equal(t, want, buf.String())
 }
 
 func TestDelegationModes(t *testing.T) {
@@ -184,9 +170,7 @@ func TestDelegationModes(t *testing.T) {
 			if currentGroup {
 				want = append(want, "group:order", "attrs:bound")
 			}
-			if !slices.Equal(calls, want) {
-				t.Fatalf("delegation=%v, want %v", calls, want)
-			}
+			assert.Equal(t, want, calls)
 		})
 	}
 }
@@ -203,9 +187,7 @@ func TestReplaceAttrReceivesCorrectGroupPaths(t *testing.T) {
 		WithGroup("order").With("bound", 2).WithGroup("payment")
 	logger.InfoContext(t.Context(), "message", "record", 3)
 	want := []string{"dynamic:[]", "bound:[order]", "record:[order payment]"}
-	if !slices.Equal(paths, want) {
-		t.Fatalf("paths=%v, want %v", paths, want)
-	}
+	assert.Equal(t, want, paths)
 }
 
 type logValueFunc func() slog.Value
@@ -223,15 +205,15 @@ func TestLogValuerResolutionTiming(t *testing.T) {
 		}),
 	)).With("root", logValueFunc(func() slog.Value { rootCalls++; return slog.IntValue(1) })).
 		WithGroup("group").With("bound", logValueFunc(func() slog.Value { groupCalls++; return slog.IntValue(1) }))
-	if rootCalls != 1 || groupCalls != 0 || dynamicCalls != 0 {
-		t.Fatalf("construction calls: root=%d group=%d dynamic=%d", rootCalls, groupCalls, dynamicCalls)
-	}
+	assert.Equal(t, 1, rootCalls, "root LogValuer must resolve at binding time")
+	assert.Zero(t, groupCalls, "grouped LogValuer must not resolve at binding time")
+	assert.Zero(t, dynamicCalls, "dynamic LogValuer must not resolve at binding time")
 	for range 2 {
 		logger.InfoContext(t.Context(), "message")
 	}
-	if rootCalls != 1 || groupCalls != 2 || dynamicCalls != 2 {
-		t.Fatalf("logging calls: root=%d group=%d dynamic=%d", rootCalls, groupCalls, dynamicCalls)
-	}
+	assert.Equal(t, 1, rootCalls)
+	assert.Equal(t, 2, groupCalls)
+	assert.Equal(t, 2, dynamicCalls)
 }
 
 func TestPreGroupedHandlerCannotBeUngrouped(t *testing.T) {
@@ -240,7 +222,5 @@ func TestPreGroupedHandlerCannotBeUngrouped(t *testing.T) {
 	logger := slog.New(ctxvaluer.NewHandler(next, ctxvaluer.WithValue("user_id", contextID))).WithGroup("order")
 	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "message", "id", 1)
 	want := "{\"level\":\"INFO\",\"msg\":\"message\",\"existing\":{\"user_id\":123,\"order\":{\"id\":1}}}\n"
-	if got := buf.String(); got != want {
-		t.Fatalf("output=%q, want %q", got, want)
-	}
+	assert.Equal(t, want, buf.String())
 }

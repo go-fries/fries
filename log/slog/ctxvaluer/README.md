@@ -2,7 +2,8 @@
 
 `ctxvaluer` adds context-aware attributes to a standard `slog.Handler`. Use the
 ordinary `slog.Logger`, including `InfoContext`, `LogAttrs`, `With`, and
-`WithGroup`. The module requires Go 1.26.0 and has no third-party dependencies.
+`WithGroup`. The module requires Go 1.26.0. The implementation uses only the
+standard library; tests use `github.com/stretchr/testify` for assertions.
 
 ## Installation
 

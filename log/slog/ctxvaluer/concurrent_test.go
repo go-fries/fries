@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/go-fries/fries/log/slog/ctxvaluer/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandlerConcurrentSafe(t *testing.T) {
@@ -47,30 +49,29 @@ func TestHandlerConcurrentSafe(t *testing.T) {
 			}
 			wg.Wait()
 			results := decodeLines(t, buf.Bytes())
-			if len(results) != workers*logs || calls.Load() != workers*logs {
-				t.Fatalf("records=%d calls=%d, want %d", len(results), calls.Load(), workers*logs)
-			}
+			assert.Len(t, results, workers*logs)
+			assert.Equal(t, int64(workers*logs), calls.Load())
 			seen := make(map[[2]int]bool, workers*logs)
 			for _, result := range results {
-				request := result["request"].(map[string]any)
+				request, ok := result["request"].(map[string]any)
+				require.True(t, ok, "missing request group: %v", result)
 				fields := request
 				if result["msg"] == "derived" {
-					fields = request["job"].(map[string]any)
-					if request["bound"] != fields["expected"] {
-						t.Fatalf("derived fields crossed contexts: %v", result)
-					}
+					fields, ok = request["job"].(map[string]any)
+					require.True(t, ok, "missing job group: %v", result)
+					assert.Equal(t, fields["expected"], request["bound"], "derived fields crossed contexts: %v", result)
 				}
 				id := result["user_id"]
 				if currentGroup {
 					id = fields["user_id"]
 				}
-				if id != fields["expected"] || result["service"] != "api" || request["source"] != "http" {
-					t.Fatalf("fields crossed contexts: %v", result)
-				}
+				require.IsType(t, float64(0), id)
+				require.IsType(t, float64(0), fields["sequence"])
+				assert.Equal(t, fields["expected"], id, "fields crossed contexts: %v", result)
+				assert.Equal(t, "api", result["service"])
+				assert.Equal(t, "http", request["source"])
 				key := [2]int{int(id.(float64)), int(fields["sequence"].(float64))}
-				if seen[key] {
-					t.Fatalf("duplicate record: %v", key)
-				}
+				assert.NotContains(t, seen, key, "duplicate record: %v", key)
 				seen[key] = true
 			}
 		})
