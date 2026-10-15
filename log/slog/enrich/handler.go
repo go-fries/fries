@@ -31,8 +31,8 @@ type Handler struct {
 // [Handler.WithGroup]. To keep them at the output's top level, next must be
 // ungrouped. Use [WithCurrentGroup] to delegate group behavior to next.
 //
-// NewHandler panics if next or any callback registered with [WithValue] or
-// [WithExtractors] is nil.
+// NewHandler panics if next is nil. Nil callbacks registered with [WithValue]
+// or [WithExtractors] are ignored.
 func NewHandler(next slog.Handler, opts ...Option) *Handler {
 	if next == nil {
 		panic("enrich: nil handler")

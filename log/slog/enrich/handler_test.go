@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"strings"
 	"testing"
@@ -245,18 +244,13 @@ func TestHandleErrorAndPanicPropagation(t *testing.T) {
 }
 
 func TestConstructorValidationAndEmptyDerivation(t *testing.T) {
-	for name, create := range map[string]func(){
-		"nil_handler": func() { enrich.NewHandler(nil) },
-		"nil_valuer":  func() { enrich.NewHandler(slog.NewJSONHandler(io.Discard, nil), enrich.WithValue("id", nil)) },
-	} {
-		t.Run(name, func(t *testing.T) {
-			assert.Panics(t, create)
-		})
-	}
-	h := enrich.NewHandler(slog.NewJSONHandler(io.Discard, nil))
+	assert.PanicsWithValue(t, "enrich: nil handler", func() { enrich.NewHandler(nil) })
+	var buf bytes.Buffer
+	h := enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), enrich.WithValue("ignored", nil))
 	assert.Same(t, h, h.WithAttrs(nil))
 	assert.Same(t, h, h.WithGroup(""))
 	require.NoError(t, h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "empty", 0)))
+	assert.Equal(t, "{\"level\":\"INFO\",\"msg\":\"empty\"}\n", buf.String())
 }
 
 func TestSlogHandlerConformance(t *testing.T) {

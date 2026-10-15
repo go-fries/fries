@@ -28,7 +28,7 @@ func (f optionFunc) apply(c *config) {
 //
 // [Handler.Handle] evaluates registered [Valuer] and [Extractor] functions in
 // registration order, including registrations with duplicate keys.
-// [NewHandler] panics if value is nil.
+// A nil value is ignored.
 func WithValue(key string, value Valuer) Option {
 	return optionFunc(func(c *config) {
 		if value != nil {
@@ -42,7 +42,7 @@ func WithValue(key string, value Valuer) Option {
 // Registrations are interleaved with [WithValue] registrations in option order.
 // The order of attributes returned by each [Extractor] is preserved.
 // WithExtractors copies the extractors slice; passing no extractors has no effect.
-// [NewHandler] panics if any extractor is nil.
+// Nil extractors are ignored.
 func WithExtractors(extractors ...Extractor) Option {
 	extractors = slices.Clone(extractors)
 	return optionFunc(func(c *config) {

@@ -100,7 +100,7 @@ logger := slog.New(handler)
 two extractors, and another single value execute in exactly that sequence.
 Each extractor's returned attributes stay together and retain their slice order.
 Returning `nil` or an empty slice adds no attributes. Passing no extractors is a
-no-op; a nil extractor causes a panic when `NewHandler` applies the option.
+no-op; nil extractors are ignored without affecting the remaining callbacks.
 
 `WithExtractors` copies its argument slice when the option is created, so it can
 be reused without depending on later changes to that slice. The handler copies
@@ -140,7 +140,7 @@ parallel conversion helpers or custom logger APIs.
 | Canceled context | Still passed through and evaluated; cancellation does not suppress logging. |
 | Callback panic | Propagates to the caller; this module does not recover it. Native `slog.LogValuer` resolution remains the child handler's responsibility. |
 | Handler error | Returned unchanged by `Handle`. Standard `slog.Logger` discards handler errors; use a child error-reporting handler if required. |
-| Invalid constructor arguments | A nil handler or registered Valuer/Extractor panics during construction. |
+| Nil constructor inputs | A nil handler panics during construction; nil Valuer/Extractor registrations are ignored. |
 
 Callback functions and the wrapped handler must support concurrent use. The
 wrapper keeps no request context, changes no configuration after construction,

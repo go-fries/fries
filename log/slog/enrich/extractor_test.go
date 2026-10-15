@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"slices"
 	"testing"
@@ -26,18 +25,22 @@ func TestExtractorsMixedRegistrationOrder(t *testing.T) {
 			order = append(order, "value:first")
 			return slog.IntValue(0)
 		}),
+		enrich.WithValue("ignored", nil),
 		enrich.WithExtractors(
+			nil,
 			func(got context.Context) []slog.Attr {
 				assert.Same(t, ctx, got)
 				order = append(order, "extract:first")
 				return []slog.Attr{slog.Int("duplicate", 1), slog.Int("duplicate", 2)}
 			},
 			func(context.Context) []slog.Attr { order = append(order, "extract:nil"); return nil },
+			nil,
 			func(context.Context) []slog.Attr { order = append(order, "extract:empty"); return []slog.Attr{} },
 			func(context.Context) []slog.Attr {
 				order = append(order, "extract:last")
 				return []slog.Attr{slog.Int("duplicate", 3)}
 			},
+			nil,
 		),
 		enrich.WithValue("duplicate", func(context.Context) slog.Value {
 			order = append(order, "value:last")
@@ -140,20 +143,20 @@ func TestExtractorsOptionSnapshotAndReuse(t *testing.T) {
 	}
 }
 
-func TestExtractorsValidationAndEmptyOption(t *testing.T) {
-	valid := func(context.Context) []slog.Attr {
-		require.FailNow(t, "constructor must not invoke extractors")
-		return nil
-	}
-	for _, callbacks := range [][]enrich.Extractor{{nil}, {valid, nil}, {nil, valid}} {
-		opt := enrich.WithExtractors(callbacks...)
-		assert.PanicsWithValue(t, "enrich: nil extractor", func() {
-			enrich.NewHandler(slog.NewJSONHandler(io.Discard, nil), opt)
+func TestExtractorsIgnoreNilAndEmptyOption(t *testing.T) {
+	for name, opt := range map[string]enrich.Option{
+		"no_extractors": enrich.WithExtractors(),
+		"nil_slice":     enrich.WithExtractors([]enrich.Extractor(nil)...),
+		"nil_extractor": enrich.WithExtractors(nil),
+		"all_nil":       enrich.WithExtractors(nil, nil),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opt))
+			logger.InfoContext(t.Context(), "empty")
+			assert.Equal(t, "{\"level\":\"INFO\",\"msg\":\"empty\"}\n", buf.String())
 		})
 	}
-	var buf bytes.Buffer
-	slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), enrich.WithExtractors())).InfoContext(t.Context(), "empty")
-	assert.Equal(t, "{\"level\":\"INFO\",\"msg\":\"empty\"}\n", buf.String())
 }
 
 func TestExtractorLargeResultAndRecordIsolation(t *testing.T) {

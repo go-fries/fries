@@ -33,4 +33,6 @@
 //
 // Panics from registered callbacks and errors from the wrapped handler propagate
 // unchanged. The standard [slog.Logger] discards handler errors.
+// Nil [Valuer] and [Extractor] registrations are ignored; [NewHandler] panics
+// if the wrapped handler is nil.
 package enrich
