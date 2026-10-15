@@ -10,7 +10,7 @@ type config struct {
 	currentGroup bool
 }
 
-// Option configures a Handler when it is constructed.
+// Option configures a [Handler] created by [NewHandler].
 type Option interface {
 	apply(*config)
 }
@@ -21,9 +21,10 @@ func (f optionFunc) apply(c *config) {
 	f(c)
 }
 
-// WithValue registers a dynamic attribute. Registrations are evaluated in order,
-// including registrations with duplicate keys. A nil value causes a panic when
-// NewHandler applies this option.
+// WithValue returns an [Option] that registers value under key.
+//
+// [Handler.Handle] evaluates registered [Valuer] functions in registration order,
+// including registrations with duplicate keys. [NewHandler] panics if value is nil.
 func WithValue(key string, value Valuer) Option {
 	return optionFunc(func(c *config) {
 		if value == nil {
@@ -33,10 +34,12 @@ func WithValue(key string, value Valuer) Option {
 	})
 }
 
-// WithCurrentGroup makes dynamic attributes follow the wrapped handler's current
-// group. In this mode, WithAttrs and WithGroup delegate directly to that handler.
-// Without this option, groups created on the wrapper do not contain dynamic
-// attributes, and grouped WithAttrs are retained until Handle.
+// WithCurrentGroup returns an [Option] that places dynamic attributes in the
+// wrapped handler's current group.
+//
+// With this option, [Handler.WithAttrs] and [Handler.WithGroup] delegate to the
+// wrapped handler. Without this option, [Handler] keeps dynamic attributes outside
+// wrapper-owned groups and retains grouped attributes until [Handler.Handle].
 func WithCurrentGroup() Option {
 	return optionFunc(func(c *config) {
 		c.currentGroup = true

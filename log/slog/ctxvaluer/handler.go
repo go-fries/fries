@@ -13,19 +13,25 @@ type group struct {
 	attrs []slog.Attr
 }
 
-// Handler injects context-aware attributes before a record's attributes.
-// Configuration and derived handlers are immutable. Concurrent use is safe if
-// the wrapped handler and each Valuer are safe for concurrent use.
+// Handler implements [slog.Handler] by injecting context-aware attributes before
+// each record's attributes.
+//
+// Create a Handler with [NewHandler]. Its configuration and derived handlers are
+// immutable. Concurrent use is safe if the wrapped handler and each registered
+// [Valuer] are safe for concurrent use.
 type Handler struct {
 	next   slog.Handler
 	config *config
 	groups []group
 }
 
-// NewHandler wraps next. It panics if next or a registered Valuer is nil.
-// By default, dynamic attributes remain outside groups created on this wrapper;
-// next must be ungrouped if output-level top-level attributes are required.
-// Use WithCurrentGroup for fully delegated group behavior.
+// NewHandler returns a [Handler] that adds context-aware attributes to next.
+//
+// By default, dynamic attributes remain outside groups created by
+// [Handler.WithGroup]. To keep them at the output's top level, next must be
+// ungrouped. Use [WithCurrentGroup] to delegate group behavior to next.
+//
+// NewHandler panics if next or a [Valuer] registered with [WithValue] is nil.
 func NewHandler(next slog.Handler, opts ...Option) *Handler {
 	if next == nil {
 		panic("ctxvaluer: nil handler")
@@ -33,15 +39,20 @@ func NewHandler(next slog.Handler, opts ...Option) *Handler {
 	return &Handler{next: next, config: newConfig(opts...)}
 }
 
-// Enabled delegates to the wrapped handler without evaluating any Valuer.
+// Enabled reports whether the wrapped handler accepts the context and level.
+// It delegates to [slog.Handler.Enabled] without evaluating any [Valuer].
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.next.Enabled(ctx, level)
 }
 
-// Handle evaluates registered values once, in order, and passes a new record to
-// the wrapped handler. It preserves record metadata and does not modify shared
-// record attributes. Errors and Valuer panics propagate unchanged.
-// Like other slog handlers, Handle assumes Enabled has already returned true.
+// Handle evaluates registered [Valuer] functions and passes the augmented record
+// to the wrapped handler.
+//
+// Values are evaluated once per call, in registration order. Handle preserves
+// record metadata and does not modify shared record attributes. Errors from the
+// wrapped handler and panics from [Valuer] functions propagate unchanged.
+//
+// Handle assumes [Handler.Enabled] has returned true for ctx and record.Level.
 func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 	if len(h.config.fields) == 0 && len(h.groups) == 0 {
 		return h.next.Handle(ctx, record)
@@ -107,10 +118,15 @@ func (h *Handler) groupAttr(record slog.Record) slog.Attr {
 	return child
 }
 
-// WithAttrs returns a derived handler. Root attributes delegate to next. In the
-// default mode, grouped attributes are retained and sent as GroupValue contents
-// during Handle; their ordinary slog.LogValuers may therefore resolve per event.
-// Context Valuers are never evaluated here.
+// WithAttrs returns a derived [Handler] that includes attrs.
+// It returns h if attrs is empty.
+//
+// Root attributes delegate to the wrapped handler. By default, grouped attributes
+// are retained until [Handler.Handle] and nested with [slog.GroupValue]. Their
+// [slog.LogValuer] values may therefore resolve for each record. When
+// [WithCurrentGroup] is set, all attributes delegate to the wrapped handler.
+//
+// WithAttrs never evaluates registered [Valuer] functions.
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	if len(attrs) == 0 {
 		return h
@@ -126,9 +142,12 @@ func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &clone
 }
 
-// WithGroup returns a derived handler. An empty name returns h. By default the
-// wrapper owns the group, keeping dynamic attributes outside it. WithCurrentGroup
-// instead delegates to next, so dynamic attributes inherit the native group.
+// WithGroup returns a derived [Handler] that groups subsequent ordinary
+// attributes under name. It returns h if name is empty.
+//
+// By default, dynamic attributes remain outside groups created by WithGroup.
+// When [WithCurrentGroup] is set, the call delegates to [slog.Handler.WithGroup],
+// so dynamic attributes inherit the wrapped handler's current group.
 func (h *Handler) WithGroup(name string) slog.Handler {
 	if name == "" {
 		return h
