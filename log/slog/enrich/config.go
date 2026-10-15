@@ -31,10 +31,9 @@ func (f optionFunc) apply(c *config) {
 // [NewHandler] panics if value is nil.
 func WithValue(key string, value Valuer) Option {
 	return optionFunc(func(c *config) {
-		if value == nil {
-			panic("enrich: nil valuer")
+		if value != nil {
+			c.sources = append(c.sources, source{key: key, value: value})
 		}
-		c.sources = append(c.sources, source{key: key, value: value})
 	})
 }
 
@@ -48,10 +47,9 @@ func WithExtractors(extractors ...Extractor) Option {
 	extractors = slices.Clone(extractors)
 	return optionFunc(func(c *config) {
 		for _, extract := range extractors {
-			if extract == nil {
-				panic("enrich: nil extractor")
+			if extract != nil {
+				c.sources = append(c.sources, source{extract: extract})
 			}
-			c.sources = append(c.sources, source{extract: extract})
 		}
 	})
 }
