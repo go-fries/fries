@@ -4,6 +4,8 @@ This document defines contribution conventions for this repository. It applies t
 
 The goal is to keep components consistent, maintainable, and predictable for both users and maintainers.
 
+For the maintainer release workflow, see [RELEASING.md](RELEASING.md).
+
 ## Module Layout
 
 This is a multi-module Go repository. The root module is `github.com/go-fries/fries/v4`, and many component directories have their own `go.mod` files.
