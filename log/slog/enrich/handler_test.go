@@ -1,0 +1,327 @@
+package enrich_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
+	"strings"
+	"testing"
+	"testing/slogtest"
+	"time"
+
+	"github.com/go-fries/fries/log/slog/enrich/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+type contextKey struct{}
+
+func contextID(ctx context.Context) slog.Value {
+	id, ok := ctx.Value(contextKey{}).(int)
+	if !ok {
+		return enrich.Omit()
+	}
+	return slog.IntValue(id)
+}
+
+func outputOptions() *slog.HandlerOptions {
+	return &slog.HandlerOptions{
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	}
+}
+
+func TestInfoContextAndLogAttrs(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()),
+		enrich.WithValue("user_id", contextID),
+	))
+	logger.InfoContext(context.WithValue(t.Context(), contextKey{}, 123), "created", "order_id", 1001)
+	logger.LogAttrs(context.WithValue(t.Context(), contextKey{}, 456), slog.LevelInfo, "paid", slog.Int("order_id", 1002))
+	want := "{\"level\":\"INFO\",\"msg\":\"created\",\"user_id\":123,\"order_id\":1001}\n" +
+		"{\"level\":\"INFO\",\"msg\":\"paid\",\"user_id\":456,\"order_id\":1002}\n"
+	assert.Equal(t, want, buf.String())
+}
+
+func TestRegistrationOrderAndExactlyOnce(t *testing.T) {
+	var order []int
+	opts := make([]enrich.Option, 0, 3)
+	for i := range 3 {
+		opts = append(opts, enrich.WithValue(fmt.Sprintf("value_%d", i), func(context.Context) slog.Value {
+			order = append(order, i)
+			return slog.IntValue(i)
+		}))
+	}
+	var buf bytes.Buffer
+	logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
+		With("service", "api").WithGroup("order").With("source", "marketplace")
+	assert.Empty(t, order, "With/WithGroup must not evaluate values")
+	logger.InfoContext(t.Context(), "first", "id", 1)
+	logger.LogAttrs(t.Context(), slog.LevelInfo, "second", slog.Int("id", 2))
+	assert.Equal(t, []int{0, 1, 2, 0, 1, 2}, order)
+	assert.True(t, stringsContainInOrder(buf.String(), `"value_0":0`, `"value_1":1`, `"value_2":2`, `"order":`),
+		"attribute order: %s", buf.String())
+}
+
+func stringsContainInOrder(s string, parts ...string) bool {
+	for _, part := range parts {
+		i := strings.Index(s, part)
+		if i < 0 {
+			return false
+		}
+		s = s[i+len(part):]
+	}
+	return true
+}
+
+func TestEnabledDelegatesWithoutEvaluation(t *testing.T) {
+	ctx := context.WithValue(t.Context(), contextKey{}, 42)
+	var levels []slog.Level
+	var calls int
+	next := &probeHandler{enabled: func(got context.Context, level slog.Level) bool {
+		assert.Same(t, ctx, got, "Enabled received a different context")
+		levels = append(levels, level)
+		return level >= slog.LevelWarn
+	}}
+	h := enrich.NewHandler(next, enrich.WithValue("id", func(context.Context) slog.Value {
+		calls++
+		return slog.IntValue(1)
+	}))
+	logger := slog.New(h)
+	logger.DebugContext(ctx, "filtered")
+	logger.InfoContext(ctx, "filtered")
+	assert.True(t, logger.Enabled(ctx, slog.LevelWarn), "enabled level not delegated")
+	assert.Zero(t, calls)
+	assert.Equal(t, []slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn}, levels)
+}
+
+func TestValuesAndDuplicateKeys(t *testing.T) {
+	for _, currentGroup := range []bool{false, true} {
+		t.Run(fmt.Sprintf("current_group=%t", currentGroup), func(t *testing.T) {
+			var buf bytes.Buffer
+			opts := []enrich.Option{
+				enrich.WithValue("zero", func(context.Context) slog.Value { return slog.Int64Value(0) }),
+				enrich.WithValue("false", func(context.Context) slog.Value { return slog.BoolValue(false) }),
+				enrich.WithValue("empty", func(context.Context) slog.Value { return slog.StringValue("") }),
+				enrich.WithValue("nil", func(context.Context) slog.Value { return slog.Value{} }),
+				enrich.WithValue("missing", func(context.Context) slog.Value { return enrich.Omit() }),
+				enrich.WithValue("empty_group", func(context.Context) slog.Value { return slog.GroupValue() }),
+				enrich.WithValue("nested", func(context.Context) slog.Value {
+					return slog.GroupValue(slog.String("name", "value"), slog.Group("inner", slog.Int("id", 7)))
+				}),
+				enrich.WithValue("", func(context.Context) slog.Value {
+					return slog.GroupValue(slog.String("inline", "value"))
+				}),
+				enrich.WithValue("duplicate", func(context.Context) slog.Value { return slog.IntValue(1) }),
+				enrich.WithValue("duplicate", func(context.Context) slog.Value { return slog.IntValue(2) }),
+			}
+			if currentGroup {
+				opts = append(opts, enrich.WithCurrentGroup())
+			}
+			logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...)).
+				With("duplicate", 0)
+			logger.InfoContext(t.Context(), "values", "duplicate", 3, slog.Attr{}, slog.Group("ignored"))
+			// Check raw output, not a map: decoding duplicate keys would discard data.
+			want := "{\"level\":\"INFO\",\"msg\":\"values\",\"duplicate\":0,\"zero\":0,\"false\":false,\"empty\":\"\",\"nil\":null," +
+				"\"nested\":{\"name\":\"value\",\"inner\":{\"id\":7}},\"inline\":\"value\",\"duplicate\":1,\"duplicate\":2,\"duplicate\":3}\n"
+			assert.Equal(t, want, buf.String())
+		})
+	}
+}
+
+func TestNilAndCanceledContext(t *testing.T) {
+	var buf bytes.Buffer
+	var calls int
+	logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()),
+		enrich.WithValue("id", func(ctx context.Context) slog.Value {
+			calls++
+			require.NotNil(t, ctx, "slog passed a nil context")
+			return contextID(ctx)
+		}),
+	))
+	logger.InfoContext(nil, "nil") //nolint:staticcheck // Exercise slog's documented nil-context normalization.
+	logger.Info("background")
+	ctx, cancel := context.WithCancel(context.WithValue(t.Context(), contextKey{}, 42))
+	cancel()
+	logger.InfoContext(ctx, "canceled")
+	assert.Equal(t, 3, calls)
+	results := decodeLines(t, buf.Bytes())
+	require.Len(t, results, 3)
+	assert.NotContains(t, results[0], "id", "missing context value was not omitted")
+	assert.Equal(t, float64(42), results[2]["id"], "canceled context lost its value")
+}
+
+func TestRecordIsolationAndMetadata(t *testing.T) {
+	for _, grouped := range []bool{false, true} {
+		t.Run(fmt.Sprintf("grouped=%t", grouped), func(t *testing.T) {
+			record := slog.NewRecord(time.Unix(123, 456), slog.LevelWarn, "message", 12345)
+			for i := range 9 {
+				record.AddAttrs(slog.Int(fmt.Sprintf("key_%d", i), i))
+			}
+			before := recordAttrs(record)
+			var count int
+			next := &probeHandler{handle: func(ctx context.Context, got slog.Record) error {
+				count++
+				assert.Same(t, t.Context(), ctx)
+				assert.Equal(t, record.Time, got.Time)
+				assert.Equal(t, record.Level, got.Level)
+				assert.Equal(t, record.Message, got.Message)
+				assert.Equal(t, record.PC, got.PC)
+				attrs := recordAttrs(got)
+				require.NotEmpty(t, attrs)
+				assert.Equal(t, "dynamic", attrs[0].Key)
+				if grouped {
+					require.Len(t, attrs, 2)
+					require.Equal(t, slog.KindGroup, attrs[1].Value.Kind())
+					attrs = attrs[1].Value.Group()
+				} else {
+					attrs = attrs[1:]
+				}
+				assert.Equal(t, before, attrs, "record attrs changed")
+				got.AddAttrs(slog.String("child", "mutation"))
+				return nil
+			}}
+			var h slog.Handler = enrich.NewHandler(next, enrich.WithValue("dynamic", func(context.Context) slog.Value {
+				return slog.IntValue(1)
+			}))
+			if grouped {
+				h = h.WithGroup("group")
+			}
+			for range 2 {
+				require.NoError(t, h.Handle(t.Context(), record))
+			}
+			assert.Equal(t, 2, count)
+			assert.Equal(t, before, recordAttrs(record), "handling modified the original record")
+			record.AddAttrs(slog.Int("after", 10))
+			assert.Equal(t, 10, record.NumAttrs(), "unsafe record copy detected: %v", recordAttrs(record))
+		})
+	}
+}
+
+func TestLargeRegistrationAndOptionReuse(t *testing.T) {
+	opts := make([]enrich.Option, 0, 20)
+	for i := range 20 {
+		opts = append(opts, enrich.WithValue(fmt.Sprintf("dynamic_%d", i), func(context.Context) slog.Value {
+			return slog.IntValue(i)
+		}))
+	}
+	for range 2 {
+		var buf bytes.Buffer
+		logger := slog.New(enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), opts...))
+		logger.InfoContext(t.Context(), "large", "record", 21)
+		results := decodeLines(t, buf.Bytes())
+		require.Len(t, results, 1)
+		result := results[0]
+		assert.Len(t, result, 23)
+		assert.Equal(t, float64(19), result["dynamic_19"])
+		assert.Equal(t, float64(21), result["record"])
+	}
+}
+
+func TestHandleErrorAndPanicPropagation(t *testing.T) {
+	want := errors.New("write failed")
+	h := enrich.NewHandler(&probeHandler{handle: func(context.Context, slog.Record) error { return want }},
+		enrich.WithValue("id", contextID))
+	err := h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "", 0))
+	require.ErrorIs(t, err, want)
+	assert.Same(t, want, err, "handler error must propagate unchanged")
+	var handled bool
+	h = enrich.NewHandler(&probeHandler{handle: func(context.Context, slog.Record) error {
+		handled = true
+		return nil
+	}}, enrich.WithValue("panic", func(context.Context) slog.Value { panic(want) }))
+	assert.PanicsWithValue(t, want, func() {
+		slog.New(h).InfoContext(t.Context(), "panic")
+	})
+	assert.False(t, handled, "child handled a record after a Valuer panic")
+}
+
+func TestConstructorValidationAndEmptyDerivation(t *testing.T) {
+	assert.PanicsWithValue(t, "enrich: nil handler", func() { enrich.NewHandler(nil) })
+	var buf bytes.Buffer
+	h := enrich.NewHandler(slog.NewJSONHandler(&buf, outputOptions()), enrich.WithValue("ignored", nil))
+	assert.Same(t, h, h.WithAttrs(nil))
+	assert.Same(t, h, h.WithGroup(""))
+	require.NoError(t, h.Handle(t.Context(), slog.NewRecord(time.Time{}, slog.LevelInfo, "empty", 0)))
+	assert.Equal(t, "{\"level\":\"INFO\",\"msg\":\"empty\"}\n", buf.String())
+}
+
+func TestSlogHandlerConformance(t *testing.T) {
+	for _, currentGroup := range []bool{false, true} {
+		t.Run(fmt.Sprintf("current_group=%t", currentGroup), func(t *testing.T) {
+			var buf bytes.Buffer
+			value := slog.IntValue(1)
+			// The conformance suite expects empty record groups to stay empty.
+			// A present current-group value would intentionally make them nonempty.
+			if currentGroup {
+				value = enrich.Omit()
+			}
+			opts := []enrich.Option{enrich.WithValue("dynamic", func(context.Context) slog.Value { return value })}
+			if currentGroup {
+				opts = append(opts, enrich.WithCurrentGroup())
+			}
+			h := enrich.NewHandler(slog.NewJSONHandler(&buf, nil), opts...)
+			require.NoError(t, slogtest.TestHandler(h, func() []map[string]any { return decodeLines(t, buf.Bytes()) }))
+		})
+	}
+}
+
+func decodeLines(t *testing.T, data []byte) []map[string]any {
+	t.Helper()
+	lines := bytes.Split(bytes.TrimSpace(data), []byte{'\n'})
+	results := make([]map[string]any, 0, len(lines))
+	for _, line := range lines {
+		var result map[string]any
+		require.NoError(t, json.Unmarshal(line, &result), "invalid JSON: %s", line)
+		results = append(results, result)
+	}
+	return results
+}
+
+func recordAttrs(record slog.Record) []slog.Attr {
+	attrs := make([]slog.Attr, 0, record.NumAttrs())
+	record.Attrs(func(a slog.Attr) bool {
+		attrs = append(attrs, a)
+		return true
+	})
+	return attrs
+}
+
+type probeHandler struct {
+	enabled   func(context.Context, slog.Level) bool
+	handle    func(context.Context, slog.Record) error
+	withAttrs func([]slog.Attr) slog.Handler
+	withGroup func(string) slog.Handler
+}
+
+func (h *probeHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.enabled == nil || h.enabled(ctx, level)
+}
+
+func (h *probeHandler) Handle(ctx context.Context, record slog.Record) error {
+	if h.handle != nil {
+		return h.handle(ctx, record)
+	}
+	return nil
+}
+
+func (h *probeHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if h.withAttrs != nil {
+		return h.withAttrs(attrs)
+	}
+	return h
+}
+
+func (h *probeHandler) WithGroup(name string) slog.Handler {
+	if h.withGroup != nil {
+		return h.withGroup(name)
+	}
+	return h
+}

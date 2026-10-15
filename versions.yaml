@@ -105,6 +105,7 @@ module-sets:
 
       # Log
       - github.com/go-fries/fries/log/slog/v4
+      - github.com/go-fries/fries/log/slog/enrich/v4
       - github.com/go-fries/fries/log/slog/multi/v4
       - github.com/go-fries/fries/log/slog/syslog/v4
 
