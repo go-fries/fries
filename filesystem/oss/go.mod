@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-fries/fries/filesystem/v4 => ../
 
 require (
-	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.1
 	github.com/go-fries/fries/filesystem/v4 v4.3.0
 	github.com/stretchr/testify v1.12.1
 )
