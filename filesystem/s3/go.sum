@@ -1,7 +1,7 @@
 github.com/aws/aws-sdk-go-v2 v1.47.3 h1:HRoT/MkNi3bjO5xF4dCzLzvVmkvRGHj3/cLINDnJejk=
 github.com/aws/aws-sdk-go-v2 v1.47.3/go.mod h1:xSl+OSI5ZUw6bSMupWc218zE5Pl+65MCCu3ySWFY99A=
-github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.22 h1:oiEmPz/YMMeh/JvAE8xSxNCIsvWE6lpFe4ZPlyFykQI=
-github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.22/go.mod h1:QWUDuRi9PFjBHIU2iH1Pkldbe7zqLfXJC4wWLbF8nuQ=
+github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.23 h1:/fGPpKrXTjzkhsDXExBgNT2cGwxiF9rLrQXh8RlXMhI=
+github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.23/go.mod h1:QWUDuRi9PFjBHIU2iH1Pkldbe7zqLfXJC4wWLbF8nuQ=
 github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 h1:CqL8NN3p4I0JTwwV5MEoatIl4Y2amZ2X9dRD+0hbRL0=
 github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6/go.mod h1:exdJ32hMqXl0Wyo6NwqEC5yIhtua3+PDaKE8P29m4qE=
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.6 h1:FpBq24TG6WVSObTNhQOv7Q0088rounUUlwn3zlNItkM=
@@ -16,8 +16,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 h1:LHHdobjo5
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6/go.mod h1:CBGB0evAiaMD3Lk4wPO7LQCcCZLuhzL5Qf/wfEUHQ5w=
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.6 h1:mYViDr2azcgxOpRrObZOl631bvavqILoE/L+Kxgbwys=
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.6/go.mod h1:OXVdAo9jNhggB+hJRGOyy7WolGTKB6Rg7IIulDeSzPM=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.114.3 h1:NyeuyXkZL476uoAowNActm4XJO1QPKf7aassgXHpiqA=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.114.3/go.mod h1:GfoBeKMDJecgRUsGf/0RGdx0NJAh81ObTd922h8pQys=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.114.4 h1:MrkWRB58Qw5TEkb51QVooVLjlM3IevO2iVXEz74B8pg=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.114.4/go.mod h1:yfIxaKRHasvfy6tNEm3/LpqKsupMzQjMaWj9Y0jMVbo=
 github.com/aws/smithy-go v1.28.6 h1:Pj+/sUviNYjow8ELRtNwKHZ9ECeF+7pATX3+shjLIrw=
 github.com/aws/smithy-go v1.28.6/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
