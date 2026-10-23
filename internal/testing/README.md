@@ -1,6 +1,6 @@
 # Test module inventory
 
-Audit date: 2026-09-16; updated 2026-10-15 for `log/slog/enrich`. This inventory covers all 95 Go modules, assigning each test file to its nearest `go.mod` rather than assuming root `go test ./...` traverses nested modules.
+Audit date: 2026-09-16; updated 2026-10-23 for `notification`. This inventory covers all 96 Go modules, assigning each test file to its nearest `go.mod` rather than assuming root `go test ./...` traverses nested modules.
 
 `make test-unit` runs all component and example modules with `-short`. `make test-integration` runs the full suites of the seven service-backed modules declared in [modules.mk](modules.mk), including their in-process tests. It uses non-short, uncached, verbose execution. Missing services fail full runs.
 
@@ -22,7 +22,7 @@ GORM Scope reads `MYSQL_DSN`, defaults to the CI `gorm` database, and owns a ran
 
 ## Service-independent modules
 
-The following 80 modules have tests requiring no separately provisioned service. This includes tests using local sockets, temporary files, fakes, and test-owned HTTP servers.
+The following 81 modules have tests requiring no separately provisioned service. This includes tests using local sockets, temporary files, fakes, and test-owned HTTP servers.
 
 | Module | Module | Module |
 | --- | --- | --- |
@@ -52,7 +52,7 @@ The following 80 modules have tests requiring no separately provisioned service.
 | `strings` | `support` | `time/period` |
 | `timezone` | `udp` | `webhook` |
 | `webhook/sender` | `x/container` | `x/pagination` |
-| `x/prints` | `log/slog/enrich` | |
+| `x/prints` | `log/slog/enrich` | `notification` |
 
 Notable audit findings:
 
@@ -62,6 +62,7 @@ Notable audit findings:
 - OTLP tests use test exporters/transports; GORM logger tests do not open a database.
 - UDP, HTTP servers, and syslog may create local listeners. Filesystem tests use temporary directories and have platform-specific symlink skips. These remain in the unit entry point.
 - MySQL Canal Server tests cover construction and lifecycle adaptation without running a live Canal source.
+- Notification mail tests use injected senders; inbox tests use the process-local memory store, without SMTP or a database service.
 
 ## Modules without test files
 
@@ -84,11 +85,11 @@ This audit describes the current test suite, not backend capabilities. Missing t
 
 ## CI grouping and coverage
 
-The Go Test workflow partitions the 92 coverage modules using `modules.mk` and Make's existing module discovery:
+The Go Test workflow partitions the 93 coverage modules using `modules.mk` and Make's existing module discovery:
 
 | Group | Modules | Go versions | Services | Test mode |
 | --- | --- | --- | --- | --- |
-| `unit` | 85: all coverage modules except service modules | 1.26.x, 1.27.x | None | Short |
+| `unit` | 86: all coverage modules except service modules | 1.26.x, 1.27.x | None | Short |
 | `redis` | 6: `REDIS_TEST_MOD_DIRS` | 1.26.x, 1.27.x | Redis | Full |
 | `mysql-latest` | 1: `MYSQL_TEST_MOD_DIRS` | 1.26.x, 1.27.x | MySQL latest | Full |
 | `mysql-5.7` | Same MySQL module | 1.26.x, 1.27.x | MySQL 5.7 | Full |

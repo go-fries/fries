@@ -79,6 +79,7 @@ fixes:
   - github.com/go-fries/fries/kratos/middleware/otel/v4::kratos/middleware/otel/
   - github.com/go-fries/fries/locker/v4::locker/
   - github.com/go-fries/fries/locker/redis/v4::locker/redis/
+  - github.com/go-fries/fries/notification/v4::notification/
   - github.com/go-fries/fries/queue/v4::queue/
   - github.com/go-fries/fries/queue/adapter/memory/v4::queue/adapter/memory/
   - github.com/go-fries/fries/queue/adapter/rabbitmq/v4::queue/adapter/rabbitmq/

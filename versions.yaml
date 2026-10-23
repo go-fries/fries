@@ -118,6 +118,9 @@ module-sets:
       - github.com/go-fries/fries/locker/v4
       - github.com/go-fries/fries/locker/redis/v4
 
+      # Notification
+      - github.com/go-fries/fries/notification/v4
+
       # Queue
       - github.com/go-fries/fries/queue/v4
       - github.com/go-fries/fries/queue/adapter/memory/v4
