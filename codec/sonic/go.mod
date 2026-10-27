@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-fries/fries/codec/v4 => ../
 
 require (
-	github.com/bytedance/sonic v1.15.4
+	github.com/bytedance/sonic v1.15.5
 	github.com/go-fries/fries/codec/v4 v4.3.0
 	github.com/stretchr/testify v1.12.1
 )
