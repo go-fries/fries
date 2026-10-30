@@ -212,7 +212,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pandatix/go-abnf v0.5.3 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
-	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
+	github.com/petermattis/goid v0.0.0-20261030104850-e60ce7d9a607 // indirect
 	github.com/pjbgf/sha1cd v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.25.0 // indirect
