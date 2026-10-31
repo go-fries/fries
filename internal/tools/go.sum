@@ -487,8 +487,8 @@ github.com/pandatix/go-abnf v0.5.4 h1:Ds32m+31oMVBw/vJB2uCI0qGa0zwmEftl0ZQkXClYD
 github.com/pandatix/go-abnf v0.5.4/go.mod h1:AE0KD3/VNoCjGzc1gqetRKshbI4SYErXQ/8kPenR5mc=
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
-github.com/petermattis/goid v0.0.0-20261030104850-e60ce7d9a607 h1:/AqzrccoIsKEu7oZ2Zq+53h6yZlflLgCaohJ63TiaWY=
-github.com/petermattis/goid v0.0.0-20261030104850-e60ce7d9a607/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
+github.com/petermattis/goid v0.0.0-20261031113815-c1739d51dded h1:ckFNsv0XuAAzv4kxDkvyDkkdbkEiBm4wTPNT6QfmOFE=
+github.com/petermattis/goid v0.0.0-20261031113815-c1739d51dded/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/pjbgf/sha1cd v0.7.0 h1:ZRNPKHj+gfkLBf0KJv/p1Hmz+7bqCT5o311YX0nq+DA=
 github.com/pjbgf/sha1cd v0.7.0/go.mod h1:pKR5Li+qTCo+ebqITZfwPlJGoCFCvSO00qxjbNtTUFQ=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
