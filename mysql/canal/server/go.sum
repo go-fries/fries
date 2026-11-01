@@ -20,8 +20,8 @@ github.com/pingcap/failpoint v0.0.0-20260811232634-55ac33a48e3b h1:5qoDlNwsxDoWU
 github.com/pingcap/failpoint v0.0.0-20260811232634-55ac33a48e3b/go.mod h1:jimwlLpI/XtwQdlZML15HS+j4rirvwZM0GLY07wwgOo=
 github.com/pingcap/log v1.1.1-0.20261007233122-0034994d1a22 h1:roxS/6JKWcGS+hyfe5pioftbUmeTKbPkDBY67d7THIU=
 github.com/pingcap/log v1.1.1-0.20261007233122-0034994d1a22/go.mod h1:pxfz2oJfAuhwrb3/rcLqD//GS/5gRP4gD022iP3cEO0=
-github.com/pingcap/tidb/pkg/parser v0.0.0-20260802155152-c25caa6b2d25 h1:FrDUNWeyx48swSxirvZLKV2Eafml0de4m6zLCmZAiT4=
-github.com/pingcap/tidb/pkg/parser v0.0.0-20260802155152-c25caa6b2d25/go.mod h1:zDLDsfNBU5+L6T4J9/OgWAHc/WZvMUjbpgHqQ/t3yKo=
+github.com/pingcap/tidb/pkg/parser v0.0.0-20261030164418-49ad42027800 h1:iGjP2j031Is+DoFRz1X7evDTUYVcnWZ5xMSlKZ72Ewk=
+github.com/pingcap/tidb/pkg/parser v0.0.0-20261030164418-49ad42027800/go.mod h1:YXpaDltOQJ+5wGbVvVO697axnkRkY82FxsUrNmT84JA=
 github.com/shopspring/decimal v1.6.0 h1:DcTwjCj4tJPLuGZYsR9W0hyX9pQwMIkdo26Ig1T9xX4=
 github.com/shopspring/decimal v1.6.0/go.mod h1:gawqmDU56v4yIKSwfBSFip1HdCCXN8/+DMd9qYNcwME=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
