@@ -16,5 +16,5 @@ require (
 require (
 	github.com/go-fries/fries/codec/v4 v4.3.0 // indirect
 	github.com/go-fries/fries/retry/v4 v4.3.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 )
