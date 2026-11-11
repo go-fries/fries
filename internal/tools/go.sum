@@ -8,8 +8,8 @@ buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-2025010916
 buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-20250109164928-1da0de137947.1/go.mod h1:8PRKXhgNes29Tjrnv8KdZzg3I1QceOkzibW1QK7EXv0=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 h1:NbnlmV26O7oZ1iM5tsCI+GEx+3ZSdrhvnKQ/eWSrLiY=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
-buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20261103164144-b48d901dbba8.1 h1:9NEVg6Qvdw1BXrI2RJMlnAhHKnGzI7ebH8WC0vtQ0D8=
-buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20261103164144-b48d901dbba8.1/go.mod h1:+0nADWQBEFUpIlaPo6O+HVKwcJAfuPeLlAx79FCXSeY=
+buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20261105203900-12e7031be281.1 h1:nsD2BnpCp3BikaXnglX8Kp19rnLY1Tw2s30fByeiioY=
+buf.build/gen/go/bufbuild/registry/connectrpc/go v1.21.0-20261105203900-12e7031be281.1/go.mod h1:RGNp7vtTgyURkjfSoLIL3hIF5FXz0wmz0CYsxGC7keY=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261105203900-12e7031be281.2 h1:AhXBE/44tl+aCktpSzQNmGp3ha/BW8LaOSLrUt97/68=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261105203900-12e7031be281.2/go.mod h1:v7IaNcBKy5G3G8gpG2m92P0R3HK2qtMGclWzf+1Aut4=
 buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2 h1:9xw8g8Q6zHLC7CO/jtpl2UK0kQticxIG+mI6N86f2/M=
