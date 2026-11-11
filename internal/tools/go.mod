@@ -31,7 +31,7 @@ require (
 	cel.dev/expr v0.25.3 // indirect
 	charm.land/lipgloss/v2 v2.0.6 // indirect
 	codeberg.org/chavacava/garif v0.2.1 // indirect
-	codeberg.org/polyfloyd/go-errorlint v1.9.0 // indirect
+	codeberg.org/polyfloyd/go-errorlint v1.9.1 // indirect
 	connectrpc.com/connect v1.21.1 // indirect
 	connectrpc.com/connect/v2 v2.0.2 // indirect
 	connectrpc.com/otelconnect v0.12.0 // indirect
