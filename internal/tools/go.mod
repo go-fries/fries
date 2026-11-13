@@ -1,6 +1,6 @@
 module github.com/go-fries/fries/internal/tools/v4
 
-go 1.26.0
+go 1.26.7
 
 require (
 	github.com/bufbuild/buf v1.65.0
@@ -29,7 +29,7 @@ require (
 	buf.build/go/standard v0.1.0 // indirect
 	cel.dev/cel-go v0.33.2 // indirect
 	cel.dev/expr v0.25.3 // indirect
-	charm.land/lipgloss/v2 v2.0.6 // indirect
+	charm.land/lipgloss/v2 v2.1.0 // indirect
 	codeberg.org/chavacava/garif v0.2.1 // indirect
 	codeberg.org/polyfloyd/go-errorlint v1.9.1 // indirect
 	connectrpc.com/connect v1.21.1 // indirect
