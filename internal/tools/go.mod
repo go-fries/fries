@@ -260,7 +260,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetafro/godot v1.5.6 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
-	github.com/tidwall/btree v1.8.2 // indirect
+	github.com/tidwall/btree/v2 v2.0.0 // indirect
 	github.com/timakin/bodyclose v0.0.0-20261107224203-8bb60b19bea4 // indirect
 	github.com/timonwong/loggercheck v0.13.1 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.13.0 // indirect
