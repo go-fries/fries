@@ -3,7 +3,7 @@ module github.com/go-fries/fries/gorm/scope/v4
 go 1.26.0
 
 require (
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/stretchr/testify v1.12.1
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.2
