@@ -16,7 +16,7 @@ require (
 	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/goccy/go-json v0.12.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.20.4 // indirect
+	github.com/klauspost/compress v1.20.5 // indirect
 	github.com/pingcap/errors v0.11.5-0.20261112082253-e508e776636f // indirect
 	github.com/pingcap/failpoint v0.0.0-20261116082356-6de31e1f756d // indirect
 	github.com/pingcap/log v1.1.1-0.20261116082314-0504f36ee733 // indirect
