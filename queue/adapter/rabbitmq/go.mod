@@ -10,7 +10,7 @@ replace (
 
 require (
 	github.com/go-fries/fries/queue/v4 v4.3.0
-	github.com/rabbitmq/amqp091-go v1.16.0
+	github.com/rabbitmq/amqp091-go v1.17.0
 	github.com/stretchr/testify v1.12.1
 )
 
