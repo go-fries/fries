@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-fries/fries/filesystem/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.10
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0
 	github.com/aws/smithy-go v1.28.9
 	github.com/go-fries/fries/filesystem/v4 v4.3.0
 	github.com/stretchr/testify v1.12.1
