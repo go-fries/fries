@@ -23,7 +23,7 @@ require (
 	buf.build/go/bufplugin v0.11.1 // indirect
 	buf.build/go/bufprivateusage v0.1.0 // indirect
 	buf.build/go/interrupt v1.1.0 // indirect
-	buf.build/go/protovalidate v1.4.0 // indirect
+	buf.build/go/protovalidate v1.4.1 // indirect
 	buf.build/go/protoyaml v0.8.0 // indirect
 	buf.build/go/spdx v0.3.0 // indirect
 	buf.build/go/standard v0.1.0 // indirect

@@ -1,7 +1,7 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 h1:NbnlmV26O7oZ1iM5tsCI+GEx+3ZSdrhvnKQ/eWSrLiY=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
-buf.build/go/protovalidate v1.4.0 h1:UjLrYbt5VX7+TMOs2+pG5FhZhIG1mSfK4EIopbb4LcM=
-buf.build/go/protovalidate v1.4.0/go.mod h1:8vJfzNT6NIG2qm3uFsJDXMlRmG+bQJzbcIn1Aa0vPGs=
+buf.build/go/protovalidate v1.4.1 h1:G/AHf1EKrY9E0gXXxkPavEppwZe/7oAVq4rBbSWu0hQ=
+buf.build/go/protovalidate v1.4.1/go.mod h1:rwfPjgeCqK+DsDsBtLUNT1l5uoXl/0KFA632z3wlyCQ=
 cel.dev/cel-go v0.33.4 h1:9hd5BRPQZwj81qOddEXh0WhE1N3shkG3ad89pSqk+iU=
 cel.dev/cel-go v0.33.4/go.mod h1:DnVip7tpJSsgZymwfT+m1tnEVy3ivAjSMXPx12YrMkU=
 cel.dev/expr v0.26.0 h1:oLXvOF0jiYA5A/tmzU91pLEWZkKynhLJlC9Gw7PrKvs=
