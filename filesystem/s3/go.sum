@@ -18,8 +18,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.12 h1:H0IaQayT3TLiG
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.12/go.mod h1:YuJJNxaOjnknLIrscBmkLhIpnmg9LzHd25sQRKUboGU=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0 h1:0/glEMW6lLpeGOq7tDKn3314ookbLSvzRs71Oknt6gA=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0/go.mod h1:8NhAIBVYkVHq0hIbbzujdoou0VkKwMdG+De9e5oX6qI=
-github.com/aws/smithy-go v1.28.9 h1:zkZ058OpNX0iGTK24b+ZUEQSMc11CBA6oO7xtKZfzkY=
-github.com/aws/smithy-go v1.28.9/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
+github.com/aws/smithy-go v1.28.11 h1:2aArhkXe0dFld6IFMlaVy47SbSdU/ZGbDaE7X2DjZkI=
+github.com/aws/smithy-go v1.28.11/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 go.yaml.in/yaml/v3 v3.0.6 h1:zcDfvjXEqTQmpjniUBLc91xYJMB2c4QOFxEF/LCEckM=
