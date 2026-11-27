@@ -17,7 +17,7 @@ require (
 	github.com/goccy/go-json v0.12.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.20.5 // indirect
-	github.com/pingcap/errors v0.11.5-0.20261112082253-e508e776636f // indirect
+	github.com/pingcap/errors v0.11.5-0.20261126180509-13df0281a434 // indirect
 	github.com/pingcap/failpoint v0.0.0-20261116082356-6de31e1f756d // indirect
 	github.com/pingcap/log v1.1.1-0.20261116082314-0504f36ee733 // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260802155152-c25caa6b2d25 // indirect
